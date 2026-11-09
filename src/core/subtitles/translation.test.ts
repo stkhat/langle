@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { sentenceCards } from "./cues";
 import { alignByOverlap, chooseTranslation } from "./translation";
+import { parseTtml } from "./ttml";
 import type { Cue, Track } from "./types";
 import { parseYouTubeJson3, youtubeCaptionInfo } from "./youtube-json3";
 
@@ -115,8 +117,11 @@ describe("alignByOverlap", () => {
 
     it("joins several translated cues without spaces for Japanese", () => {
       // ja 40000–44000 overlaps en[5] (37269–41175) by 1175 ms and en[6] by 904 ms,
-      // so en[6] (43096–46663) gets only ja 44000–48000
-      expect(aligned[6]).toBe("３つの灯台を見てきました");
+      // but en[5] is "(Laughter)", so en[6] (43096–46663) gets it and ja 44000–48000
+      expect(aligned[5]).toBe("");
+      expect(aligned[6]).toBe(
+        "ソンファレンスを笛して、せれまで鐘たらは３そのツーマを庭り歌りてあました",
+      );
       // en[8] 48997–53467 overlaps ja 48000–50000 (1003 ms, more than en[7]'s 973 ms)
       // and ja 50000–54000 (3467 ms)
       expect(aligned[8]).toBe(
@@ -169,5 +174,89 @@ describe("alignByOverlap", () => {
   it("handles empty inputs", () => {
     expect(alignByOverlap([], [cue(0, 1, "x")], { lang: "en" })).toEqual([]);
     expect(alignByOverlap([cue(0, 1, "a")], [], { lang: "en" })).toEqual([""]);
+  });
+});
+
+describe("alignByOverlap on sentence cards", () => {
+  const flat = (text: string) => text.replaceAll("\n", " ");
+
+  it("gives a line that covers two cues to their sentence, not to half of it", () => {
+    const { cards } = sentenceCards([
+      cue(1000, 3000, "DID YOU EVEN INTERVIEW THIS WOMAN"),
+      cue(3100, 5000, "BEFORE YOU ASKED HER TO MOVE IN?"),
+      cue(5200, 6000, "I DIDN'T KNOW THAT, EITHER."),
+    ]);
+    expect(
+      alignByOverlap(
+        cards,
+        [
+          cue(1500, 4800, "同居させる前に面接した？"),
+          cue(5100, 6000, "初耳だよ"),
+        ],
+        { lang: "ja" },
+      ),
+    ).toEqual(["同居させる前に面接した？", "初耳だよ"]);
+  });
+
+  it("gives a spoken line to a sentence it overlaps rather than to a sound label", () => {
+    const { cards } = sentenceCards([
+      cue(0, 2000, "If you work in education,"),
+      cue(2000, 3000, "you're not asked."),
+      cue(3000, 6000, "(Laughter)"),
+      cue(6000, 8000, "[DOOR CLOSES]"),
+    ]);
+    expect(
+      alignByOverlap(
+        cards,
+        [
+          cue(2500, 5500, "誘われませんよね"),
+          cue(6000, 8000, "（ドアが閉まる）"),
+        ],
+        { lang: "ja" },
+      ),
+    ).toEqual(["誘われませんよね", "", "（ドアが閉まる）"]);
+  });
+
+  it("matches the YouTube fixtures' Japanese lines to the English sentences", () => {
+    const { cards } = sentenceCards(parseYouTubeJson3(fixture("en.json3")));
+    const ja = parseYouTubeJson3(fixture("ja.json3"));
+    const aligned = alignByOverlap(cards, ja, { lang: "ja" });
+    const of = (start: string) =>
+      aligned[cards.findIndex((c) => flat(c.text).startsWith(start))];
+    expect(of("In pool, I'm shelter.")).toBe(
+      "だかちさひさひ床ひふかと階って（虫）",
+    );
+    expect(of("There have been three family")).toBe(
+      "ソンファレンスを笛して、せれまで鐘たらは３そのツーマを庭り歌りてあました",
+    );
+    expect(of("If you're at a lantern market")).toBe(
+      "（サンプルの字幕です）" +
+        "（サンプルの字幕です）",
+    );
+    expect(of("If you work in education")).toBe("（サンプルの字幕です）");
+    // The laughter gets no spoken line.
+    cards.forEach((card, i) => {
+      if (card.text === "(Laughter)") expect(aligned[i]).toBe("");
+    });
+  });
+
+  it("matches the Netflix fixtures' Japanese lines to the closed captions' sentences", () => {
+    const read = (name: string) =>
+      parseTtml(
+        readFileSync(
+          new URL(`./fixtures/netflix/${name}`, import.meta.url),
+          "utf8",
+        ),
+      );
+    const { cards } = sentenceCards(read("en.imsc.ttml"));
+    const aligned = alignByOverlap(cards, read("ja.imsc.ttml"), {
+      lang: "ja",
+    });
+    const of = (start: string) =>
+      aligned[cards.findIndex((c) => flat(c.text).startsWith(start))];
+    expect(of("IF YOU ARE NOT PREPARED")).toBe(
+      "間違う覚悟がなければ独創的なものは生まれません",
+    );
+    expect(of("[AUDIENCE APPLAUDS]")).toBe("（拍手）");
   });
 });
