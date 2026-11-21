@@ -294,6 +294,11 @@ for (const [doc, list] of byDoc) {
     knownLevel: LEVEL,
     casing,
     capitalMeaning: (key: string) => dictionary.capitalMeaning(key),
+    // Checkouts before `DictionaryProvider.acronym` have none.
+    acronym: (key: string) =>
+      (
+        dictionary as { acronym?: (key: string) => boolean | undefined }
+      ).acronym?.(key),
     outline: (key: string) => dictionary.outline(key),
   };
   /** Phrases as one match each: the parts of a phrase with a gap together. */
