@@ -179,9 +179,12 @@ export function readWords(
  *    So too a word without a tag whose entry is only pointers, the first to a word
  *    that is none of its bases (a homograph's: de "is" → "Plural des Substantivs i").
  * 1b. A headword whose entry has no sense of the tagged part of speech, unless it is
- *    an inflected verb form (rules 2 and 3) or its entry starts with a pointer to
- *    one of its bases ("dying": dieの現在分詞): the first other base whose entry has
- *    one (Spanish "los" as an article → el).
+ *    an inflected verb form (rules 2 and 3), its entry starts with a pointer to
+ *    one of its bases ("dying": dieの現在分詞), or it is a noun, adjective or adverb
+ *    of its own (the language lists it so) whose tag says it has no ending
+ *    (`TokenTag.morph`: English "full bore" as NN is the noun bore, not a form of
+ *    bear's noun): the first other base whose entry has one (Spanish "los" as an
+ *    article → el).
  * 2. A participle keeps its own entry when the word is not used as a verb and the
  *    entry has a meaning: before a noun ("demanding work"), a state ("was
  *    established", "are we done": "doの過去分詞", then "仕上がった"); or when it is
@@ -284,10 +287,21 @@ export function chooseKey(
   // noun, is no die "dice").
   // Without a trusted tag, the part of speech the grammar is sure of (German: a
   // capitalised word inside a sentence is a noun, "mit Haaren": Haar, not haaren).
+  // A noun, adjective or adverb the tag says carries no ending (English NN, JJ, RB),
+  // which the language lists as one of that part of speech itself, is that word, not
+  // another base's form: those classes inflect only by endings (a plural, a degree),
+  // so "full bore" is the noun bore, not bear's noun ("oso"), bore being bear's past,
+  // a verb form. A form takes only its base's senses of the part of speech it is a
+  // form of. Verbs have forms with no ending (am, are), so not for them.
   const tagged = tag?.label ?? use.grammarPos;
+  const itself =
+    tag?.morph === false &&
+    (tagged === "noun" || tagged === "adjective" || tagged === "adverb") &&
+    pack.partsOfSpeech(form).some((pos) => accepts(tagged, pos));
   if (
     tagged !== undefined &&
     tagged !== "other" &&
+    !itself &&
     !(tagged === "verb" && tag?.inflected) &&
     !(own.formOf !== undefined && bases.includes(own.formOf)) &&
     own.pos.length > 0 &&
