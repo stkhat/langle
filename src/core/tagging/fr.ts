@@ -642,7 +642,7 @@ export function frenchTagger(model: PerceptronModel): Tagger {
       tagSentence(
         model,
         tokens.map((token) => token.replaceAll("’", "'")),
-      ).map(({ tag, margin }) => udTokenTag(tag, margin)),
+      ).map(udTokenTag),
     uses: (words) => {
       const auxiliaries = words.map((_, i) => auxiliary(words, i));
       return words.map((_, i) => use(words, i, auxiliaries));

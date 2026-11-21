@@ -4,7 +4,11 @@
  * get) and participles used as adjectives or prepositions.
  */
 import { CONTRACTION, VERB_TO } from "./en-clitics";
-import { tagSentence, type PerceptronModel } from "./perceptron";
+import {
+  tagSentence,
+  type PerceptronModel,
+  type ScoredTag,
+} from "./perceptron";
 import type { Tagger, TaggedWord, TokenTag, WordRole, WordUse } from "./tagger";
 
 /**
@@ -71,7 +75,21 @@ function treebankTokens(token: string): string[] {
   return words.map((word) => (word === "i" ? "I" : word));
 }
 
-function tokenTag(tag: string, confidence: number): TokenTag {
+function tokenTag({ tag, margin, rivals }: ScoredTag): TokenTag {
+  return {
+    ...readingOf(tag),
+    confidence: margin,
+    ...(rivals && {
+      rivals: rivals.map(({ tag: rival, behind }) => ({
+        ...readingOf(rival),
+        behind,
+      })),
+    }),
+  };
+}
+
+/** What a Penn Treebank tag says of a word. */
+function readingOf(tag: string): Omit<TokenTag, "confidence" | "rivals"> {
   const [label, inflected] = Object.hasOwn(PTB, tag)
     ? PTB[tag]!
     : ["other", false];
@@ -81,7 +99,6 @@ function tokenTag(tag: string, confidence: number): TokenTag {
     inflected,
     morph: MORPH.test(tag),
     proper: tag === "NNP" || tag === "NNPS",
-    confidence,
   };
 }
 
@@ -304,9 +321,9 @@ export function englishTagger(model: PerceptronModel): Tagger {
       const tags = tagSentence(model, split.flat());
       let at = 0;
       return split.map((words) => {
-        const { tag, margin } = tags[at]!;
+        const scored = tags[at]!;
         at += words.length;
-        return tokenTag(tag, margin);
+        return tokenTag(scored);
       });
     },
     uses: (words) => words.map((_, i) => use(words, i)),

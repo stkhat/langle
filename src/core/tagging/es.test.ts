@@ -43,6 +43,7 @@ describe("spanishTagger: tag", () => {
       inflected: false,
       morph: true,
       proper: false,
+      kind: "DET",
       confidence: Infinity,
     });
     expect(ha).toMatchObject({ label: "verb", inflected: true });
@@ -52,7 +53,20 @@ describe("spanishTagger: tag", () => {
       inflected: true,
       morph: true,
       proper: false,
+      kind: "VERB",
       confidence: 3,
+      // The next best tag, a noun 3 behind, for `readTag`.
+      rivals: [
+        {
+          tag: "NOUN",
+          label: "noun",
+          inflected: false,
+          morph: true,
+          proper: false,
+          kind: "NOUN",
+          behind: 3,
+        },
+      ],
     });
     expect(casa).toMatchObject({ label: "noun", confidence: 0 });
     expect(madrid).toMatchObject({ label: "noun", proper: true });
