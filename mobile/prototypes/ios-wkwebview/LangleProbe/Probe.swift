@@ -68,7 +68,7 @@ final class Probe: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     }
     webView.navigationDelegate = self
 
-    for name in Probe.commands.keys {
+    for name in Array(Probe.commands.keys) + ["llm"] {
       CFNotificationCenterAddObserver(
         CFNotificationCenterGetDarwinNotifyCenter(), Unmanaged.passUnretained(self).toOpaque(),
         { _, observer, name, _, _ in
@@ -89,6 +89,7 @@ final class Probe: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
   }
 
   func run(_ name: String) {
+    if name == "llm" { return LLMProbe.run() }
     guard let js = Probe.commands[name] else { return }
     webView.callAsyncJavaScript(js, arguments: [:], in: nil, in: .page) { result in
       switch result {
