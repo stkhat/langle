@@ -1,4 +1,4 @@
-// Kept identical in both Android prototypes (android-geckoview/…/probe-ext/probe.js).
+// Kept identical in all prototypes (android-webview, android-geckoview, ios-wkwebview).
 // Injected at document start in every frame (page world: WebView has no isolated world).
 // Reports to the app through `langleNative` (WebViewCompat.addWebMessageListener).
 // 1. YouTube ad fields are pruned from the player response before the player reads it.

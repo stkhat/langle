@@ -169,6 +169,8 @@ Tooling for the phone app ([notes/mobile.md](notes/mobile.md), [ui](specs/ui.md)
   - `sdkmanager` now forwards to the new `android` CLI (`android sdk list`, `android sdk install …`); pass `--no-metrics` to keep its usage reporting off.
   - For Claude: the emulator, `adb` and the `android` CLI run with the sandbox off (hypervisor, the adb daemon's port, writes under `~/.android`).
 - **iOS**: full Xcode (Command Line Tools have no iOS SDK or Simulator). After installing it: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`, `sudo xcodebuild -license accept`, `xcodebuild -runFirstLaunch`, `xcodebuild -downloadPlatform iOS`. A free Apple ID is enough for the Simulator and one's own iPhone.
+  - The prototype (`mobile/prototypes/ios-wkwebview`) builds with `xcodebuild -project … -scheme LangleProbe -destination 'generic/platform=iOS Simulator'` (or Xcode); `check.sh` installs, launches and drives it on the booted Simulator.
+  - For Claude: `simctl` (boot, install, launch, `log stream`, screenshots) runs with the sandbox off (CoreSimulatorService). Boot one device at a time (`xcrun simctl boot "iPhone 17"`) and `xcrun simctl shutdown all` afterwards.
 
 ## CI/CD
 - Tests run locally first: `npm run verify` before every push (the pre-push hook enforces it). GitHub Actions minutes are limited (private repository; macOS bills at 10x, Windows at 2x), so GitHub runs the tests only when a pull request is ready to merge.
