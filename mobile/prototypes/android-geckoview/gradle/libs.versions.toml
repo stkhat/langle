@@ -1,0 +1,11 @@
+[versions]
+androidGradlePlugin = "9.1.0"
+kotlin = "2.4.21"
+geckoview = "160.0.20261116130455"
+
+[libraries]
+geckoview = { module = "org.mozilla.geckoview:geckoview", version.ref = "geckoview" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
