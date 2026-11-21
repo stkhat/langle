@@ -1,6 +1,6 @@
 # Token usage in Langle sessions
 
-Measured 2026-11-20 over every local Claude Code transcript of this project (2026-11-07 → 2026-11-20): 44 parent sessions and 545 subagents. Rerun with `python3 -I scripts/token-usage.py [sessions|subagents|attribution|cap] [--since YYYY-MM-DD]`.
+Measured 2026-11-20 over every local Claude Code transcript of this project (2026-11-07 → 2026-11-20): 44 parent sessions and 545 subagents. Rerun with `python3 -I scripts/token-usage.py [sessions|subagents|attribution|cap|friction] [--since YYYY-MM-DD]`; the `dev-review` skill does every 3 days ([dev-reviews.md](dev-reviews.md)).
 
 Tokens are weighted by relative price (input 1, cache write 1.25, cache read 0.1, output 5), so shares compare like cost.
 
