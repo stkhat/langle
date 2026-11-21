@@ -71,9 +71,9 @@ Two throwaway apps in `mobile/prototypes/` (setup: [development.md](../developme
 - **`tlang=ja`**: 200 (50,846 B) on the first try, and the player's own translated request got 200 (50,845 B) from fresh launches with either UA. Right after `variants` (six refetches at once) every timedtext request, even the plain captured one, got 429 (1,103 B) for a few minutes, the player's own translation included, across app restarts. So `tlang` works in WKWebView; Langle must not burst timedtext requests (one at a time, cached).
 - **Ad fields**: `adBreakHeartbeatParams` pruned on this video, playback kept going, no ad, no warning.
 - **Blocking**: EasyList's `||host^` rules (46,396) as one `WKContentRuleList` (compiled in 2.3 s on the Simulator, cached by WebKit after that) plus the generic `##` rules (13,636) as a document-start stylesheet. Daily Mail: 175 resources from 44 hosts, 17 of them EasyList ad hosts (`ad.doubleclick.net`, `c.amazon-adsystem.com` …), without blocking; 129 resources from 41 hosts, none of them listed, with it; the page looked the same.
-- **Google sign-in**: the sign-in page loads (email step); the password step is not checked yet (the user types).
+- **Google sign-in** (default UA): the email was accepted and Google moved on to its passkey step, then offered "passkey / enter password / try another way"; no "this browser or app may not be secure" block. Stopped there (the password was not entered).
 - App: 364 KB (debug, Simulator).
-- Not checked: the password step, signed-in YouTube, Shorts, live streams, a real iPhone, pages that never finish loading (CNN's run waited for `didFinish` and was stopped).
+- Not checked: finishing sign-in, signed-in YouTube, Shorts, live streams, a real iPhone, pages that never finish loading (CNN's run waited for `didFinish` and was stopped).
 
 ## Ad blocking (not built; 2026-11-22)
 The app is the browser, so blocking runs in the app, outside any extension API and its limits (as Brave does; Brave on iOS also runs on WKWebView).
@@ -114,7 +114,7 @@ The app is the browser, so blocking runs in the app, outside any extension API a
 
 ## Next steps
 1. Install Xcode (the user) and the Android command-line tools. Done 2026-11-22.
-2. (Android and iOS done 2026-11-22, "Android prototypes" and "iOS prototype" above; open: WebView's `tlang` re-check without the burst, the iOS password step.) Minimal browser app prototypes that inject a script, capture timedtext, and try to reach Google's password step (the user signs in; Claude never enters credentials):
+2. (Android and iOS done 2026-11-22, "Android prototypes" and "iOS prototype" above; open: WebView's `tlang` re-check without the burst.) Minimal browser app prototypes that inject a script, capture timedtext, and try to reach Google's password step (the user signs in; Claude never enters credentials):
    - iOS: `WKWebView`, default UA and a Safari-like UA.
    - Android: GeckoView and System WebView, to choose the engine.
    - In both: one compiled filter list on an article, and the ad-field pruning on `m.youtube.com`; check that captions are still captured and that playback is not stopped.
