@@ -1,4 +1,7 @@
 {
+"satsuma":[[["noun","odmiana japońskiej mandarynki"]],0],
+"saturate":[[["verb","nasiąkać"],["verb","nasycać"],["verb","przepajać"],["verb","przemaczać"]],0],
+"saturated":[[["adjective","nasycony"],["adjective","w teorii grafów: nasycony"],["verb","forma czasu przeszłego prostego (past simple) czasownika to saturate",null,"saturate"],["verb","imiesłów czasu przeszłego (past participle) czasownika to saturate",null,"saturate"]],0],
 "saturated fatty acid":[[["noun","nasycony kwas tłuszczowy","a fatty acid whose carbon chain cannot absorb any more hydrogen atoms"]],2],
 "saturation":[[["noun","nasycenie, saturacja"]],0],
 "saturation point":[[["noun","granica","the point at which someone can't take it anymore"]],1],
@@ -14409,7 +14412,7 @@
 "yes-man":[[["noun","potakiwacz"]],0],
 "yeshiva":[[["noun","jesziwa"]],0],
 "yeshivah":[[["noun","jesziwa"]],0],
-"yesterday":[[["adverb","wczoraj"]],0],
+"yesterday":[[["noun","wczoraj","day before today"],["adverb","na wczoraj","as soon as possible"]],1],
 "yesteryear":[[["noun","przeszłość"]],0],
 "yet":[[["adverb","w przeczeniach: jeszcze, w pytaniach: już"],["adverb","jeszcze, wciąż"],["conjunction","jednak, ale, choć"]],0],
 "yeti":[[["noun","yeti"]],0],

@@ -2366,7 +2366,142 @@ function describedOnly(senses: readonly PairSense[]) {
 }
 
 /** The open classes, which every source labels alike (unlike numerals, articles…). */
-const OPEN_CLASSES: readonly string[] = ["noun", "verb", "adjective", "adverb"];
+export const OPEN_CLASSES: readonly string[] = [
+  "noun",
+  "verb",
+  "adjective",
+  "adverb",
+];
+
+/**
+ * The English treebank's (UD English-EWT) Penn Treebank tags by the part of speech a
+ * source labels senses with: the open classes, and the closed classes a later source
+ * may supply a term's main use in (`lesserUse`).
+ */
+const TREEBANK_CLASSES: Readonly<Record<string, string>> = {
+  NN: "noun",
+  NNS: "noun",
+  VB: "verb",
+  VBD: "verb",
+  VBG: "verb",
+  VBN: "verb",
+  VBP: "verb",
+  VBZ: "verb",
+  JJ: "adjective",
+  JJR: "adjective",
+  JJS: "adjective",
+  RB: "adverb",
+  RBR: "adverb",
+  RBS: "adverb",
+  DT: "determiner",
+  PDT: "determiner",
+  WDT: "determiner",
+  PRP: "pronoun",
+  PRP$: "pronoun",
+  WP: "pronoun",
+  WP$: "pronoun",
+  EX: "pronoun",
+  MD: "modal",
+  IN: "preposition",
+  TO: "preposition",
+  // English Wiktionary labels a phrasal verb's particle an adverb (turn off, look around).
+  RP: "adverb",
+  CC: "conjunction",
+  UH: "interjection",
+  CD: "numeral",
+};
+
+/** The sense labels that give a word in each treebank class (`TREEBANK_CLASSES`). */
+const CLASS_LABELS: Readonly<Record<string, readonly string[]>> = {
+  determiner: ["article", "determiner"],
+  modal: ["verb"],
+  preposition: ["preposition", "postposition", "particle"],
+};
+
+/** How often the English treebank uses each word (lower case) as each class. */
+export type TreebankUses = ReadonlyMap<string, ReadonlyMap<string, number>>;
+
+/** Counts the uses of each word in tagged sentences by class (`TREEBANK_CLASSES`). */
+export function treebankUses(
+  sentences: readonly { words: readonly string[]; tags: readonly string[] }[],
+): TreebankUses {
+  const uses = new Map<string, Map<string, number>>();
+  for (const { words, tags } of sentences)
+    words.forEach((word, i) => {
+      const of = TREEBANK_CLASSES[tags[i]!] ?? "other";
+      const key = word.toLowerCase().replaceAll("’", "'");
+      let counts = uses.get(key);
+      if (!counts) uses.set(key, (counts = new Map()));
+      counts.set(of, (counts.get(of) ?? 0) + 1);
+    });
+  return uses;
+}
+
+/** A word the treebank uses this often at least has a use it can tell (`lesserUse`) … */
+const LESSER_MIN_USES = 20;
+/** … and a part of speech it is used as at most this share of the time is a lesser one. */
+const LESSER_SHARE = 0.1;
+
+/**
+ * CORE: the labels of a term's main use when `senses` give it only in uses it rarely
+ * has, else undefined. Its senses are all of open parts of speech that English
+ * Wiktionary gives the word (`wiktionaryPos`, so the label is no source's slip), that
+ * the English treebank uses it as at most LESSER_SHARE of its uses (of
+ * LESSER_MIN_USES or more), and that are not its most translated sense's
+ * (`mostTranslated`): the Korean Wiktionary's "the" is only the adverb ("the more,
+ * the merrier": 비교급 앞에서 쓰는 부사), the article being said with no word; the
+ * tables' Korean "just" only the adjective (공정하다, fair), where the treebank's
+ * "just" is always the adverb; ar "will" only the noun (إرادة), tr "might" only the
+ * noun (güç), where the treebank's are modals. The main use is the class the treebank
+ * uses the word as most (`TREEBANK_CLASSES`): a later source with a sense so labelled
+ * supplies the term, and with none the term has no meaning in the language (its
+ * English definition shows: en-defs). Not a word that is another word's form
+ * (`form`): the treebank tags participles as verbs where sources call them adjectives
+ * or prepositions ("according to", "the following day"). An interjection's use is
+ * any sense's: languages say it with a word of an open class (ru okay "хорошо, ладно",
+ * an adverb; it "Indica un assenso"). Uses of no class (`TREEBANK_CLASSES`: names,
+ * possessive 's, symbols) are not counted: the treebank's "Google" is a name, so
+ * three verbs are no main use of "google".
+ */
+export function lesserUse(
+  senses: readonly PairSense[],
+  uses: ReadonlyMap<string, number> | undefined,
+  wiktionaryPos: readonly string[],
+  mostTranslated: string | undefined,
+  form = false,
+): readonly string[] | undefined {
+  if (!uses || senses.length === 0 || form) return undefined;
+  let total = 0;
+  let main = "";
+  for (const [of, count] of uses) {
+    if (of === "other") continue;
+    total += count;
+    if (count > (uses.get(main) ?? 0)) main = of;
+  }
+  if (total < LESSER_MIN_USES || main === "") return undefined;
+  const labels = new Set<string>();
+  for (const sense of senses) {
+    const [label] = sense;
+    if (
+      sense[3] !== undefined ||
+      !OPEN_CLASSES.includes(label) ||
+      !wiktionaryPos.includes(label) ||
+      label === mostTranslated
+    )
+      return undefined;
+    labels.add(label);
+  }
+  // A label gives the classes it is said in: a verb's senses give a modal too (could).
+  let used = 0;
+  for (const [of, count] of uses)
+    if (
+      of === "interjection" ||
+      (CLASS_LABELS[of] ?? [of]).some((label) => labels.has(label))
+    )
+      used += count;
+  if (used / total > LESSER_SHARE) return undefined;
+  return CLASS_LABELS[main] ?? [main];
+}
 
 /** A gloss's items (what its commas and semicolons separate), in lower case, without notes. */
 const itemsOf = (text: string) =>
@@ -2420,6 +2555,7 @@ export function mergeSources(
     degree = () => false,
     otherWord = () => false,
     expansionsOf = () => [],
+    lesser = () => undefined,
   }: {
     /** `from`: the tag of the source the term was taken from. */
     mainPos?: (key: string, from: string) => string | undefined;
@@ -2436,6 +2572,12 @@ export function mergeSources(
     ) => boolean;
     /** What a contraction is short for (en/contractions.json): "do not" for don't. */
     expansionsOf?: (key: string) => readonly string[];
+    /** The labels of a term's main use where `senses` give only lesser ones (`lesserUse`). */
+    lesser?: (
+      key: string,
+      senses: readonly PairSense[],
+      from: string,
+    ) => readonly string[] | undefined;
   } = {},
 ) {
   const dict: Record<string, [string, PairSense[], number]> = {};
@@ -2444,6 +2586,7 @@ export function mergeSources(
   const lacking: string[] = [];
   const pointing: string[] = [];
   const expanded: string[] = [];
+  const lessened: string[] = [];
   const means = (senses: readonly PairSense[]) =>
     senses.some((sense) => !isPointerSense(sense));
   /** Whether `senses` mean something as a `pos` (no pointer, no degree). */
@@ -2458,7 +2601,7 @@ export function mergeSources(
     taken: readonly PairSense[],
     later: readonly PairSense[],
     from: string,
-  ): "points" | "describes" | "lacks" | "expands" | false => {
+  ): "points" | "describes" | "lacks" | "expands" | "lesser" | false => {
     if (!means(taken)) {
       if (!means(later)) return false;
       if (otherWord(key, taken, later)) {
@@ -2495,6 +2638,12 @@ export function mergeSources(
       )
     )
       return "describes";
+    const wanted = lesser(key, taken, from);
+    if (
+      wanted !== undefined &&
+      later.some((sense) => !isPointerSense(sense) && wanted.includes(sense[0]))
+    )
+      return "lesser";
     const main = mainPos(key, from);
     return (
       main !== undefined &&
@@ -2522,6 +2671,7 @@ export function mergeSources(
         if (why === "describes") described.push(key);
         if (why === "lacks") lacking.push(key);
         if (why === "expands") expanded.push(key);
+        if (why === "lesser") lessened.push(key);
       }
       dict[key] = [short, senses, index];
       counts[tag]++;
@@ -2539,5 +2689,7 @@ export function mergeSources(
     pointing,
     /** The contractions a later source took for translating what they are short for. */
     expanded,
+    /** The terms a later source took for their main use (`lesserUse`). */
+    lessened,
   };
 }

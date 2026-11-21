@@ -637,6 +637,21 @@ describe("editionLine", () => {
       "Unité de mesure de masse",
     );
   });
+  it("takes the words in quotes a description ends with", () => {
+    expect(
+      editionLine(
+        "삼인칭 남성 여격, 목적격 대명사 '그에게', '그를'. (부록: 영어 인칭대명사)",
+      ),
+    ).toBe("그에게, 그를");
+    expect(editionLine("나라 이름 '룩셈부르크'")).toBe("룩셈부르크");
+    expect(editionLine("(인도, 동아프리카) '창고'")).toBe("창고");
+    // English quoted in a gloss, or quotes that do not end it, stay.
+    expect(editionLine("'data'의 원형")).toBe("'data'의 원형");
+    expect(editionLine("이름 'Mike'")).toBe("이름 'Mike'");
+    expect(editionLine("quién es, quién esta, contracción de 'who is'")).toBe(
+      "quién es, quién esta, contracción de 'who is'",
+    );
+  });
   it("drops sense subscripts after a word and an opening ellipsis", () => {
     expect(editionLine("Exigir, pedir₃")).toBe("Exigir, pedir");
     expect(editionLine("Ley₁₋₉")).toBe("Ley");
