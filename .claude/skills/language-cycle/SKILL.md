@@ -15,7 +15,7 @@ Method library: [real-content-quality](../real-content-quality/SKILL.md) (ground
 State lives in [docs/notes/language-cycles.md](../../../docs/notes/language-cycles.md) (the log, committed) and `data/raw/quality/cycles/<cycle>/` (git-ignored: sweeps, packets, findings). Scripts here write into the main checkout's `data/raw/quality`, which the Bash sandbox does not allow: run them with the sandbox off.
 
 ## Autonomy (user decisions, 2026-11-22)
-- Weekly from a Desktop scheduled task (a fresh session each time) and by hand with `/language-cycle`; a manual run counts as that week's cycle.
+- Weekly from a Desktop scheduled task (a fresh session each time) and by hand with `/language-cycle`. A manual run is an extra cycle: the scheduled run still starts the next cycle that week (user, 2026-11-22).
 - Go through to merged fix PRs without asking (memory: no confirmation; PR workflow). Learner-visible trade-offs — highlight density, number of senses, pack size, how names look — are measured, collected and asked together at the end with AskUserQuestion. Never decide them silently, never block the other steps on them.
 - Simulation and mechanical work on Sonnet (`learner` agent, `model: "sonnet"` subagents); triage, root causes and fix design on Opus; blind judging on the `judge` agent.
 
