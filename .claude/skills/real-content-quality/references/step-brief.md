@@ -25,7 +25,8 @@ Corpus units: `data/raw/quality/<study>/runs/<units run>/units.jsonl` ([N] token
 ## Token budget
 Every turn re-reads your whole context, so keep it small and the turns few (CLAUDE.md "Token budget"):
 - Put independent reads, edits and commands in one message. When tuning a script, make all of a round's edits in one turn (or rewrite the file with Write), then run it once.
-- Keep scripts in files under the step folder and re-run them; don't resend long inline scripts.
+- Keep scripts in files under the step folder and re-run them; don't resend long inline scripts. Create them with the Write tool and run them as `python3 -I <file>` or `npx jiti <file>`: the worktree guard refuses Bash it cannot parse (`cat > f <<EOF`, `python3 - <<EOF`, `cd … && git …`), and those refusals cost turns.
+- Never poll with `sleep`: run long commands with `run_in_background: true` and wait for the notification (sleep loops are blocked anyway).
 - Write big outputs to a file and print counts plus a short sample. Find lines with `grep -n`, then read only that range. Don't re-read what you already have.
 - If you reach ~150 turns or ~250k context before the step is done: commit, write `HANDOFF.md` in the step folder (done, next, the exact commands, open questions), and report back. The parent continues in a fresh subagent.
 
