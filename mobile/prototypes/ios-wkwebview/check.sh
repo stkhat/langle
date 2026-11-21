@@ -2,7 +2,7 @@
 # Drive the WKWebView prototype on the booted simulator (run outside the sandbox: simctl).
 #   check.sh install <path/to/LangleProbe.app>
 #   check.sh open <url> [extra launch args, e.g. -ua safari -block off]   # relaunches the app
-#   check.sh cmd <variants|captions|captionsJa|state|measure>
+#   check.sh cmd <variants|captions|captionsJa|state|measure|urls|hosts|llm>
 #   check.sh log [seconds]   # probe log lines since the last open
 set -eu
 id=dev.langle.probe.wk
