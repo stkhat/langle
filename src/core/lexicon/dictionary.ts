@@ -162,6 +162,14 @@ export interface DictionaryProvider {
    */
   capitalMeaning(term: string): CapitalMeaning | undefined;
   /**
+   * Whether the dictionary has a headword for the term written in capitals, an
+   * acronym's own (US → EE. UU., RAM; not CAT, whose only headword is the animal's):
+   * undefined for a dictionary that keeps no headwords by case (the definitions
+   * dictionaries, the learning pairs). Rule D reads an acronym without one as a name
+   * (`documentNames`).
+   */
+  acronym(term: string): boolean | undefined;
+  /**
    * One sense as a short line, as the hover card's lines make it (`lines` before they
    * are ordered and followed): a meaning the user chose shows so in the hover card and
    * the lists. `glossLang`: the language of the sense when it is not the native one
@@ -277,12 +285,14 @@ function dictionaryOver(
   senseLine: DictionaryProvider["senseLine"],
   capitalMeaning: (head: string) => CapitalMeaning | undefined = () =>
     undefined,
+  acronym: (head: string) => boolean | undefined = () => undefined,
 ): DictionaryProvider {
   /** Outlines are read for every analyzed word with a tag: each headword's once. */
   const outlines = new Map<string, EntryOutline | undefined>();
   return {
     senseLine,
     capitalMeaning: (term) => capitalMeaning(keyOf(term)),
+    acronym: (term) => acronym(keyOf(term)),
     outline: (term) => {
       const head = keyOf(term);
       if (!outlines.has(head)) outlines.set(head, outline(head));
@@ -445,6 +455,7 @@ export function createEnJaDictionary(
         ? cleanShort(sense.text)
         : definitionLine(sense.text, definitionPointerOf),
     (head) => meaningOf(capitalOf(head)),
+    (head) => own(data.capital, head.toUpperCase()) !== undefined,
   );
 }
 
@@ -1006,6 +1017,10 @@ export function createPairDictionary({
   /** Whether the pair writes most of its nouns capitalised (`nounsCapitalised`), read once. */
   let nounCased: boolean | undefined;
   const nounCase = () => (nounCased ??= nounsCapitalised(dict));
+  /** Whether the pair keeps capitalised headwords apart (`capitalKey`), read once. */
+  let cased: boolean | undefined;
+  const keepsCase = () =>
+    (cased ??= Object.keys(dict).some((key) => /^\p{Lu}/u.test(key)));
   /** Unmarked degrees read as pointers: their line stays a gloss's, cut to the cap. */
   const degrees = new WeakSet<PairSenses[number]>();
   /** A learning pair's capitalised senses (`LearningPairPack`). */
@@ -1260,6 +1275,8 @@ export function createPairDictionary({
       const meaning = capitalOf(head)?.[2];
       return typeof meaning === "string" ? meaning : undefined;
     },
+    // A learning pair keeps its capitalised senses under lowercase keys: no case.
+    (head) => (keepsCase() ? capitalOf(head, true) !== undefined : undefined),
   );
 }
 

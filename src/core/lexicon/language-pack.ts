@@ -8,6 +8,7 @@ import type {
   LemmaShards,
   NamesPack,
   PosPack,
+  UppercasePack,
 } from "../packs/types";
 import { own } from "../util";
 import { createPhraseMatcher, type PhraseMatcher } from "../phrases/matcher";
@@ -170,6 +171,12 @@ export interface LanguagePack {
    * thing it is; [] for any other word.
    */
   acronymExpansions(key: string): readonly string[];
+  /**
+   * A vocabulary word text writes mostly in capitals (`LanguagePackData.uppercase`:
+   * "ceo", written CEO): an acronym keyed in lower case, whose entry means the acronym.
+   * Not a common word an acronym is spelled like ("cat": "the CAT report").
+   */
+  writtenUpper(key: string): boolean;
   /** IPA of a word, or of a phrase's words inside one pair of slashes. */
   ipa(term: string): string | undefined;
   /** The dictionary's phrase patterns, keyed like saved phrases ("figure out"). */
@@ -267,6 +274,8 @@ export interface LanguagePackData {
   capitals?: CapitalsPack;
   /** Acronyms known only by what they stand for, as written → those names (`acronymExpansions`). */
   acronyms?: AcronymsPack;
+  /** Vocabulary words text writes mostly in capitals (`writtenUpper`). */
+  uppercase?: UppercasePack;
 }
 
 /** The capital-only words by key: "ai" → ["AI"] (`CapitalWords`). */
@@ -286,6 +295,7 @@ export function createLanguagePack(
   data: LanguagePackData,
 ): LanguagePack {
   const ranks = new Map(data.freq.map((word, i) => [word, i + 1]));
+  let uppercase: ReadonlySet<string> | undefined;
   const rules = rulesFor(lang);
   const acronyms = new Map(
     Object.entries(data.acronyms ?? {}).map(
@@ -421,6 +431,7 @@ export function createLanguagePack(
     rank,
     capitalOnly: (key) => capitals?.has(key) === true && !data.vocab.has(key),
     acronymExpansions: (key) => acronyms.get(key) ?? [],
+    writtenUpper: (key) => (uppercase ??= new Set(data.uppercase)).has(key),
     // English -s forms ("beans") take their base's IPA with the English ending.
     ipa: (term) => ipaFor(term, data.ipa, lang === "en" ? lemmas : undefined),
     patterns: data.patterns,
