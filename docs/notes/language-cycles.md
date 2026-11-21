@@ -3,9 +3,9 @@
 The log of the weekly language cycle ([skill](../../.claude/skills/language-cycle/SKILL.md), [development](../development.md) "Language quality cycle"). Newest cycle first. Data for each cycle is in `data/raw/quality/cycles/<cycle>/` (git-ignored).
 
 ## Current
-- State: idle
-- Last cycle: c000 (2026-11-22, baseline `bda1bda`); last sweep: `cycles/c000/base`
-- Next: c001 (normal cycle). Next tidy-up: c002 (every third cycle: c002, c005, …), or earlier when the inventory grows ≥ 15% over c000's or a pair is added
+- State: c001 in flight (manual, started 2026-11-22 at `bab876e`), step 4: fixes 1–3 of the Queue run as parallel steps (`claude/c001-pos-senses`, `claude/c001-names`, `claude/c001-expressions`); log branch `claude/cycle-c001`
+- Last cycle: c000 (2026-11-22, baseline `bda1bda`); last sweep: `cycles/c001/base`
+- Next: c002. Next tidy-up: c002 (every third cycle: c002, c005, …), or earlier when the inventory grows ≥ 15% over c000's or a pair is added
 - Level rotation: c001 runs `es` also at level 1000; then `fr` 8000, `de` 1000, `en` 8000, …
 - Corpus refresh: due at c004 (corpora as of 2026-11: `en` 2026-11 round 2, `es`, `fr`, `de` from their L1/L2 studies)
 
@@ -29,6 +29,19 @@ Ranked; c001 picks from the top unless its own sweep shows a WORSE flag.
 
 **de-fr / de-en (one learning language, two natives)**
 - Separable verbs shown with the wrong sense or as the noun: `lehnte … ab` → "appuyer", `stufte … zurück` → "accusatif pluriel de Stufe", `auftrat`, `geladen` (invited). `daß` (old spelling) and `Komparserie`, `pauschal` have no entry. Cause 3 for German plus German lemma coverage.
+
+## c001 — 2026-11-22 (manual)
+
+Main at `bab876e`. Started by hand to fix the c000 Queue; manual runs are extra cycles, so the weekly scheduled run still runs (user, 2026-11-22).
+
+### Sweep
+`cycles/c001/base` against `cycles/c000/base`: 18/18 ok, 0 WORSE, 0 changed rows (no code or data change since `bda1bda`).
+
+### Simulation
+Not rerun: c000's findings are one day old and the code is unchanged. The next cycle simulates again.
+
+### Picks
+Queue items 1 (hover senses by POS), 2 (acronyms and capitalised names) and 3 (missed expressions), one PR each, in parallel worktrees (they touch different code: `word-sense.ts`/`sense-order.ts`, `names.ts`/`casing.ts`, `phrases/`).
 
 ## c000 — 2026-11-22 (baseline and dry run)
 
