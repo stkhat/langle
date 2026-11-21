@@ -58,7 +58,7 @@ Two throwaway apps in `mobile/prototypes/` (setup: [development.md](../developme
 | Google sign-in (default UA) | reached the password step | not checked |
 | Debug APK | 6.8 MB | 210 MB (arm64 only; `libxul.so` 155 MB, stored uncompressed); download size not measured |
 
-- **`tlang` in WebView**: the same network got 200 from desktop YouTube (`c=WEB`) and from GeckoView (`c=MWEB`) in the same hour. The iOS run below casts doubt on "the 429 is WebView's": there it was a throttle that a burst of timedtext refetches set off and that lifted within minutes, so WebView needs a re-check without the burst (`variants` fires six requests at once). Langle uses `tlang` as a translation source (`siteAutoTranslate`); without it a WebView app would lean on on-device translation. The user's decision (2026-11-22): if that becomes necessary, discuss the design again before building it.
+- **`tlang` in WebView**: re-checked after the iOS run without any burst (`translate.sh`: a fresh launch, then only the player's own translated request), and again after clearing the app's data (a new YouTube visitor): 429 both times. GeckoView on the same emulator a few minutes later got 200 (50,846 B), and iOS WKWebView gets 200 too. YouTube labels the clients `cbr=Chrome Mobile Webview` (429), `cbr=Webview` (iOS, 200) and Firefox (200), so the refusal is Android System WebView's, not the network's or the visitor's. Langle uses `tlang` as a translation source (`siteAutoTranslate`); without it a WebView app would lean on on-device translation. The user's decision (2026-11-22): if that becomes necessary, discuss the design again before building it.
 - **Don't fake the user agent**: WebView with "; wv" and "Version/4.0" removed got empty bodies for every timedtext request, the captured one included; so did the built-in browser with a phone UA the same day (it had worked there on 2026-11-13). The PO token seems to check that the UA matches the engine.
 - YouTube shows Firefox a "Watch in YouTube app" sheet and GeckoView blocks autoplay (the video waits for a tap); WebView with `mediaPlaybackRequiresUserGesture = false` autoplays muted.
 - GeckoView, after a restart: the extension's background starts before the app sets its message delegate, and that port never answers. The background now reconnects until the app sends its config. Built, not yet checked: the emulator hung under the host's load.
@@ -114,7 +114,7 @@ The app is the browser, so blocking runs in the app, outside any extension API a
 
 ## Next steps
 1. Install Xcode (the user) and the Android command-line tools. Done 2026-11-22.
-2. (Android and iOS done 2026-11-22, "Android prototypes" and "iOS prototype" above; open: WebView's `tlang` re-check without the burst.) Minimal browser app prototypes that inject a script, capture timedtext, and try to reach Google's password step (the user signs in; Claude never enters credentials):
+2. (Android and iOS done 2026-11-22, "Android prototypes" and "iOS prototype" above; Android WebView's `tlang` 429 confirmed without bursts.) Minimal browser app prototypes that inject a script, capture timedtext, and try to reach Google's password step (the user signs in; Claude never enters credentials):
    - iOS: `WKWebView`, default UA and a Safari-like UA.
    - Android: GeckoView and System WebView, to choose the engine.
    - In both: one compiled filter list on an article, and the ad-field pruning on `m.youtube.com`; check that captions are still captured and that playback is not stopped.
