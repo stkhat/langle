@@ -19,6 +19,7 @@ const files: Record<string, unknown> = {
   "/packs/en/contractions.json": { "i'm": ["I am"] },
   "/packs/en/capitals.json": ["AI"],
   "/packs/en/acronyms.json": { NYPD: ["New York City Police Department"] },
+  "/packs/en/uppercase.json": ["ceo"],
   "/packs/en/phrases.json": {
     detect: ["figure out", "give up"],
     more: ["make up one's mind"],
@@ -113,6 +114,7 @@ describe("createPackLoader", () => {
       contractions: { "i'm": ["I am"] },
       capitals: ["AI"],
       acronyms: { NYPD: ["New York City Police Department"] },
+      uppercase: ["ceo"],
     });
   });
 
@@ -219,7 +221,7 @@ describe("createPackLoader", () => {
     expect(a).toBe(b);
     expect(c).toBe(a);
     await Promise.all([loadPack("en-ja"), loadPack("en-ja")]);
-    expect(fetchJson).toHaveBeenCalledTimes(11 + 6);
+    expect(fetchJson).toHaveBeenCalledTimes(12 + 6);
   });
 
   it("tries again after a failed load", async () => {

@@ -1572,6 +1572,85 @@ describe("capital-only words", () => {
   });
 });
 
+describe("acronyms a common word is spelled like (rule D)", () => {
+  const pack = createLanguagePack("en", {
+    lemmas: { cats: "cat" },
+    freq: ["the", "said", "it", "a"],
+    ipa: {},
+    vocab: new Set(
+      ["the", "said", "it", "a", "lot", "cat", "report", "ceo", "us"].concat([
+        "we",
+        "saw",
+        "touchdown",
+        "ok",
+        "of",
+      ]),
+    ),
+    patterns: { detect: [], more: [], gap: [] },
+    pos: {
+      the: ["article"],
+      a: ["article"],
+      we: ["pronoun"],
+      of: ["preposition"],
+    },
+    names: { ok: "x!" },
+    capitals: ["VPN"],
+    uppercase: ["ceo"],
+  });
+  /** The pair keeps US in capitals, no other acronym. */
+  const headwords = new Set(["us"]);
+  const run = (
+    blocks: string[],
+    acronym: (key: string) => boolean | undefined = (key) => headwords.has(key),
+  ) => {
+    const casing = documentCasing(
+      blocks.map((b) => blockCasing(pack.tokenize(b), "en")),
+    );
+    return blocks.flatMap((block) =>
+      createClassifier(pack)
+        .classify(pack.tokenize(block), {
+          terms: terms(),
+          knownLevel: 4,
+          casing,
+          acronym,
+        })
+        .filter((s) => /^\p{Lu}{2}/u.test(block.slice(s.start, s.end)))
+        .map(
+          (s) =>
+            `${block.slice(s.start, s.end)}:${s.name ? "name" : s.category}`,
+        ),
+    );
+  };
+
+  it("are names where the dictionary has no headword in capitals for them", () => {
+    expect(run(["We saw the CAT report.", "The CATs said it."])).toEqual([
+      "CAT:name",
+      "CATs:name",
+    ]);
+  });
+
+  it("stay words the dictionary, the language or the document reads as written", () => {
+    // A headword in capitals; a word text writes mostly in capitals (its entry means
+    // the acronym); a capital-only word; a capitalised common word.
+    expect(
+      run([
+        "The US said it.",
+        "The CEO said it.",
+        "We saw a VPN.",
+        "We said OK.",
+      ]),
+    ).toEqual(["US:new", "CEO:new", "VPN:new", "OK:new"]);
+    // The document writes it in lower case too; capitals for emphasis.
+    expect(run(["We saw a LOT of it.", "A lot of it."])).toEqual(["LOT:new"]);
+    expect(run(["We said TOUCHDOWN."])).toEqual(["TOUCHDOWN:new"]);
+    expect(run(["We saw THE CAT."])).toEqual(["THE:known", "CAT:new"]);
+    // A dictionary that keeps no headwords by case says nothing.
+    expect(run(["We saw the CAT report."], () => undefined)).toEqual([
+      "CAT:new",
+    ]);
+  });
+});
+
 describe("acronyms known only by what they stand for", () => {
   const acronyms = createLanguagePack("en", {
     lemmas: {},

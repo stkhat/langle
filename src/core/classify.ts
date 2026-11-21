@@ -172,6 +172,12 @@ export interface ClassifyOptions {
    */
   capitalMeaning?(key: string): CapitalMeaning | undefined;
   /**
+   * Whether the dictionary has a headword for a word written in capitals
+   * (`DictionaryProvider.acronym`): an acronym without one is a name (`documentNames`:
+   * "the CAT report" is no cat).
+   */
+  acronym?(key: string): boolean | undefined;
+  /**
    * The dictionary's outline of a headword (`DictionaryProvider.outline`). With it, a
    * pack with a tagger tags each sentence and chooses unsaved words' keys by their tags
    * (rule A1, `chooseKey`) and their spans' `pos` (rule A2).
@@ -298,7 +304,8 @@ const COMPLEMENT_POS: readonly string[] = ["noun", "adj", "prep_phrase"];
  *   names): a name (`nameVerdict`) is ignored, even a saved word, unless it keeps a
  *   capitalised meaning; that one and a word capitalised in a way that counts
  *   (`capitalHere`) get `capital`, unless the language capitalises common words only
- *   in names and titles (`LanguagePack.capitalsForNames`).
+ *   in names and titles (`LanguagePack.capitalsForNames`). An acronym the dictionary
+ *   has no headword in capitals for (`acronym`) is a name too ("the CAT report").
  * - An acronym known only by what it stands for (`LanguagePack.acronymExpansions`:
  *   NYPD) is a word only where it is capitalised in a way that counts and its document
  *   spells out one of the things it stands for (`spelledOut`); elsewhere it is ignored.
@@ -342,6 +349,7 @@ export function createClassifier(pack: LanguagePack): Classifier {
         knownLevel,
         casing,
         capitalMeaning,
+        acronym,
         outline,
         breaks,
         spelledOut,
@@ -380,7 +388,12 @@ export function createClassifier(pack: LanguagePack): Classifier {
       /** Rule D over the document's runs of capitalised words. */
       const names =
         cases && casing && pack.namesByCase
-          ? documentNames(casing, pack, (key) => capitalMeaning?.(key))
+          ? documentNames(
+              casing,
+              pack,
+              (key) => capitalMeaning?.(key),
+              (key) => acronym?.(key),
+            )
           : undefined;
 
       /** The word before word i when only spaces come between them. */
@@ -420,7 +433,7 @@ export function createClassifier(pack: LanguagePack): Classifier {
             readings[i]?.tag?.label,
           ) &&
           !(pack.nounsCapitalised && written.written === "lower") &&
-          names(written, before(i)) === "name"
+          names(written, before(i), bases) === "name"
         );
       };
       /**
@@ -443,7 +456,7 @@ export function createClassifier(pack: LanguagePack): Classifier {
         const name =
           pack.nounsCapitalised && written.written === "lower"
             ? false
-            : (names?.(written, before(i)) ?? false);
+            : (names?.(written, before(i), words[i]!.bases) ?? false);
         if (name === "name") return { category: "ignored", name: true };
         // A word in capitals English also writes so as a common word (the names
         // lexicon's "!": "OK", an interjection) is that word, not an acronym: its

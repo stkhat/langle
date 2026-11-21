@@ -116,6 +116,7 @@ describe("createLanguageResources", () => {
       "/packs/en/phrases.json",
       "/packs/en/pos.json",
       "/packs/en/tagger.json",
+      "/packs/en/uppercase.json",
       "/packs/en/vocab.json",
     ]);
   });
@@ -135,6 +136,7 @@ describe("createLanguageResources", () => {
       "/packs/en/phrases.json",
       "/packs/en/pos.json",
       "/packs/en/tagger.json",
+      "/packs/en/uppercase.json",
       "/packs/en/vocab.json",
     ]);
   });

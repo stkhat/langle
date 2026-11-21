@@ -126,6 +126,13 @@ export interface VocabularyRule {
     vocab: ReadonlySet<string>;
     lemmas: Readonly<Record<string, unknown>>;
   }): string[];
+  /**
+   * The words of `vocab` the examples write more often in capitals (two letters or
+   * more) than in lower case, sorted: acronyms the vocabulary keeps in lower case (ceo,
+   * nasa, tv), whose entry means the acronym; not a common word an acronym is spelled
+   * like (cat, pen: "the CAT report" is a name).
+   */
+  acronyms(vocab: Iterable<string>): string[];
 }
 
 /** Tags of the forms a capital-only word's examples count with it (AEDs). */
@@ -290,6 +297,10 @@ export function createVocabularyRule(
         })
         .sort(byCodeUnit);
     },
+    acronyms: (vocab) =>
+      [...vocab]
+        .filter((word) => (capitals.get(word) ?? 0) > (lower.get(word) ?? 0))
+        .sort(byCodeUnit),
     select({ vocab, lemmas, formsOf }) {
       const { possessive } = language;
       const isForm = (word: string) =>
