@@ -1,7 +1,4 @@
 {
-"emigre":[[["noun","ผู้อพยพ","someone who leaves one country to settle in another"]],2],
-"eminence":[[["noun","ความโดดเด่น","high status importance owing to marked superiority"]],2],
-"eminent":[[["adjective","มีชื่อเสียง, ที่มีชื่อ","of a person: distinguished, noteworthy"]],0],
 "eminent domain":[[["noun","สิทธิเวนคืนทรัพย์สินเอกชน","the right of the state to take private property for public use"]],2],
 "eminently":[[["adverb","อย่างพิเศษสุด","in an eminent manner"]],2],
 "emir":[[["noun","อีเมียร์","an independent ruler or chieftain (especially in Africa or Arabia)"]],2],
@@ -7443,7 +7440,7 @@
 "inhumane":[[["adjective","ใจร้าย"]],4],
 "inhumanity":[[["noun","การขาดมนุษยธรรม, ความขาดมนุษยธรรม","the quality of lacking compassion or consideration for others"],["noun","ความโหดร้าย","an act of atrocious cruelty"]],2],
 "iniquity":[[["noun","ความชั่วช้า"]],1],
-"initial":[[["noun","พยัญชนะต้น","the first letter of a word (especially a person's name)"]],2],
+"initial":[[["adjective","อาทิ"],["adjective","เบื้องต้น"],["adjective","ประเดิม"]],4],
 "initially":[[["adverb","ตอนแรก","at the beginning"]],0],
 "initiate":[[["verb","ริเริ่ม","bring into being"],["noun","เด็กใหม่","someone new to a field or activity"],["verb","ริเริ่ม, บุกเบิก","take the lead or initiative in"],["noun","ปราชญ์","someone who has been admitted to membership in a scholarly field"]],2],
 "initiative":[[["noun","การริเริ่ม","a beginning; a first move"]],0],
@@ -8297,7 +8294,7 @@
 "john smith":[[["noun","สมิท, กัปตันจอห์น สมิธ, จอห์น สมิธ","English explorer who helped found the colony at Jamestown, Virginia"]],2],
 "john the baptist":[[["noun","จอห์นแบ็พทิสต์","(New Testament) a preacher and hermit and forerunner of Jesus (whom he baptized)"]],2],
 "johnnycake":[[["noun","จอห์นนี่เค้ก","cornbread usually cooked pancake-style on a griddle (chiefly New England)"]],2],
-"join":[[["noun","การกระทำที่จะร่วม หรือสถานะที่ได้ร่วม, จุดร่วม, การเข้าร่วม"],["noun","จุดเชื่อมตัดกันของท่อหรือสายไฟ, การเชื่อมต่อระหว่างกัน"],["noun","การเชื่อมข้อมูลในตารางฐานข้อมูลตั้งแต่สองตารางขึ้นไป"],["noun","การกระทำที่จะเชื่อมต่อบางอย่าง เช่น เครือข่าย"]],1],
+"join":[[["verb","เข้าร่วม, ร่วม","become part of"],["verb","เชื่อมต่อ, เชื่อม, ทำให้เชื่อมกัน","cause to become joined or linked"],["noun","ผลบวก","a set containing all and only the members of two or more given sets"],["verb","เข้าร่วม","come into the company of"]],2],
 "join forces":[[["verb","ร่วมงาน","work together on a common enterprise of project"]],2],
 "join in":[[["verb","เข้าร่วมหรือเป็นส่วนหนึ่งของบางอย่าง"]],1],
 "joinery":[[["noun","งานเข้าไม้","fine woodwork done by a joiner"]],2],
@@ -13484,5 +13481,10 @@
 "northern lights":[[["noun","แสงเหนือ","the aurora of the northern hemisphere"]],0],
 "northern pike":[[["noun","ปลานอร์เทิร์นไพค์","voracious piscivorous pike of waters of northern hemisphere"]],2],
 "northern rhodesia":[[["noun","สาธารณรัฐแซมเบีย","a republic in central Africa"]],2],
-"northern shoveler":[[["noun","เป็ดปากพลั่ว","Spatula clypeata"]],0]
+"northern shoveler":[[["noun","เป็ดปากพลั่ว","Spatula clypeata"]],0],
+"northern shrike":[[["noun","นกนอร์เทิร์นชริก","a butcherbird of northern North America"]],2],
+"northern territory":[[["proper noun","นอร์เทิร์นเทร์ริทอรี","territory in northern Australia"]],0],
+"northern thai":[[["proper noun","ภาษาถิ่นพายัพ, ภาษาไทยถิ่นเหนือ, ภาษาเหนือ","language"]],0],
+"northern tree shrew":[[["noun","กระแตเหนือ","Tupaia belangerii"]],0],
+"northernmost":[[["adjective","ที่อยู่เหนือสุด","situated farthest north"]],2]
 }

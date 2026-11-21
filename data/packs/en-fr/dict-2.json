@@ -1,4 +1,9 @@
 {
+"heterodox":[[["adjective","hétérodoxe"]],0],
+"heterodoxy":[[["noun","hétérodoxie"]],0],
+"heteroduplex":[[["noun","hétéroduplex"]],0],
+"heterogeneity":[[["noun","hétérogénéité"]],0],
+"heterogeneous":[[["adjective","hétérogène","diverse in kind"]],1],
 "heterogeneous catalysis":[[["noun","catalyse hétérogène","catalysis in which the catalyst is present in a separate phase"]],1],
 "heterological":[[["adjective","hétérologique","of an adjective, not describing itself"]],1],
 "heterologous":[[["adjective","hétérologue","coming from another organism"]],1],
@@ -11127,7 +11132,7 @@
 "oncologist":[[["noun","oncologue, cancérologue"]],0],
 "oncology":[[["noun","oncologie"]],0],
 "oncoming":[[["noun","arrivée, approche"]],0],
-"one":[[["adjective","un"],["adjective","un certain"],["adjective","un an (âge d’une personne)"],["adjective","une heure"]],0],
+"one":[[["numeral","un","cardinal number 1"],["pronoun","on","indefinite personal pronoun; any person, people in general"],["pronoun","un, une, l'un","impersonal pronoun; one thing or person"],["determiner","un, une","a single, unspecified thing"]],1],
 "one after another":[[["adverb","l'un après l'autre","in single file"]],1],
 "one and a half":[[["numeral","un et demi, une et demi","one and a half"]],1],
 "one another":[[["pronoun","l'un l'autre, les uns les autres","idiomatic, reciprocal pronoun"]],1],
@@ -23068,7 +23073,5 @@
 "spreadsheet":[[["noun","tableau (pour écrire)"],["noun","tableur (programme)"],["noun","tableau édité par un programme tableur"]],0],
 "spree":[[["noun","frénésie","uninhibited activity"]],1],
 "sprig":[[["noun","brin, rameau","small shoot or twig"]],1],
-"sprigged":[[["verb","passé de sprig",null,"sprig"]],0],
-"sprightly":[[["adjective","vif","of a person: full of life and vigour"],["adjective","animé","animated, gay, or vivacious — see also lively"],["adverb","vigoureusement","in a lively and vigorous way"]],1],
-"spring":[[["noun","printemps"],["noun","source d’eau"],["noun","ressort"],["verb","naître"]],0]
+"sprigged":[[["verb","passé de sprig",null,"sprig"]],0]
 }

@@ -2072,7 +2072,7 @@
 "aromanticism":[[["noun","สถานะที่มีประสบการณ์หรือความต้องการทางโรแมนติกกับผู้อื่นน้อยหรือไม่มี"]],1],
 "aromatic":[[["adjective","หอม"]],4],
 "arose":[[["verb","อดีตกาล สามัญของ arise",null,"arise"]],1],
-"around":[[["adjective","ใกล้ๆ, ไม่ไกลนัก"],["adjective","โดยประมาณ, ราว ๆ"],["adjective","รอบๆ, โดยรอบ"],["adjective","ที่มีชีวิตอยู่"]],1],
+"around":[[["preposition","ตาม"],["preposition","บริเวณ"],["preposition","รอบ"],["adverb","รอบตัว"]],4],
 "around the clock":[[["adverb","ตลอด 24 ชั่วโมง","without stopping"]],2],
 "arousal":[[["noun","การกระตุ้น, การเร้า","the act of arousing"],["noun","การตื่น","awakening from sleep"],["noun","การเล้ัาโลม, การเล้าโลม","mutual sexual fondling prior to sexual intercourse"]],2],
 "arouse":[[["verb","กระตุ้น"]],1],
@@ -11208,7 +11208,7 @@
 "dipsomaniac":[[["noun","ขี้เมา, ผู้ติดสุราเรื้อรัง, คนขี้เมา","a person who drinks alcohol to excess habitually"]],2],
 "dipteran":[[["noun","แมลงที่มีสองปีก","insects having usually a single pair of functional wings (anterior pair) with the posterior pair reduced to small knobbed structures and mouth parts adapted for sucking or lapping or piercing"]],2],
 "dire":[[["adjective","เป็นลางร้าย, เป็นการเตือนว่าจะมีสิ่งร้ายเกิดขึ้น"],["adjective","ที่ต้องกระทำเพื่อป้องกันไม่ให้สิ่งร้ายเกิดขึ้น, ด่วน, เร่งด่วน"],["adjective","แสดงออกถึงสิ่งร้ายที่จะเกิดขึ้น, น่าหวาดกลัว, หดหู่"],["adjective","แย่, เลว (คุณภาพ)"]],1],
-"direct":[[["verb","สั่ง","command with authority"],["adverb","โดยตรง, อย่างแน่แท้","without deviation"],["verb","ตั้งเป้า, มุ่ง","intend (something) to move towards a certain goal"],["verb","กำกับ","guide the actors in (plays and films)"]],2],
+"direct":[[["verb","พา"],["verb","กำหนด"],["adjective","แน่ว"],["verb","บัญชา"]],4],
 "direct current":[[["noun","ดีซี, ไฟฟ้ากระแสตรง","an electric current that flows in one direction steadily"]],2],
 "direct flight":[[["noun","เที่ยวบินตรง","a flight with one or more intermediate stops but no change of aircraft"]],2],
 "direct marketing":[[["noun","การตลาดโดยตรง, การตลาดทางตรง","marketing via a promotion delivered directly to the individual prospective customer"]],2],
@@ -12939,5 +12939,8 @@
 "emetic":[[["noun","ยาทำให้อาเจียน","a medicine that induces nausea and vomiting"]],2],
 "emigrant":[[["noun","ผู้อพยพ","someone who leaves one country to settle in another"]],2],
 "emigrate":[[["verb","ละทิ้งถิ่นฐาน, อพยพย้ายถิ่นฐาน","leave one's country of residence for a new one"]],2],
-"emigration":[[["noun","การอพยพ","act of emigrating"]],0]
+"emigration":[[["noun","การอพยพ","act of emigrating"]],0],
+"emigre":[[["noun","ผู้อพยพ","someone who leaves one country to settle in another"]],2],
+"eminence":[[["noun","ความโดดเด่น","high status importance owing to marked superiority"]],2],
+"eminent":[[["adjective","มีชื่อเสียง, ที่มีชื่อ","of a person: distinguished, noteworthy"]],0]
 }

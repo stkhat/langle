@@ -8821,7 +8821,7 @@
 "customs officer":[[["noun","alfandegário, aduaneiro","officer"]],1],
 "customs union":[[["noun","união aduaneira","a type of trade bloc which is composed of a free trade area with a common external tariff"]],1],
 "custos":[[["noun","custódio","superior of a custody"]],1],
-"cut":[[["adjective","cortado"],["adjective","recortado"],["adjective","cortado, excluído, retirado:"],["adjective","reduzido"]],0],
+"cut":[[["noun","corte","opening resulting from cutting"],["verb","cortar, incisar","to perform an incision"],["verb","cortar","to divide with a sharp instrument"],["adjective","cortado","having been cut"]],1],
 "cut corners":[[["verb","gambiarrar","do a less-than-thorough or incomplete job"],["verb","atalhar","bypass a prescribed route"]],1],
 "cut crease":[[["phrase","técnica de maquiagem onde o côncavo é demarcado com sombra ou delineador"]],0],
 "cut down":[[["verb","reduzir","reduce the amount of something"]],1],
@@ -19136,7 +19136,7 @@
 "leap of faith":[[["noun","salto da fé","act of believing in something despite proof"]],1],
 "leap year":[[["noun","ano bissexto","year in the Julian or Gregorian calendars with an intercalary day added to February"]],1],
 "leapfrog":[[["noun","carniça, eixo-badeixo","game"]],1],
-"learn":[[["noun","aprender"],["noun","ficar sabendo"]],0],
+"learn":[[["verb","aprender","to acquire knowledge or ability"],["verb","descobrir que, ficar sabendo","to come to know; to become informed of; to find out"],["verb","aprender, estudar","to be studying"],["verb","estudar","to attend educational activity"]],1],
 "learned":[[["adjective","doutor, sábio, culto"],["verb","passado simples e particípio do verbo learn. (aprender)",null,"learn"]],0],
 "learned borrowing":[[["noun","cultismo","word borrowed from a classical language into a modern language"]],1],
 "learner":[[["noun","aprendiz, aprendiza","one that is learning"]],1],
@@ -22306,8 +22306,5 @@
 "newsstand":[[["noun","banca","open stall where newspapers and magazines are on sale"]],1],
 "newsvendor":[[["noun","ardina, jornaleiro","person who runs a newsstand"]],1],
 "newt":[[["verb","tritão","type of salamander"]],1],
-"newton":[[["noun","newton","derived unit of force"]],1],
-"next":[[["adjective","próximo, seguinte:"],["adjective","ao lado, adjacente:"],["adjective","próximo, que vem (para datas):"],["adverb","depois, em seguida:"]],0],
-"next door":[[["phrase","vizinho"]],0],
-"next of kin":[[["noun","parente mais próximo","closest blood relative, often heir to inheritance"]],1]
+"newton":[[["noun","newton","derived unit of force"]],1]
 }
