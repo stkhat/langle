@@ -3548,7 +3548,7 @@
 "beaner":[[["noun","mejichango, saltamuros, sudaca","a Mexican"]],1],
 "beanie":[[["noun","gorro, capillo","cap that fits the head closely"]],1],
 "beanpole":[[["noun","espigado, larguirucho, zanquilargo","tall, thin person"]],1],
-"bear":[[["verb","soportar, aguantar"],["verb","resistir, aguantar"],["verb","tolerar"],["verb","parir, dar a luz"]],0],
+"bear":[[["verb","soportar, aguantar, resistir","to tolerate, to put up with"],["noun","oso, úrsido","large mammal of family Ursidae"],["verb","llevar, acarrear, carrear (disused)","to carry"],["verb","llevar, portar","to be equipped with"]],1],
 "bear cub":[[["noun","osezno, esbardo","young bear"]],1],
 "bear fruit":[[["verb","dar / rendir frutas / frutos (sus), dar / rendir fruto, frutar","(''idiomatic'') produce good results"]],1],
 "bear hug":[[["noun","abrazote, abrazazo, abrazo de oso","any especially large hug, usually friendly"]],1],
@@ -13465,7 +13465,7 @@
 "evasion":[[["noun","evasión, fuga"],["noun","evasiva (falta de claridad en la respuesta)"]],0],
 "evasive":[[["adjective","evasivo","Directed towards avoidance or escape; evasive action"]],1],
 "eve":[[["noun","víspera, vigilia, trasnochada","day or night before"]],1],
-"even":[[["adjective","uniforme, constante"],["adjective","liso, llano"],["adjective","regular, promedio"],["adjective","par"]],0],
+"even":[[["adverb","incluso, hasta, siquiera","implying extreme example"],["adjective","par","arithmetic: divisible by two"],["adjective","parejo, llano","flat and level"],["adverb","aun, incluso","emphasising comparative"]],1],
 "even function":[[["noun","función par","Translations"]],1],
 "even homer nods":[[["proverb","al mejor cazador se le va la liebre, al mejor cazador se le va la paloma, al mejor panadero se le quema el pan","no one is immune to error"]],1],
 "even if":[[["conjunction","aunque, aunque más, aun/incluso/hasta si","irrespective of"]],1],
@@ -13630,7 +13630,7 @@
 "execute":[[["verb","ejecutar"]],0],
 "execution":[[["noun","ejecución"],["noun","desempeño"],["noun","realización"]],0],
 "executioner":[[["noun","verdugo, carnífice, verduga","the person who carries out the execution"],["noun","sicario, asesino a sueldo","a hit man"]],1],
-"executive":[[["noun","ejecutivo"]],0],
+"executive":[[["adjective","ejecutivo","designed for execution"]],1],
 "executive branch":[[["noun","poder ejecutivo","branch of government"]],1],
 "executive order":[[["noun","orden ejecutiva","decree issued on the authority of the executive branch of government"]],1],
 "executor":[[["noun","ejecutor"]],0],
@@ -21351,7 +21351,5 @@
 "is there a problem":[[["phrase","¿algún problema?","is there a problem?"]],1],
 "is there a smaller size":[[["phrase","¿hay una talla más pequeña?","is there a smaller size?"]],1],
 "ischemia":[[["noun","isquemia"]],0],
-"ischemic":[[["adjective","isquémico"]],0],
-"ischium":[[["noun","isquion","the lowest of three bones of the pelvis"]],1],
-"isinglass":[[["noun","cola de pescado, colapez, colapiscis","gelatine obtained from fish"]],1]
+"ischemic":[[["adjective","isquémico"]],0]
 }

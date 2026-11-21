@@ -901,7 +901,7 @@
 "african wildcat":[[["noun","chat sauvage d’Afrique (Felis lybica)"]],0],
 "afro":[[["noun","afro"]],0],
 "aft":[[["adjective","arrière","located at the back of a vessel"]],1],
-"after":[[["adverb","après"],["adjective","de derrière"]],0],
+"after":[[["preposition","après","subsequently; following in time; later than"],["preposition","derrière","behind"],["preposition","d'après","in allusion to, in imitation of; following or referencing"],["preposition","après, derrière","next in importance or rank"]],1],
 "after a fashion":[[["adverb","tant bien que mal"]],0],
 "after all":[[["adverb","après tout, en effet"]],0],
 "after dark":[[["adverb","à la nuit tombée"]],0],
@@ -16627,7 +16627,7 @@
 "evasion":[[["noun","esquive, action d'esquiver"]],0],
 "evasive":[[["adjective","évasif"]],0],
 "eve":[[["noun","veille (jour qui précède)"],["noun","soir"]],0],
-"even":[[["adjective","égal"],["adjective","régulier"],["adjective","pair, paire"],["adjective","quitte"]],0],
+"even":[[["adverb","même, voire","implying extreme example"],["adjective","pair, paire","arithmetic: divisible by two"],["adjective","plat","flat and level"],["adverb","encore, même","emphasising comparative"]],1],
 "even as":[[["conjunction","tandis que","at the very same time as"]],1],
 "even function":[[["noun","fonction paire","Translations"]],1],
 "even homer nods":[[["proverb","tout le monde peut se tromper, il n'y a si bon cheval qui ne bronche, cela arrive même aux meilleurs","no one is immune to error"]],1],
@@ -22845,10 +22845,5 @@
 "hesitater":[[["noun","personne qui hésite"]],0],
 "hesitation":[[["noun","hésitation"]],0],
 "hessian":[[["noun","toile de jute ou de sisal"]],0],
-"hetero":[[["noun","hétéro, hétérosexuel(le)"]],0],
-"heterodox":[[["adjective","hétérodoxe"]],0],
-"heterodoxy":[[["noun","hétérodoxie"]],0],
-"heteroduplex":[[["noun","hétéroduplex"]],0],
-"heterogeneity":[[["noun","hétérogénéité"]],0],
-"heterogeneous":[[["adjective","hétérogène","diverse in kind"]],1]
+"hetero":[[["noun","hétéro, hétérosexuel(le)"]],0]
 }
