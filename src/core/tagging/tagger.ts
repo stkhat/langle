@@ -39,7 +39,7 @@ export interface TokenTag {
 }
 
 /** One of a token's next best tags (`TokenTag.rivals`). */
-export interface RivalTag extends Omit<TokenTag, "confidence" | "rivals"> {
+interface RivalTag extends Omit<TokenTag, "confidence" | "rivals"> {
   /** How far its score is behind the token's tag, in the tagger's margin units. */
   behind: number;
 }
