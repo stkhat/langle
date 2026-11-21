@@ -58,11 +58,22 @@ Two throwaway apps in `mobile/prototypes/` (setup: [development.md](../developme
 | Google sign-in (default UA) | reached the password step | not checked |
 | Debug APK | 6.8 MB | 210 MB (arm64 only; `libxul.so` 155 MB, stored uncompressed); download size not measured |
 
-- **`tlang` in WebView**: the same network got 200 from desktop YouTube (`c=WEB`) and from GeckoView (`c=MWEB`) in the same hour, so the 429 is WebView's, not the network's. Langle uses `tlang` as a translation source (`siteAutoTranslate`); without it a WebView app would lean on on-device translation. The user's decision (2026-11-22): if that becomes necessary, discuss the design again before building it.
+- **`tlang` in WebView**: the same network got 200 from desktop YouTube (`c=WEB`) and from GeckoView (`c=MWEB`) in the same hour. The iOS run below casts doubt on "the 429 is WebView's": there it was a throttle that a burst of timedtext refetches set off and that lifted within minutes, so WebView needs a re-check without the burst (`variants` fires six requests at once). Langle uses `tlang` as a translation source (`siteAutoTranslate`); without it a WebView app would lean on on-device translation. The user's decision (2026-11-22): if that becomes necessary, discuss the design again before building it.
 - **Don't fake the user agent**: WebView with "; wv" and "Version/4.0" removed got empty bodies for every timedtext request, the captured one included; so did the built-in browser with a phone UA the same day (it had worked there on 2026-11-13). The PO token seems to check that the UA matches the engine.
 - YouTube shows Firefox a "Watch in YouTube app" sheet and GeckoView blocks autoplay (the video waits for a tap); WebView with `mediaPlaybackRequiresUserGesture = false` autoplays muted.
 - GeckoView, after a restart: the extension's background starts before the app sets its message delegate, and that port never answers. The background now reconnects until the app sends its config. Built, not yet checked: the emulator hung under the host's load.
 - Not checked: GeckoView sign-in and article blocking, signed-in YouTube, Shorts, live streams, real phones, release APK sizes, Langle's own Firefox build inside GeckoView.
+
+## iOS prototype (2026-11-22)
+`mobile/prototypes/ios-wkwebview` (SwiftUI shell, a hand-written Xcode project with a synchronized folder; no generator), on the Simulator (iPhone 17, iOS 27.2), logged out, the same video and the same `probe.js`. Driven from the shell by `check.sh` (`simctl launch` arguments, Darwin notifications for commands, results in the unified log).
+- **Script**: two `WKUserScript`s at document start in every frame, in `WKContentWorld.page` (the probe must patch the page's own `JSON.parse` and `fetch`); messages back through `WKScriptMessageHandler`. Commands run with `callAsyncJavaScript` from native code, so YouTube's CSP does not apply. Isolated worlds exist (`.defaultClient` or named worlds) for the extension's own content scripts.
+- **Captions**: the same sizes as Android: the player's own request 59,007 B (`en`), `lang=ja` 43,818, `lang=es` 58,953, without `pot` 0, `kind=asr` 379,178. YouTube labels the client `cbr=Webview` with the default UA and `cbr=Safari Mobile` with `applicationNameForUserAgent` set to Safari's tail; both get captions.
+- **`tlang=ja`**: 200 (50,846 B) on the first try, and the player's own translated request got 200 (50,845 B) from fresh launches with either UA. Right after `variants` (six refetches at once) every timedtext request, even the plain captured one, got 429 (1,103 B) for a few minutes, the player's own translation included, across app restarts. So `tlang` works in WKWebView; Langle must not burst timedtext requests (one at a time, cached).
+- **Ad fields**: `adBreakHeartbeatParams` pruned on this video, playback kept going, no ad, no warning.
+- **Blocking**: EasyList's `||host^` rules (46,396) as one `WKContentRuleList` (compiled in 2.3 s on the Simulator, cached by WebKit after that) plus the generic `##` rules (13,636) as a document-start stylesheet. Daily Mail: 175 resources from 44 hosts, 17 of them EasyList ad hosts (`ad.doubleclick.net`, `c.amazon-adsystem.com` …), without blocking; 129 resources from 41 hosts, none of them listed, with it; the page looked the same.
+- **Google sign-in**: the sign-in page loads (email step); the password step is not checked yet (the user types).
+- App: 364 KB (debug, Simulator).
+- Not checked: the password step, signed-in YouTube, Shorts, live streams, a real iPhone, pages that never finish loading (CNN's run waited for `didFinish` and was stopped).
 
 ## Ad blocking (not built; 2026-11-22)
 The app is the browser, so blocking runs in the app, outside any extension API and its limits (as Brave does; Brave on iOS also runs on WKWebView).
@@ -103,7 +114,7 @@ The app is the browser, so blocking runs in the app, outside any extension API a
 
 ## Next steps
 1. Install Xcode (the user) and the Android command-line tools. Done 2026-11-22.
-2. (Android done 2026-11-22, "Android prototypes" above; iOS next.) Minimal browser app prototypes that inject a script, capture timedtext, and try to reach Google's password step (the user signs in; Claude never enters credentials):
+2. (Android and iOS done 2026-11-22, "Android prototypes" and "iOS prototype" above; open: WebView's `tlang` re-check without the burst, the iOS password step.) Minimal browser app prototypes that inject a script, capture timedtext, and try to reach Google's password step (the user signs in; Claude never enters credentials):
    - iOS: `WKWebView`, default UA and a Safari-like UA.
    - Android: GeckoView and System WebView, to choose the engine.
    - In both: one compiled filter list on an article, and the ad-field pruning on `m.youtube.com`; check that captions are still captured and that playback is not stopped.
