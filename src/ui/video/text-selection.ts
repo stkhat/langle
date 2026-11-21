@@ -184,9 +184,12 @@ export function useTextSelection<E extends HTMLElement>(
 
     function onMove(move: PointerEvent) {
       if (move.pointerId !== pointerId || !fromUser(move)) return;
-      // The button was let go where this document did not hear it.
+      // The button was let go where this document did not hear it. The press ends
+      // where it was last seen pressed: a move without the button is not part of the
+      // drag (Firefox can deliver the move that brought the pointer here after the
+      // press, and its distance must not turn a click into a drag).
       if (move.buttons === 0) {
-        finish(move.clientX, move.clientY);
+        finish(last?.x ?? startX, last?.y ?? startY);
         return;
       }
       last = { x: move.clientX, y: move.clientY };
