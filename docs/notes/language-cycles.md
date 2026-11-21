@@ -43,6 +43,14 @@ Not rerun: c000's findings are one day old and the code is unchanged. The next c
 ### Picks
 Queue items 1 (hover senses by POS), 2 (acronyms and capitalised names) and 3 (missed expressions), one PR each, in parallel worktrees (they touch different code: `word-sense.ts`/`sense-order.ts`, `names.ts`/`casing.ts`, `phrases/`).
 
+### Next: a selection check in the cycle (user, 2026-11-22; build after c001's fixes)
+What a learner gets when they select several words: is the expression found, and is its meaning right; and whether the on-device AI's prompt should change. Not UI (layout, flicker, latency of the card): out of scope by the user's choice.
+- **Items, every learning language**, from the cycle's corpus, as the 2026-11-19 study made them (`data/raw/quality/2026-11-correct/proto/make.ts`): a dictionary phrase selected exactly, with a word too many, shifted by a word, with a word missing; controls with no phrase; and the expressions the learners reported as missed (`missed-expression` findings), selected whole and off by a word.
+- **Offline part, every cycle, all 18 pairs** (Langle's own code in Node, deterministic, like `measure.ts`): snapping and `matchSelection` / `correctPhrase` without the AI → phrase recovered, a wrong phrase, nothing; the meaning shown for the selection in each native (dictionary phrase sense, or the definition translated at display), judged blind by `judge` agents on a sample.
+- **On-device AI part** (Gemini Nano via the Prompt API, only in the user's Chrome): the probe check build and study server of the 2026-11-19 study (`proto/batch.ts`, `score.ts`), driven through Claude in Chrome, one batch at a time. Measures the phrase proposal (offered, correct) and the "In this sentence" meaning for the natives Chrome supports (ja, en, es, de, fr). Runs when the prompt, the phrase data or the matcher changed, or every other cycle; a scheduled run without Chrome connected skips it and says so.
+- **Prompt changes**: tuned on a dev split, measured once on a held-out split with the prompt frozen, blind-judged, against the shipped prompt (`src/core/explain/prompt.ts`); precision before recall (a proposal only when the dictionary lists it stays unless a measured prompt beats it).
+- Lands as a step of the skill (`references/selection.md`, scripts next to the others) and a "Selection" table per cycle in this log.
+
 ## c000 — 2026-11-22 (baseline and dry run)
 
 Main at `bda1bda`. Sweep only, no fixes: the baseline every later cycle compares with, and a dry run of the simulation.
