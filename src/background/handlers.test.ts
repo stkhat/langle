@@ -1601,6 +1601,7 @@ describe("handlers: machine translations of English definitions", () => {
           entry: (term) => ({ head: term, kind: "phrase", ...definition }),
           outline: () => undefined,
           capitalMeaning: () => undefined,
+          acronym: () => undefined,
           senseLine: (sense) => sense.text,
         }),
       },

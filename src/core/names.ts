@@ -10,6 +10,7 @@ import type { CapitalMeaning } from "./lexicon/dictionary";
 import type { LanguagePack } from "./lexicon/language-pack";
 import { own } from "./util";
 import {
+  acronymAlone,
   alwaysCapitalised,
   type DocumentCasing,
   type WordCase,
@@ -79,6 +80,14 @@ function nameKinds(kinds: string, rank: number) {
   if (kinds.includes("g")) return true;
   return /[spo]/.test(kinds) && (rank > COMMON_RANK || kinds.includes("c"));
 }
+
+/**
+ * The most letters an acronym rule D reads as a name has: 97% of Wikidata's acronyms
+ * (en/acronyms.json) and of a pair's headwords in capitals have six or fewer, while a
+ * longer word in capitals among words that are not is emphasis ("TOUCHDOWN.", "Huge
+ * CARAVANS are forming").
+ */
+const ACRONYM_LETTERS = 6;
 
 /**
  * In a language that capitalises every noun (`LanguagePack.nounsCapitalised`: German),
@@ -170,12 +179,29 @@ export type NameVerdict = "kept" | "name" | false;
  * and not in a document without punctuation, whose speech recognition capitalises
  * turn starts ("Imagínate", "Mola"). A form that is a common word's ("Estados",
  * "Fuerzas Armadas") stays a word.
+ *
+ * An acronym is a name when its capitals are its own and nothing reads it as written:
+ * the document writes it so and never in lower case (`acronymAlone`: not "a LOT"), it
+ * has six letters at most (`ACRONYM_LETTERS`), the dictionary has no headword in
+ * capitals for it or its base (`acronym`: US and UN have theirs), and the language
+ * knows none of them as an acronym of its own: no word written only in capitals
+ * (`capitalOnly`: VPN, DEA), no word text writes mostly in capitals (`writtenUpper`:
+ * CEO, NASA, TV, whose lower-case entries mean the acronym), no capitalised common word
+ * ("!": OK), function word or interjection. What is left is a common word an acronym is
+ * spelled like: "the CAT report" is the Climate Action Tracker, not cat. A dictionary
+ * that keeps no headwords by case (`acronym` undefined) says nothing, and the acronym
+ * stays a word.
  */
 export function documentNames(
   casing: DocumentCasing,
   pack: LanguagePack,
   meaning: (key: string) => CapitalMeaning | undefined,
-): (word: WordCase, before: string | undefined) => NameVerdict {
+  acronym: (key: string) => boolean | undefined = () => undefined,
+): (
+  word: WordCase,
+  before: string | undefined,
+  bases?: readonly string[],
+) => NameVerdict {
   const verdicts = new Map<string, NameVerdict>();
   /** Words a run name was found for, apart from rule D's own. */
   const fromRuns = new Set<string>();
@@ -378,8 +404,32 @@ export function documentNames(
       return false;
     return keptOrName(kinds, meaning(key));
   };
-  return (word, before) => {
+  /**
+   * An acronym rule D reads as a name (`documentNames`), by its key and its base forms
+   * as the page reads them (VPNs: VPN).
+   */
+  const acronymNames = new Map<string, boolean>();
+  const acronymName = (key: string, bases: readonly string[]) => {
+    const forms = [...new Set([key, ...bases, ...pack.lemmas(key)])];
+    const id = forms.join(" ");
+    let found = acronymNames.get(id);
+    if (found === undefined) {
+      found =
+        [...key].length <= ACRONYM_LETTERS &&
+        forms.every((form) => acronym(form) === false) &&
+        !forms.some(
+          (form) => pack.capitalOnly(form) || pack.writtenUpper(form),
+        ) &&
+        pack.name(key)?.endsWith("!") !== true &&
+        !neverName(pack, key);
+      acronymNames.set(id, found);
+    }
+    return found;
+  };
+  return (word, before, bases = []) => {
     if (!pack.namesByCase || casing.mode !== "mixed") return false;
+    if (acronymAlone(casing, word) && acronymName(word.key, bases))
+      return "name";
     const speaker = word.speaker === true && speakerName(word.key);
     if (speaker) return speaker;
     if (before !== undefined && determiner(pack, before))

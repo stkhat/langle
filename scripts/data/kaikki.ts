@@ -1,4 +1,4 @@
-// kaikki.org English Wiktionary extract (CC BY-SA) → data/packs/en/{vocab,lemmas,ipa,pos,names}.json
+// kaikki.org English Wiktionary extract (CC BY-SA) → data/packs/en/{vocab,lemmas,ipa,pos,names,uppercase}.json
 // The vocabulary is EJDict's single-word headwords and the words rule E adds
 // (`vocabulary.ts`), listed in data/gate/en-wiktionary-words.json (the frequency list
 // ranks those it lacks, the quality gate leaves them out); the example counts that
@@ -392,6 +392,7 @@ export async function importKaikki(
     names: names.pack((key) => words.has(key) || capitalKeys.has(key)),
     added,
     capitals,
+    uppercase: extend?.acronyms(words) ?? [],
     examples,
     stats,
   };
@@ -400,8 +401,22 @@ export async function importKaikki(
 async function main() {
   const dict = readDictPacks<DictPack[string]>(PACKS["en-ja"].dir);
   const path = process.argv[2] ?? KAIKKI_PATH;
-  const { lemmas, ipa, pos, names, added, capitals, examples, stats } =
-    await importKaikki(path, vocabularyOf(dict), dict, createVocabularyRule());
+  const {
+    lemmas,
+    ipa,
+    pos,
+    names,
+    added,
+    capitals,
+    uppercase,
+    examples,
+    stats,
+  } = await importKaikki(
+    path,
+    vocabularyOf(dict),
+    dict,
+    createVocabularyRule(),
+  );
   const vocab = [...vocabularyOf(dict), ...added].sort(byCodeUnit);
   writePack("en/vocab.json", vocab);
   // Capital-only words, Wikidata's entities (`wikidata.ts`, run first), and the
@@ -443,6 +458,7 @@ async function main() {
   writePack("en/ipa.json", ipa);
   writePack("en/pos.json", pos);
   writePack("en/names.json", names);
+  writePack("en/uppercase.json", uppercase);
   writePack(basename(WIKTIONARY_WORDS_PATH), added, GATE_DIR);
   writePack(basename(WIKIDATA_WORDS_PATH), entityList, GATE_DIR);
   writeFileSync(EXAMPLE_COUNTS_PATH, stringifyPack(examples));
@@ -450,7 +466,8 @@ async function main() {
     `kaikki: ${stats.entries} entries (${stats.unparsable} unparsable); ` +
       `en/vocab.json: ${vocab.length} words (${added.length} from Wiktionary, rule E); ` +
       `${capitals.length} capital-only words and ${entityList.length} entities; ` +
-      `${Object.keys(acronyms).length} acronyms known by what they stand for; ` +
+      `${Object.keys(acronyms).length} acronyms known by what they stand for, ` +
+      `${uppercase.length} vocabulary words written mostly in capitals; ` +
       `${Object.keys(lemmas).length} lemma forms, ${Object.keys(ipa).length} IPA, ` +
       `${Object.keys(pos).length} words with parts of speech, ` +
       `${Object.keys(names).length} names`,
