@@ -259,6 +259,7 @@
 "außer betracht bleiben",
 "außer betracht lassen",
 "außer betrieb",
+"außer frage",
 "außer kontrolle geraten",
 "außer kraft",
 "außer kraft setzen",
@@ -744,6 +745,7 @@
 "graue eminenz",
 "grauer star",
 "grimassen schneiden",
+"große liebe",
 "große töne spucken",
 "großer bogen",
 "großer teich",
@@ -1115,6 +1117,7 @@
 "leid sein",
 "letzten endes",
 "letzter schliff",
+"lieb und teuer",
 "liebe auf den ersten blick",
 "liebe geht durch den magen",
 "lieber ein ende mit schrecken als ein schrecken ohne ende",
@@ -1880,7 +1883,6 @@
 "aus etwas kapital schlagen",
 "ausschneiden und einfügen",
 "auto fahren",
-"außer frage",
 "bad bank",
 "bad elster",
 "bad homburg",
@@ -2098,7 +2100,6 @@
 "gottes mühlen mahlen langsam",
 "grad celsius",
 "große koalition",
-"große liebe",
 "große sache",
 "großer brauner",
 "großer bruder",
@@ -2266,7 +2267,6 @@
 "letzte ölung",
 "letzter wille",
 "lieb haben",
-"lieb und teuer",
 "liebe machen",
 "liebe macht blind",
 "liegen lassen",
@@ -2539,7 +2539,7 @@
 "überhaupt nicht"
 ],
 "pos":{
-"detect":"n v i h r i v i i i v n v r v r v h v x r x x h r r v h x v r h h i h x h n n x n n n n in x n n x ai i v v P v v r v r v x r v r v v v h v v h P v a v v v v x r h n x v v x a n n n h h x v a x r r v P h v r a h v a r a P v r P v r v v r r v v v v v v v v v v r r v v v v r P v P P a v v r v h v v v v v v v v v v h r v v h v v ri r v P v P i v P v P P v P i P x P v P P P r P ir P v P r v P p a P P v r P v i i v v x v P v r x v v v P P v r v P P v v v x v v v v v v P v v v v v r v h v a v P P P a r a v n h a v a v v a va P v v r P h v h i v h h P P v P P h n n n v v x x h h n h n v v r i P P i P h i v n v h h v x v v v n n v h n n n v h h h h h h h h r n h v h i v n h x v v v h x v v v h v v h v v h h v h h v h v h v v v v v h h h v h h v v v v h h v v v v v v v v v v v v v v v v v v v v v v v v v v v x v v v v v v v v v v v v v v v v h h h h h x x h x x h h x h h x x x x x n r n r a v n n v v v v v v o v h r v v v v v v v v v x v v h v v v v h v v h v x v v v v v v v v h h v v v v v v v h v v v v v v x h v v h v v v v v h h v v x h n n v i v r v a h a n x v P v v v v i h h x h x h x v v v x x x v v v r x v h v v v h n x h h n n v v v h v h v v v v a h v v v v x x v v v v v v v v v v v v v a v v v v v v v v v h v v v v v v v r v h h h n n r v n r n n n v v h h x h v h v h n r r v v n h a x a h n v h h a a v n n v n h v h r x x h h h h h h v h v v x n r v P r h P r r n P r v h c v v n n n r h h n a n x v r v v r r n h h n r a a x n x x v r h v h h x n n n h h i h ri n n v v n n n a n n i i v a x a x h v h i i i h r i h i h r n v i h r n v v h or i n n n n i v i h r h h v i rn r P v r h h v a x v n n n v n v v h i h n n n h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h a v v v v v P a v P P ri P P P P p r v v r r v r pr P a v r h r a v v v r r rp P r P p r r r P P p P v r v v v v P r c v v v v v v v v v v v v v v x a v x h x pr r x r v h v v v v r v v v v v v v r r v r r v pr r v v x r v P P r P v h r a ai v r v v v h v v P r v P r r n v v n v v v v v v v v ar v v v v v v v v v v v v v v v v v v x i v h h p r o r r h x x r h x n n h v v n h v i r h v h h o v r v h h x v v v o v i h v v v v v v v v v a v h x v x v v x n n v h h h n h r v r a r n v v n n i i i i i h v v n v a v r n h x x x h h v v v r n n x x v v i h x x x n h v v h v h a i h i h h h i i i o h r r h h r P P P P h r v P v v v v v v h a v v v r x r a P a r P v r a r v v r r v P v h r v n n h x v n x i i P r r v r h v r r r h x h i x v v v h h r v h h h v v h h v x v a h r v h v r x x r v x r v r h a r v n P x h r P i r r r P h h x x v v v v i r n v n i h x i v a n x x h v i i v v h v v n x n n v n n h v n v r n n n r v i h r v n h i n v n i v h i x r n n v a a n n v v v n v n n n n n n n n v x a v n i a h v v v v n v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v h n h h i v h v n n v h v h h r h h h h r o v n v v n h h h h n n n n n v i r a h v x h h v v n n v n v r i rn n h v h h n h n n v h n v x v v h n v v P r P hr r r v n r h n h r h v h P r h r x v r v v v v v P r r r h v x n ri i r n i h x h h h n n a r n h v v v v h h P h r r r r r h h v P P r r a r r r r r P v h r r h r r v v v r i r v v v v v x r P v r r x v r v n r h i h h i h i io h h h h n v v h v i n P a h h n h h h r r r h r n h r n h P v o v h r r v v h v P r r v r v v h h h h h h h h h h r h h h h P h a r r h h h h x h h h h h h h h h r v n x v v v v v r r a r r v P r r v P v v v v v v v v v v v v r x v v h r v r n v v v v v r v r r h v v v r r v v v i v P r r v P v v r v v v v h n v v v n n h P P v n v n n n v P v v v h P r v v v v r x v v r v P x v x",
-"more":"n N h v x n r c ci v n n n N N v r a P v v x v P v v n r n v a n i x r P P v v v v P v P r P r v v v P v v P v v P v v v v a n N N na N n n N v P v P n N N n n v v n x i r p a n n v n x n N N n v n N n n n N N N v h r x x x v r v N h v v v v v v v v v x h d r r r N n n N N N N N N n v h N v v v v v v r o n n n n n N n n r r n v v v x d r d v v v v v v v v v v v r r n N n n n hN n v v n n n N n N v h c v n n v v v v v v v v v v v v v v v v v v v v v v h v v h N N N n v a v v a n N a n n N r n n P r r N v r n r x x i n N N n n N N N r n v c n N x v n x n n n n N N N N n a a n n a n n v h v a h N n r n n v N n n N N N N N r P n v n n i v n n n r h h r r v v P r r r x r r v a P v r r n a r c r v r v v v v P P v v v v r a v r v n N ar v v v v N v N N n n x i x v h v v v v v v v v v v v h h v v v v v h v v v h v v v v v v v v v v v n N N N n n n n a n n n v N N n n n n n v v v n n n n n n v a v x v n N v x n r r N N P v P v v v a r r v v h v p N n i v r a a N v v v n x N n N r v i x r r i r r a i r r N h n P N N n n n n n a r n a v n n N N n a N N N n n n n n N N v n N n n n v n n r r v n n n n n n N x v a n v v v v v v v h h v v r r n v v v v v v N v i v v r o a r a r o v n v n v n v n N n x x N n r Nn v N n n n r v r n r h r n n r r v v v P r n N N N v n n v n n n n r v r v r P P r r r r N o o dr h n v N N r v N x c o h v r h i dr n n N v n h v n n r n n v v v v a v v r r v r r a v v v v v r v n N n n N v n n v r v v r P r"
+"detect":"n v i h r i v i i i v n v r v r v h v x r x x h r r v h x v r h h i h x h n n x n n n n in x n n x ai i v v P v v r v r v x r v r v v v h v v h P v a v v v v x r h n x v v x a n n n h h x v a x r r v P h v r a h v a r a P v r P v r v v r r v v v v v v v v v v r r v v v v r P v P P a v v r v h v v v v v v v v v v h r v v h v v ri r v P v P i v P v P P v P i P x P v P P P r P ir P v P r v P p a P P v r P v i i v v x v P v r x v v v P P v r v P P v v v x v v v v v v P v v v v v r v h v a v P P P a r a v n h a v a v v a a va P v v r P h v h i v h h P P v P P h n n n v v x x h h n h n v v r i P P i P h i v n v h h v x v v v n n v h n n n v h h h h h h h h r n h v h i v n h x v v v h x v v v h v v h v v h h v h h v h v h v v v v v h h h v h h v v v v h h v v v v v v v v v v v v v v v v v v v v v v v v v v v x v v v v v v v v v v v v v v v v h h h h h x x h x x h h x h h x x x x x n r n r a v n n v v v v v v o v h r v v v v v v v v v x v v h v v v v h v v h v x v v v v v v v v h h v v v v v v v h v v v v v v x h v v h v v v v v h h v v x h n n v i v r v a h a n x v P v v v v i h h x h x h x v v v x x x v v v r x v h v v v h n x h h n n v v v h v h v v v v a h v v v v x x v v v v v v v v v v v v v a v v v v v v v v v h v v v v v v v r v h h h n n r v n r n n n v v h h x h v h v h n r r v v n h a x a h n v h h a a v n n v n h v h r x x h h h h h h v h v v x n r v P r h P r r n P r v h c v v n n n r h h n a n x v r v v r r n h h n r a a x n x x v r h v h h x n n n h h i h ri n n v n v n n n a n n i i v a x a x h v h i i i h r i h i h r n v i h r n v v h or i n n n n i v i h r h h v i rn r P v r h h v a x v n n n v n v v h i h n n n h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h h a v v v v v P a v P P ri P P P P p r v v r r v r pr P a v r h r a v v v r r rp P r P p r r r P P p P v r v v v v P r c v v v v v v v v v v v v v v x a v x h x pr r x r v h v v v v r v v v v v v v r r v r r v pr r v v x r v P P r P v h r a ai v r v v v h v v P r v P r r n v v n v v v v v v v v ar v v v v v v v v v v v v v v v v v v x i v h h p r o r r h x x r h x n n h v v n h v i r h v h h o v r v h h x v v v o v i h v v v v v v v v v a v h x v x v v x n n v h h h n h r v r a r n v v n n i i i i i h v v n v a v r n a h x x x h h v v v r n n x x v v i h x x x n h v v h v h a i h i h h h i i i o h r r h h r P P P P h r v P v v v v v v h a v v v r x r a P a r P v r a r v v r r v P v h r v n n h x v n x i i P r r v r h v r r r h x h i x v v v h h r v h h h v v h h v x v a h r v h v r x x r v x r v r h a r v n P x h r P i r r r P h h x x v v v v i r n v n i h x i v a n x x h v i i v v h v v n x n n v n n h v n v r n n n r v i h r v n h i n v n i v h i x r n n v a a n n v v v n v n n n n n n n n v x a v n i a h v v v v n v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v h n h h i v h v n n v h v h h r h h h h r o v n v v n h h h h n n n n n v i r a h v x h h v v n n v n v r i rn n h v h h n h n n v h n v x v v h n v v P r P hr r r v n r h n h r h v h P r h r x v r v v v v v P r r r h v x n ri i r n i h x h h h n n a r n h v v v v h h P h r r r r r h h v P P r r a r r r r r P v h r r h r r v v v r i r v v v v v x r P v r r x v r v n r h i h h i h i io h h h h n v v h v i n P a h h n h h h r r r h r n h r n h P v o v h r r v v h v P r r v r v v h h h h h h h h h h r h h h h P h a r r h h h h x h h h h h h h h h r v n x v v v v v r r a r r v P r r v P v v v v v v v v v v v v r x v v h r v r n v v v v v r v r r h v v v r r v v v i v P r r v P v v r v v v v h n v v v n n h P P v n v n n n v P v v v h P r v v v v r x v v r v P x v x",
+"more":"n N h v x n r c ci v n n n N N v r a P v v x v P v v n r n v a n i x r P P v v v v P v P r P r v v v P v v P v v P v v v v n N N na N n n N v P v P n N N n n v v n x i r p a n n v n x n N N n v n N n n n N N N v h r x x x v r v N h v v v v v v v v v x h d r r r N n n N N N N N N n v h N v v v v v v r o n n n n n N n n r r n v v v x d r d v v v v v v v v v v v r r n N n n n hN n v v n n n N n N v h c v n n v v v v v v v v v v v v v v v v v v v v v v h v v h N N N n v a v v a n N a n n N r n n P r r N v r n r x x i n N N n n N N N r n v c n N x v n x n n n N N N N n a a n n a n n v h v a h N n r n n v N n n N N N N N r P n v n n i v n n n r h h r r v v P r r r x r r v a P v r r n a r c r v r v v v v P P v v v v r a v r v n N ar v v v v N v N N n n x i x v h v v v v v v v v v v v h h v v v v v h v v v h v v v v v v v v v v v n N N N n n n n a n n n v N N n n n n n v v v n n n n n n v v x v n N v x n r r N N P v P v v v a r r v v h v p N n i v r a a N v v v n x N n N r v i x r r i r r a i r r N h n P N N n n n n n a r n a v n n N N n a N N N n n n n n N N v n N n n n v n n r r v n n n n n n N x v a n v v v v v v v h h v v r r n v v v v v v N v i v v r o a r a r o v n v n v n v n N n x x N n r Nn v N n n n r v r n r h r n n r r v v v P r n N N N v n n v n n n n r v r v r P P r r r r N o o dr h n v N N r v N x c o h v r h i dr n n N v n h v n n r n n v v v v a v v r r v r r a v v v v v r v n N n n N v n n v r v v r P r"
 }
 }
