@@ -18,7 +18,7 @@ import {
 } from "./lexicon/sense-order";
 import type { MatchWord } from "./phrases/matcher";
 import {
-  trustedTag,
+  readTag,
   type TaggedWord,
   type TokenTag,
   type WordRole,
@@ -29,7 +29,7 @@ import type { Token } from "./text/tokenize";
 
 /** A word as its sentence's tags read it. */
 export interface WordReading {
-  /** Its tag, when trusted (`trustedTag`). */
+  /** Its tag, when trusted (`readTag`). */
   tag?: TokenTag;
   use: WordUse;
   /** What it is among the language's closed classes (`Tagger.role`); none when untagged. */
@@ -115,11 +115,12 @@ export function readWords(
     ({ token, form, bases }, i): TaggedWord | undefined => {
       const tag = tagAt.get(token.start);
       if (!tag) return undefined;
+      const read = readTag(tag, tagger.threshold, form, bases);
       return {
         form,
         bases,
-        tag,
-        trusted: trustedTag(tag, tagger.threshold, form, bases),
+        tag: read ?? tag,
+        trusted: read !== undefined,
         pauseBefore: pauses[i]!,
         // Punctuation after it: before the next word, or at the block's end.
         pauseAfter:

@@ -668,7 +668,7 @@ export function germanTagger(model: PerceptronModel): Tagger {
       tagSentence(
         model,
         tokens.map((token) => token.replaceAll("’", "'")),
-      ).map(({ tag, margin }) => udTokenTag(tag, margin)),
+      ).map(udTokenTag),
     uses: (words) => {
       const partners = words.map((_, i) => partner(words, i));
       const pronominal = pronominalVerbs(words, partners);
