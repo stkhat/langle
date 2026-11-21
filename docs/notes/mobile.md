@@ -34,12 +34,35 @@ Setup: the Claude desktop app's built-in browser (Chromium, not automated, `navi
 
 - So **the desktop capture method works unchanged on the mobile site.**
 - DOM differs: present are `#movie_player`, `video.html5-main-video`, `.ytp-caption-window-container`; absent are `ytd-watch-flexy` and `.ytp-chrome-bottom` (desktop controls). Player at 375x211 under a 48 px header. A separate `PlatformAdapter` is needed for button and transcript placement.
-- Not checked: real WKWebView / GeckoView / Android WebView (the token depends on the engine not being automated, so it is likely but unproven), signed-in state, Shorts, live streams.
+- Not checked here: signed-in state, Shorts, live streams. Real Android WebView and GeckoView were checked on 2026-11-22 ("Android prototypes" below); WKWebView not yet.
 
 ## Not decided: Android engine
 - **GeckoView**: can bundle a WebExtension (`WebExtensionController`, messaging between the extension and the app), so the existing Firefox build could run almost as is. Adds tens of MB to the app.
 - **System WebView**: no extension APIs; we write the same shim as on iOS, shared between platforms.
 - iOS has no choice: WebKit (`WKWebView`) is required outside the EU.
+- The prototypes below favour GeckoView: only it got YouTube's own translated captions.
+
+## Android prototypes (2026-11-22)
+Two throwaway apps in `mobile/prototypes/` (setup: [development.md](../development.md) "Mobile app"), on the emulator (Android 17, arm64, Google Play image), logged out, video `iG9CE55wbtY`. Both inject the same `probe.js` at document start in every frame: it prunes the player response's ad fields (`adPlacements`, `playerAds`, `adSlots`, `adBreakHeartbeatParams`, through `JSON.parse`, `Response.json` and a `ytInitialPlayerResponse` setter), records `/api/timedtext` responses, and refetches the variants measured above. Both block with EasyList's `||host^` rules (46,385 hosts) and hide with its generic `##` rules (13,636 selectors), the list fetched at run time.
+- **System WebView** (`android-webview`, WebView 145): the script goes in through `WebViewCompat.addDocumentStartJavaScript` and talks back through `addWebMessageListener`. It runs in the page's own world: WebView has no isolated world. Requests are blocked in `shouldInterceptRequest`. `cdp.mjs` drives the page over the DevTools protocol (`adb forward` to `webview_devtools_remote_<pid>`).
+- **GeckoView** (`android-geckoview`, GeckoView 160): a built-in MV3 extension (`ensureBuiltIn`) with a `"world": "MAIN"` content script for the probe, an isolated content script that relays to the background, and the background's native port to the app. Requests are blocked with blocking `webRequest`, elements are hidden with `scripting.insertCSS`. The app sends named commands (no `eval`: YouTube's CSP).
+
+| | System WebView | GeckoView |
+|---|---|---|
+| `navigator.webdriver` | false | false |
+| Player's own request (`en`, with `pot`, `c=MWEB`) | 59,007 B | 59,007 B |
+| `lang=ja` / `lang=es` / without `pot` | 43,818 / 58,953 / 0 B | 43,818 / 58,953 / 0 B |
+| `tlang=ja` (the site's translation) | **429** (1,103 B), the player's own translated request too | 200, 50,857 B |
+| Ad fields pruned, playback | pruned, kept playing, no ad, no warning | pruned, kept playing, no ad |
+| Request blocking | works: Daily Mail 148 requests blocked, page intact | works (3 ad requests blocked on YouTube); article run not measured |
+| Google sign-in (default UA) | reached the password step | not checked |
+| Debug APK | 6.8 MB | 210 MB (arm64 only; `libxul.so` 155 MB, stored uncompressed); download size not measured |
+
+- **`tlang` in WebView**: the same network got 200 from desktop YouTube (`c=WEB`) and from GeckoView (`c=MWEB`) in the same hour, so the 429 is WebView's, not the network's. Langle uses `tlang` as a translation source (`siteAutoTranslate`); without it a WebView app would lean on on-device translation. The user's decision (2026-11-22): if that becomes necessary, discuss the design again before building it.
+- **Don't fake the user agent**: WebView with "; wv" and "Version/4.0" removed got empty bodies for every timedtext request, the captured one included; so did the built-in browser with a phone UA the same day (it had worked there on 2026-11-13). The PO token seems to check that the UA matches the engine.
+- YouTube shows Firefox a "Watch in YouTube app" sheet and GeckoView blocks autoplay (the video waits for a tap); WebView with `mediaPlaybackRequiresUserGesture = false` autoplays muted.
+- GeckoView, after a restart: the extension's background starts before the app sets its message delegate, and that port never answers. The background now reconnects until the app sends its config. Built, not yet checked: the emulator hung under the host's load.
+- Not checked: GeckoView sign-in and article blocking, signed-in YouTube, Shorts, live streams, real phones, release APK sizes, Langle's own Firefox build inside GeckoView.
 
 ## Ad blocking (not built; 2026-11-22)
 The app is the browser, so blocking runs in the app, outside any extension API and its limits (as Brave does; Brave on iOS also runs on WKWebView).
@@ -79,8 +102,8 @@ The app is the browser, so blocking runs in the app, outside any extension API a
 - **Android: no Android Studio needed.** Command-line tools (SDK, emulator, a system image) are enough, a few GB.
 
 ## Next steps
-1. Install Xcode (the user) and the Android command-line tools.
-2. Minimal browser app prototypes that inject a script, capture timedtext, and try to reach Google's password step (the user signs in; Claude never enters credentials):
+1. Install Xcode (the user) and the Android command-line tools. Done 2026-11-22.
+2. (Android done 2026-11-22, "Android prototypes" above; iOS next.) Minimal browser app prototypes that inject a script, capture timedtext, and try to reach Google's password step (the user signs in; Claude never enters credentials):
    - iOS: `WKWebView`, default UA and a Safari-like UA.
    - Android: GeckoView and System WebView, to choose the engine.
    - In both: one compiled filter list on an article, and the ad-field pruning on `m.youtube.com`; check that captions are still captured and that playback is not stopped.

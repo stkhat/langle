@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Langle probe",
+  "version": "0.2",
+  "browser_specific_settings": { "gecko": { "id": "probe@langle.dev" } },
+  "permissions": [
+    "nativeMessaging",
+    "geckoViewAddons",
+    "webRequest",
+    "webRequestBlocking",
+    "webNavigation",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": { "scripts": ["background.js"] },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["bridge-main.js", "probe.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["relay.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}

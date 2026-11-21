@@ -25,3 +25,7 @@ e2e/fixtures
 
 # Written by npm run data:publish (scripts/data/publish.ts stringifyLock)
 src/core/packs/packs.lock.json
+
+# Android prototypes' Gradle outputs (git ignores them through their own .gitignore)
+mobile/**/build
+mobile/**/.gradle
