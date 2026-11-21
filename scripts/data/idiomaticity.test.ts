@@ -170,6 +170,33 @@ describe("transparent (B2b)", () => {
       ),
     ).toBe(true);
   });
+  it("never takes a pattern whose first sense is idiomatic or figurative for transparent", () => {
+    const grey = (tags: string[], extra: Partial<PatternEvidence>) =>
+      evidence(
+        [sense("An area of uncertainty.", { tags })],
+        {},
+        { pos: ["noun"], ...extra },
+      );
+    for (const tags of [["figuratively"], ["idiomatic"]]) {
+      expect(transparent(grey(tags, { parts: 1 }), ENGLISH_PHRASES)).toBe(
+        false,
+      );
+      expect(transparent(grey(tags, { loanword: true }), ENGLISH_PHRASES)).toBe(
+        false,
+      );
+    }
+    // A later sense's tag leaves the test to the first one.
+    expect(
+      transparent(
+        evidence(
+          [sense("A thing."), sense("Opaque.", { tags: ["figuratively"] })],
+          {},
+          { pos: ["noun"], parts: 1 },
+        ),
+        ENGLISH_PHRASES,
+      ),
+    ).toBe(true);
+  });
   it("leaves verbs to the score", () => {
     expect(
       transparent(
