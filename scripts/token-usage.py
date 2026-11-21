@@ -3,7 +3,7 @@
 Reads the local transcripts in ~/.claude/projects/*<PROJECT>*/ (parent sessions and their
 subagents/) and prints price-weighted totals. Read-only; nothing leaves the machine.
 
-  python3 -I scripts/token-usage.py [sessions|subagents|attribution|cap|all] [--since YYYY-MM-DD]
+  python3 -I scripts/token-usage.py [sessions|subagents|attribution|cap|friction|all] [--since YYYY-MM-DD] [--out friction.json]
 
 Weights are relative prices (input 1, cache write 1.25, cache read 0.1, output 5), so shares
 compare like cost. PROJECT defaults to "langle".
@@ -246,14 +246,115 @@ def cap(ts):
         print(f"  cap {limit // 1000}k: {(1 - run(limit) / base) * 100:3.0f}% less")
 
 
+CORRECTION = re.compile(r"違う|ちがう|そうじゃ|やめて|止めて|間違|おかしい|\[Request interrupted|\bwrong\b|\bdon't\b|\bstop\b", re.I)
+
+
+def _ts(r):
+    from datetime import datetime
+
+    try:
+        return datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00")).timestamp()
+    except (KeyError, ValueError):
+        return None
+
+
+def _first_line(b):
+    c = b.get("content")
+    if isinstance(c, list):
+        c = " ".join(x.get("text", "") for x in c if isinstance(x, dict))
+    return re.sub(r"\s+", " ", str(c or ""))[:160]
+
+
+def friction(ts, out=None):
+    """Where sessions lost time or turns: errors, refusals, loops, re-reads, long agents, waits, corrections."""
+    errors, refusals, wall, wall_n = collections.Counter(), collections.Counter(), collections.Counter(), collections.Counter()
+    samples = collections.defaultdict(list)
+    loops, rereads, repeats, long_agents, toolsearch, corrections = [], [], [], [], [], []
+    for t in ts:
+        who = f"{t['session'][:8]}{'/' + os.path.basename(t['path'])[6:14] if t['sub'] else ''}"
+        uses, start = {}, {}
+        for r, b in blocks(t["recs"]):
+            if b.get("type") == "tool_use":
+                uses[b.get("id")] = b
+                start[b.get("id")] = _ts(r)
+        names = tool_names(t["recs"])
+        edits, reads, fails, nsearch = collections.Counter(), collections.Counter(), collections.Counter(), 0
+        for r, b in blocks(t["recs"]):
+            kind = b.get("type")
+            if kind == "tool_use":
+                inp = b.get("input") or {}
+                if b.get("name") in ("Edit", "Write", "MultiEdit"):
+                    edits[inp.get("file_path", "?")] += 1
+                elif b.get("name") == "Read":
+                    reads[(inp.get("file_path", "?"), inp.get("offset"))] += 1
+                elif b.get("name") == "ToolSearch":
+                    nsearch += 1
+            elif kind == "tool_result":
+                k = names.get(b.get("tool_use_id"), "?")
+                t0, t1 = start.get(b.get("tool_use_id")), _ts(r)
+                if t0 and t1 and 0 <= t1 - t0 < 6 * 3600:
+                    wall[k] += t1 - t0
+                    wall_n[k] += 1
+                if b.get("is_error"):
+                    text = _first_line(b)
+                    bucket = "refusal" if re.search(r"not permitted|denied|refused|sandbox|permission", text, re.I) else "error"
+                    (refusals if bucket == "refusal" else errors)[k] += 1
+                    if len(samples[(bucket, k)]) < 3:
+                        samples[(bucket, k)].append(f"{who}: {text}")
+                    u = uses.get(b.get("tool_use_id")) or {}
+                    cmd = re.sub(r"\s+", " ", json.dumps(u.get("input") or {}))[:200]
+                    fails[cmd] += 1
+            elif kind == "text" and r.get("type") == "user" and not t["sub"]:
+                text = b.get("text", "")
+                if not text.startswith("<") and CORRECTION.search(text[:400]):
+                    corrections.append(f"{who} {r.get('timestamp', '')[:16]}: {re.sub(chr(10), ' ', text)[:160]}")
+        loops += [(n, who, f) for f, n in edits.items() if n >= 20]
+        rereads += [(n, who, f"{f}@{o}") for (f, o), n in reads.items() if n >= 3]
+        repeats += [(n, who, c) for c, n in fails.items() if n >= 3]
+        if nsearch >= 3:
+            toolsearch.append((nsearch, who))
+        cs = [c for c, _, _ in calls(t["recs"])]
+        if t["sub"] and cs:
+            compactions = sum(1 for a, b2 in zip(cs, cs[1:]) if b2 < 0.6 * a)
+            avg = sum(cs) / len(cs)
+            if len(cs) > 150 or avg > 250_000:
+                long_agents.append((len(cs), avg, max(cs), compactions, who))
+    report = {
+        "errors": errors, "refusals": refusals, "samples": {f"{a}|{b}": v for (a, b), v in samples.items()},
+        "edit_loops": sorted(loops, reverse=True), "rereads": sorted(rereads, reverse=True), "repeated_failures": sorted(repeats, reverse=True),
+        "long_agents": sorted(long_agents, reverse=True), "toolsearch_3plus": sorted(toolsearch, reverse=True), "corrections": corrections,
+        "wall_hours": {k: round(v / 3600, 2) for k, v in wall.most_common()}, "wall_calls": wall_n,
+    }
+    if out:
+        json.dump(report, open(out, "w"), ensure_ascii=False, indent=1, default=str)
+        print(f"full report: {out}")
+    print(f"tool errors {sum(errors.values())}, refusals {sum(refusals.values())}")
+    for k, n in (errors + refusals).most_common(8):
+        print(f"  {n:5d} {k}  e.g. {(samples.get(('error', k)) or samples.get(('refusal', k)) or [''])[0][:110]}")
+    print(f"edit loops (same file >= 20 edits in one agent): {len(loops)}")
+    for n, who, f in sorted(loops, reverse=True)[:5]:
+        print(f"  {n:4d} {who} {f[-70:]}")
+    print(f"re-reads (same file+offset >= 3): {len(rereads)}; repeated failing calls (>= 3): {len(repeats)}; agents with >= 3 ToolSearch: {len(toolsearch)}")
+    print(f"long subagents (> 150 turns or > 250k avg ctx): {len(long_agents)}, with a compaction: {sum(1 for a in long_agents if a[3])}")
+    for n, avg, mx, comp, who in sorted(long_agents, reverse=True)[:5]:
+        print(f"  {n:4d} turns avg {avg / 1e3:4.0f}k max {mx / 1e3:4.0f}k compactions {comp} {who}")
+    print("wall time in tools (hours, calls):")
+    for k, v in wall.most_common(8):
+        print(f"  {v / 3600:6.2f} {wall_n[k]:6d} {k}")
+    print(f"user corrections/interrupts in parent sessions: {len(corrections)}")
+    for c in corrections[:5]:
+        print(f"  {c}")
+
+
 def main(argv):
     since = argv[argv.index("--since") + 1] if "--since" in argv else None
-    what = next((a for a in argv if a in ("sessions", "subagents", "attribution", "cap", "all")), "all")
+    out = argv[argv.index("--out") + 1] if "--out" in argv else None
+    what = next((a for a in argv if a in ("sessions", "subagents", "attribution", "cap", "friction", "all")), "all")
     ts = list(transcripts(since))
-    for name, fn in [("sessions", sessions), ("subagents", subagents), ("attribution", attribution), ("cap", cap)]:
+    for name, fn in [("sessions", sessions), ("subagents", subagents), ("attribution", attribution), ("cap", cap), ("friction", friction)]:
         if what in (name, "all"):
             print(f"\n== {name}")
-            fn(ts)
+            fn(ts, out) if name == "friction" else fn(ts)
 
 
 if __name__ == "__main__":
