@@ -22,8 +22,26 @@ export interface TokenTag {
   morph: boolean;
   /** A proper-noun tag. */
   proper: boolean;
+  /**
+   * The class of tags the language's grammar tells apart beyond `label`, when it does:
+   * a universal tag's part of speech (UD: AUX and VERB, both verbs, are not read
+   * alike; their verb forms are).
+   */
+  kind?: string;
   /** How sure the tagger is; compare with `Tagger.threshold`. Infinity for a word with one tag. */
   confidence: number;
+  /**
+   * The tagger's next best tags, best first, each with how far it is behind this one
+   * (`confidence` is the first one's), for `readTag`. None for a word with one tag or
+   * a tag never trusted.
+   */
+  rivals?: readonly RivalTag[];
+}
+
+/** One of a token's next best tags (`TokenTag.rivals`). */
+export interface RivalTag extends Omit<TokenTag, "confidence" | "rivals"> {
+  /** How far its score is behind the token's tag, in the tagger's margin units. */
+  behind: number;
 }
 
 /** A word of a tagged sentence, as the language's grammar reads it. */
@@ -33,7 +51,7 @@ export interface TaggedWord {
   /** Its base forms (`LanguagePack.lemmas`). */
   bases: readonly string[];
   tag: TokenTag;
-  /** The tag is trusted (`trustedTag`). */
+  /** The tag is trusted (`readTag`). */
   trusted: boolean;
   /** Punctuation comes between the word before and this one. */
   pauseBefore: boolean;
@@ -185,17 +203,72 @@ export interface Tagger {
 export type TaggerModel = PerceptronModel;
 
 /**
- * Whether a tag counts as evidence: the tagger is confident, it is not a proper-noun
- * tag (a name is no word to look up; "Deposit my specimen" at a sentence start), and it
- * agrees with the word's form: a form that is not a headword of its own (an inflected
- * form) cannot carry a bare tag ("calmer" as a noun).
+ * Two tags say the same of a word: its part of speech (and `kind`), its ending, and
+ * whether it is a name.
  */
-export function trustedTag(
+const readsAlike = (
+  a: Omit<TokenTag, "confidence" | "rivals">,
+  b: Omit<TokenTag, "confidence" | "rivals">,
+) =>
+  a.label === b.label &&
+  a.kind === b.kind &&
+  a.inflected === b.inflected &&
+  a.morph === b.morph &&
+  a.proper === b.proper;
+
+/**
+ * The tag a word is read by, when it counts as evidence (undefined otherwise). A form
+ * that is not a headword of its own (an inflected form) can only carry a tag that says
+ * it has an ending ("calmer" is no noun). A tag it cannot carry still says the word's
+ * part of speech, as a tag of that part of speech the form can carry and the tagger
+ * lists says it ("cases" NN: a noun, as its NNS), or else nothing ("looming" NN: no
+ * noun tag with an ending listed). The word is read by the best tag the form can carry,
+ * and that counts when the tagger is confident of what it says of the word, by
+ * `threshold`: how far it is ahead of the best reading that differs (`readsAlike`).
+ * Tags that say the same do not count against each other: "netted" a past or a
+ * participle, a verb either way (but UD's AUX and VERB, which the grammar tells apart,
+ * do: `kind`). So "looming" (VBG 3.6 ahead of NN, 11.8 of JJ) is a verb, and "cases"
+ * (VBZ 1.7 ahead of NN) nothing. A tag the form cannot carry and the tagger is sure of,
+ * ahead of every tag it can by `threshold`, says the word is what the dictionary has no
+ * entry for: "research funding" (NN 5.9 ahead of VBG), a gerund noun, is not read as a
+ * verb. Never a proper-noun tag (a name is no word to look up; "Deposit my specimen"
+ * at a sentence start). Its `confidence` is that lead, its `rivals` left out.
+ */
+export function readTag(
   tag: TokenTag,
   threshold: number,
   form: string,
   bases: readonly string[],
-): boolean {
-  if (tag.confidence < threshold || tag.proper) return false;
-  return !(bases.length > 0 && !bases.includes(form) && !tag.morph);
+): TokenTag | undefined {
+  const headword = bases.length === 0 || bases.includes(form);
+  const { rivals = [], confidence, ...first } = tag;
+  type Reading = Omit<TokenTag, "confidence" | "rivals">;
+  const tags = [
+    { reading: first as Reading, behind: 0 },
+    ...rivals.map(({ behind, ...reading }) => ({ reading, behind })),
+  ];
+  const carried = ({ reading }: { reading: Reading }) =>
+    headword || reading.morph;
+  // Each tag as a reading the form can carry, by its own score.
+  const readings = tags.flatMap((one) => {
+    const as = carried(one)
+      ? one
+      : tags.find(
+          (other) =>
+            carried(other) && other.reading.label === one.reading.label,
+        );
+    return as ? [{ reading: as.reading, behind: one.behind }] : [];
+  });
+  const best = readings[0];
+  if (!best || best.reading.proper || best.behind >= threshold)
+    return undefined;
+  const other = readings.find((one) => !readsAlike(one.reading, best.reading));
+  // With no other reading among those listed, the last listed bounds the lead: every
+  // tag not listed is further behind.
+  const lead =
+    rivals.length === 0
+      ? confidence
+      : (other ?? rivals.at(-1)!).behind - best.behind;
+  if (lead < threshold) return undefined;
+  return { ...best.reading, confidence: lead };
 }
