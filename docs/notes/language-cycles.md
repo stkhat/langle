@@ -3,7 +3,7 @@
 The log of the weekly language cycle ([skill](../../.claude/skills/language-cycle/SKILL.md), [development](../development.md) "Language quality cycle"). Newest cycle first. Data for each cycle is in `data/raw/quality/cycles/<cycle>/` (git-ignored).
 
 ## Current
-- State: c001 paused at step 4 (2026-11-22, user: machine load). The three fix steps stopped mid-work, each saved as a local WIP commit (not pushed, not verified) in its worktree: `claude/c001-pos-senses` (`.claude/worktrees/agent-a7d06d6f206cc85e3`, tagger changes), `claude/c001-names` (`agent-ae2df9208ec20c66d`, vocabulary/kaikki and handlers), `claude/c001-expressions` (`agent-a3bc52a8acabfbad3`, idiomaticity and es/fr phrases). Resume: one step at a time (not in parallel), each from its WIP commit and `data/raw/quality/cycles/c001/BRIEF-common.md`; log branch `claude/cycle-c001`
+- State: c001 in flight at step 4, one step at a time (user, 2026-11-22: machine load). Fix 1 (hover senses by POS) merged as #223 (`9882d19`); re-measured as `cycles/c001/after-pos-senses`. Next: fix 2 `claude/c001-names` (`.claude/worktrees/agent-ae2df9208ec20c66d`, WIP `ccb1252`), then fix 3 `claude/c001-expressions` (`agent-a3bc52a8acabfbad3`, WIP `9d5a163`), each from its WIP commit and `data/raw/quality/cycles/c001/BRIEF-common.md`; log branch `claude/cycle-c001`
 - Last cycle: c000 (2026-11-22, baseline `bda1bda`); last sweep: `cycles/c001/base`
 - Next: c002. Next tidy-up: c002 (every third cycle: c002, c005, …), or earlier when the inventory grows ≥ 15% over c000's or a pair is added
 - Level rotation: c001 runs `es` also at level 1000; then `fr` 8000, `de` 1000, `en` 8000, …
@@ -41,7 +41,12 @@ Main at `bab876e`. Started by hand to fix the c000 Queue; manual runs are extra 
 Not rerun: c000's findings are one day old and the code is unchanged. The next cycle simulates again.
 
 ### Picks
-Queue items 1 (hover senses by POS), 2 (acronyms and capitalised names) and 3 (missed expressions), one PR each, in parallel worktrees (they touch different code: `word-sense.ts`/`sense-order.ts`, `names.ts`/`casing.ts`, `phrases/`).
+Queue items 1 (hover senses by POS), 2 (acronyms and capitalised names) and 3 (missed expressions), one PR each. Started in parallel worktrees, which made the user's Mac too slow; stopped and resumed one at a time (SKILL.md "Machine load").
+
+### Fix 1 — hover senses by POS (#223, merged `9882d19`)
+CORE tagging: `readTag` replaces `trustedTag` (a form other than the headword carries only tags with an ending; the tagger's lead is measured against the best differing reading; Proper never trusted; top 4 rival tags kept). Tagger on EWT: headwords coverage 87.9 → 88.7% at 97.1%; inflected forms coverage 82.7 → 89.6%, accuracy 98.6 → 97.5%. Blind A/B old : new — tune 40 : 290, confirm 52 : 271, Netflix held out 66 : 219. Sweep 0 WORSE, timing ≤ +3.7 ms/1k. No trade-offs.
+
+Re-measure (`after-pos-senses` on `9882d19`, 19 pairs with en-ko): 19/19 ok, 0 WORSE; changed rows vs base de-en 48, de-fr 45, en-* 273–1280, es-en 9, fr-en 16. Rows that differ from the fix branch's own sweep (en-pl 772, en-th 167, en-es 162, en-zh 77, en-fr 69, en-ru 6) come from #221 (en-ko), which taught `short-lines.ts` to drop brackets in another script and trailing "…" ("he (piąta litera …), (ה,ه)" → "he (piąta litera …)", "ไม่สามารถ (cannot) (…)" → "ไม่สามารถ (…)", "no puedo, no puedes, ..." → "no puedo, no puedes"): improvements, not regressions.
 
 ### Next: a selection check in the cycle (user, 2026-11-22; build after c001's fixes)
 What a learner gets when they select several words: is the expression found, and is its meaning right; and whether the on-device AI's prompt should change. Not UI (layout, flicker, latency of the card): out of scope by the user's choice.
