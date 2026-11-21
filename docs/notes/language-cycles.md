@@ -3,7 +3,7 @@
 The log of the weekly language cycle ([skill](../../.claude/skills/language-cycle/SKILL.md), [development](../development.md) "Language quality cycle"). Newest cycle first. Data for each cycle is in `data/raw/quality/cycles/<cycle>/` (git-ignored).
 
 ## Current
-- State: c001 in flight (manual, started 2026-11-22 at `bab876e`), step 4: fixes 1–3 of the Queue run as parallel steps (`claude/c001-pos-senses`, `claude/c001-names`, `claude/c001-expressions`); log branch `claude/cycle-c001`
+- State: c001 paused at step 4 (2026-11-22, user: machine load). The three fix steps stopped mid-work, each saved as a local WIP commit (not pushed, not verified) in its worktree: `claude/c001-pos-senses` (`.claude/worktrees/agent-a7d06d6f206cc85e3`, tagger changes), `claude/c001-names` (`agent-ae2df9208ec20c66d`, vocabulary/kaikki and handlers), `claude/c001-expressions` (`agent-a3bc52a8acabfbad3`, idiomaticity and es/fr phrases). Resume: one step at a time (not in parallel), each from its WIP commit and `data/raw/quality/cycles/c001/BRIEF-common.md`; log branch `claude/cycle-c001`
 - Last cycle: c000 (2026-11-22, baseline `bda1bda`); last sweep: `cycles/c001/base`
 - Next: c002. Next tidy-up: c002 (every third cycle: c002, c005, …), or earlier when the inventory grows ≥ 15% over c000's or a pair is added
 - Level rotation: c001 runs `es` also at level 1000; then `fr` 8000, `de` 1000, `en` 8000, …
