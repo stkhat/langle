@@ -109,6 +109,7 @@ function awaitingFallbacks(
     },
     outline: (term) => dictionary.outline(term),
     capitalMeaning: (term) => dictionary.capitalMeaning(term),
+    acronym: (term) => dictionary.acronym(term),
     senseLine: (sense, glossLang) => dictionary.senseLine(sense, glossLang),
   };
 }
@@ -142,6 +143,7 @@ const LANGUAGE_RECIPES: Readonly<Record<string, Recipe<LanguagePack>>> =
           ...("contractions" in pack && { contractions: pack.contractions }),
           ...("capitals" in pack && { capitals: pack.capitals }),
           ...("acronyms" in pack && { acronyms: pack.acronyms }),
+          ...("uppercase" in pack && { uppercase: pack.uppercase }),
           ...("pos" in pack && { pos: pack.pos }),
           ...("names" in pack && { names: pack.names }),
           ...("tagger" in pack && { tagger: pack.tagger }),

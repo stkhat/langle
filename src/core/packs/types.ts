@@ -55,6 +55,12 @@ export type CapitalsPack = readonly string[];
  */
 export type AcronymsPack = Readonly<Record<string, readonly string[]>>;
 /**
+ * en/uppercase.json: the vocabulary words the examples write more often in capitals
+ * than in lower case, sorted (ceo, nasa, tv): acronyms the vocabulary keys in lower
+ * case, whose entries mean the acronym (`LanguagePack.writtenUpper`).
+ */
+export type UppercasePack = readonly string[];
+/**
  * en-ja/dict-<n>.json, merged: headword → [short gloss, senses]. en-ja/phrases.json has
  * the same shape: Japanese translations of phrases EJDict lacks, from Wiktionary's
  * translation tables, each sense "《English sense》word,word", with its senses' parts

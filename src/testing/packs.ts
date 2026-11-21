@@ -65,6 +65,7 @@ const TEST_PACKS: PackFiles = {
     contractions: {},
     capitals: [],
     acronyms: {},
+    uppercase: [],
   },
   "en-ja": {
     dict: {

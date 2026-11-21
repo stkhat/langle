@@ -46,8 +46,18 @@ export interface WordCase {
    * with speech after them ("[Paulina] ¿Cómo?"; not "[música]", "[Jan sighs]").
    */
   speaker?: true;
-  /** ALL CAPS next to another ALL-CAPS word: shouting or a heading, not an acronym. */
+  /**
+   * ALL CAPS next to another ALL-CAPS word, a capital letter alone between them ("WITH
+   * A BLOCK", "OH, I LOVE"): shouting or a heading, not an acronym.
+   */
   capsRun: boolean;
+  /**
+   * Written as an acronym: two capitals or more, then nothing or a plural or possessive
+   * ending (CAT, VPNs, NASA's), in no caps run, and not inside brackets unless as an
+   * aside (`aside`). Whether its capitals are its own the document tells
+   * (`acronymAlone`).
+   */
+  acronym?: true;
 }
 
 /**
@@ -80,13 +90,20 @@ export interface DocumentCasing {
    * name in a language that capitalises its nouns (`documentNames`).
    */
   startRuns?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * In mixed mode, each word the document writes as an acronym (`WordCase.acronym`:
+   * CAT, NHS) → how often it writes the word in lower case: never, and the capitals are
+   * the acronym's own (`acronymAlone`); some times, and they are emphasis ("a LOT",
+   * "NOT going").
+   */
+  acronyms?: Readonly<Record<string, number>>;
 }
 
 const MODES: ReadonlySet<unknown> = new Set(["upper", "lower", "mixed"]);
 
 /** A casing as a message carries it, or undefined when it is not one. */
 export function readCasing(value: unknown): DocumentCasing | undefined {
-  const { mode, words, unpunctuated, runs, startRuns } = (value ??
+  const { mode, words, unpunctuated, runs, startRuns, acronyms } = (value ??
     {}) as Record<string, unknown>;
   if (!MODES.has(mode) || typeof words !== "object" || words === null)
     return undefined;
@@ -101,6 +118,13 @@ export function readCasing(value: unknown): DocumentCasing | undefined {
           partners.every((key) => typeof key === "string"),
       ));
   if (!partnersOk(runs) || !partnersOk(startRuns)) return undefined;
+  if (
+    acronyms !== undefined &&
+    (typeof acronyms !== "object" ||
+      acronyms === null ||
+      !Object.values(acronyms).every((n) => typeof n === "number"))
+  )
+    return undefined;
   const counts = Object.values(words);
   if (
     !counts.every(
@@ -135,6 +159,8 @@ export interface BlockCasing {
   runs: ReadonlyMap<string, ReadonlySet<string>>;
   /** Each word capitalised right after a capitalised word at a start: those words. */
   startRuns: ReadonlyMap<string, ReadonlySet<string>>;
+  /** Words written as acronyms (`WordCase.acronym`). */
+  acronyms: ReadonlySet<string>;
 }
 
 /** Share of ALL-CAPS words over which a document is "upper". */
@@ -208,6 +234,14 @@ function casesOf(
   }
   const written = words.map((token) => writtenOf(token.text));
   const upper = (i: number) => written[i] === "upper";
+  /** A capital letter alone ("A", "I"), which a caps run reads through. */
+  const letter = (i: number) => /^\p{Lu}$/u.test(words[i]?.text ?? "");
+  /** The next word in direction `step` past capital letters alone is ALL CAPS. */
+  const upperNear = (i: number, step: 1 | -1) => {
+    let j = i + step;
+    while (letter(j)) j += step;
+    return upper(j);
+  };
   let depth = 0;
   /** The outermost brackets open right after a word, only spaces between them. */
   let inline = false;
@@ -222,6 +256,7 @@ function casesOf(
       } else if (ch === ")" || ch === "]") depth = Math.max(0, depth - 1);
     }
     const how = written[i];
+    const capsRun = upper(i) && (upperNear(i, -1) || upperNear(i, 1));
     return {
       key: (forms?.[i] ?? normalizeWord(token.text)).replace(/'s$/, ""),
       ...(how !== undefined && { written: how }),
@@ -230,7 +265,10 @@ function casesOf(
       ...(depth > 0 &&
         inline &&
         ACRONYM.test(token.text) && { aside: true as const }),
-      capsRun: upper(i) && (upper(i - 1) || upper(i + 1)),
+      capsRun,
+      ...(!capsRun &&
+        (depth === 0 || inline) &&
+        ACRONYM.test(token.text) && { acronym: true as const }),
     };
   });
   for (const i of speakerLabels(words, text, written)) cases[i]!.speaker = true;
@@ -336,6 +374,9 @@ export function blockCasing(
     capitalised: new Map<string, number>(),
     lower: new Map<string, number>(),
     keys: new Set(cases.map((word) => word.key)),
+    acronyms: new Set(
+      cases.filter((word) => word.acronym === true).map((word) => word.key),
+    ),
     words: words.length,
     commas: tokens.reduce(
       (n, token) =>
@@ -382,7 +423,9 @@ export function documentCasing(blocks: Iterable<BlockCasing>): DocumentCasing {
   const lower = new Map<string, number>();
   const runs = new Map<string, Set<string>>();
   const startRuns = new Map<string, Set<string>>();
+  const acronyms = new Set<string>();
   for (const block of blocks) {
+    for (const key of block.acronyms) acronyms.add(key);
     for (const [into, from] of [
       [runs, block.runs],
       [startRuns, block.startRuns],
@@ -422,6 +465,11 @@ export function documentCasing(blocks: Iterable<BlockCasing>): DocumentCasing {
     ...punctuation,
     ...(runs.size > 0 && { runs: sortedRuns(runs) }),
     ...(startRuns.size > 0 && { startRuns: sortedRuns(startRuns) }),
+    ...(acronyms.size > 0 && {
+      acronyms: Object.fromEntries(
+        [...acronyms].sort().map((key) => [key, lower.get(key) ?? 0]),
+      ),
+    }),
   };
 }
 
@@ -467,9 +515,27 @@ export function capitalHere(casing: DocumentCasing, word: WordCase) {
   );
 }
 
-/** Whether the word counts as capitalised (`capitalHere`) or as a name (`alwaysCapitalised`). */
+/**
+ * The word is written as an acronym here (`WordCase.acronym`: CAT, not "a LOT" in a
+ * caps run) in a mixed-case document that never writes it in lower case, so its
+ * capitals are its own, not emphasis ("NOT going" where the document writes "not").
+ */
+export function acronymAlone(casing: DocumentCasing, word: WordCase) {
+  return (
+    casing.mode === "mixed" &&
+    word.acronym === true &&
+    (casing.acronyms ? own(casing.acronyms, word.key) : undefined) === 0
+  );
+}
+
+/**
+ * Whether the word counts as capitalised (`capitalHere`), as a name
+ * (`alwaysCapitalised`) or as an acronym alone (`acronymAlone`).
+ */
 const verdicts = (casing: DocumentCasing, key: string) =>
-  `${alwaysCapitalised(casing, key)}${mostlyCapitalised(casing, key)}`;
+  `${alwaysCapitalised(casing, key)}${mostlyCapitalised(casing, key)}${
+    casing.acronyms ? own(casing.acronyms, key) === 0 : false
+  }`;
 
 /**
  * The words whose verdicts differ between two casings of a document, or "all" when
@@ -484,6 +550,8 @@ export function casingChanges(
   for (const key of new Set([
     ...Object.keys(before.words),
     ...Object.keys(after.words),
+    ...Object.keys(before.acronyms ?? {}),
+    ...Object.keys(after.acronyms ?? {}),
   ]))
     if (verdicts(before, key) !== verdicts(after, key)) changed.add(key);
   // Names read whole runs: a word whose predecessors changed, or one of whose
