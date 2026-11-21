@@ -815,6 +815,43 @@ function translatingSentence(text: string): string {
     : first;
 }
 
+/** Words in quotes that end a text, with what comes before them. */
+const QUOTED_END = /^(?:(.*?\S)\s*)?((?:["“‘'][^"“”‘’']+["”’']\s*,?\s*)+)$/u;
+
+/**
+ * The words in quotes a description ends with, which are what it describes, said in
+ * the gloss's language: ko him "삼인칭 남성 여격, 목적격 대명사 '그에게', '그를'" →
+ * "그에게, 그를"; Luxemburg "나라 이름 '룩셈부르크'" → "룩셈부르크"; a gloss that is only
+ * quoted words is those words (godown "'창고'"). A note in brackets after them is left
+ * out ("(부록: 영어 인칭대명사)", an appendix). The text before them is of two words or
+ * more, and each quoted item is in its scripts, a translation (`translationItems`) and
+ * in no Latin letters: words in the learning language's letters may be the English
+ * word quoted (es who's "quién es, contracción de 'who is'"; "'data'의 원형" does not
+ * end with it either). Else the text as it is.
+ */
+function quotedTranslations(text: string): string {
+  const found = QUOTED_END.exec(
+    text.replace(/(?:[\s.。]*[(（][^()（）]*[)）])?[\s.。]*$/u, ""),
+  );
+  if (!found) return text;
+  const before = found[1] ?? "";
+  const items = [...found[2]!.matchAll(/["“‘']([^"“”‘’']+)["”’']/gu)].map(
+    ([, item]) => item!.trim(),
+  );
+  const own = scriptsOf(before);
+  return (before === "" || wordsOf(before) >= 2) &&
+    items.every(
+      (item) =>
+        translationItems(item) &&
+        !/\p{Script=Latin}/u.test(item) &&
+        [...scriptsOf(item)].every(
+          (script) => before === "" || own.has(script),
+        ),
+    )
+    ? items.join(", ")
+    : text;
+}
+
 /** The scripts an edition's line may mix: a letter's is the first that has it. */
 const SCRIPTS = [
   "Latin",
@@ -893,6 +930,7 @@ function withoutForeignAsides(text: string): string {
  * - its first sentence (`firstSentence`), which leaves out usage notes ("Tout à
  *   l'heure. Note d'usage : …"), or in a script without case the translations a
  *   description is followed by (`translatingSentence`);
+ * - the words in quotes a description ends with (`quotedTranslations`);
  * - what a qualifier introduces (`afterQualifier`);
  * - the translations a description is followed by (`translationsAfter`), else its first
  *   sense (up to ";");
@@ -908,7 +946,9 @@ export function editionLine(text: string): string {
         .replace(/^\s*(?:…|\.{3})+\s*/u, ""),
     ),
   );
-  const meaning = afterQualifier(translatingSentence(clean));
+  const meaning = afterQualifier(
+    quotedTranslations(translatingSentence(clean)),
+  );
   const sense =
     translationsAfter(meaning) ??
     sensesOf(meaning).find((part) => part !== "") ??

@@ -5189,7 +5189,7 @@
 "concept album":[[["noun","콘셉트 음반","album"]],0],
 "conception":[[["noun","임신, 수태","initiation of an embryonic animal life"]],0],
 "conceptualisation":[[["noun","개념화","the act of conceptualising, or something conceptualised"]],0],
-"concern":[[["verb","be concerned with sth (무엇에) 관한[관련된] 것이다"]],1],
+"concern":[[["noun","우려"],["noun","염려"],["syllable","환"],["noun","심려"]],2],
 "concerned":[[["adjective","~ (about/for sth) | ~ (that…) 걱정[염려]하는"],["adjective","관계하는, 관계가 있는; (범죄에) 관련된;관심을 가진"]],1],
 "concerning":[[["unknown","~에 관해서"]],1],
 "concert":[[["noun","콘서트, 음악회","a musical entertainment in which several voices or instruments take part"]],0],
@@ -9101,7 +9101,7 @@
 "filtration":[[["noun","여과, 려과","filtering"]],0],
 "fin":[[["noun","지느러미","appendage of a fish"],["noun","오리발, 물갈퀴, 핀","device used by divers"]],0],
 "fin whale":[[["noun","참고래"]],2],
-"final":[[["noun","결승전, 파이널","sports: last round in a contest"],["noun","기말고사, 파이널","test or examination given at the end of a term or class"],["noun","운모, 종성","final part of a syllable"]],0],
+"final":[[["adjective","마지막의, 끝의, 최후의, 최종적"],["verb","마무리하다, 끝내다"],["noun","(스포츠) 결승, 결승전"]],1],
 "finale":[[["noun","피날레","grand end of something, especially a show or a piece of music"]],0],
 "finalist":[[["noun","결승 진출자","participant in final"]],0],
 "finalize":[[["verb","확정하다"]],1],
@@ -13391,7 +13391,7 @@
 "juror":[[["noun","배심원","jury member"]],0],
 "jury":[[["noun","배심원단, 배심","law: group in a court of law"],["noun","심사위원단","group of judges in a competition"]],0],
 "jussive":[[["noun","간접명령법","jussive mood"]],0],
-"just":[[["adjective","공정하다","morally fair, righteous"]],0],
+"just":[[["adjective","올바른, 공정한, 정당한, 적절한"],["adverb","바로, 꼭, 정확히"],["adverb","(완료 시제에서) 이제 막"],["adverb","겨우, 간신히"]],1],
 "just a minute":[[["interjection","잠깐만"]],2],
 "just enough":[[["adverb","작작"]],2],
 "just in case":[[["adverb","만약을 위해","to be on the safe side"]],0],
@@ -17683,7 +17683,7 @@
 "particle accelerator":[[["noun","입자가속기, 립자가속기","a device that accelerates electrically charged particles to extremely high speeds"]],0],
 "particle physics":[[["noun","입자물리학","physics of subatomic particles"]],0],
 "particle zoo":[[["noun","입자 동물원","extensive list of known and theorized elementary particles"]],0],
-"particular":[[["noun","[pl.] particulars (재산・사업・직업 등에 대한 자세한) 서면 정보"]],1],
+"particular":[[["adjective","까다롭다"],["adjective","특정하다"],["noun","특정"],["adjective","별다르다"]],2],
 "particularity":[[["unknown","상세함, 정밀함"],["unknown","특성, 특질, 독자성"]],1],
 "particularize":[[["unknown","특필하다"]],1],
 "particularly":[[["unknown","특별히, 특히"]],1],
@@ -23621,6 +23621,5 @@
 "submissive":[[["unknown","순종적인, 복종적인, 고분고분하다"]],1],
 "submit":[[["verb","굴복하다, 순종하다, 복종하다"],["verb","(법률: 의회·법정 따위에) …을 제기하다 (to), 제출하다"]],1],
 "subordinate":[[["adjective","종속적, 하급의, 부차적","placed in a lower class, rank, or position"],["noun","부하, 하급자, 졸개","one who is subordinate"],["adjective","예속하다, 예속되다 causative, 예속적 nominal","submissive to or controlled by authority"],["adjective","의존하다, 의존적 nominal, 의존되다 causative","grammar: dependent"]],0],
-"subordinate clause":[[["noun","종속절","a clause that cannot stand alone"]],0],
-"subordination":[[["noun","종속"],["noun","예속"],["noun","종살이"]],2]
+"subordinate clause":[[["noun","종속절","a clause that cannot stand alone"]],0]
 }
