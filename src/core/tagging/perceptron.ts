@@ -29,7 +29,16 @@ export interface PerceptronModel {
 export interface ScoredTag {
   tag: string;
   margin: number;
+  /**
+   * The next best tags, best first, each with how far its score is behind the tag's
+   * (`margin` is the first one's): RIVALS of them, for a scored word whose tag is not a
+   * fixed expression's.
+   */
+  rivals?: readonly { tag: string; behind: number }[];
 }
+
+/** How many of the next best tags a scored word's tag lists (`ScoredTag.rivals`). */
+const RIVALS = 4;
 
 const START = ["-START-", "-START2-"];
 const END = ["-END-", "-END2-"];
@@ -128,22 +137,27 @@ export function tagSentence(
         for (let j = 0; j < pairs.length; j += 2)
           scores[pairs[j]!]! += pairs[j + 1]!;
       }
-      let best = 0;
-      let second = -Infinity;
-      for (let t = 1; t < scores.length; t++) {
-        if (scores[t]! > scores[best]!) {
-          second = scores[best]!;
-          best = t;
-        } else if (scores[t]! > second) second = scores[t]!;
+      // The best tag and its RIVALS, best first (the first index wins a tie).
+      const top: number[] = [];
+      for (let t = 0; t < scores.length; t++) {
+        let at = top.length;
+        while (at > 0 && scores[t]! > scores[top[at - 1]!]!) at--;
+        if (at > RIVALS) continue;
+        top.splice(at, 0, t);
+        if (top.length > RIVALS + 1) top.pop();
       }
+      const best = top[0]!;
       const tag = model.tags[best]!;
       const fixed = Object.hasOwn(model.fixed ?? {}, context[k + 2]!)
         ? model.fixed![context[k + 2]!]!.includes(tag)
         : false;
-      result = {
-        tag,
-        margin: fixed ? 0 : (scores[best]! - second) / model.scale,
-      };
+      const rivals = top.slice(1).map((t) => ({
+        tag: model.tags[t]!,
+        behind: (scores[best]! - scores[t]!) / model.scale,
+      }));
+      result = fixed
+        ? { tag, margin: 0 }
+        : { tag, margin: rivals[0]?.behind ?? Infinity, rivals };
     }
     previous2 = previous;
     previous = result.tag;
