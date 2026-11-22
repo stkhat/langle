@@ -124,6 +124,13 @@ export interface PatternEvidence {
   fixed?: boolean;
 }
 
+/** The tags by which the source says a sense is not its words' literal meaning. */
+const FIGURATIVE: ReadonlySet<string> = new Set(["idiomatic", "figuratively"]);
+
+/** The pattern's first sense is tagged idiomatic or figurative. */
+const figurative = (evidence: PatternEvidence) =>
+  evidence.senses[0]?.tags.some((tag) => FIGURATIVE.has(tag)) === true;
+
 /**
  * B2, the idiomaticity score in [0, 1]: the weighted share of opaque meaning. Each of
  * the first senses adds its opacity (1 − overlap; at least `tagFloor` when the source
@@ -149,7 +156,7 @@ export function idiomaticity(
       SCORE.decay ** rank *
       Math.exp(-SCORE.marginal * (sense.labels - note));
     let opacity = 1 - evidence.overlap(sense);
-    if (sense.tags.some((tag) => tag === "idiomatic" || tag === "figuratively"))
+    if (sense.tags.some((tag) => FIGURATIVE.has(tag)))
       opacity = Math.max(opacity, SCORE.tagFloor);
     if (discourse) opacity = Math.max(opacity, SCORE.discourseFloor);
     weighted += weight * opacity;
@@ -189,12 +196,16 @@ export const thresholdFor = (count: number, assoc: number, fixed = false) =>
  * nominal or discourse pattern whose native gloss is a loanword (instant coffee →
  * インスタントコーヒー) or shares at least half its units with its words' own native
  * glosses ("I don't know" → 分からない, as know → 知る). Verbs, adverbs and prepositional
- * phrases are left to the score: their definitions name their words ("end up").
+ * phrases are left to the score: their definitions name their words ("end up"). A
+ * pattern whose first sense the source tags idiomatic or figurative is never
+ * transparent: its words name a meaning they do not have ("grey area": "An area of
+ * uncertainty…", グレーゾーン; "small talk", "home ground", "last resort").
  */
 export function transparent(
   evidence: PatternEvidence,
   language: PhraseLanguage,
 ): boolean {
+  if (figurative(evidence)) return false;
   const pos = evidence.pos.length === 0 ? ["noun"] : evidence.pos;
   if (pos.every((p) => language.nominal.has(p)) && (evidence.parts ?? 0) >= 1)
     return true;

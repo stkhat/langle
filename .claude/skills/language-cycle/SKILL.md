@@ -15,9 +15,17 @@ Method library: [real-content-quality](../real-content-quality/SKILL.md) (ground
 State lives in [docs/notes/language-cycles.md](../../../docs/notes/language-cycles.md) (the log, committed) and `data/raw/quality/cycles/<cycle>/` (git-ignored: sweeps, packets, findings). Scripts here write into the main checkout's `data/raw/quality`, which the Bash sandbox does not allow: run them with the sandbox off.
 
 ## Autonomy (user decisions, 2026-11-22)
-- Weekly from a Desktop scheduled task (a fresh session each time) and by hand with `/language-cycle`; a manual run counts as that week's cycle.
+- Weekly from a Desktop scheduled task (a fresh session each time) and by hand with `/language-cycle`. A manual run is an extra cycle: the scheduled run still starts the next cycle that week (user, 2026-11-22).
 - Go through to merged fix PRs without asking (memory: no confirmation; PR workflow). Learner-visible trade-offs — highlight density, number of senses, pack size, how names look — are measured, collected and asked together at the end with AskUserQuestion. Never decide them silently, never block the other steps on them.
 - Simulation and mechanical work on Sonnet (`learner` agent, `model: "sonnet"` subagents); triage, root causes and fix design on Opus; blind judging on the `judge` agent.
+
+## Machine load (user, 2026-11-22)
+The cycle runs on the user's own Mac, and three fix steps in parallel made it too slow to use (c001). So:
+- **One fix step at a time.** Start the next step only after the previous one has merged (or been Dropped). Never run step subagents in parallel.
+- **One heavy command at a time** on the machine: `sweep.ts`, `timing-ab.ts`, `npm run verify`, test or E2E runs, pack rebuilds (`scripts/data/`). Run them in the foreground of the step that needs them, or wait for a background one to finish before starting another. Check `ps` for one still running from an earlier turn first.
+- `sweep.ts` runs 2 pairs at a time (`--jobs=2`, the default); a step whose change is NATIVE/PAIR sweeps only its pairs (`--pairs`). CORE and LEARNING changes still sweep all pairs.
+- Light work can still be parallel: learner and judge agents only read and write files.
+- If the user says the machine is busy: stop the running agents (TaskStop), save each one's work as a local WIP commit, record the step in the log's "Current", and resume one step at a time later.
 
 ## Step 0 — Orient
 1. Read the log's "Current" section. A cycle marked in flight → resume it at its recorded step; don't start another.
@@ -30,7 +38,7 @@ State lives in [docs/notes/language-cycles.md](../../../docs/notes/language-cycl
 npx jiti .claude/skills/language-cycle/scripts/sweep.ts --cycle=c<NNN> --label=base
 python3 -I .claude/skills/language-cycle/scripts/compare-sweeps.py --before <prev cycle>/<its last sweep> --after <c<NNN>>/base --out <c<NNN>>/base/compare.md
 ```
-- Pairs come from the lock (`packs.lock.json` `pairs`), corpora from `scripts/corpora.json`. 18 pairs take ~6 minutes (rows in parallel, then 3 timing runs per pair one at a time).
+- Pairs come from the lock (`packs.lock.json` `pairs`), corpora from `scripts/corpora.json`. 18 pairs take ~6–8 minutes (rows 2 pairs at a time, then 3 timing runs per pair one at a time).
 - Rows are deterministic (0 changed rows on the same commit): every changed row between cycles comes from merged code or data. WORSE flags (unknown share, no entry, translated, over cap, no native line, pack size) become picks. MOVED (density, names) goes to the report.
 - Timing CHECK flags are noise until `timing-ab.ts` (interleaved runs of the two checkouts) shows a ratio > 1.15, slower in ≥ 4 of 5 rounds and ≥ 20 ms; only then is it a pick.
 
@@ -53,7 +61,7 @@ python3 -I .claude/skills/language-cycle/scripts/sim-tally.py --sim <c>/sim
 4. Write the cycle's report section in the log now (picks, why, queue), so a resumed session knows.
 
 ## Step 4 — Fix (one cause per step)
-For each pick: real-content-quality Phase 4 (prototype in `<c>/proto/`, blind A/B with `judge` agents on a fresh sample, held-out site frozen), then Phase 6 (one background subagent per step from [step-brief.md](../real-content-quality/references/step-brief.md), its own worktree, PR, `merge-when-green.sh`). Add to each brief: "Measure with `sweep.ts --pairs=<affected pairs>` on main and on your branch and paste `compare-sweeps.py` output in the PR body." A pick whose prototype does not beat the current build blind is recorded as Dropped with its numbers.
+For each pick, one after another (see "Machine load"): real-content-quality Phase 4 (prototype in `<c>/proto/`, blind A/B with `judge` agents on a fresh sample, held-out site frozen), then Phase 6 (one background subagent per step from [step-brief.md](../real-content-quality/references/step-brief.md), its own worktree, PR, `merge-when-green.sh`). Add to each brief: "Measure with `sweep.ts --pairs=<affected pairs>` on main and on your branch and paste `compare-sweeps.py` output in the PR body." A pick whose prototype does not beat the current build blind is recorded as Dropped with its numbers.
 
 ## Step 5 — Re-measure wide (script)
 After each merge, on an `origin/main` worktree: `sweep.ts --label=after-<step>`, then `compare-sweeps.py` against `base`. Changed rows outside the step's pairs or kinds, or any WORSE flag, are looked at before the next step; a real regression becomes the next step.

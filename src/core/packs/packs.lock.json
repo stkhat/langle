@@ -48,7 +48,7 @@
         },
         {
           "path": "phrases.json",
-          "sha256": "720d3cbc82fcc2d22b2744e0b7f72876e06f459148c88aa425ed0d11267d229a",
+          "sha256": "19d2b3f18f994ef2475d06d9a7e4df028b7e77c701f6b482682a3fe1ab3b9386",
           "size": 62525
         },
         {
@@ -69,7 +69,7 @@
       ],
       "format": 1,
       "package": "@langle/de",
-      "version": "2026.1120.1"
+      "version": "2026.1121.0"
     },
     "de-en": {
       "files": [
@@ -159,7 +159,7 @@
         },
         {
           "path": "phrases.json",
-          "sha256": "2389475b6bc1c157562a3b036e35d2a455d1a46612d1e5c8be137c321ae45de0",
+          "sha256": "8c3b064e4808de972f3befc676b3b83215162491f28b453e98ff6dc2660b2294",
           "size": 1613643
         },
         {
@@ -185,7 +185,7 @@
       ],
       "format": 8,
       "package": "@langle/en",
-      "version": "2026.1121.1"
+      "version": "2026.1121.2"
     },
     "en-ar": {
       "files": [
@@ -818,7 +818,7 @@
         },
         {
           "path": "phrases.json",
-          "sha256": "051a19a7b723b1d30142935d4361cb5903f935fb4be8f9a037d6dcec1582f8a6",
+          "sha256": "a9d75119f60f28974221050b7571400c3b43cf90dc669bebaf066d278bfdee20",
           "size": 159119
         },
         {
@@ -839,7 +839,7 @@
       ],
       "format": 4,
       "package": "@langle/es",
-      "version": "2026.1120.3"
+      "version": "2026.1121.0"
     },
     "es-en": {
       "files": [
@@ -902,7 +902,7 @@
         },
         {
           "path": "phrases.json",
-          "sha256": "67de2f30502301125e0a493b2e7d1f1bf0fa8dccfc213dd4dddd282472ae84f0",
+          "sha256": "a41bdf87319be46246bb4f7624e414f554ce1987feefab58973b1cc129214029",
           "size": 287161
         },
         {
@@ -923,7 +923,7 @@
       ],
       "format": 3,
       "package": "@langle/fr",
-      "version": "2026.1120.2"
+      "version": "2026.1121.0"
     },
     "fr-en": {
       "files": [
