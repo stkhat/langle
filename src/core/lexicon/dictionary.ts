@@ -47,6 +47,7 @@ import {
   shortOfDefinition,
   shortOfPairSenses,
   shortOfSenses,
+  tableLine,
   type Pointer,
 } from "./short-lines";
 
@@ -1385,7 +1386,7 @@ function caseOnce<T extends { line: string; pos: string; meaning?: boolean }>(
  * table's sense is a list of words, and its line is the first one.
  */
 const pairLine = ({ text, hint }: Pick<Sense, "text" | "hint">) =>
-  hint === undefined ? editionLine(text) : text.split(", ")[0]!.trim();
+  hint === undefined ? editionLine(text) : tableLine(text);
 
 /** The outline of a headword's English definitions, when it has some. */
 function definitionOutline(

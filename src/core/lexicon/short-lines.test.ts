@@ -16,6 +16,7 @@ import {
   shortOfDefinition,
   shortOfPairSenses,
   shortOfSenses,
+  tableLine,
   translatedLine,
 } from "./short-lines";
 
@@ -606,6 +607,19 @@ describe("firstSentence", () => {
   });
 });
 
+describe("tableLine", () => {
+  it("is a table's first word, without asides in another script", () => {
+    expect(tableLine("현재(現在)의")).toBe("현재의");
+    expect(tableLine("방치(放置)하다, 기치(棄置)하다, 버리다")).toBe(
+      "방치하다",
+    );
+    expect(tableLine("인정 (認定)")).toBe("인정");
+    expect(tableLine("corteza, costra")).toBe("corteza");
+    // An aside in the word's own script stays.
+    expect(tableLine("(Ne) … pas, jamais")).toBe("(Ne) … pas");
+  });
+});
+
 describe("editionLine", () => {
   it("drops asides in brackets written in another script than the gloss", () => {
     expect(editionLine("발음(發音)하다")).toBe("발음하다");
@@ -615,6 +629,12 @@ describe("editionLine", () => {
     );
     expect(editionLine("ความดัง [from 17th c.]")).toBe("ความดัง");
     expect(editionLine("魣鳕属（Molva）的鱼")).toBe("魣鳕属的鱼");
+    // Korean labels open a gloss, and an appendix note ends one.
+    expect(editionLine("(타동사) 시작하다")).toBe("시작하다");
+    expect(editionLine("(타동사)빼앗다")).toBe("빼앗다");
+    expect(editionLine("(격식) 공식적인")).toBe("공식적인");
+    expect(editionLine("옆구리. (부록: 신체 부분의 영어 이름)")).toBe("옆구리");
+    expect(editionLine("(이)다")).toBe("(이)다");
     // An aside in the gloss's own script stays, and so does a gloss of only asides.
     expect(editionLine("(Ne) … pas")).toBe("(Ne) … pas");
     expect(editionLine("(DNA)")).toBe("(DNA)");
