@@ -12,6 +12,7 @@ Idle. r001 finished on 2026-11-22. Next review due 2026-11-25.
 - **Worktree-guard refusals after `data:raw`** (r001 pick 1): recount in r002 the refused Writes to the main checkout's `data/raw` (145 in r001's window). The new brief has not been run by an `isolation: "worktree"` agent yet.
 - **`en-ja` does not rebuild as committed** (found in r001): `node scripts/data/ejdict.ts` on main at 8348933, on inputs identical to the main checkout's, changes `quarter horse`'s short meaning and moves `unionism` across a shard boundary (`dict-3.json`, `dict-4.json`, `index.json`). Find the change that was not followed by a rebuild; consider a check for it.
 - **`--cleanup` deletes git-ignored study data** (r001): `merge-when-green.sh` removes a worktree that is clean to `git status --porcelain`, which hides `data/raw/quality`. The briefs now say copy first; a check in the script itself (outside the repository) would be safer.
+- **A Firefox crash leaves `core` in the checkout** (r001: one crash in Docker while another session's Android emulator started; the cause of the crash is not confirmed). The 61 MB dump is untracked and not ignored, so the next passing `verify` records a tree with it, the pre-push hook refuses the real one, and `git add -A` would commit it. Turn core dumps off in the container (`--ulimit core=0`) rather than ignore the file.
 
 ## r001 — 2026-11-22 (window 2026-11-20 → 2026-11-22)
 First review; baseline for the next ones. 14 sessions, 322 subagents.
