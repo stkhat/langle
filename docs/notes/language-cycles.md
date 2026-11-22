@@ -3,8 +3,8 @@
 The log of the weekly language cycle ([skill](../../.claude/skills/language-cycle/SKILL.md), [development](../development.md) "Language quality cycle"). Newest cycle first. Data for each cycle is in `data/raw/quality/cycles/<cycle>/` (git-ignored).
 
 ## Current
-- State: c001 open only at step 6 (real-site check): Claude in Chrome did not answer on 2026-11-22 (the tool timed out). Fixes #223, #226, #228 merged and re-measured (`cycles/c001/after-expressions`, main `aed609c`); check build `aed609c` already copied into the main checkout's `.output/langle-check`. Resume: Phase 7 on en-ja (YouTube TED, Netflix Friends, an article) plus es-en in rotation, hovering acronyms (CAT, UN, CEO), figurative phrases (grey area, small talk, last resort) and adverb/adjective senses (still, even); read and clear the error log; then record it here. Next after c001: build the selection check (below)
-- Last cycle: c000 (2026-11-22, baseline `bda1bda`); last sweep: `cycles/c001/base`
+- State: idle. c001 finished 2026-11-22: fixes #223, #226, #228 merged and re-measured, real-site check and selection check done. Pending the user's decision, nothing built: a phrase proposal for selections that match no pattern (c001, Selection, "Trade-off"; recommended: drop)
+- Last cycle: c001 (2026-11-22); last sweep: `cycles/c001/after-expressions` (main `aed609c`)
 - Next: c002. Next tidy-up: c002 (every third cycle: c002, c005, …), or earlier when the inventory grows ≥ 15% over c000's or a pair is added
 - Level rotation: c001 runs `es` also at level 1000; then `fr` 8000, `de` 1000, `en` 8000, …
 - Corpus refresh: due at c004 (corpora as of 2026-11: `en` 2026-11 round 2, `es`, `fr`, `de` from their L1/L2 studies)
@@ -15,7 +15,7 @@ Causes found and not yet fixed, by layer, with evidence. A cycle picks from here
 Ranked; c001 picks from the top unless its own sweep shows a WORSE flag.
 
 **LEARNING/CORE (en; ≥ 3 natives on the same words)**
-1. **Hover senses ignore the token's part of speech.** *(c001: fixed by #223 — tagger readings for inflected forms; left: pair-build sense gaps (`readEdition` keeps 4 senses in file order, `mergeSources` takes the whole term from the first source: en-ar 601, en-id 752, en-zh 729 terms), participial adjectives, won/act tagger errors, German `gerecht werden` → rechen.)* `looming` → loom (weaving), `netted` → net (fishing net), `checked` → cheque, `still` (adverb) → a photo still, `centred` (verb) → centre (noun), `slash` → the punctuation, `dip` → dunk, `stirring` → stir a liquid, `won` → the Korean currency: 12–14 natives each. In `en-es` rows, 4,610 of 14,714 New words (31%) have no POS (1,110 of them inflected forms such as `looming`, `netted`, `gathered`), and where a POS is known the senses are still in dictionary order (`use`, `act`, `checked` tagged verb show noun senses first). Cause: sense order does not follow the tagged POS, and the tagger leaves inflected forms untagged. One rule in the hover builder, all 14 English natives.
+1. **Hover senses ignore the token's part of speech.** *(c001: partly fixed by #223 — tagger readings for inflected forms; **not fixed for `still` and `even` in en-ja**; left: those two (177 and 207 tokens, tagged adverb, yet the card leads with adjective and verb senses 静止した…, 平らな…; the same in `base` and `after-expressions`; in `after-expressions` the 14 other English pairs' rows lead with the adverb; found at step 6, cause not investigated), pair-build sense gaps (`readEdition` keeps 4 senses in file order, `mergeSources` takes the whole term from the first source: en-ar 601, en-id 752, en-zh 729 terms), participial adjectives, won/act tagger errors, German `gerecht werden` → rechen.)* `looming` → loom (weaving), `netted` → net (fishing net), `checked` → cheque, `still` (adverb) → a photo still, `centred` (verb) → centre (noun), `slash` → the punctuation, `dip` → dunk, `stirring` → stir a liquid, `won` → the Korean currency: 12–14 natives each. In `en-es` rows, 4,610 of 14,714 New words (31%) have no POS (1,110 of them inflected forms such as `looming`, `netted`, `gathered`), and where a POS is known the senses are still in dictionary order (`use`, `act`, `checked` tagged verb show noun senses first). Cause: sense order does not follow the tagged POS, and the tagger leaves inflected forms untagged. One rule in the hover builder, all 14 English natives.
 2. **Acronyms and capitalised names looked up as common words.** *(c001: all-caps part fixed by #226; left: capitalised runs with no entry (Stack Overflow: 330 runs in en-es), Python/RAM whose capital entry is empty, es/fr/de dictionaries with no capitalised headwords (PAN → bread), \"Prime Minister\" as a phrase unit.)* `CAT` (Climate Action Tracker) → cat, `Stack Overflow` → stack + overflow, `Python` → the snake, `Prime Minister` → prime + minister (priest): 12–14 natives each. 615 all-caps New words in `en-es`. Cause: an all-caps token with no all-caps entry falls back to its lowercase entry; a mid-sentence run of capitalised words with no phrase entry is split into words. `US` → EE. UU. and `UN` → ONU work because those entries exist, so the rule is "all-caps or mid-sentence capitalised run without its own entry → name", not a list.
 3. **Missed expressions.** *(c001: of 159 findings, 71 were phrases the build kept for selections only, 59 not in the data, 13 artefacts, 11 dropped by a rule (`set to` ×10), 5 matcher misses; #228 fixed the figurative ones among the 71; left: B2b compounds with tables in 5+ languages (prime minister, ice pack, real estate: +1.6 phrases/1k, ~70% useful, a density trade-off), gotta/wanna/about to, German separable verbs in `src/core/tagging/de.ts` (`lehnte … ab`, `stufte … zurück`).)* The biggest mechanism (126 findings, all 18 pairs): `missing out`, `ice pack`, `centred on`, `feel like` (sense), German split verbs `davon ausgehen`, `zur Welt kommen`, `für verrückt halten`, `auf … aufmerksam machen`. Cause to confirm: inflected and separated phrasal verbs are not matched, and some phrases are not in the pack. Measure match rate per form first.
 4. **Translated phrase senses: one wrong sense only.** `go back to` → "To stem from" (14 natives), `here we go` → frustration (14), `heat up` → an English gloss. Cause: en-defs keeps a rare sense as the only one for some phrases. Phrase-sense ordering in the en-defs build.
@@ -26,6 +26,10 @@ Ranked; c001 picks from the top unless its own sweep shows a WORSE flag.
 - `en-id` wrong-meaning 1.76 vs 0.79 per unit: nouns for verbs (`forcing` → daya, `awarded` → anugerah), `Atlantic` → the atlas vertebra, `Barely` → hanya. Mostly cause 1 plus thin en-id senses; recheck after 1.
 - `en-it`, `en-ru`, `en-fr` unreadable 0.26–0.29 vs 0.10: long English definitions translated at display (`takedown`, `wrestled`, `neighbourhoods`, `contained`) where a one-word gloss exists. Short-line choice for the en-defs fallback.
 - `en-de` noise-highlight 0.26 vs 0.12; `en-ja`, `en-pt`, `en-ru` wrong-split 0.12 vs 0.05 (small; look after 6).
+
+**Seen at c001 step 6, not investigated (no layer yet)**
+- en-ko: `netted` (a goal) → net with noun senses (그물, 네트워크, 전개도).
+- Acronym cards write their headword in lower case (ceo, nasa), while UN is upper case.
 
 **de-fr / de-en (one learning language, two natives)**
 - Separable verbs shown with the wrong sense or as the noun: `lehnte … ab` → "appuyer", `stufte … zurück` → "accusatif pluriel de Stufe", `auftrat`, `geladen` (invited). `daß` (old spelling) and `Komparserie`, `pauschal` have no entry. Cause 3 for German plus German lemma coverage.
@@ -61,20 +65,141 @@ Of c000's 159 missed-expression findings: 71 phrases in the pack but kept for se
 Re-measure (`after-expressions` vs `after-names`, main `aed609c`, which also has #227 ko-quality from another session): 19/19 ok. Fix 3 moves phrases/1k +0.1–0.2 and ~80 rows per en pair, es-en 17, fr-en 7, de-* 0–1. The rest is #227's, measured and judged in its own PR ([korean-quality](korean-quality.md)): its shared rules change hover senses in en-fr 895, en-es 659, en-th 285 rows and others (still → todavía, mean → querer decir; judged es 28 : 2, th 22 : 7), and its one WORSE flag, en-ko translated at display 4,867 → 11,255 tokens, is "the" showing its English definition, intended there. Against `base`: 0 WORSE.
 
 ### Real-site check
-Not done yet: Claude in Chrome did not answer (see Current).
+Done 2026-11-22 on check build `aed609c` in the user's Chrome (Claude in Chrome), with limits: the article examples were a test paragraph injected into a live Wikipedia page's DOM, not text found on the site; YouTube was only a smoke check (subtitles, translation, one hover), where no example of the three fixes came up; Netflix was one subtitle line hovered and one more seen.
+
+- Articles, en-ja: looming, netted and checked open loom, net and check with verb senses first (fix 1); CAT is a name with no card, UN, CEO and NASA keep their meanings (fix 2); grey area, small talk and last resort are phrases with idiomatic meanings (fix 3). en-ko, the same paragraph: CAT, CEO, NASA and the three phrases highlighted the same way, still → 여전히. es-en: sano(s) y salvo(s), de emergencia, idas y venidas and en pedo are highlighted as phrases; the meanings of the three hovered were right (de emergencia not hovered).
+- Netflix en-ja (Friends, all-caps subtitles): UNPACKED highlighted, GUESS and HOME open their word cards, JOEY is a name. YouTube en-ja (Ken Robinson TED): run opens with verb senses first.
+- Error log: 18 info entries (pack downloads), 0 errors or warnings; cleared and re-read empty. The user's settings restored.
+- Found, none a regression from c001, none fixed (Queue): en-ja `still` and `even` still lead with the wrong part of speech (item 1), en-ko `netted` → noun senses, acronym headwords in lower case.
+
+Data loss: fix 2's study folder `cycles/c001/proto/names` was deleted with its worktree before being copied. 18 files (scripts, PR body, handoff, 9 judge results) were rebuilt from session transcripts (`proto/names/RECOVERED.md`); packets, answer keys, runs and tallies made by commands are lost, so that A/B cannot be re-tallied. Its numbers are in #226 and above.
+
+### Selection
+First run of the selection check ([selection](../../.claude/skills/language-cycle/references/selection.md)) on `fe74080` (the code and data of main `c7bd3c0`), `cycles/c001/selection`. Recovered / wrong phrase / nothing. Judged: 50 shown phrases in each of six pairs, one blind judge per pair. Exact selections and controls are right by construction in this first run (they are the regression guard).
+
+| pair | n | exact | word too many | shifted | word missing | reported whole | reported off | controls with a phrase | meaning: dictionary / English definition / literal % | judged meaning good/acceptable/wrong | judged phrase right/off/wrong |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| de-en | 289 | 80/0/0 | 0/0/63 | 0/0/58 | 40/0/0 | 0/0/8 | 0/0/10 | 0 of 30 | 100 / 0 / 0 | not judged | not judged |
+| de-fr | 289 | 80/0/0 | 0/0/63 | 0/0/58 | 40/0/0 | 0/0/8 | 0/0/10 | 0 of 30 | 62 / 38 / 0 | 40/3/7 | 46/0/4 |
+| en-ja | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 40 / 57 / 3 | 26/12/12 | 45/1/4 |
+| en-es | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 58 / 41 / 2 | 31/13/6 | 45/1/4 |
+| en-pt | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 49 / 48 / 3 | not judged | not judged |
+| en-ru | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 58 / 39 / 3 | not judged | not judged |
+| en-fr | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 64 / 36 / 0 | not judged | not judged |
+| en-de | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 62 / 38 / 0 | not judged | not judged |
+| en-zh | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 59 / 39 / 2 | not judged | not judged |
+| en-it | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 60 / 37 / 3 | not judged | not judged |
+| en-pl | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 68 / 32 / 0 | not judged | not judged |
+| en-th | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 50 / 47 / 3 | not judged | not judged |
+| en-hi | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 29 / 68 / 3 | 28/10/12 | 45/1/4 |
+| en-ar | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 42 / 55 / 3 | not judged | not judged |
+| en-id | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 48 / 48 / 3 | not judged | not judged |
+| en-tr | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 41 / 55 / 3 | not judged | not judged |
+| en-ko | 333 | 80/0/0 | 0/0/74 | 0/1/72 | 40/0/0 | 7/0/9 | 0/0/20 | 0 of 30 | 45 / 53 / 2 | not judged | not judged |
+| es-en | 308 | 80/0/0 | 0/0/70 | 0/1/68 | 40/0/0 | 3/0/4 | 2/1/9 | 0 of 30 | 100 / 0 / 0 | 36/9/5 | 45/0/5 |
+| fr-en | 301 | 79/0/0 | 0/0/65 | 0/2/62 | 37/0/3 | 1/0/9 | 1/0/12 | 0 of 30 | 100 / 0 / 0 | 37/6/7 | 44/1/5 |
+
+#### On-device AI (Nano)
+The shipped prompt in the user's Chrome 157, test split, 741 of 741 answered (one fr-en timeout run again): `selection/nano`. Recovered counts are of the selections that aim at an expression.
+
+| pair | answered | recovered: offline → with AI | offered | correct | wrong (on controls) | repeats what is shown | ms p50 / p90 |
+|---|---|---|---|---|---|---|---|
+| de-en | 80 | 28 → 28 of 66 | not asked for | | | | 1200 / 1541 |
+| de-fr | 80 | 28 → 28 of 66 | not asked for | | | | 1218 / 1616 |
+| en-ja | 103 | 33 → 42 of 89 | 10 | 9 | 1 (0) | 3 | 2248 / 2583 |
+| en-es | 103 | 33 → 40 of 89 | 9 | 7 | 2 (0) | 2 | 2211 / 2566 |
+| en-fr | 103 | 33 → 40 of 89 | 8 | 7 | 1 (0) | 0 | 1988 / 2391 |
+| en-de | 103 | 33 → 42 of 89 | 9 | 9 | 0 (0) | 1 | 1941 / 2399 |
+| es-en | 83 | 33 → 33 of 69 | not asked for | | | | 1380 / 1723 |
+| fr-en | 86 | 28 → 28 of 72 | not asked for | | | | 1367 / 1723 |
+
+Nano often writes the selected words again as the phrase (en-ja / en-es / en-fr / en-de): a word too many 9 / 9 / 10 / 10 of 14, shifted 3 / 3 / 5 / 4 of 14, controls 9 / 7 / 5 / 7 of 14.
+
+"In this sentence", judged blind (good/acceptable/wrong; one judge per pair, offline meanings mixed in; an English definition is recognisable as offline by its "translated later" mark and is judged on its sense alone, not on the translation shown):
+
+| pair | all answers | where a phrase meaning exists offline too: AI | the same, offline | where none does (offline: a literal translation, not judged): AI |
+|---|---|---|---|---|
+| en-ja | 53/32/18 | 24/3/6 | 18/7/8 | 29/29/12 |
+| en-es | 55/29/19 | 22/9/2 | 21/6/6 | 33/20/17 |
+| de-fr | 37/24/19 | 19/7/2 | 23/3/2 | 18/17/17 |
+| es-en | 47/24/12 | 23/7/3 | 22/7/4 | 24/17/9 |
+| fr-en | 53/20/13 | 19/5/5 | 21/4/4 | 34/15/8 |
+| all five | 245/129/81 | 107/31/18 | 105/27/24 | 138/98/63 |
+
+**Prompt: unchanged. No candidate prompt was run in this cycle.** Why none:
+- The 2026-11-19 tuning ([meaning in context](meaning-in-context.md) "Correcting a selected phrase") ended at one in five bad selections of a dictionary phrase recovered. The shipped prompt gives the same here: 6–8 of 28 (a word too many or shifted), 32 of its 36 proposals correct.
+- The main loss is the model repeating the selection (above), against a prompt that already asks for the whole expression.
+- A prompt can only help where Nano exists, and only English learning asks for a proposal. The rule below needs neither.
+
+#### Trade-off, PENDING the user's decision: propose a phrase without the AI
+Prototype only (`selection/proto`, no product code). [Architecture](../specs/architecture.md) "Phrase patterns" says on purpose that a selection that reaches past a pattern "is its own words"; changing that is the user's call.
+- **Simple rule:** when the selection matches no pattern, propose (never snap to) the sentence's pattern with the most of its words selected, two at least; a tie proposes nothing; `checkPhrase` as for the AI's proposals.
+- **Narrowed rule:** the same, among the `detect` patterns only. Chosen on dev (random selections judged right, simple → narrowed: en 32 of 50 → 17 of 23, es 16 of 25 → 3 of 4, fr 19 of 25 → 11 of 12, de 17 of 25 → 6 of 8); both rules were then frozen and run once on test, where the narrowing mostly halves the proposals and raises precision only in es.
+
+On the check's items, test split (offered, correct):
+
+| learning | rule | a word too many | shifted | reported | controls | recovered: offline → with the rule |
+|---|---|---|---|---|---|---|
+| en | simple | 50, 50 of 54 | 20, 20 of 54 | 13, 5 of 33 | 0 of 19 | 86 → 161 of 222 |
+| en | narrowed | 39, 39 of 54 | 9, 9 of 54 | 5, 1 of 33 | 0 of 19 | 86 → 135 of 222 |
+| es | simple | 48, 48 of 49 | 22, 22 of 48 | 3, 3 of 13 | 0 of 21 | 90 → 163 of 195 |
+| es | narrowed | 38, 38 of 49 | 14, 14 of 48 | 0 of 13 | 0 of 21 | 90 → 142 of 195 |
+| fr | simple | 52, 52 of 53 | 24, 24 of 52 | 3, 0 of 16 | 0 of 22 | 93 → 169 of 217 |
+| fr | narrowed | 45, 45 of 53 | 17, 17 of 52 | 0 of 16 | 0 of 22 | 93 → 155 of 217 |
+| de | simple | 38, 38 of 38 | 19, 19 of 35 | 0 of 10 | 0 of 20 | 75 → 132 of 158 |
+| de | narrowed | 33, 33 of 38 | 16, 16 of 35 | 0 of 10 | 0 of 20 | 75 → 124 of 158 |
+
+Exact selections and a word missing get no proposal. These items flatter the rule: the same matcher made the phrases, and a control is by definition words that no pattern touches, so its zero says nothing. The reported expressions are the only ones the matcher did not make.
+
+Beside Nano on its English batch (89 selections with an expression, 14 controls; scored alike; the rule's proposal first in the combination; every wrong proposal of the rule alone is on a reported expression, which must be matched word for word: `open the door` for `open the door to`):
+
+| | recovered (offline 33) | offered | correct | wrong |
+|---|---|---|---|---|
+| Nano | 40–42 | 8–10 | 7–9 | 0–2 |
+| simple rule | 55 | 30 | 22 | 8 |
+| simple rule + Nano | 58–60 | 33–35 | 25–27 | 8 |
+| narrowed rule | 42 | 13 | 9 | 4 |
+| narrowed rule + Nano | 47–49 | 19–21 | 14–16 | 4–6 |
+
+Random natural selections (test documents of `after-expressions`; one selection of 2–4 words per unit), proposals judged blind (right / a real phrase but not the one aimed at / wrong):
+
+| learning | selections with no pattern | rule | proposes | judged | right (95% interval) |
+|---|---|---|---|---|---|
+| en | 9,131 | simple | 1,235 (13.5%) | 37/2/11 | 74% (60–84) |
+| en | 9,131 | narrowed | 624 (6.8%) | 37/2/11 | 74% (60–84) |
+| es | 2,677 | simple | 249 (9.3%) | 15/1/9 | 60% (41–77) |
+| es | 2,677 | narrowed | 63 (2.4%) | 18/0/7 | 72% (52–86) |
+| fr | 3,449 | simple | 298 (8.6%) | 17/3/5 | 68% (48–83) |
+| fr | 3,449 | narrowed | 173 (5.0%) | 18/3/4 | 72% (52–86) |
+| de | 4,246 | simple | 117 (2.8%) | 22/0/3 | 88% (70–96) |
+| de | 4,246 | narrowed | 43 (1.0%) | 23/0/2 | 92% (75–98) |
+
+Wrong ones are mostly literal uses and chance pairs: `you know Walt`, `live in`, `going to get` → `go to`, `en la` → `en ello`, `de la`, `qui sait`. How often a learner's selection aims at an expression is not known: the constructed items are the rule's best case, random selections stand in for the rest.
+
+**Recommendation: drop.** The rule recovers much more than Nano when the selection is a dictionary phrase off by a word, but precision comes first: 8 of its 30 proposals on Nano's batch are wrong (narrowed 4 of 13; Nano 4 of 36 over the four pairs), and on natural selections a quarter to two fifths are not right in en, es and fr (narrowed a quarter; German about one in ten, on 25 judged). **User: not decided.**
+
+
+#### Causes
+Causes it points at (candidates for the next picks, none fixed):
+- **CORE, matcher:** a selection that goes past the phrase shows nothing: 532 of the 539 constructed misses in en, es, fr and de (`moment over and over`, `hubiera perdido la cabeza`, `On prend l'eau`, `nur unter der Woche`), because `matchSelection` needs a pattern over every selected word. A word missing is completed (157 of 160). The rule measured for it: "Trade-off" above, pending.
+- **LEARNING, AI prompt:** the checker would take the right phrase for 536 of the 539 phrase misses, but only English learning's prompt asks for one; es, fr and de get no proposal by design.
+- **LEARNING, phrase data:** of the 41 reported expressions selected whole, 11 are found; the rest mostly have no pattern (de all 8: `gehen davon aus`, `zur Welt kommen`; `if you don't mind`, `en ningún momento`, `en hommage à`) or only a smaller one (`open the door to`, `à la recherche de`).
+- **LEARNING, en-defs (Queue 4):** English definitions shown for phrases have the wrong sense in 25 of 83 judged (en-ja, en-es, en-hi, largely the same selections), dictionary lines in 5 of 67: `bring back` → To fetch something, `from the top` → From the beginning, `give it to someone` → To beat up…; `be suppose to` shows as an eggcorn entry.
+- **LEARNING, phrase precision (Queue 6):** 4–5 of 50 shown phrases per pair are not that expression there (literal uses): `gave it to you`, `über den Bergen`, `está en`, `la vache`, `qui parle`.
+- **NATIVE/PAIR, dictionary:** broken or wrong phrase lines: en-ja `full stop` → 7, en-hi `as long as` → लग; English-definition share of shown phrases up to 68% (en-hi), 57% (en-ja).
 
 ### Rule inventory (c001)
 At `da71c99` (main `aed609c`): 18 branches (=), 4 tables, 33 fields, 7 one-off (+1) and 13 same-value (+1), 21 language-named files with 4,260 lines (+17), 1,960 lines of quality notes (+86, korean-quality), 25 repeated study scripts (+1). Under the 15% trigger; the next tidy is due at c002 anyway (third cycle, and en-ko was added since c000). `cycles/c001/inventory.json`.
 
-### Trade-offs for the user (measured, not built)
-- How names look: no hover (kept), a name hover, or New with the common word's meaning.
-- Capitalised runs with no entry (Stack Overflow type) as names: 330 runs / 725 tokens in en-es.
-- B2b compounds with translation tables in 5+ languages highlighted as phrases (prime minister, ice pack, real estate): +1.6 phrases per 1,000 tokens, ~70% useful.
+### Trade-offs (asked 2026-11-22; user's answers)
+- How names look: no hover (kept), a name hover, or New with the common word's meaning. **User: keep no hover.**
+- Capitalised runs with no entry (Stack Overflow type) as names: 330 runs / 725 tokens in en-es. **User: keep as now (each word keeps its meaning); don't re-propose without new evidence.**
+- B2b compounds with translation tables in 5+ languages highlighted as phrases (prime minister, ice pack, real estate): +1.6 phrases per 1,000 tokens, ~70% useful. **User: keep as now (selection only).**
 
-### Next: a selection check in the cycle (user, 2026-11-22; build after c001's fixes)
+### The selection check's plan (user, 2026-11-22; built: step 5b, numbers under Selection)
 What a learner gets when they select several words: is the expression found, and is its meaning right; and whether the on-device AI's prompt should change. Not UI (layout, flicker, latency of the card): out of scope by the user's choice.
 - **Items, every learning language**, from the cycle's corpus, as the 2026-11-19 study made them (`data/raw/quality/2026-11-correct/proto/make.ts`): a dictionary phrase selected exactly, with a word too many, shifted by a word, with a word missing; controls with no phrase; and the expressions the learners reported as missed (`missed-expression` findings), selected whole and off by a word.
-- **Offline part, every cycle, all 18 pairs** (Langle's own code in Node, deterministic, like `measure.ts`): snapping and `matchSelection` / `correctPhrase` without the AI → phrase recovered, a wrong phrase, nothing; the meaning shown for the selection in each native (dictionary phrase sense, or the definition translated at display), judged blind by `judge` agents on a sample.
+- **Offline part, every cycle, all offered pairs** (Langle's own code in Node, deterministic, like `measure.ts`): snapping and `matchSelection` / `correctPhrase` without the AI → phrase recovered, a wrong phrase, nothing; the meaning shown for the selection in each native (dictionary phrase sense, or the definition translated at display), judged blind by `judge` agents on a sample.
 - **On-device AI part** (Gemini Nano via the Prompt API, only in the user's Chrome): the probe check build and study server of the 2026-11-19 study (`proto/batch.ts`, `score.ts`), driven through Claude in Chrome, one batch at a time. Measures the phrase proposal (offered, correct) and the "In this sentence" meaning for the natives Chrome supports (ja, en, es, de, fr). Runs when the prompt, the phrase data or the matcher changed, or every other cycle; a scheduled run without Chrome connected skips it and says so.
 - **Prompt changes**: tuned on a dev split, measured once on a held-out split with the prompt frozen, blind-judged, against the shipped prompt (`src/core/explain/prompt.ts`); precision before recall (a proposal only when the dictionary lists it stays unless a measured prompt beats it).
 - Lands as a step of the skill (`references/selection.md`, scripts next to the others) and a "Selection" table per cycle in this log.
