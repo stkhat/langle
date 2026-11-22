@@ -656,7 +656,14 @@ describe("en-ru without the Russian edition", () => {
   it("shows the English definition of words only that edition had", async () => {
     const { dict } = await loadPack("en-ru");
     const dictionary = createPairDictionary({ dict, defs, ipa, native: "ru" });
-    for (const word of ["the", "an", "okay", "require"]) {
+    for (const word of [
+      "the",
+      "an",
+      "okay",
+      "require",
+      "totally",
+      "household",
+    ]) {
       const entry = dictionary.entry(word);
       expect(entry?.glossLang, word).toBe("en");
       expect(entry?.lines[0], word).toMatch(/[A-Za-z]/);
