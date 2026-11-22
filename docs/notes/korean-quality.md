@@ -134,20 +134,45 @@ Endings alone cannot tell a bare-noun or adverb complement ((기분) 상하게 �
 - **Rebuild drift, fixed**: since #230 `shortOfPairSenses` cuts asides, so any pair rebuilt stored a table's uncut first word as an override ("현재(現在)의"), undoing #230's hover fix. `packedEntry` no longer stores it. With that, the six pairs rebuild byte for byte from the unchanged rule. The other natives' packs hold no entry it writes differently (checked on their stored shorts, not rebuilt).
 - **Left**: a de-fr rebuild drops two trailing separators (Anteilnahme, hervortreten), unrelated to this rule; that pack is not republished.
 
-### bore → bear (cause found, awaits the user's decision)
+### bore → bear (decided: A, 2026-11-22)
 
 - **Reproduced** in Playwright (check build of ff4d231, native ko, the lock's packs). A clean profile shows bore's own noun. With "bear" saved, known or learning, both sentences key bear, and the card reads "bore → bear" 곰 / 나르다 / 견디다.
-- **Cause**: `classifyWord` keys a word by any saved base, and `bySense` runs `chooseKey` (A1, A1b) only for unsaved words, as specified. #227's exception works; it is never reached. That the ko-3 profile had bear saved is inferred: its saved words were not read.
-- **Not changed**, as it decides what a saved word highlights, counts and records. Applying A1b to saved words would touch up to 638 corpus tokens (155 form > base pairs): better for bore, left, ground, bit; debatable for meeting, interested, building, thanks; worse for teeth, media, criteria, phenomena. Options:
+- **Cause**: `classifyWord` keys a word by any saved base, and `bySense` runs `chooseKey` (A1, A1b) only for unsaved words, as specified. #227's exception works; it is never reached. That the ko-3 profile had bear saved was inferred here and is confirmed by ko-5 ("Real-site re-check" below): bear is saved as Known there.
+- **Not changed in ko-4**, as it decides what a saved word highlights, counts and records. Applying A1b to saved words would touch up to 638 corpus tokens (155 form > base pairs): better for bore, left, ground, bit; debatable for meeting, interested, building, thanks; worse for teeth, media, criteria, phenomena. Options:
   - A. A1b for saved words too: code only, with those losses.
   - B. A saved base claims a form only in the part of speech it is a form of: keeps plurals, needs that part of speech in the en pack, still parts meeting from meet.
   - C. Keep the rule: bore is bear's while bear is saved.
+- **Decided: A** (the user, 2026-11-22), on the English estimate above.
+- **Rule** ([architecture](../specs/architecture.md) "A1b and saved words"): a saved base other than the form does not claim a word that A1b reads as itself and that would be keyed to itself unsaved; the word is then what it is with that base unsaved. A saved form keeps its own status.
+- **Measured** on the 2026-11 corpora (measure.ts of d3f1e6b), every affected base saved, as Known and again as Learning. With nothing saved, rows.jsonl is byte-identical in all 21 runs (en × 15 natives, es-en, fr-en, and de-en, de-fr on two German corpora). The 638 was English only; the other languages change far more, mostly for the better:
 
-### `measure.ts` differs from the extension (not fixed here)
+| Learning language | Tokens | Form > base pairs | Better | Same | Worse |
+| --- | --- | --- | --- | --- | --- |
+| en (union of 15 natives; read on en-ja) | 614 | 145 | 280 | 285 | 49 |
+| es | 2,047 | 22 | 1,818 | 0 | 229 |
+| fr | 444 | 5 | 394 | 0 | 50 |
+| de (runs/units) | 698 | 22 | 586 | 2 | 110 |
+| de (runs/units-c2, overlaps the row above) | 825 | 25 | 686 | 2 | 137 |
 
-- It always measures with no saved word, so it cannot show the case above.
-- Since 2387af8 (2026-11-21 04:08) the extension passes `spelledOut` to the classifier and measure does not: 36 tokens of 13 forms per native on the 2026-11 corpus (AGI, AED, PKK, ECHR) show no meaning in measure. Runs of code from that commit on (th-2, hi-2, ar-2, id-2, tr-2, ko-2, ko-3's corpus effect, c001, this one) miss those tokens on both sides; changes to other tokens are unaffected by it.
-- Both need an edit of `.claude/skills/real-content-quality/scripts/measure.ts`, which the step could not write; the patch is handed over with the step's report.
+Verdicts are one agent's reading of the tokens in their sentences, not a blind judging. Better: the base's meaning was wrong there. Same: a derived word of the same meaning (interested, amazing, thanks), whose status parts from the base's. Worse: a form of the saved word loses its status, or the tag is wrong.
+
+- **Every worse pair**:
+  - en, forms: media 13 > medium, teeth 3 > tooth, criteria 2, phenomena, stimuli, pence, worse 2 > bad, done 2 > do, burnt > burn.
+  - en, words the tagger misreads or whose own entry lacks the sense: understood 3, trading 3, left 2, stabbing 2, bound, dying, heard, fell, won, calling, thought, closing, catching, writing, cheering, ranking, stopping. Some now show a wrong meaning where the saved base's was right: won → the Korean currency, fell → fur, catching → contagious, stopping → filling.
+  - es: muy 216 > mucho, muchísimo 5, sólo 4 > solo, quizás 3 > quizá, fuera 1 > ser ("que mi mamá fuera como tú", read as the adverb).
+  - fr: moins 31 > peu, mieux 18 > bien, ci 1 > ici.
+  - de: mehr 101 > viel, weniger 4 > wenig, ausserdem 2 > außerdem, rum > herum, drauf > darauf, dran > daran; in units-c2 also mehr 126, alleine > allein, drum > darum.
+- **Better**: en bit > bite 70, able > can 61, ground > grind 20, willing > will 20, meeting 13, left 11; es no > número 1,443, así > asir 162, antes > ante 59, además > ademar 38; fr plus > plaire 337, maintenant > maintenir 57; de mal > malen 198, schon > schonen 188, dabei > bei 50, damit > mit 44. In languages with UD tags only adverbs read as themselves.
+- **Phrases** (bases saved as Learning): a released word no longer hides a dictionary phrase: en +12 / −1, es +36, fr +64 / −1, de +1.
+- **Classify time**: unchanged within noise (median of 5 alternating runs, ms per 1,000 tokens, before → after with nothing / Known / Learning saved: en-ja 7.85 → 7.94 / 7.84 → 7.99 / 7.97 → 7.92, es-en 7.75 → 7.69 / 7.64 → 7.63 / 7.60 → 7.60).
+- **History, not changed**: `historyKeys` files a sentence under every base of its words, so saving a base can still import a sentence that has it only through a released form: en 386 (base, sentence) pairs in 370 sentences (110 bases; bear 1, "full bore"), es 295 in 287, fr 56 in 56, de 449 in 419 (units-c2 531 in 494).
+- **Not seen in a browser yet**: the Playwright repro with bear saved could not run in the step's sandbox (no local port). measure.ts with the en-ko packs on its sentences gives bore's noun for both bore sentences and bear (나르다 / 견디다) for "They bore the pain well", with bear known or learning.
+
+### `measure.ts` differed from the extension (fixed by d3f1e6b, not merged yet)
+
+- It always measured with no saved word, so it could not show the case above; d3f1e6b adds `--saved`.
+- From 2387af8 (2026-11-21 04:08) the extension passed `spelledOut` to the classifier and measure did not, until d3f1e6b: 36 tokens of 13 forms per native on the 2026-11 corpus (AGI, AED, PKK, ECHR) showed no meaning in measure. Runs of code from 2387af8 on (th-2, hi-2, ar-2, id-2, tr-2, ko-2, ko-3's corpus effect, c001, this one) miss those tokens on both sides; changes to other tokens are unaffected by it.
+- d3f1e6b (branch claude/measure-saved, that one file) was used for the numbers above. It is not in the PR of decision A, whose step could not write `.claude/skills/`; until it is merged, main's script still differs.
 
 ### To check in Chrome, once the packs are on npm
 
@@ -163,8 +188,12 @@ Hover lines seen (card unless noted):
 - **Labels cut**: commence 시작되다 / 시작하다; rob 빼앗다.
 - **Complements kept**: rectify (잘못된 것을) 바로잡다; awake 깨어 있는 / (잠에서) 깨다 / 깨우다, 일으키다; liquidate (회사를) 정리하다, 청산하다; deem (…로) 여기다, 생각하다, 간주하다; predetermine 미리 계획하다, 예정하다 (no bracket on this line; the earlier example "(미리) 정하다" was not on screen); dispatch (타) (군대·특사 등을) 급파 [특파] 하다 / (서한을) 보내다, 발송하다, 통지하다: the one-syllable label "(타)" stays, as the two-syllable minimum says. spit's hover shows 침; its dictionary window 침을뱉다, 뱉다 (verb) and 침 (noun).
 - **hi**: wooden लकड़ी से बना है (MT), coarse मोटा / परुष. No कठ-.
-- **bore** ("The bore of the gun is wide.", "He is such a bore"): both read "bore → bear", 곰, status Known; the dictionary window shows bear as saved: the Known button is active and "Remove" is offered, so bear is saved as Known in the user's data. Nothing was saved, removed or changed. This is the open decision above.
+- **bore** ("The bore of the gun is wide.", "He is such a bore"): both read "bore → bear", 곰, status Known; the dictionary window shows bear as saved: the Known button is active and "Remove" is offered, so bear is saved as Known in the user's data. Nothing was saved, removed or changed. This was the open decision above, since decided (A).
 - gruelling 매우 어렵거나 부담스럽습니다 (MT): keyed gruelling, not gruel.
 - Also seen: wooden 목조, coarse 상스럽다 / 비속하다 (ko); cooked → cook 요리하다 / 요리사; baggy 헐렁하다; sachet 향주머니; interest 이자 / 흥미 / 이익.
 
-Problems: none new. The hover card of the video shows the previous word for a moment after the pointer moves (a screenshot within a second saw it); a second later it was right. The Wikipedia tab left open before this check (Emeritus) was not touched.
+Problems: none new.
+
+- Left open, not fixed: the opening-label rule's two-syllable minimum leaves one-syllable part-of-speech labels, "(타)" (transitive) on 13 en-ko headwords (dispatch, affirm, designate, mimic).
+
+The hover card of the video shows the previous word for a moment after the pointer moves (a screenshot within a second saw it); a second later it was right. The Wikipedia tab left open before this check (Emeritus) was not touched.
