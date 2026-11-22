@@ -1,4 +1,8 @@
 {
+"exponential distribution":[["noun","Any of a class of continuous probability distributions used to model the time between events that occur independently at a constant average rate."]],
+"exponential equation":[["noun","A type of equation which includes a variable located in the exponent; for example, eˣ=1,."]],
+"exponential function":[["noun","Any function in which an independent variable is in the form of an exponent; they are the inverse functions of logarithms"]],
+"exponential generating function":[["noun","A formal power series with one indeterminate, whose coefficients are fractions with factorial denominators (of index corresponding to the power of the indeterminate) and numerators which represent a sequence of numbers that is to be studied."]],
 "exponential growth":[["noun","The growth in the value of a quantity in which the rate of growth is proportional to the instantaneous value of the quantity; for example, when the value has doubled, the rate of increase will also have doubled. The rate may be positive or negative."],["noun","Very rapid growth."]],
 "exponential map":[["noun","The arithmetic operator consisting of repeated exponentiation, by analogy with exponentiation being repeated multiplication and multiplication being repeated addition, ᵇᵃ denoting a to the power of a to the power of … to the power of a, in which a appears b times."]],
 "exponential smoothing":[["noun","a rule-of-thumb technique for smoothing time series data using the exponential window function."]],
@@ -12854,9 +12858,5 @@
 "harm a hair on someone's head":[["verb","To hurt someone."]],
 "harm reduction":[["noun","A range of public health policies designed to lessen the negative social or physical consequences associated with various human behaviors, both legal and illegal."]],
 "harm's way":[["noun","A place or course of danger."]],
-"harmless":[["adjective","Incapable of causing harm or danger; safe."],["adjective","Not intended to harm; inoffensive."]],
-"harmlessly":[["adverb","In a harmless manner."]],
-"harmonic":[["adjective","Pertaining to harmony."],["adjective","Pleasant to hear; harmonious; melodious."],["adjective","Recurring periodically."],["noun","A component frequency of the signal of a wave that is an integer multiple of the fundamental frequency."]],
-"harmonic analysis":[["noun","A study of the representation of functions or signals as the superposition of basic waves, involving the notions of harmonic functions, trigonometric series, Fourier series, Fourier transforms, almost periodic functions, and others."]],
-"harmonic balancer":[["noun","A device connected to the crankshaft of an engine to reduce torsional vibration and to serve as a pulley for drive belts."]]
+"harmless":[["adjective","Incapable of causing harm or danger; safe."],["adjective","Not intended to harm; inoffensive."]]
 }

@@ -1,4 +1,7 @@
 {
+"countercurrent":[["noun","A current that flows against the prevailing one."],["adjective","Running in an opposite direction."]],
+"counterexample":[["noun","An example that counters a general rule; an exception to a general rule; a specific instance of the falsity of (and falsifiability of) any proposed universal applicability of a rule or statement."]],
+"counterfactual":[["adjective","Contrary to known or agreed facts; untrue."],["adjective","Of or in comparison to a hypothetical state of the world."],["noun","A claim, hypothesis, or other belief that is contrary to the facts."],["noun","A hypothetical state of the world, used to assess the impact of an action."]],
 "counterfoil":[["noun","the part of a cheque that is retained in the chequebook as a record; a stub"]],
 "counterinsurgency":[["noun","Any political or military action taken to defeat insurgency, especially during guerrilla warfare."]],
 "counterintelligence":[["noun","counterespionage"]],
@@ -12222,6 +12225,7 @@
 "executive summary":[["noun","A short document that summarizes all the reports of a company, or the contents of a longer report to which it is attached."]],
 "executor":[["noun","A person who carries out some task."],["noun","A component of a system that executes or runs something."],["noun","Someone appointed by a testator to administer their estate in accordance with their will; an administrator."]],
 "executrix":[["noun","A female person appointed to execute the wishes of a deceased person as stated in their will; a female executor."],["noun","A dominatrix who acts a fantasy of killing her client."]],
+"exegesis":[["noun","A critical explanation or interpretation of a text, especially a religious text."],["noun","An explanatory note; a gloss."]],
 "exegete":[["noun","A person skilled in exegesis; an interpreter of texts, difficult passages, law, oracles, and similar obscure or esoteric sources."],["verb","(chiefly religion) To interpret; to perform an exegesis on."]],
 "exemplar":[["noun","Something fit to be imitated; an ideal, a worthy model or role model: a desirable example."],["noun","Something typical or representative; an example that typifies its class."],["noun","A pattern after which others should be made; an archetype."],["noun","A well-known use of a scientific theory."]],
 "exemplary":[["adjective","Deserving honour, respect and admiration."],["adjective","Of such high quality that it should serve as an example to be imitated; ideal, perfect."],["adjective","Serving as a warning; monitory."],["adjective","Providing an example or illustration."]],
@@ -12239,6 +12243,7 @@
 "exercise the ferret":[["verb","Of a man: to have penetrative sexual intercourse."]],
 "exergy":[["noun","Concentrated or organized energy, which can be exported and do work in the process."]],
 "exert":[["verb","To make use of, to apply, especially of something nonmaterial; to bring to bear."],["verb","To put in vigorous action."]],
+"exertion":[["noun","An expenditure of physical or mental effort."]],
 "exeter":[["proper noun","A city and local government district, the county town of Devon, in south-west England (OS grid ref SX9292)."],["proper noun","A village in Wingecarribee Shire, New South Wales, Australia."],["proper noun","A suburb of Adelaide, South Australia."],["proper noun","A small town in West Tamar council area, northern Tasmania, Australia."],["proper noun","Ellipsis of Exeter College, Oxford."]],
 "exeunt":[["noun","A stage direction for more than one actor to leave the stage."],["noun","An act of one or more actors leaving the stage."]],
 "exfoliate":[["verb","To remove the leaves from a plant."],["verb","To remove a layer of dead skin cells, as in cosmetic preparation."],["verb","To split into scales, especially to become converted into scales as the result of heat or decomposition."]],
@@ -12424,9 +12429,5 @@
 "expo":[["noun","An exposition (type of public exhibition)."],["noun","A world's fair"],["noun","An expediter; a restaurant worker who prepares food to be taken to tables."]],
 "exponent":[["noun","One who expounds, represents or advocates."],["noun","The number by which a value (called the base) is said to be raised to a power in exponentiation: for example, the 3 in 2³=8."],["noun","A phonological manifestation of a morphosyntactic property; in layman's terms, the expression of one or more grammatical properties by sound."],["noun","The part of a floating-point number that represents its exponent value."]],
 "exponential":[["adjective","Expressed in terms of an exponent (power of a base), the base often being 10 or e."],["adjective","Characterised by a rate of change that is proportional to the value of the varying quantity, or, equivalently, by a doubling or halving over successive fixed intervals of time or other parameter, described as exponential growth or exponential decay."],["adjective","Characterised by a very rapid rate of change, especially increase, or merely a very large amount or degree."],["noun","Any function that has an exponent as an independent variable."]],
-"exponential decay":[["noun","A decrease where the rate of decrease is proportional to the amount remaining."]],
-"exponential distribution":[["noun","Any of a class of continuous probability distributions used to model the time between events that occur independently at a constant average rate."]],
-"exponential equation":[["noun","A type of equation which includes a variable located in the exponent; for example, eˣ=1,."]],
-"exponential function":[["noun","Any function in which an independent variable is in the form of an exponent; they are the inverse functions of logarithms"]],
-"exponential generating function":[["noun","A formal power series with one indeterminate, whose coefficients are fractions with factorial denominators (of index corresponding to the power of the indeterminate) and numerators which represent a sequence of numbers that is to be studied."]]
+"exponential decay":[["noun","A decrease where the rate of decrease is proportional to the amount remaining."]]
 }
