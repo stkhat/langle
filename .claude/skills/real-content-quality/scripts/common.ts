@@ -1,9 +1,10 @@
 // Settings and paths shared by build-units.ts and measure.ts.
 //
 // Every setting comes from `--name=value` or the environment variable NAME. Study data
-// lives in the main checkout's git-ignored data/raw/quality/<study>/ (worktrees symlink
-// data/raw to it): corpus/ (and manifest.json), runs/<label>/ (units.jsonl, rows.jsonl,
-// summary.json), packets/. STUDY defaults to the newest study there.
+// lives in the main checkout's git-ignored data/raw/quality/<study>/ (a worktree reads it
+// there by absolute path and writes its own outputs under its own data/raw/quality):
+// corpus/ (and manifest.json), runs/<label>/ (units.jsonl, rows.jsonl, summary.json),
+// packets/. STUDY defaults to the newest study there.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
