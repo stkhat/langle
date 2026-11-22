@@ -39,7 +39,7 @@ Last update: 2026-11-22. Merged work is in git history; data sizes are in [notes
 - Next: phase 3 (meaning in context, Tatoeba, Anki/CSV export, more sites), Dropbox / OneDrive for cloud sync, or the store release ([roadmap](plans/roadmap.md))
 
 - en-ru without the Russian edition (2026-11-22, user; [notes](notes/translation-data-expansion.md) "en-ru: the Russian edition left out, 2026-11-22"): that source could not be cleared. `en-ru` 2026.1121.7 → 2026.1122.0, 61,180 → 55,645 terms, 9.36 → 8.69 MB, 95.26% of the top 5,000 (rule (a)), tokens 99.02 → 93.45%. The figures for ru in the older bullets are the earlier pack's
-- en-ru gaps, two fixes (2026-11-23, user; [notes](notes/translation-data-expansion.md) "en-ru gaps: okay and an, 2026-11-23"): `en-defs` 2026.1122.2 gives a pointer its target's sense of the same part of speech and lets the treebank's main use lead (okay), and a closed-class word's definition is translated, never the word (an). 5 to 776 tokens change per English pair on the 2026-11 corpus, none in the other four pairs. Not judged yet, not checked in a browser; the pack is not on npm yet
+- en-ru gaps, two fixes (2026-11-23, user; [notes](notes/translation-data-expansion.md) "en-ru gaps: okay and an, 2026-11-23"): `en-defs` 2026.1122.2 gives a pointer its target's sense of the same part of speech and lets the treebank's main use lead (okay), and a closed-class word's definition is translated, never the word (an). 5 to 776 tokens change per English pair on the 2026-11 corpus, none in the other four pairs. Judged blind on the changed hovers: usable 63 → 2,153 of 2,342 tokens (worse: dispatcher, favorite, else, whir, grey); not checked in a browser; the pack is not on npm yet
 
 ## Known issues and open points
 
