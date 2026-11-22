@@ -94,8 +94,8 @@ Found:
 - **Hanja in parentheses** ("present" → 현재(現在)의, abandon → 방치(放置)하다): a translation table's words went to the hover line as they are (`pairLine`), and only an edition gloss had its asides in another script cut (`withoutForeignAsides`). 401 table senses are affected (1,060 tokens on the corpus). Fixed at display time by `tableLine` (no pack change).
 - **Opening labels** "(타동사) 시작하다", "(자동사)", "(격식)", "(법률)", and a trailing "(부록: 신체 부분의 영어 이름)" (flank, millimeter) showed on the corpus: `withoutOpeningLabels` kept one word in brackets as part of the meaning. An appendix note that ends a gloss is now cut, and a Korean label: a word of two syllables or more that is in the brackets opening the glosses of three headwords or more of the dictionary, alone or in a comma list, and ends in no case particle (`openingLabels`, read from the pack at display, 2.5 ms once; 46 words). After a label only another label is cut. A complement or modifier stays ((잠에서) 깨다, (빚을) 청산하다, (미리) 정하다), and so does a rarer label, as before. "Opening labels compared" below has the candidates.
 - **Corpus effect** (`measure.ts`, against main c7bd3c0): 1,325 ko word tokens change (296 distinct), 1,073 by the hanja and appendix cuts, 252 (94 distinct lines, all read) by the label cut; a line a hanja or label made too wide now keeps what the cap had dropped (demonstrate 증거[실례]를 …). One phrase changes (pull out → 회수하다). The other 14 natives' rows are identical (th, zh, hi, ar, id, tr, es, pt, ru, fr, de, it, pl, ja).
-- **ruling → 이 / 섭 / 리** (confirmed): the senses are Hangul syllable pages of English Wiktionary's Korean entries (part of speech "syllable": 理 is glossed "ruling") that the reverse glosses read as words. 184 en-ko entries have a "syllable" sense, 92 only such ones (agonize → 민, ashen → 이 / 리, brocade → 금, gallop → 무 / 등). Not fixed (a data change that needs a new en-ko version): leave "syllable" entries out of the reverse glosses (`enwiktionary-ko`).
-- **bore → bear** (곰 / 나르다 / 견디다, "bore → bear") for "The bore of the gun is wide." and "He is such a bore", in Chrome only: the same commit's offline measure (`measure.ts`) shows bore's own noun (뚫은 구멍, 시추공), and "left" and "gruelling" are right in Chrome, so rule A1b works there. Not traced (the in-Chrome tag of those tokens is not visible from the page); left open.
+- **ruling → 이 / 섭 / 리** (confirmed): the senses are Hangul syllable pages of English Wiktionary's Korean entries (part of speech "syllable": 理 is glossed "ruling") that the reverse glosses read as words. 184 en-ko entries have a "syllable" sense, 92 only such ones (agonize → 민, ashen → 이 / 리, brocade → 금, gallop → 무 / 등). Fixed in ko-4 below.
+- **bore → bear** (곰 / 나르다 / 견디다, "bore → bear") for "The bore of the gun is wide." and "He is such a bore", in Chrome only: the same commit's offline measure (`measure.ts`) shows bore's own noun (뚫은 구멍, 시추공), and "left" and "gruelling" are right in Chrome, so rule A1b works there. Traced in ko-4 below.
 - Left as they are (3 entries): "燦爛하다" (brilliant: hanja without brackets), "민족주의자((民族主義者) (minjokjuuija()" (nationalist: malformed brackets), "(남의 언설(言說) 등을)" (endorse: hanja inside nested brackets).
 - Netflix (Friends, S6E7): English subtitles and cards work (unpack → 끄르다, "unpacked → unpack"), but no Korean line under the English one on this title, which has no Korean track (Japanese UI).
 - Not checked: es still / even and th store / direct (optional, skipped to keep the user's settings changes short).
@@ -120,3 +120,35 @@ Every single Korean word in brackets that cutting any such word of two syllables
 | **Opens 3 headwords, alone or in a list, no case particle** | **45 / 387** | **0** | **77 / 88** |
 
 Endings alone cannot tell a bare-noun or adverb complement ((기분) 상하게 하다, (미리) 정하다) from a label. What the chosen rule keeps wrongly is mostly labels seen once or twice (채팅, 요리, 전신). Two cut brackets are borderline, the label being also the verb's subject: languish "(식물) 시들다", roar "(동물) 으르렁거리다". Several words in brackets after a label stay too: cutting on took 47 of them, nearly all complements ((격식) (잘못된 것을) 바로잡다).
+
+## ko-4: syllable pages, bore → bear (2026-11-22)
+
+### Syllable pages read as words (fixed, data)
+
+- **Cause**: `NOT_WORDS` left out characters, affixes and romanizations, but not kaikki's "syllable" (377 Korean entries, each one Hangul syllable glossed with the meanings of the hanja read so) or "combining_form" (8 Hindi entries).
+- **Rule**: an entry that is a unit of writing or a bound piece of a word is no word. Every part of speech of the th, hi, ar, id, tr and ko extracts was listed. Kept, after reading samples: root (ko 255, "Rarely used alone", none in the pack; id 115, mixed: samin "ghee", luap; in 6 en-id entries), counter (ko 96, real words), contraction.
+- **Per pair**, the six rebuilt and every changed entry read: th, ar, id and tr are identical. hi loses 1 term (wooden → कठ-) and 1 sense (coarse). ko loses 92 terms and changes 92 (the syllable goes; 금 stays gold's and fissure's, 이 tooth's). de-fr, which reads reversed tables, loses no word.
+- **What the lost terms show**: en-defs is rebuilt and gains 13 terms it left out while every pair had them (inferior, keen, pleased, wooden and the like); nothing else in it changes. The English definition is then translated at display. Two of the 93 get no definition: waves follows wave (물결), and aslant shows nothing (its senses are archaic).
+- **Gate**: en-ko top 5,000 4,572 → 4,571 (91.4%), tokens 134,222 → 134,209 (93.7%), phrases 11.4 → 11.3%: passes by (a). en-hi top 5,000 4,164 → 4,163, tokens 91.1% as before: passes by (b).
+- **Corpus** (2026-11, 15 natives): ko 160 tokens change (66 kinds, all read), the other 14 none. Most drop a meaningless syllable for a real word or for the English definition (ruling, inferior, progression). Definitions that give the wrong sense where a meaningless syllable was: rising → "Rebellion" (rising mortality), striker → a person on strike (football), much less → "Let alone" (much less certain), offer up → thanks to God (offer up information), wrap around → text wrapping (a bandage).
+- **Rebuild drift, fixed**: since #230 `shortOfPairSenses` cuts asides, so any pair rebuilt stored a table's uncut first word as an override ("현재(現在)의"), undoing #230's hover fix. `packedEntry` no longer stores it. With that, the six pairs rebuild byte for byte from the unchanged rule. The other natives' packs hold no entry it writes differently (checked on their stored shorts, not rebuilt).
+- **Left**: a de-fr rebuild drops two trailing separators (Anteilnahme, hervortreten), unrelated to this rule; that pack is not republished.
+
+### bore → bear (cause found, awaits the user's decision)
+
+- **Reproduced** in Playwright (check build of ff4d231, native ko, the lock's packs). A clean profile shows bore's own noun. With "bear" saved, known or learning, both sentences key bear, and the card reads "bore → bear" 곰 / 나르다 / 견디다.
+- **Cause**: `classifyWord` keys a word by any saved base, and `bySense` runs `chooseKey` (A1, A1b) only for unsaved words, as specified. #227's exception works; it is never reached. That the ko-3 profile had bear saved is inferred: its saved words were not read.
+- **Not changed**, as it decides what a saved word highlights, counts and records. Applying A1b to saved words would touch up to 638 corpus tokens (155 form > base pairs): better for bore, left, ground, bit; debatable for meeting, interested, building, thanks; worse for teeth, media, criteria, phenomena. Options:
+  - A. A1b for saved words too: code only, with those losses.
+  - B. A saved base claims a form only in the part of speech it is a form of: keeps plurals, needs that part of speech in the en pack, still parts meeting from meet.
+  - C. Keep the rule: bore is bear's while bear is saved.
+
+### `measure.ts` differs from the extension (not fixed here)
+
+- It always measures with no saved word, so it cannot show the case above.
+- Since 2387af8 (2026-11-21 04:08) the extension passes `spelledOut` to the classifier and measure does not: 36 tokens of 13 forms per native on the 2026-11 corpus (AGI, AED, PKK, ECHR) show no meaning in measure. Runs of code from that commit on (th-2, hi-2, ar-2, id-2, tr-2, ko-2, ko-3's corpus effect, c001, this one) miss those tokens on both sides; changes to other tokens are unaffected by it.
+- Both need an edit of `.claude/skills/real-content-quality/scripts/measure.ts`, which the step could not write; the patch is handed over with the step's report.
+
+### To check in Chrome, once the packs are on npm
+
+ruling, inferior, pleased, progression, brilliant, framework, concern (ko) and wooden (hi); present and abandon still without hanja; bore with bear unsaved, then saved.

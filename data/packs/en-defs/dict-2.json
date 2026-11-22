@@ -1592,6 +1592,7 @@
 "broadsword":[["noun","A type of early modern sword that has a broad double-edged blade for cutting (as opposed to the more slender thrust-oriented rapier) and typically a basket hilt."],["noun","A person armed with such a sword."],["noun","Any type of sword that is comparatively long; depending on context, applied to swords of the Bronze Age, Migration period, Viking Age and Renaissance era."],["noun","A flat, rectangular bread made from corn (maize) and beans by the Cherokee, traditionally by boiling rather than baking it."]],
 "broadtail":[["noun","The hide or fur of a Persian lamb, formerly used in clothing etc."],["noun","Any of various parrots in the genus Platycercus."]],
 "broadway":[["noun","An esplanade."],["noun","A straight from ace to ten in Texas hold 'em, or any of the cards (ace, king, queen, jack, ten) used to make such a straight."]],
+"brocade":[["noun","A thick heavy fabric into which raised patterns have been woven, originally in gold and silver; more recently any cloth incorporating raised, woven patterns."],["noun","An item decorated with brocade."],["noun","Any of several species of noctuid moths such as some species in the genera Calophasia and Hadena"],["verb","To decorate fabric with raised woven patterns."]],
 "brocaded":[["adjective","Embellished with brocade."]],
 "broccoli cut":[["noun","A type of perm haircut consisting of shaded or faded sides, and much volume and length on the top, popular among teens and young adults."]],
 "broccoli haircut":[["noun","A type of perm haircut consisting of shaded or faded sides, and much volume and length on the top, popular among teens and young adults."]],
@@ -9593,6 +9594,7 @@
 "colored pencil":[["noun","A pencil with a wax-like colored core."]],
 "colored people's time":[["noun","A notional system of time (or time zone) which others sometimes derogatorily ascribe to African Americans, and which they sometimes jocularly ascribe to themselves, to account for their supposed tendency to be tardy."]],
 "colorfast":[["adjective","Having colors that have been dyed or applied to the material in a way that will prevent them from being washed out, running, or fading."]],
+"colorful":[["adjective","Possessing prominent and varied colors."],["adjective","Interesting, multifaceted, energetic, distinctive."],["adjective","Profane, obscene, offensive (usually in the phrase colourful language)."]],
 "colorfully":[["adverb","In a colorful manner."]],
 "colorimetric":[["adjective","Of or pertaining to colorimetry."],["adjective","Obtained by using a colorimeter."]],
 "coloring":[["adjective","That colors something."],["adjective","That conveys or imparts color."],["noun","An act or process which applies color."],["noun","Any substance used to give color."]],
@@ -12367,8 +12369,5 @@
 "counterclaim":[["noun","A suit filed by a defendant against a plaintiff secondary to the original complaint."],["noun","A claim (assertion) that counters (disputes) another."],["verb","To file a counterclaim."]],
 "counterclockwise":[["adverb","In the direction of rotation opposite from clockwise."],["adjective","Moving or located in the direction of rotation opposite from clockwise."]],
 "countercultural":[["adjective","Of or pertaining to a counterculture."]],
-"counterculture":[["noun","Any culture whose values and lifestyles are opposed to those of the established mainstream culture, especially to Western culture."]],
-"countercurrent":[["noun","A current that flows against the prevailing one."],["adjective","Running in an opposite direction."]],
-"counterexample":[["noun","An example that counters a general rule; an exception to a general rule; a specific instance of the falsity of (and falsifiability of) any proposed universal applicability of a rule or statement."]],
-"counterfactual":[["adjective","Contrary to known or agreed facts; untrue."],["adjective","Of or in comparison to a hypothetical state of the world."],["noun","A claim, hypothesis, or other belief that is contrary to the facts."],["noun","A hypothetical state of the world, used to assess the impact of an action."]]
+"counterculture":[["noun","Any culture whose values and lifestyles are opposed to those of the established mainstream culture, especially to Western culture."]]
 }
