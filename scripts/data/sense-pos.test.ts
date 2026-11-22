@@ -41,6 +41,32 @@ describe("labelSenses", () => {
       pos(["《補語にのみ用いて》元気な", "罰金"], ["adjective", "noun"]),
     ).toEqual(["adjective", "noun:weak"]);
   });
+  it("reads a note that says what a sense modifies, as only an adverb does", () => {
+    const evenly = [
+      "《比較級の前に用いて》『なおいっそう』,さらに",
+      "《形容詞の前または後の用いて》(…と)すら言える",
+      "《動詞を修飾して》少しは",
+      "《比較級を強めて》いっそう",
+    ];
+    expect(pos(evenly, ["adverb", "verb"])).toEqual(Array(4).fill("adverb"));
+    // It fills the gap before it: "even"'s "…でさえも".
+    expect(
+      pos(
+        ["平たく", "『でさえも』", "《比較級の前に用いて》さらに"],
+        ["adjective", "adverb"],
+      ),
+    ).toEqual(["adverb", "adverb:gap", "adverb"]);
+    // A word that is no adverb, and a note that names a part of speech, keep theirs.
+    expect(pos(["《動詞を修飾して》罰金"], ["adjective", "noun"])).toEqual([
+      "noun:weak",
+    ]);
+    expect(
+      pos(
+        ["《補語にのみ用いて》《文を強めて》元気な"],
+        ["adjective", "adverb"],
+      ),
+    ).toEqual(["adjective"]);
+  });
   it("reads the main item's ending", () => {
     expect(
       pos(
