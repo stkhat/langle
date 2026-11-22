@@ -1,6 +1,7 @@
 // Build recipes: a pair dictionary merged from human-made sources in order, where the
 // first source that has a term supplies all of it (one source tag per term). See
 // docs/specs/architecture.md "Native meanings and the quality gate".
+import { CLOSED_CLASSES } from "../../../src/core/lexicon/definitions.ts";
 import {
   capitalKey,
   describes,
@@ -2338,20 +2339,6 @@ const describing = ([, text, hint]: PairSense) =>
   hint == null && describes(editionLine(text));
 
 /**
- * The closed classes (kaikki's labels): the grammar words a language translates rather
- * than defines, where an edition may describe their use instead.
- */
-const CLOSED_CLASSES: readonly string[] = [
-  "pronoun",
-  "determiner",
-  "article",
-  "preposition",
-  "postposition",
-  "conjunction",
-  "particle",
-];
-
-/**
  * The parts of speech a term only describes: every sense of it that is no pointer is
  * of a closed class (CLOSED_CLASSES) and describes its word (pl the: "stosowany przed
  * wyrazem znanym z kontekstu", "used before a word known from the context"); undefined
@@ -2363,7 +2350,7 @@ function describedOnly(senses: readonly PairSense[]) {
   if (meanings.length === 0) return undefined;
   if (
     meanings.some(
-      (sense) => !CLOSED_CLASSES.includes(sense[0]) || !describing(sense),
+      (sense) => !CLOSED_CLASSES.has(sense[0]) || !describing(sense),
     )
   )
     return undefined;
@@ -2476,14 +2463,6 @@ export function lesserUse(
   form = false,
 ): readonly string[] | undefined {
   if (!uses || senses.length === 0 || form) return undefined;
-  let total = 0;
-  let main = "";
-  for (const [of, count] of uses) {
-    if (of === "other") continue;
-    total += count;
-    if (count > (uses.get(main) ?? 0)) main = of;
-  }
-  if (total < LESSER_MIN_USES || main === "") return undefined;
   const labels = new Set<string>();
   for (const sense of senses) {
     const [label] = sense;
@@ -2496,17 +2475,44 @@ export function lesserUse(
       return undefined;
     labels.add(label);
   }
+  return mainOverRare(uses, labels, "interjection");
+}
+
+/**
+ * CORE: the sense labels of a word's main use, the class the treebank uses it as most
+ * (`TREEBANK_CLASSES`), where it uses the word as one of `labels` at most LESSER_SHARE
+ * of its uses of any class (LESSER_MIN_USES or more); else undefined. A use as `anyLabel`
+ * counts as any label's (`lesserUse`: an interjection's).
+ */
+export function mainOverRare(
+  uses: ReadonlyMap<string, number>,
+  labels: ReadonlySet<string>,
+  anyLabel?: string,
+): readonly string[] | undefined {
+  let total = 0;
+  let main = "";
+  for (const [of, count] of uses) {
+    if (of === "other") continue;
+    total += count;
+    if (count > (uses.get(main) ?? 0)) main = of;
+  }
+  if (total < LESSER_MIN_USES || main === "") return undefined;
   // A label gives the classes it is said in: a verb's senses give a modal too (could).
   let used = 0;
   for (const [of, count] of uses)
     if (
-      of === "interjection" ||
+      of === anyLabel ||
       (CLASS_LABELS[of] ?? [of]).some((label) => labels.has(label))
     )
       used += count;
   if (used / total > LESSER_SHARE) return undefined;
   return CLASS_LABELS[main] ?? [main];
 }
+
+/** Whether the lemma pack makes a word another word's form. */
+export const isFormOfAnother = (lemmas: LemmaPack, key: string) =>
+  Object.hasOwn(lemmas, key) &&
+  [lemmas[key]!].flat().some((base) => base !== key);
 
 /** A gloss's items (what its commas and semicolons separate), in lower case, without notes. */
 const itemsOf = (text: string) =>

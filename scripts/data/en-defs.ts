@@ -7,15 +7,20 @@
 // notes and descriptions of the expression, register labels and, for phrases, domain
 // and regional labels go down; translation tables lift a phrase's senses), and a sense that only names another term
 // ("Synonym of X", "Clipping of X", an alternative spelling) takes that term's best
-// definition, except a contraction's sense that names only its host ("Contraction of
-// you + are."), which keeps its own; a contraction's own senses come first (U1-5).
+// definition of its own part of speech (else its best), except a contraction's sense
+// that names only its host ("Contraction of you + are."), which keeps its own; a
+// contraction's own senses come first (U1-5). A word whose lead the English treebank
+// (UD English-EWT) rarely uses it as leads with its main use's sense (`mainUseFirst`).
 // Inflections ("Plural of X") are left out: the extension follows them.
 // A term every English pair dictionary has is left out: no lookup reaches it (a recipe
 // pair's capitalised headword counts for a capital-only word's lowercase lookup: tokyo;
 // not for a word of its own in lower case, which shows its English definitions: may).
 // Usage: node scripts/data/en-defs.ts [path]   (default data/raw/kaikki-en.jsonl; run
 // ejdict.ts, kaikki.ts, phrases.ts and the pair recipes, recipes/native.ts, first)
-import { definitionPointer } from "../../src/core/lexicon/definitions.ts";
+import {
+  definitionPointer,
+  isUsageNote,
+} from "../../src/core/lexicon/definitions.ts";
 import { capitalKey } from "../../src/core/lexicon/short-lines.ts";
 import { CONTRACTION, VERB_TO } from "../../src/core/tagging/en-clitics.ts";
 import type { DefsPack, LemmaPack } from "../../src/core/packs/types.ts";
@@ -35,7 +40,16 @@ import {
 } from "./common.ts";
 import { PACKS } from "./formats.ts";
 import { isNonConstituent, patternKey } from "./phrases.ts";
-import { lesserLowercase, tableCoverage } from "./recipes/recipe.ts";
+import {
+  isFormOfAnother,
+  lesserLowercase,
+  mainOverRare,
+  OPEN_CLASSES,
+  tableCoverage,
+  treebankUses,
+  type TreebankUses,
+} from "./recipes/recipe.ts";
+import { readTreebank } from "./tagger.ts";
 import {
   entityDefinition,
   joinedAcronyms,
@@ -80,10 +94,33 @@ const writtenAsContraction = (key: string) =>
   CONTRACTION.test(key) || VERB_TO.test(key);
 
 /**
+ * A word's ranked senses with its main use's first, in their order (via: both the
+ * preposition's before the noun's), where the first is of an open class the treebank
+ * rarely uses the word as (`mainOverRare`: okay, whose first entry is the noun
+ * "Endorsement" and whose main use is the adjective). An interjection's uses are no
+ * other sense's, unlike a pair's (`lesserUse`): a definition says one use. A usage note
+ * is never moved up, and where it is the main use's best, nothing is.
+ */
+function mainUseFirst<T extends SourceSense>(
+  senses: T[],
+  uses: ReadonlyMap<string, number> | undefined,
+): T[] {
+  const lead = senses[0] && posLabel(senses[0].pos);
+  if (!uses || !lead || !OPEN_CLASSES.includes(lead)) return senses;
+  const main = mainOverRare(uses, new Set([lead]));
+  const ofMain = senses.filter((sense) => main?.includes(posLabel(sense.pos)));
+  if (!ofMain[0] || isUsageNote(ofMain[0].gloss)) return senses;
+  const front = new Set(ofMain.filter((sense) => !isUsageNote(sense.gloss)));
+  return [...front, ...senses.filter((sense) => !front.has(sense))];
+}
+
+/**
  * The English definitions of the vocabulary words and of every phrase pattern
  * (detected or not): up to four distinct senses each, best first (rule C2), as [pos,
  * text], with the first one's text up to its first `;` as the short meaning. A pointer
- * sense takes the best definition of the term it names, when the source has one.
+ * sense takes the best definition of the term it names in its own part of speech, else
+ * that term's best, when the source has one. A word leads with its main use's sense
+ * where its first is rarely used (`mainUseFirst`).
  * A term every English pair dictionary has (`everyPair`) is left out: en-defs is their
  * fallback, so no hover or dictionary window would reach its definitions. A pair's
  * capitalised headword answers the lookup of a word written in lower case (`everyPair`'s
@@ -102,6 +139,7 @@ export async function buildEnDefs(
     capitals = [],
     entities = {},
     acronyms = {},
+    uses = new Map(),
     everyPair = () => false,
   }: {
     vocab: string[];
@@ -120,6 +158,8 @@ export async function buildEnDefs(
     entities?: Entities;
     /** The acronyms known only by what they stand for (`joinedAcronyms`). */
     acronyms?: Acronyms;
+    /** How the English treebank uses each word (`treebankUses`). */
+    uses?: TreebankUses;
     everyPair?: (key: string, capital: boolean) => boolean;
   },
 ) {
@@ -242,9 +282,14 @@ export async function buildEnDefs(
       list.push({ ...sense, order: list.length });
     }
   });
-  const bestOf = (term: string) => {
+  /** A term's best sense of a part of speech, else its best. */
+  const bestOf = (term: string, pos: string) => {
     const list = named.get(term);
-    return list && rankSenses(list, term.includes(" "), SHOWN)[0];
+    const ranked = list && rankSenses(list, term.includes(" "), SHOWN);
+    return (
+      ranked?.find((sense) => posLabel(sense.pos) === posLabel(pos)) ??
+      ranked?.[0]
+    );
   };
 
   /**
@@ -283,7 +328,8 @@ export async function buildEnDefs(
           : { ...sense, gloss: `${sense.abbreviates}: ${sense.gloss}` };
       const target = targetOf(sense);
       // A letter-case form names another entry too ("aka" → "AKA").
-      const best = target && target !== key ? bestOf(target) : undefined;
+      const best =
+        target && target !== key ? bestOf(target, sense.pos) : undefined;
       if (!best) return sense;
       resolved++;
       // The target's definition, with the pointer's own labels; an abbreviation keeps
@@ -318,7 +364,7 @@ export async function buildEnDefs(
           ];
     // A contraction's own senses first: that's → "That is.", not the dialectal
     // determiner "whose, of which".
-    const best = (
+    const distinct = (
       writtenAsContraction(key)
         ? [
             ...ranked.filter((s) => s.contraction),
@@ -328,6 +374,12 @@ export async function buildEnDefs(
     ).filter(
       (sense, i, all) => all.findIndex((s) => s.gloss === sense.gloss) === i,
     );
+    // Not a phrase, a capitalised headword's senses, or another word's form, whose
+    // uses the treebank counts as its base's part of speech (a participle's: a verb).
+    const best =
+      key.includes(" ") || capital !== undefined || isFormOfAnother(lemmas, key)
+        ? distinct
+        : mainUseFirst(distinct, uses.get(key));
     // Each part of speech's best sense is kept (smash: the verb's, after four nouns),
     // as the card shows the one the word's tag reads (rule A2); then the best others.
     // Not a part of speech the source marks as marginal: its best sense has a label
@@ -451,6 +503,7 @@ async function main() {
     capitals: readPack("en/capitals.json"),
     entities: joinedEntities(),
     acronyms: joinedAcronyms(),
+    uses: treebankUses(readTreebank()),
     everyPair: (key, capitalised) =>
       pairs.every(
         ({ terms, capital }) =>
