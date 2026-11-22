@@ -191,7 +191,7 @@ const TEST_PACKS: PackFiles = {
   "en-pt": {
     dict: { loaf: [[["noun", "pão"]], 0] },
   },
-  // Translation tables first, then the edition (`afterTables`).
+  // Translation tables only.
   "en-ru": {
     dict: {
       loaf: [[["noun", "буханка, батон", "block of bread"]], 0],
@@ -345,7 +345,7 @@ const TEST_FILES: Readonly<Record<string, unknown>> = {
   "/packs/en-pt/dict-1.json": TEST_PACKS["en-pt"].dict,
   "/packs/en-ru/index.json": {
     shards: [{ file: "dict-1.json", first: "loaf", last: "loaf" }],
-    sources: ["enwiktionary-translations", "ruwiktionary"],
+    sources: ["enwiktionary-translations"],
   },
   "/packs/en-ru/dict-1.json": TEST_PACKS["en-ru"].dict,
   "/packs/en-fr/index.json": {

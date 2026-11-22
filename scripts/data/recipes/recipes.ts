@@ -96,14 +96,10 @@ export const RECIPES: Readonly<Record<RecipeNative, Recipe>> = {
     edition: { tag: "ptwiktionary", file: "kaikki-pt-edition.jsonl" },
     tables: { langCodes: ["pt"] },
   },
-  ru: {
-    edition: {
-      tag: "ruwiktionary",
-      file: "kaikki-ru-edition.jsonl",
-      afterTables: true,
-    },
-    tables: { langCodes: ["ru"] },
-  },
+  // No edition: the Russian edition's English entries could not be cleared (user,
+  // 2026-11-22; docs/notes/translation-data-expansion.md "en-ru: the Russian edition
+  // left out, 2026-11-22").
+  ru: { tables: { langCodes: ["ru"] } },
   fr: {
     edition: { tag: "frwiktionary", file: "kaikki-fr-edition.jsonl" },
     tables: { langCodes: ["fr"] },
