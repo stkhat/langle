@@ -3,7 +3,7 @@ import type { LanguagePack } from "./lexicon/language-pack";
 import { spelledOutExpansion } from "./lexicon/expansions";
 import { accepts } from "./lexicon/sense-order";
 import { documentNames } from "./names";
-import { chooseKey, readWords, sensePos } from "./word-sense";
+import { chooseKey, readsAsItself, readWords, sensePos } from "./word-sense";
 import { fitContext, markerPos, phraseMisfit } from "./phrases/fit";
 import {
   longestMatch,
@@ -180,7 +180,8 @@ export interface ClassifyOptions {
   /**
    * The dictionary's outline of a headword (`DictionaryProvider.outline`). With it, a
    * pack with a tagger tags each sentence and chooses unsaved words' keys by their tags
-   * (rule A1, `chooseKey`) and their spans' `pos` (rule A2).
+   * (rule A1, `chooseKey`), which saved bases claim a word (rule A1b's "itself") and
+   * the spans' `pos` (rule A2).
    */
   outline?(key: string): EntryOutline | undefined;
   /**
@@ -297,7 +298,8 @@ const COMPLEMENT_POS: readonly string[] = ["noun", "adj", "prep_phrase"];
  *   carry the part of speech of each (`wordPos`). A phrase with a gap gets one span
  *   per run of its words (`part`); the words in the gap are classified as words.
  * - A word with several base forms ("better" → better, good, well) takes a saved base
- *   when there is one, a learning one before a known one. Otherwise its key is the
+ *   that claims it (any, but as the last point below says) when there is one, a
+ *   learning one before a known one. Otherwise its key is the
  *   first base form (the word itself when it is in the vocabulary), and it is known
  *   when its most common base form is ranked within the known level.
  * - With the document's casing (a mixed-case document, a language whose capitals mark
@@ -320,7 +322,10 @@ const COMPLEMENT_POS: readonly string[] = ["noun", "adj", "prep_phrase"];
  * - With the dictionary's outlines and a pack with a tagger: an unsaved word takes
  *   the base form its tag asks for (rule A1, `chooseKey`: decided → decide) and a
  *   word its trusted tag's part of speech (`pos`, rule A2), unless it is a name or
- *   capitalised in a way that counts.
+ *   capitalised in a way that counts. There a saved base other than the word does not
+ *   claim a word that is itself (rule A1b, `readsAsItself`) and would be its own key
+ *   unsaved: it is what it is when that base is not saved ("such a bore" is bore with
+ *   bear saved; "they bore it" is bear's).
  */
 export function createClassifier(pack: LanguagePack): Classifier {
   // One matcher per pack: its dictionary trie is built once.
@@ -494,11 +499,6 @@ export function createClassifier(pack: LanguagePack): Classifier {
           (joined[i] === true && capitalised(i + 1))
         );
       };
-
-      /** Words with a base saved as learning: unsaved dictionary phrases skip them. */
-      const learning = words.map(({ bases }) =>
-        bases.some((base) => terms.get(base) === "learning"),
-      );
 
       /**
        * Saved phrases first, the longest first (the most words from first to last,
@@ -771,7 +771,7 @@ export function createClassifier(pack: LanguagePack): Classifier {
             : longestMatch(
                 matches.filter(
                   (match) =>
-                    !allWords(match).some((j) => learning[j] || inSaved[j]) &&
+                    !allWords(match).some((j) => inSaved[j] || learned(j)) &&
                     !withName(match),
                 ),
               );
@@ -849,27 +849,47 @@ export function createClassifier(pack: LanguagePack): Classifier {
       };
 
       /**
-       * A word's key and `pos` by its tag (rules A1 and A2): not for a name, a word
-       * capitalised in a way that counts (its capitalised senses come first) or one
-       * the tagger did not read; a saved word keeps its saved key.
+       * Whether rules A1 and A2 read word i's tag: not for a name, a word capitalised
+       * in a way that counts (its capitalised senses come first) or one the tagger did
+       * not read, nor without the dictionary's outlines.
+       */
+      const readsTag = (
+        i: number,
+        word: { key: string; category: Category },
+        marks: Partial<Span>,
+      ) =>
+        readings[i] !== undefined &&
+        outline !== undefined &&
+        word.category !== "ignored" &&
+        !marks.name &&
+        // A capital that marks a noun or the polite Sie says nothing of the tag.
+        !(marks.capital && !pack.nounsCapitalised);
+
+      /** Word i's key when it is not saved (rule A1); `key` where its tag changes none. */
+      const unsavedKey = (i: number, key: string) => {
+        const { form, bases } = words[i]!;
+        const reading = readings[i]!;
+        return reading.use.particleOf !== undefined
+          ? key
+          : (chooseKey(form, bases, reading, outline!, pack) ?? key);
+      };
+
+      /**
+       * A word's key and `pos` by its tag (rules A1 and A2, where `readsTag`): a saved
+       * word keeps its saved key (the base that claims it, `claims`).
        */
       const bySense = (
         i: number,
         word: { key: string; category: Category },
         marks: Partial<Span>,
       ): Partial<Span> => {
-        const reading = readings[i];
-        if (!reading || !outline || word.category === "ignored") return {};
-        // A capital that marks a noun or the polite Sie says nothing of the tag.
-        if (marks.name || (marks.capital && !pack.nounsCapitalised)) return {};
+        if (!readsTag(i, word, marks)) return {};
+        const reading = readings[i]!;
         const { form, bases } = words[i]!;
-        const key =
-          terms.has(word.key) || reading.use.particleOf !== undefined
-            ? word.key
-            : (chooseKey(form, bases, reading, outline, pack) ?? word.key);
+        const key = terms.has(word.key) ? word.key : unsavedKey(i, word.key);
         // A headword this dictionary has no entry for ("has" in en-ru); a form that is
         // no headword ("gets") is looked up by its base like any form.
-        const ownEntry = !bases.includes(form) || outline(form) !== undefined;
+        const ownEntry = !bases.includes(form) || outline!(form) !== undefined;
         const pos = standsAlone(i, key)
           ? "interjection"
           : sensePos(form, key, reading, ownEntry);
@@ -922,7 +942,8 @@ export function createClassifier(pack: LanguagePack): Classifier {
         );
       };
 
-      const pushWord = (i: number) => {
+      /** Word i classified with the saved bases that claim it (`claimed`). */
+      const wordAt = (i: number, claimed: (base: string) => boolean) => {
         const { token, form } = words[i]!;
         // A separable verb's particle reads as its verb ("sieht … aus": aussehen), and
         // so does its finite form, which is saved and counted as that verb, not as
@@ -937,7 +958,7 @@ export function createClassifier(pack: LanguagePack): Classifier {
             : lowerNoun(token, words[i]!.bases)
               ? []
               : words[i]!.bases.filter((base) => wordHere(i, base));
-        const word = classifyWord(
+        return classifyWord(
           token.text,
           form,
           // In a document in capitals, case says nothing: no capital-only word
@@ -946,10 +967,45 @@ export function createClassifier(pack: LanguagePack): Classifier {
             ? bases.filter((base) => !pack.capitalOnly(base))
             : bases,
           terms,
+          claimed,
           knownLevel,
           pack,
           readings[i]?.tag?.label,
         );
+      };
+
+      /**
+       * Word i is itself (rule A1b, `readsAsItself`) and, with nothing saved, its own
+       * key: one whose key would be another base ("bore" in a dictionary without an
+       * entry for it: bear) stays that base's.
+       */
+      const staysItself = (i: number) => {
+        const { form } = words[i]!;
+        if (!readsAsItself(form, readings[i]?.tag, pack)) return false;
+        const unsaved = wordAt(i, () => false);
+        return (
+          unsaved.key === form &&
+          readsTag(i, unsaved, casingOf(i, unsaved)) &&
+          unsavedKey(i, form) === form
+        );
+      };
+
+      /**
+       * Whether a saved base claims word i: the word itself always, another base
+       * unless the word stays itself ("such a bore" is no form of a saved bear).
+       */
+      const claims = (i: number, base: string) =>
+        terms.has(base) && (base === words[i]!.form || !staysItself(i));
+
+      /** A base saved as learning claims word i: unsaved dictionary phrases skip it. */
+      const learned = (i: number) =>
+        words[i]!.bases.some(
+          (base) => terms.get(base) === "learning" && claims(i, base),
+        );
+
+      const pushWord = (i: number) => {
+        const { token } = words[i]!;
+        const word = wordAt(i, (base) => claims(i, base));
         const marks = casingOf(i, word);
         spans.push({
           start: token.start,
@@ -1070,13 +1126,14 @@ function classifyWord(
   form: string,
   bases: readonly string[],
   terms: TermIndex,
+  claimed: (base: string) => boolean,
   knownLevel: number,
   pack: LanguagePack,
   label?: string,
 ): { key: string; category: Category } {
   if (isIgnorable(text, form, pack, label) || bases.length === 0)
     return { key: form, category: "ignored" };
-  const saved = bases.filter((base) => terms.has(base));
+  const saved = bases.filter(claimed);
   if (saved.length > 0) {
     const key =
       saved.find((base) => terms.get(base) === "learning") ?? saved[0]!;
