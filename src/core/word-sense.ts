@@ -182,10 +182,10 @@ export function readWords(
  * 1b. A headword whose entry has no sense of the tagged part of speech, unless it is
  *    an inflected verb form (rules 2 and 3), its entry starts with a pointer to
  *    one of its bases ("dying": dieの現在分詞), or it is a noun, adjective or adverb
- *    of its own (the language lists it so) whose tag says it has no ending
- *    (`TokenTag.morph`: English "full bore" as NN is the noun bore, not a form of
- *    bear's noun): the first other base whose entry has one (Spanish "los" as an
- *    article → el).
+ *    of its own (`readsAsItself`: the language lists it so) whose tag says it has no
+ *    ending (`TokenTag.morph`: English "full bore" as NN is the noun bore, not a form
+ *    of bear's noun): the first other base whose entry has one (Spanish "los" as an
+ *    article → el). Such a word is no saved base's either (`createClassifier`).
  * 2. A participle keeps its own entry when the word is not used as a verb and the
  *    entry has a meaning: before a noun ("demanding work"), a state ("was
  *    established", "are we done": "doの過去分詞", then "仕上がった"); or when it is
@@ -288,21 +288,12 @@ export function chooseKey(
   // noun, is no die "dice").
   // Without a trusted tag, the part of speech the grammar is sure of (German: a
   // capitalised word inside a sentence is a noun, "mit Haaren": Haar, not haaren).
-  // A noun, adjective or adverb the tag says carries no ending (English NN, JJ, RB),
-  // which the language lists as one of that part of speech itself, is that word, not
-  // another base's form: those classes inflect only by endings (a plural, a degree),
-  // so "full bore" is the noun bore, not bear's noun ("oso"), bore being bear's past,
-  // a verb form. A form takes only its base's senses of the part of speech it is a
-  // form of. Verbs have forms with no ending (am, are), so not for them.
+  // A word that is itself is not another base's form.
   const tagged = tag?.label ?? use.grammarPos;
-  const itself =
-    tag?.morph === false &&
-    (tagged === "noun" || tagged === "adjective" || tagged === "adverb") &&
-    pack.partsOfSpeech(form).some((pos) => accepts(tagged, pos));
   if (
     tagged !== undefined &&
     tagged !== "other" &&
-    !itself &&
+    !readsAsItself(form, tag, pack) &&
     !(tagged === "verb" && tag?.inflected) &&
     !(own.formOf !== undefined && bases.includes(own.formOf)) &&
     own.pos.length > 0 &&
@@ -338,6 +329,27 @@ export function chooseKey(
     return outline(own.formOf) ? own.formOf : undefined;
   }
   return others.find((base) => fits(base) && outline(base));
+}
+
+/**
+ * Rule A1b's "itself": a noun, adjective or adverb the tag says carries no ending
+ * (English NN, JJ, RB), which the language lists as one of that part of speech itself,
+ * is that word, not another base's form: those classes inflect only by endings (a
+ * plural, a degree), so "full bore" is the noun bore, not bear's noun ("oso"), bore
+ * being bear's past, a verb form. A form takes only its base's senses of the part of
+ * speech it is a form of. Verbs have forms with no ending (am, are), so not for them.
+ */
+export function readsAsItself(
+  form: string,
+  tag: TokenTag | undefined,
+  pack: Pick<LanguagePack, "partsOfSpeech">,
+): boolean {
+  if (tag?.morph !== false) return false;
+  const { label } = tag;
+  return (
+    (label === "noun" || label === "adjective" || label === "adverb") &&
+    pack.partsOfSpeech(form).some((pos) => accepts(label, pos))
+  );
 }
 
 /** A word whose main part of speech in the language pack is a verb. */
