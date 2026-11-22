@@ -568,8 +568,10 @@ Coverage (measured again 2026-11-22; top 5,000 / top 2,000 / terms):
 | de.wiktionary's Russian rows (tables) | 75.28 | 83.60 | 15,035 |
 | Reversed tables | 71.52 | 78.05 | 14,625 |
 | Edition + tables | 93.94 | 94.95 | 28,863 |
-| **Tables + reversed, no edition** | **85.44** | 90.00 | 20,447 |
+| **Tables + reversed, no edition entries** | **85.44** | 90.00 | 20,447 |
 | All three | 94.74 | 95.60 | 29,811 |
+
+The reversed tables are ru.wiktionary's too (75.28 wholly without that edition); their provenance was not checked.
 
 465 gate words are only in the edition; the gate needs at least 228 of them.
 
@@ -585,7 +587,7 @@ What the spot check found:
 
 Decision (2026-11-22):
 
-- **A, taken**: de→ru is not built. The wording could not be cleared, as with Vietnamese's non-free import.
+- **A, taken**: de→ru is not built. The wording could not be cleared, so the source is not used.
 - B (tables + reversed only, 85.44%, needs an exception to the gate): not taken.
 - C (a new licensed source): not taken.
 
@@ -594,7 +596,7 @@ What this means for the other pairs:
 - **`en-ru` (shipped)** was checked by direct comparison, and its Russian-edition entries were left out (PR #242; see "en-ru: the Russian edition left out" below).
 - The other shipped pairs' native editions are to be checked the same way, read-only, one pair at a time (user's decision, 2026-11-22; not done yet).
 - **fr→de** is next, after the same wording check (not done yet).
-- **fr→ru, de→pl and de→zh** still need their editions checked before building (fr→ru is 87.9% without the edition, de→pl 83.0%, de→zh 38.2%; L3). fr→de does not need an edition (91.7% without).
+- **fr→de, fr→ru, de→pl and de→zh** all depend on their native edition and are checked before building. fr→de depends on that edition's translation tables read backwards; the other three on its entries as well. Without the edition's entries only: fr→de 91.7, fr→ru 87.9, de→pl 83.0, de→zh 38.2. Wholly without the edition (tables alone; L3): 84.4, 70.5, 66.3, 14.3, all under the gate.
 
 ## en-ru: the Russian edition left out, 2026-11-22
 
