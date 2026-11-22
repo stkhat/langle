@@ -240,6 +240,13 @@ describe("generated phrases", () => {
     expect(phrases.detect).toContain("spill the beans");
   });
 
+  it("detect figurative compounds but leave transparent ones to selections", () => {
+    for (const phrase of ["grey area", "small talk", "acid test"])
+      expect(phrases.detect).toContain(phrase);
+    for (const phrase of ["instant coffee", "digital signature"])
+      expect(phrases.more).toContain(phrase);
+  });
+
   it("keep patterns with a slot for selections only", () => {
     expect(phrases.more).toContain("make up one's mind");
     expect(phrases.more).toContain("pull someone's leg");
