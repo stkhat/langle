@@ -659,18 +659,41 @@ Hover tokens changed on the 2026-11 corpora (level 1000; word and phrase highlig
 
 okay is 284 of the tokens in each of pt, ru, fr and de; an is all of B-a. No token is changed by both rules, and no highlight, key or name changes.
 
-Known by eye to be doubtful, all from the part-of-speech match, as the tag then picks another sense:
+### Judged, 2026-11-23
 
-| Term | Tokens | Before | After |
-|---|---|---|---|
-| favorite (noun tag) | 3 in ru, de, tr | Most-liked. (…) | A person or thing who enjoys special regard or favour. |
-| centre (verb tag) | 1 in ru, fr, de | The point in the interior of a circle… | To cause (an object) to occupy the center of an area. |
-| dis | 1 in 13 pairs (a second token improves: "To put (someone) down…") | Any of a group of minor female deities in Scandinavian folklore. | Ampelodesmos mauritanicus syn. Ampelodesmos tenax, a reedy grass… |
-| dat | 1 in the 14 pairs other than zh | Introducing a clause that is the object of a verb… | The thing, person, idea, quality, event, action, or time indicated… |
+The 389 texts were translated by Chrome 157's built-in translator on macOS, in a page, for all 15 natives, and judged blind: one judge per language, the skill's rubric, sides shuffled, up to 12 sentences per change. 349 items stand for 2,342 of the 2,351 changed tokens (the other 9 show the same line on both sides). Weighted: by each change's tokens. Usable: good or acceptable. These are rates of changed hovers only, and the judges are models, not native speakers.
+
+| | After : before : same | Weighted | Usable items | Usable tokens |
+|---|--:|--:|--:|--:|
+| All | 158 : 69 : 122 | 2,144 : 73 : 125 | 63 → 167 of 349 | 63 → 2,153 of 2,342 |
+| B-a (an; ru, ar) | 24 : 0 : 0 | 930 : 0 : 0 | 0 → 24 of 24 | 0 → 930 of 930 |
+| A-b | 134 : 69 : 122 | 1,214 : 73 : 125 | 63 → 143 of 325 | 63 → 1,223 of 1,412 |
+| okay, in A-b (ru, de, pt, fr) | 49 : 0 : 7 | 1,129 : 0 : 7 | 0 → 48 of 56 | 0 → 1,128 of 1,136 |
+
+an is acceptable in every item, good in none. Before is preferred in two pairs, ko 6 : 11 : 11 and tr 7 : 13 : 11 (dispatcher 9 of each), though usable items still rise there (5 → 8, 7 → 8).
+
+By term:
+
+| Term | After : before : same | Usable items | Found |
+|---|--:|--:|---|
+| standup | 14 : 0 : 0 | 0 → 14 | better |
+| pushup | 10 : 0 : 0 | 0 → 10 | better |
+| résumé | 10 : 0 : 0 | 0 → 4 | better |
+| heart-to-heart | 10 : 1 : 0 | 11 → 11 | better |
+| programme | 6 : 0 : 0 | 0 → 6 | better |
+| centre | 3 : 0 : 0 | 0 → 2 | better, though doubtful by eye |
+| dat | 6 : 0 : 8 | 0 → 3 | better, though doubtful by eye |
+| dis | 8 : 0 : 18 | 0 → 0 | not worse, though doubtful by eye; still wrong or misleading |
+| dispatcher (40 tokens: ar, ko, tr, pt) | 0 : 36 : 0 | 0 → 0 | **worse**: "To send (a shipment)…" → a long line of the noun dispatch; wrong on both sides, misleading after in ko |
+| favorite (ru, de, tr) | 0 : 9 : 0 | 9 → 0 | **worse**: "Most-liked." → "A person or thing who enjoys special regard…" |
+| else (zh) | 0 : 2 : 0 | 2 → 0 | **worse**: "Other" → "Otherwise, if not." |
+| whir | 4 : 12 : 0 | 16 → 16 | **worse**: "To move or vibrate…" → "A sibilant buzz or vibration" |
+| grey | 1 : 3 : 8 | 4 → 4 | **worse**: "Of a color between…" → "An achromatic colour between…" |
+
+The five regressions are not fixed.
 
 Not judged or checked:
-- No translation was requested and no judge ran: whether the translated lines are better is not known, "an"'s included.
-- Not hovered in a browser.
+- Not hovered in a browser, on the real sites or elsewhere. The translator was tried only as above: no other browser or system.
 - Not measured: the dictionary window's other senses, and the line under a phrase that gives its main word (at most 10 phrase tokens a pair have a word whose definition changed).
 - Outside the corpora only the pack diff was looked at. B-a can act on any closed-class word whose definition is a usage note and that a pair lacks.
 - Not fixed: has and did without a meaning (option C, not approved), open-class usage notes (could, might), variants a pair lacks (A-d), words the treebank lacks (cuz).
