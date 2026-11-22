@@ -11,6 +11,7 @@ import {
   fitsPairCap,
   japaneseForm,
   japanesePointer,
+  openingLabels,
   pointerLine,
   shortLines,
   shortOfDefinition,
@@ -629,15 +630,61 @@ describe("editionLine", () => {
     );
     expect(editionLine("ความดัง [from 17th c.]")).toBe("ความดัง");
     expect(editionLine("魣鳕属（Molva）的鱼")).toBe("魣鳕属的鱼");
-    // Korean labels open a gloss, and an appendix note ends one.
-    expect(editionLine("(타동사) 시작하다")).toBe("시작하다");
-    expect(editionLine("(타동사)빼앗다")).toBe("빼앗다");
-    expect(editionLine("(격식) 공식적인")).toBe("공식적인");
+    // An appendix note ends a Korean gloss.
     expect(editionLine("옆구리. (부록: 신체 부분의 영어 이름)")).toBe("옆구리");
-    expect(editionLine("(이)다")).toBe("(이)다");
     // An aside in the gloss's own script stays, and so does a gloss of only asides.
     expect(editionLine("(Ne) … pas")).toBe("(Ne) … pas");
     expect(editionLine("(DNA)")).toBe("(DNA)");
+  });
+  it("drops the dictionary's Korean labels, not a complement or modifier", () => {
+    const labels = openingLabels([
+      // Bare words that open the glosses of three headwords, alone or in a list.
+      ["commence", "(타동사) 시작하다"],
+      ["rob", "(타동사)빼앗다"],
+      ["harden", "(자동사, 타동사) 굳다"],
+      ["rectify", "(격식) (잘못된 것을) 바로잡다"],
+      ["deem", "(격식) 여기다"],
+      ["dispatch", "(법률) (격식) 보내다"],
+      // A complement recurs too, but ends in a case particle.
+      ...["amortize", "dispossess", "expropriate"].map(
+        (head) => [head, "(재산을) 몰수하다"] as const,
+      ),
+      ...["abaft", "cargo hold", "stern"].map(
+        (head) => [head, "(배의) 뒤쪽"] as const,
+      ),
+      // Three glosses of one headword are one headword's.
+      ...[1, 2, 3].map(() => ["shark", "(어류) 상어"] as const),
+    ]);
+    expect(labels).toEqual(new Set(["타동사", "격식"]));
+    const line = (text: string) =>
+      editionLine(text, (word) => labels.has(word));
+    expect(line("(타동사) 시작하다")).toBe("시작하다");
+    expect(line("(타동사)빼앗다")).toBe("빼앗다");
+    expect(line("(타동사) (격식) 보내다")).toBe("보내다");
+    // What follows a label in brackets is the meaning's.
+    expect(line("(격식) (잘못된 것을) 바로잡다")).toBe(
+      "(잘못된 것을) 바로잡다",
+    );
+    expect(line("(격식) (순서를) 뒤바꾸다")).toBe("(순서를) 뒤바꾸다");
+    for (const kept of [
+      "(잠에서) 깨다",
+      "(침을) 뱉다",
+      "(냄비로) 요리하다",
+      "(신부의) 들러리",
+      "(항구의) 정박지",
+      "(말이) 울다",
+      "(빚을) 청산하다",
+      "(재산을) 몰수하다",
+      "(배의) 뒤쪽",
+      "(마지못해) 동의하다",
+      "(미리) 정하다",
+      "(젊은) 독신 여성",
+      "(어류) 상어",
+      "(이)다",
+    ])
+      expect(line(kept)).toBe(kept);
+    // Without a dictionary's labels one word in brackets stays.
+    expect(editionLine("(격식) 여기다")).toBe("(격식) 여기다");
   });
   it("keeps a caseless gloss's period-separated translations apart", () => {
     expect(editionLine("햇빛. 일광.")).toBe("햇빛");

@@ -92,10 +92,31 @@ Passed: the hover card, phrase card (look forward to: 기다리다 / 바라보�
 
 Found:
 - **Hanja in parentheses** ("present" → 현재(現在)의, abandon → 방치(放置)하다): a translation table's words went to the hover line as they are (`pairLine`), and only an edition gloss had its asides in another script cut (`withoutForeignAsides`). 401 table senses are affected (1,060 tokens on the corpus). Fixed at display time by `tableLine` (no pack change).
-- **Opening labels** "(타동사) 시작하다", "(자동사)", "(격식)", "(법률)", and a trailing "(부록: 신체 부분의 영어 이름)" (flank, millimeter) showed in 24 corpus tokens: `withoutOpeningLabels` kept one word in brackets as part of the meaning. A Korean label of two syllables or more before Korean words is now cut (not "(이)다"), and an appendix note that ends a gloss. Corpus ko hover rows: 1,696 tokens change, 274 distinct lines, all by one of these three cuts; a line the hanja made too wide now keeps its third meaning (동의하다 / 합의하다 / 일치하다). Every other pair's rows are identical (th, zh, hi, ar, ru, id, tr, es, pt, fr, de, it, pl).
+- **Opening labels** "(타동사) 시작하다", "(자동사)", "(격식)", "(법률)", and a trailing "(부록: 신체 부분의 영어 이름)" (flank, millimeter) showed on the corpus: `withoutOpeningLabels` kept one word in brackets as part of the meaning. An appendix note that ends a gloss is now cut, and a Korean label: a word of two syllables or more that is in the brackets opening the glosses of three headwords or more of the dictionary, alone or in a comma list, and ends in no case particle (`openingLabels`, read from the pack at display, 2.5 ms once; 46 words). After a label only another label is cut. A complement or modifier stays ((잠에서) 깨다, (빚을) 청산하다, (미리) 정하다), and so does a rarer label, as before. "Opening labels compared" below has the candidates.
+- **Corpus effect** (`measure.ts`, against main c7bd3c0): 1,325 ko word tokens change (296 distinct), 1,073 by the hanja and appendix cuts, 252 (94 distinct lines, all read) by the label cut; a line a hanja or label made too wide now keeps what the cap had dropped (demonstrate 증거[실례]를 …). One phrase changes (pull out → 회수하다). The other 14 natives' rows are identical (th, zh, hi, ar, id, tr, es, pt, ru, fr, de, it, pl, ja).
 - **ruling → 이 / 섭 / 리** (confirmed): the senses are Hangul syllable pages of English Wiktionary's Korean entries (part of speech "syllable": 理 is glossed "ruling") that the reverse glosses read as words. 184 en-ko entries have a "syllable" sense, 92 only such ones (agonize → 민, ashen → 이 / 리, brocade → 금, gallop → 무 / 등). Not fixed (a data change that needs a new en-ko version): leave "syllable" entries out of the reverse glosses (`enwiktionary-ko`).
 - **bore → bear** (곰 / 나르다 / 견디다, "bore → bear") for "The bore of the gun is wide." and "He is such a bore", in Chrome only: the same commit's offline measure (`measure.ts`) shows bore's own noun (뚫은 구멍, 시추공), and "left" and "gruelling" are right in Chrome, so rule A1b works there. Not traced (the in-Chrome tag of those tokens is not visible from the page); left open.
 - Left as they are (3 entries): "燦爛하다" (brilliant: hanja without brackets), "민족주의자((民族主義者) (minjokjuuija()" (nationalist: malformed brackets), "(남의 언설(言說) 등을)" (endorse: hanja inside nested brackets).
 - Netflix (Friends, S6E7): English subtitles and cards work (unpack → 끄르다, "unpacked → unpack"), but no Korean line under the English one on this title, which has no Korean track (Japanese UI).
 - Not checked: es still / even and th store / direct (optional, skipped to keep the user's settings changes short).
-- Error log and settings restore: the Claude in Chrome tools stopped answering (every call timed out in its pre-tool hook) before the `langle:check-errors` log was read and before the saved settings were put back, so both are still to do; see the PR description.
+- Settings and error log (done by the orchestrator at about 14:55 JST on 2026-11-22, after the Chrome tools came back): the saved settings were restored and read back equal; the check build's error log held 18 entries, all info pack-mirror records (en, en-defs, en-ko served by jsDelivr, none failed), no error or warning; it was cleared and read back empty. One old Wikipedia tab was unresponsive, so anything only its content script held was not read.
+- The label rule above was chosen after this check and was not re-checked in Chrome.
+
+### Opening labels compared
+
+Every single Korean word in brackets that cutting any such word of two syllables or more would take from en-ko's edition glosses (295 distinct, 665 brackets) was read and called a label (register, region, domain, grammar: 122, 475 brackets) or not (a complement, a modifier, or unsure, which stays: 173, 190 brackets). One reader, no blind judge. Distinct / brackets:
+
+| Rule | Cut | Wrongly cut | Wrongly kept |
+| --- | --- | --- | --- |
+| main (cut none) | 0 | 0 | 122 / 475 |
+| Cut every such word | 295 / 665 | 173 / 190 | 0 |
+| Ends in no case particle | 163 / 517 | 50 / 52 | 9 / 10 |
+| Ends in no case particle or modifier ending | 149 / 502 | 39 / 40 | 12 / 13 |
+| Opens 3 headwords, alone | 38 / 383 | 3 / 11 | 87 / 103 |
+| Opens 3 headwords, alone or in a list | 49 / 400 | 4 / 13 | 77 / 88 |
+| Opens 5 headwords, alone or in a list | 26 / 339 | 0 | 96 / 136 |
+| Opens 3 headwords alone, no case particle | 35 / 372 | 0 | 87 / 103 |
+| Opens 2 headwords, alone or in a list, no case particle | 63 / 413 | 5 / 7 | 64 / 69 |
+| **Opens 3 headwords, alone or in a list, no case particle** | **45 / 387** | **0** | **77 / 88** |
+
+Endings alone cannot tell a bare-noun or adverb complement ((기분) 상하게 하다, (미리) 정하다) from a label. What the chosen rule keeps wrongly is mostly labels seen once or twice (채팅, 요리, 전신). Two cut brackets are borderline, the label being also the verb's subject: languish "(식물) 시들다", roar "(동물) 으르렁거리다". Several words in brackets after a label stay too: cutting on took 47 of them, nearly all complements ((격식) (잘못된 것을) 바로잡다).
