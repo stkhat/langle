@@ -867,6 +867,11 @@ describe("packedEntry", () => {
     expect(packedEntry("luz", senses, 1)).toEqual([senses, 1]);
     expect(packedEntry("luz", senses, 1, "word")).toEqual([senses, 1, "word"]);
   });
+  it("leaves out a table's first word as written, which the dictionary shows without its asides", () => {
+    const senses: PairSense[] = [["adjective", "현재(現在)의, 지금의", "now"]];
+    expect(packedEntry("현재(現在)의", senses, 0)).toEqual([senses, 0]);
+    expect(packedEntry("현재의", senses, 0)).toEqual([senses, 0]);
+  });
   it("stores any other short last, the third item null when there is none", () => {
     const senses: PairSense[] = [
       ["proper noun", "ciudad de Ohio, Estados Unidos", "city in Ohio"],

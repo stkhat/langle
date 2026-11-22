@@ -1,4 +1,11 @@
 {
+"new ireland":[["proper noun","An island of the Bismarck Archipelago in New Ireland province, Papua New Guinea; a German colony from 1884 to 1921; governed by Australia from 1921 and then by Papua New Guinea from 1975 to the present day."],["proper noun","A province of Papua New Guinea."],["proper noun","A proposed renaming of Prince Edward Island, led by then lieutenant governor Walter Patterson in 1770."],["proper noun","A Crown colony of the Kingdom of Great Britain established in what is now the state of Maine, U.S., after British forces captured the area during the American Revolutionary War and again during the War of 1812."]],
+"new israel":[["proper noun","A barangay of Makilala, Cotabato, Philippines."],["proper noun","A new religious movement that grew in the Russian Empire in the late 19th and early 20th centuries."]],
+"new jack":[["noun","A variety of swingbeat dance music combining elements of rhythm and blues, soul music, hip hop and rap."]],
+"new jersey tea":[["noun","Ceanothus americanus, a North American shrub whose leaves were once used as a substitute for tea."]],
+"new jerusalem":[["proper noun","An unincorporated community in Humboldt County, California, United States."],["proper noun","An unincorporated community in Ventura County, California, United States."],["proper noun","An unincorporated community in Logan County, Ohio, United States."],["proper noun","A census-designated place in Berks County, Pennsylvania, United States."]],
+"new jerusalem church":[["proper noun","Swedenborgianism"]],
+"new kent":[["proper noun","A census-designated place, the county seat of New Kent County, Virginia, United States."]],
 "new keynesian":[["noun","An advocate of New Keynesian macroeconomics."],["adjective","Advocating or pertaining to a macroeconomic synthesis between Keynesianism and neoclassical economics; often involving or preferring countercyclical stabilisation through monetary policy but favouring fiscal intervention at the zero lower bound."]],
 "new kid on the block":[["noun","Someone or something new to an existing community."]],
 "new kingdom":[["proper noun","Egypt after the Second Intermediate Period but before the Third Intermediate Period, from the time of the overthrow of the Hyksos under Ahmose I at the start of the 18th Dynasty to its de facto disintegration at the end of the 20th Dynasty."]],
@@ -7087,6 +7094,7 @@
 "partner dance":[["noun","A dance involving coordinated dancing between two partners."]],
 "partner in crime":[["noun","A criminal accomplice."],["noun","A close associate."]],
 "partner up":[["verb","To form a partnership; to decide to work together in a duo."]],
+"partridge":[["noun","Any bird of a number of genera in the family Phasianidae, notably in the genera Perdix and Alectoris."],["noun","The flesh or meat of this bird eaten as food."]],
 "partridge green":[["proper noun","A village in West Grinstead parish, Horsham district, West Sussex, England (OS grid ref TQ1919)."]],
 "parts interpreter":[["noun","Someone who sells replacement parts for motor vehicles; a spare parts salesperson."]],
 "parts unknown":[["noun","An unspecified or unknown place."]],
@@ -10735,6 +10743,7 @@
 "please turn left":[["phrase","When giving directions to a person (for example, a taxi driver), indicates that he or she should turn left."]],
 "please turn right":[["phrase","When giving directions to a person (for example, a taxi driver), indicates that he or she should turn right."]],
 "please yourself":[["phrase","Do what you want; behave as you wish."]],
+"pleased":[["adjective","Happy, content."]],
 "pleased as punch":[["adjective","Pleased with one's own actions or achievements."],["adjective","Pleased."],["adjective","Smugly so."]],
 "pleased with oneself":[["adverb","To be happy about one's accomplishments, especially, to be more proud more than one should be."]],
 "pleaser":[["noun","Someone or something which pleases."]],
@@ -12750,13 +12759,5 @@
 "preferentially":[["adverb","in a preferential manner"],["adverb","advantageously"]],
 "preferment":[["noun","Advancement to a higher position or office; promotion."],["noun","A position (especially in the Church of England) that provides profit or prestige."],["noun","A mixture of flour, water and yeast that is allowed to ferment prior to another baking process."],["noun","Prior claim (on payment, or on purchasing something); the first rights to obtain a particular payment or product."]],
 "preferred stock":[["noun","Stock with a dividend, usually fixed, that is paid out of profits before any dividend can be paid on common stock and that has priority to common stock in liquidation."]],
-"preferred stockholder":[["noun","A stockholder of preferred stock."]],
-"prefigure":[["verb","To show or suggest ahead of time; to represent beforehand."],["verb","To predict or foresee."],["noun","That which prefigures or appears to predict; a harbinger."]],
-"prefix":[["noun","A morpheme added to the beginning of a word to modify its meaning, for example as, pre- in prefix, con- in conjure, re- in reheat, etc."],["noun","A set of digits placed before a telephone number, to indicate where the number is based, what type of phone number it is (landline, mobile, toll-free, premium rate etc.)"],["noun","A title added to a person's name, such as Mr. or Dr."],["verb","To determine beforehand; to set in advance."]],
-"prefix coding":[["noun","A coding system that uses (typically variable-length) codes that are distinguished by their \"prefix property\", which requires that there is no code word in the system that is a prefix (initial segment) of any other code word in the system."]],
-"prefix notation":[["noun","Polish notation"]],
-"prefold":[["verb","To fold in advance."],["noun","A rectangular piece of absorbent fabric that is folded, layered, and sewn into a diaper to enhance absorption in the central part."]],
-"preform":[["noun","An object that has undergone preliminary shaping but is not yet in its final form."],["noun","The rough, incomplete and unused basic form of a stone tool."],["noun","A word that is no longer in use, but has been reconstructed from current ones."],["verb","To shape something before some other operation."]],
-"prefrontal":[["adjective","Of, pertaining to or situated in the anterior part of the frontal lobe."],["adjective","Of, pertaining to or situated in front of the frontal bone."],["noun","A prefrontal bone, scale, etc."]],
-"prefrontal cortex":[["noun","The anterior part of the frontal lobes of the mammalian brain, lying in front of the motor and premotor areas."]]
+"preferred stockholder":[["noun","A stockholder of preferred stock."]]
 }

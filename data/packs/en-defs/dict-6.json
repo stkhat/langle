@@ -1,4 +1,13 @@
 {
+"laplacian":[["adjective","Of or related to Pierre Simon Laplace; (of mathematical terms) embodying or reflecting his methods or ideas."],["noun","The Laplace operator."]],
+"lapmb":[["proper noun","Liberation Army of Preševo, Medveđa and Bujanovac: Albanian militant group (1999–2001)."]],
+"lappet":[["noun","A small decorative fold or flap, especially of lace or muslin, in a garment or headdress."],["noun","A wattle or flap-like structure on the face."],["noun","A head-dress made with lappets for lace pendants."],["verb","To decorate with, or as if with, lappets."]],
+"lapse":[["noun","A temporary failure; a slip."],["noun","A decline or fall in standards."],["noun","A pause in continuity."],["verb","To fall away gradually; to subside."]],
+"lapse rate":[["noun","The rate of change in an atmospheric variable, especially temperature, with increase of height."]],
+"lapsed":[["adjective","Discontinued; having ceased or gone out of use."],["adjective","Changed to a less valued condition or state; especially having lost one's religious faith."],["adjective","By extension, having changed a (secular) belief or adherence."]],
+"lapsus":[["noun","A slip, lapse, or error."]],
+"lapsus linguae":[["noun","An inadvertent remark; a slip of the tongue."]],
+"laptop computer":[["noun","A portable computer that is small enough and light enough to be used on one's lap, but large enough to have an integrated keyboard."]],
 "lapwing":[["noun","Any of several medium-sized wading birds belonging to the subfamily Vanellinae, within family Charadriidae."],["noun","The northern lapwing (Vanellus vanellus)."]],
 "lar":[["proper noun","lethal autonomous weapon: Military weapon system capable of selecting and engaging targets without meaningful human control."]],
 "larcenous":[["adjective","Given to larceny, tending to thievery."],["adjective","Resembling theft, often applied to legal actions that seem unfair."]],
@@ -4474,6 +4483,7 @@
 "lusail":[["proper noun","City in Qatar."],["proper noun","A city in Al Daayen, Qatar."]],
 "lusaka":[["proper noun","Capital of Zambia."],["proper noun","The capital city of Zambia."],["proper noun","The Zambian government."]],
 "luscious":[["adjective","Sweet and pleasant; delicious; juicy, succulent."],["adjective","Sexually appealing; seductive."],["adjective","Obscene."]],
+"lush":[["adjective","Juicy, succulent."],["adjective","Dense, teeming with life; luxuriant."],["adjective","Savoury, delicious."],["verb","To drink (liquor) to excess."]],
 "lush around":[["verb","To drink excessively, party and be a lush."]],
 "lush it up":[["verb","To drink alcohol to excess; to get drunk."]],
 "lush up":[["verb","To make lush"]],
@@ -10880,6 +10890,7 @@
 "multistorey":[["adjective","Of a building, having more than one storey."]],
 "multistory":[["adjective","Of a building, having more than one storey."]],
 "multitask":[["adjective","Handling or involving multiple tasks at once."],["verb","To schedule and execute multiple tasks (program) simultaneously; control being passed from one to the other using interrupts."],["verb","To handle multiple tasks at once."]],
+"multitude":[["noun","A great amount or number, often of people; abundance, myriad, profusion."],["noun","The mass of ordinary people; the masses, the populace."]],
 "multitudinous":[["adjective","Existing in multitudes or great numbers; very numerous; innumerable."],["adjective","Comprising a large number of features or parts; manifold, multiple, myriad; also, having a large number of forms."],["adjective","Of a sound: made by many people."],["adjective","Of a body of water, the sea, etc.: huge, vast; also, having innumerable ripples."]],
 "multivariable":[["adjective","Having, involving, or relating to more than one variable."]],
 "multivariate":[["adjective","Having, involving, or relating to multiple variables."],["noun","A vector, each of whose elements is a variate."]],
@@ -12654,12 +12665,5 @@
 "new iberia":[["proper noun","A city, the parish seat of Iberia Parish, Louisiana, United States."]],
 "new imperialism":[["proper noun","A period of unprecedented colonial expansion by European powers, the United States, and Japan during the late 19th and early 20th centuries."]],
 "new inn":[["proper noun","A hamlet in Shebbear parish, Torridge district, Devon, England (OS grid ref SS4408)."],["proper noun","A village in Llanfihangel-ar-Arth community, Carmarthenshire, Wales (OS grid ref SN4736)."],["proper noun","A hamlet in Devauden community, Monmouthshire, Wales (OS grid ref SO4800)."],["proper noun","A village and community near Pontypool, Torfaen borough county borough, Wales (OS grid ref ST3099)."]],
-"new ionic":[["proper noun","The later form of the Greek Ionic dialect, used after circa 600 BCE."]],
-"new ireland":[["proper noun","An island of the Bismarck Archipelago in New Ireland province, Papua New Guinea; a German colony from 1884 to 1921; governed by Australia from 1921 and then by Papua New Guinea from 1975 to the present day."],["proper noun","A province of Papua New Guinea."],["proper noun","A proposed renaming of Prince Edward Island, led by then lieutenant governor Walter Patterson in 1770."],["proper noun","A Crown colony of the Kingdom of Great Britain established in what is now the state of Maine, U.S., after British forces captured the area during the American Revolutionary War and again during the War of 1812."]],
-"new israel":[["proper noun","A barangay of Makilala, Cotabato, Philippines."],["proper noun","A new religious movement that grew in the Russian Empire in the late 19th and early 20th centuries."]],
-"new jack":[["noun","A variety of swingbeat dance music combining elements of rhythm and blues, soul music, hip hop and rap."]],
-"new jersey tea":[["noun","Ceanothus americanus, a North American shrub whose leaves were once used as a substitute for tea."]],
-"new jerusalem":[["proper noun","An unincorporated community in Humboldt County, California, United States."],["proper noun","An unincorporated community in Ventura County, California, United States."],["proper noun","An unincorporated community in Logan County, Ohio, United States."],["proper noun","A census-designated place in Berks County, Pennsylvania, United States."]],
-"new jerusalem church":[["proper noun","Swedenborgianism"]],
-"new kent":[["proper noun","A census-designated place, the county seat of New Kent County, Virginia, United States."]]
+"new ionic":[["proper noun","The later form of the Greek Ionic dialect, used after circa 600 BCE."]]
 }
