@@ -92,8 +92,8 @@ Translated requests answered 200 / valid runs:
 | Not counted | 1 (empty English track) | 1 (no player response) | 0 |
 | Time (UTC) | 06:49-07:25 | 06:49-07:22 | 07:26-07:42 |
 
-- **This does not rank the engines.** WebView and GeckoView were interleaved, and 3/7 against 6/7 can be chance (Fisher's exact test, p = 0.27). iOS ran after both, and every run from 07:19 on was refused, whatever the engine (11 in a row), so its 0/9 mixes engine and time; the same app got 200 that morning.
-- **It was not a refusal of the whole network.** A desktop Chromium on the same network (the Claude app's browser, www.youtube.com, signed out) got the translation with 200 at 07:39, between iOS refusals at 07:36 and 07:40. One run: why it passed is not known.
+- **This does not rank the engines.** WebView and GeckoView were interleaved, and 3/7 against 6/7 can be chance (Fisher's exact test, p = 0.27). iOS ran after both, and every valid run from 07:22 on was refused, whatever the engine (11 in a row), so its 0/9 mixes engine and time; the same app got 200 that morning.
+- **It was not a refusal of the whole network.** A desktop Chromium on the same network (the Claude app's browser, www.youtube.com, signed out) got the translation with 200 at 07:39, between iOS refusals at 07:37 and 07:40. One run: why it passed is not known.
 - **Blocking is not shown to matter**: one run each without it, all refused, all in that late stretch.
 - **Earlier runs that day**, with a harness that often asked for captions too early (empty bodies), agree that both outcomes occur: WebView 200 on fresh data 4 seconds after the player response, GeckoView 429 on fresh data after 92 seconds.
 - **Limits**: one video, one network, an emulator and a Simulator, no real phones, no signed-in runs. The iPhone Simulator stayed booted during the Android runs, so the host was loaded.
