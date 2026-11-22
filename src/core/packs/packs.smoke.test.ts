@@ -586,12 +586,13 @@ describe("generated en-es dictionary", () => {
   });
 });
 
-// The pairs D2 added: Russian and German take English Wiktionary's translation tables
-// first and their own Wiktionary for the rest; French takes its own first, as Spanish.
+// The pairs D2 added: Russian takes English Wiktionary's translation tables and no
+// edition (2026-11-22: it could not be cleared), German the tables and then its own
+// Wiktionary; French takes its own first, as Spanish.
 describe.each([
   {
     pack: "en-ru",
-    sources: ["enwiktionary-translations", "ruwiktionary", "wikidata"],
+    sources: ["enwiktionary-translations", "wikidata"],
     bread: "хлеб",
   },
   {
@@ -648,6 +649,25 @@ describe.each([
       (term) => !Object.hasOwn(dict, term),
     );
     expect(dictionary.entry(englishOnly!)?.glossLang).toBe("en");
+  });
+});
+
+describe("en-ru without the Russian edition", () => {
+  it("shows the English definition of words only that edition had", async () => {
+    const { dict } = await loadPack("en-ru");
+    const dictionary = createPairDictionary({ dict, defs, ipa, native: "ru" });
+    for (const word of [
+      "the",
+      "an",
+      "okay",
+      "require",
+      "totally",
+      "household",
+    ]) {
+      const entry = dictionary.entry(word);
+      expect(entry?.glossLang, word).toBe("en");
+      expect(entry?.lines[0], word).toMatch(/[A-Za-z]/);
+    }
   });
 });
 
@@ -1004,10 +1024,6 @@ describe("generated packs: native hygiene (U1-7)", () => {
       /^le moins/,
     );
   });
-  it("ru: a label abbreviation is not the line, even before a capital", async () => {
-    expect(await shown("ru", "britannia", "capital")).toMatch(/^Британия/);
-    expect(await shown("ru", "gonna")).not.toMatch(/разг/);
-  });
   it("reads unmarked pointers and gives a modal's pointer its verb senses", async () => {
     // es armor: "grafía alternativa de armour" only points, so the tables' term.
     expect(await shown("es", "armor")).toMatch(/^armadura/);
@@ -1054,16 +1070,15 @@ describe("generated packs: native follow-ups (U1-8)", () => {
         /^ser \/ estar/,
       );
     // Have as one keeps its pointer.
-    expect(await shown("ru", "has", undefined, "auxiliary")).toMatch(
-      /^форма третьего лица/,
+    expect(await shown("pl", "has", undefined, "auxiliary")).toMatch(
+      /^forma 3\. os/,
     );
   });
   it("keep a form's pointer beside another word of its spelling (es dug: no teat)", async () => {
     expect(await shown("es", "dug")).not.toMatch(/teta/);
     expect(await shown("es", "dug")).toMatch(/cavar/);
   });
-  it("leave a two-part label and a mid-gloss abbreviation out of the line", async () => {
-    expect(await shown("ru", "lyric", undefined, "noun")).not.toMatch(/ч\./);
+  it("leave a mid-gloss abbreviation out of the line", async () => {
     expect(await shown("de", "frippery")).not.toMatch(/bzw$/);
   });
   it("show an adjective's sense first where the tag says so (pt low)", async () => {

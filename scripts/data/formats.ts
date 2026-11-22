@@ -265,13 +265,6 @@ const SOURCES = {
     by: "the contributors to Wikcionário, listed in each page's history",
     license: LICENSES.ccBySa4,
   },
-  wiktionaryRuEdition: {
-    title: "Russian Wiktionary (Викисловарь), English entries",
-    via: KAIKKI,
-    url: "https://ru.wiktionary.org/",
-    by: "the contributors to Викисловарь, listed in each page's history",
-    license: LICENSES.ccBySa4,
-  },
   wiktionaryFrEdition: {
     title: "French Wiktionary (Wiktionnaire), English entries",
     via: KAIKKI,
@@ -481,7 +474,6 @@ const SOURCES = {
 const RECIPE_SOURCES: Readonly<Record<string, Source>> = {
   eswiktionary: SOURCES.wiktionaryEsEdition,
   ptwiktionary: SOURCES.wiktionaryPtEdition,
-  ruwiktionary: SOURCES.wiktionaryRuEdition,
   frwiktionary: SOURCES.wiktionaryFrEdition,
   dewiktionary: SOURCES.wiktionaryDeEdition,
   zhwiktionary: SOURCES.wiktionaryZhEdition,
