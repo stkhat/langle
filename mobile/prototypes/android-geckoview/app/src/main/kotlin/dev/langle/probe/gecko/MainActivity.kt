@@ -53,6 +53,22 @@ class MainActivity : Activity() {
           return GeckoResult.fromValue(if (ok) AllowOrDeny.ALLOW else AllowOrDeny.DENY)
         }
       }
+    // Autoplay, as in the other prototypes: the player asks for captions only once it plays.
+    session.permissionDelegate =
+      object : GeckoSession.PermissionDelegate {
+        override fun onContentPermissionRequest(
+          session: GeckoSession,
+          perm: GeckoSession.PermissionDelegate.ContentPermission,
+        ): GeckoResult<Int> {
+          val autoplay =
+            perm.permission == GeckoSession.PermissionDelegate.PERMISSION_AUTOPLAY_INAUDIBLE ||
+              perm.permission == GeckoSession.PermissionDelegate.PERMISSION_AUTOPLAY_AUDIBLE
+          return GeckoResult.fromValue(
+            if (autoplay) GeckoSession.PermissionDelegate.ContentPermission.VALUE_ALLOW
+            else GeckoSession.PermissionDelegate.ContentPermission.VALUE_DENY
+          )
+        }
+      }
     session.progressDelegate =
       object : GeckoSession.ProgressDelegate {
         override fun onPageStart(session: GeckoSession, url: String) {

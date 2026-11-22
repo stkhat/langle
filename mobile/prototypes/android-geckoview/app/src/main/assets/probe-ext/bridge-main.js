@@ -8,6 +8,13 @@
     variants: () => window.__langleProbeVariants(),
     captions: () => {
       const p = player();
+      p.mute?.();
+      // The mobile site waits for a tap in Firefox. Captions asked for before it plays come
+      // back empty (no PO token yet) and are not asked for again: play first, ask when it plays.
+      if (p.getPlayerState?.() !== 1) {
+        p.playVideo?.();
+        return "playing";
+      }
       p.loadModule?.("captions");
       p.setOption("captions", "track", { languageCode: "en" });
       return "ok";

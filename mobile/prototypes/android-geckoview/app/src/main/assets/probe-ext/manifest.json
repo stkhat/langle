@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Langle probe",
-  "version": "0.2",
+  "version": "0.5",
   "browser_specific_settings": { "gecko": { "id": "probe@langle.dev" } },
   "permissions": [
     "nativeMessaging",

@@ -22,7 +22,8 @@ case "$1" in
   cmd) xcrun simctl spawn booted notifyutil -p "dev.langle.probe.$2" ;;
   translate)
     # A fresh launch on a video, the English track, then the player's own Japanese translation;
-    # prints each timedtext response size and the parameters of its request.
+    # prints each timedtext response size and the parameters of its request. A single look: the
+    # timing is not controlled, so compare engines with ../tlang-check.mjs instead.
     shift; "$0" open "https://m.youtube.com/watch?v=iG9CE55wbtY" "$@" >/dev/null
     n() { grep -c '"type":"timedtext"' "$out" || true; }
     until [ "$(n)" -ge 1 ]; do sleep 2; done; "$0" cmd captions

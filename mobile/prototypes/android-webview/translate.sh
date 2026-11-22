@@ -2,6 +2,8 @@
 # The player's own Japanese translation without a burst of refetches (docs/notes/mobile.md):
 # a fresh launch on a video, the English track, then the translated track, one request at a
 # time. Prints each timedtext response size and the parameters of its request.
+# A single look, not evidence for comparing engines: the timing is not controlled. Compare with
+# mobile/prototypes/tlang-check.mjs.
 # From the repository root:  sh mobile/prototypes/android-webview/translate.sh [video id]
 . scripts/mobile/env.sh
 PKG=dev.langle.probe.webview

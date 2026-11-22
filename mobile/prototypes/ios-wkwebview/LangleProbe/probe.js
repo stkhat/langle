@@ -79,12 +79,14 @@
     /* already defined */
   }
 
-  const record = (url, text, via) => {
+  const record = (url, text, via, status) => {
     const u = new URL(url, location.href);
     const p = u.searchParams;
     state.timedtext.push(u.href);
     send("timedtext", {
       via,
+      status,
+      tlang: p.get("tlang"),
       bytes: text.length,
       pot: p.has("pot"),
       c: p.get("c"),
@@ -106,7 +108,7 @@
           typeof this.response === "string"
             ? this.response
             : this.responseText || "";
-        record(this.__langleUrl, text, "xhr");
+        record(this.__langleUrl, text, "xhr", this.status);
       });
     }
     return origSend.apply(this, args);
@@ -117,8 +119,9 @@
     const result = origFetch.call(this, input, init);
     if (url && String(url).includes("/api/timedtext")) {
       result
-        .then((r) => r.clone().text())
-        .then((t) => record(String(url), t, "fetch"))
+        .then(async (r) => {
+          record(String(url), await r.clone().text(), "fetch", r.status);
+        })
         .catch(() => {});
     }
     return result;

@@ -129,3 +129,5 @@ function connect() {
   send({ type: "hello" });
 }
 connect();
+// An MV3 background is an event page: without this listener it does not run after a restart.
+browser.runtime.onStartup.addListener(() => {});
