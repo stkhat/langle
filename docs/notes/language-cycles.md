@@ -3,8 +3,8 @@
 The log of the weekly language cycle ([skill](../../.claude/skills/language-cycle/SKILL.md), [development](../development.md) "Language quality cycle"). Newest cycle first. Data for each cycle is in `data/raw/quality/cycles/<cycle>/` (git-ignored).
 
 ## Current
-- State: c001 in flight, open only for the selection check's on-device AI (Nano) measurement. Fixes #223, #226, #228 merged and re-measured (`cycles/c001/after-expressions`, main `aed609c`); step 6 (real-site check) done 2026-11-22. Resume: the selection check's Nano run ([selection](../../.claude/skills/language-cycle/references/selection.md)), then record it under c001 and set this to idle
-- Last cycle: c000 (2026-11-22, baseline `bda1bda`); last sweep: `cycles/c001/base`
+- State: idle. c001 finished 2026-11-22: fixes #223, #226, #228 merged and re-measured, real-site check and selection check done. Pending the user's decision, nothing built: a phrase proposal for selections that match no pattern (c001, Selection, "Trade-off"; recommended: drop)
+- Last cycle: c001 (2026-11-22); last sweep: `cycles/c001/after-expressions` (main `aed609c`)
 - Next: c002. Next tidy-up: c002 (every third cycle: c002, c005, …), or earlier when the inventory grows ≥ 15% over c000's or a pair is added
 - Level rotation: c001 runs `es` also at level 1000; then `fr` 8000, `de` 1000, `en` 8000, …
 - Corpus refresh: due at c004 (corpora as of 2026-11: `en` 2026-11 round 2, `es`, `fr`, `de` from their L1/L2 studies)
@@ -99,10 +99,89 @@ First run of the selection check ([selection](../../.claude/skills/language-cycl
 | es-en | 308 | 80/0/0 | 0/0/70 | 0/1/68 | 40/0/0 | 3/0/4 | 2/1/9 | 0 of 30 | 100 / 0 / 0 | 36/9/5 | 45/0/5 |
 | fr-en | 301 | 79/0/0 | 0/0/65 | 0/2/62 | 37/0/3 | 1/0/9 | 1/0/12 | 0 of 30 | 100 / 0 / 0 | 37/6/7 | 44/1/5 |
 
-On-device AI (Nano): not run yet: it is c001's remaining step, in the user's Chrome (Current). Batches and probe are ready; they were tested with a fake model only.
+#### On-device AI (Nano)
+The shipped prompt in the user's Chrome 157, test split, 741 of 741 answered (one fr-en timeout run again): `selection/nano`. Recovered counts are of the selections that aim at an expression.
 
+| pair | answered | recovered: offline → with AI | offered | correct | wrong (on controls) | repeats what is shown | ms p50 / p90 |
+|---|---|---|---|---|---|---|---|
+| de-en | 80 | 28 → 28 of 66 | not asked for | | | | 1200 / 1541 |
+| de-fr | 80 | 28 → 28 of 66 | not asked for | | | | 1218 / 1616 |
+| en-ja | 103 | 33 → 42 of 89 | 10 | 9 | 1 (0) | 3 | 2248 / 2583 |
+| en-es | 103 | 33 → 40 of 89 | 9 | 7 | 2 (0) | 2 | 2211 / 2566 |
+| en-fr | 103 | 33 → 40 of 89 | 8 | 7 | 1 (0) | 0 | 1988 / 2391 |
+| en-de | 103 | 33 → 42 of 89 | 9 | 9 | 0 (0) | 1 | 1941 / 2399 |
+| es-en | 83 | 33 → 33 of 69 | not asked for | | | | 1380 / 1723 |
+| fr-en | 86 | 28 → 28 of 72 | not asked for | | | | 1367 / 1723 |
+
+Nano often writes the selected words again as the phrase (en-ja / en-es / en-fr / en-de): a word too many 9 / 9 / 10 / 10 of 14, shifted 3 / 3 / 5 / 4 of 14, controls 9 / 7 / 5 / 7 of 14.
+
+"In this sentence", judged blind (good/acceptable/wrong; one judge per pair, offline meanings mixed in; an English definition is recognisable as offline by its "translated later" mark and is judged on its sense alone, not on the translation shown):
+
+| pair | all answers | where a phrase meaning exists offline too: AI | the same, offline | where none does (offline: a literal translation, not judged): AI |
+|---|---|---|---|---|
+| en-ja | 53/32/18 | 24/3/6 | 18/7/8 | 29/29/12 |
+| en-es | 55/29/19 | 22/9/2 | 21/6/6 | 33/20/17 |
+| de-fr | 37/24/19 | 19/7/2 | 23/3/2 | 18/17/17 |
+| es-en | 47/24/12 | 23/7/3 | 22/7/4 | 24/17/9 |
+| fr-en | 53/20/13 | 19/5/5 | 21/4/4 | 34/15/8 |
+| all five | 245/129/81 | 107/31/18 | 105/27/24 | 138/98/63 |
+
+**Prompt: unchanged. No candidate prompt was run in this cycle.** Why none:
+- The 2026-11-19 tuning ([meaning in context](meaning-in-context.md) "Correcting a selected phrase") ended at one in five bad selections of a dictionary phrase recovered. The shipped prompt gives the same here: 6–8 of 28 (a word too many or shifted), 32 of its 36 proposals correct.
+- The main loss is the model repeating the selection (above), against a prompt that already asks for the whole expression.
+- A prompt can only help where Nano exists, and only English learning asks for a proposal. The rule below needs neither.
+
+#### Trade-off, PENDING the user's decision: propose a phrase without the AI
+Prototype only (`selection/proto`, no product code). [Architecture](../specs/architecture.md) "Phrase patterns" says on purpose that a selection that reaches past a pattern "is its own words"; changing that is the user's call.
+- **Simple rule:** when the selection matches no pattern, propose (never snap to) the sentence's pattern with the most of its words selected, two at least; a tie proposes nothing; `checkPhrase` as for the AI's proposals.
+- **Narrowed rule:** the same, among the `detect` patterns only. Chosen on dev (random selections judged right, simple → narrowed: en 32 of 50 → 17 of 23, es 16 of 25 → 3 of 4, fr 19 of 25 → 11 of 12, de 17 of 25 → 6 of 8); both rules were then frozen and run once on test, where the narrowing mostly halves the proposals and raises precision only in es.
+
+On the check's items, test split (offered, correct):
+
+| learning | rule | a word too many | shifted | reported | controls | recovered: offline → with the rule |
+|---|---|---|---|---|---|---|
+| en | simple | 50, 50 of 54 | 20, 20 of 54 | 13, 5 of 33 | 0 of 19 | 86 → 161 of 222 |
+| en | narrowed | 39, 39 of 54 | 9, 9 of 54 | 5, 1 of 33 | 0 of 19 | 86 → 135 of 222 |
+| es | simple | 48, 48 of 49 | 22, 22 of 48 | 3, 3 of 13 | 0 of 21 | 90 → 163 of 195 |
+| es | narrowed | 38, 38 of 49 | 14, 14 of 48 | 0 of 13 | 0 of 21 | 90 → 142 of 195 |
+| fr | simple | 52, 52 of 53 | 24, 24 of 52 | 3, 0 of 16 | 0 of 22 | 93 → 169 of 217 |
+| fr | narrowed | 45, 45 of 53 | 17, 17 of 52 | 0 of 16 | 0 of 22 | 93 → 155 of 217 |
+| de | simple | 38, 38 of 38 | 19, 19 of 35 | 0 of 10 | 0 of 20 | 75 → 132 of 158 |
+| de | narrowed | 33, 33 of 38 | 16, 16 of 35 | 0 of 10 | 0 of 20 | 75 → 124 of 158 |
+
+Exact selections and a word missing get no proposal. These items flatter the rule: the same matcher made the phrases, and a control is by definition words that no pattern touches, so its zero says nothing. The reported expressions are the only ones the matcher did not make.
+
+Beside Nano on its English batch (89 selections with an expression, 14 controls; scored alike; the rule's proposal first in the combination; every wrong proposal of the rule alone is on a reported expression, which must be matched word for word: `open the door` for `open the door to`):
+
+| | recovered (offline 33) | offered | correct | wrong |
+|---|---|---|---|---|
+| Nano | 40–42 | 8–10 | 7–9 | 0–2 |
+| simple rule | 55 | 30 | 22 | 8 |
+| simple rule + Nano | 58–60 | 33–35 | 25–27 | 8 |
+| narrowed rule | 42 | 13 | 9 | 4 |
+| narrowed rule + Nano | 47–49 | 19–21 | 14–16 | 4–6 |
+
+Random natural selections (test documents of `after-expressions`; one selection of 2–4 words per unit), proposals judged blind (right / a real phrase but not the one aimed at / wrong):
+
+| learning | selections with no pattern | rule | proposes | judged | right (95% interval) |
+|---|---|---|---|---|---|
+| en | 9,131 | simple | 1,235 (13.5%) | 37/2/11 | 74% (60–84) |
+| en | 9,131 | narrowed | 624 (6.8%) | 37/2/11 | 74% (60–84) |
+| es | 2,677 | simple | 249 (9.3%) | 15/1/9 | 60% (41–77) |
+| es | 2,677 | narrowed | 63 (2.4%) | 18/0/7 | 72% (52–86) |
+| fr | 3,449 | simple | 298 (8.6%) | 17/3/5 | 68% (48–83) |
+| fr | 3,449 | narrowed | 173 (5.0%) | 18/3/4 | 72% (52–86) |
+| de | 4,246 | simple | 117 (2.8%) | 22/0/3 | 88% (70–96) |
+| de | 4,246 | narrowed | 43 (1.0%) | 23/0/2 | 92% (75–98) |
+
+Wrong ones are mostly literal uses and chance pairs: `you know Walt`, `live in`, `going to get` → `go to`, `en la` → `en ello`, `de la`, `qui sait`. How often a learner's selection aims at an expression is not known: the constructed items are the rule's best case, random selections stand in for the rest.
+
+**Recommendation: drop.** The rule recovers much more than Nano when the selection is a dictionary phrase off by a word, but precision comes first: 8 of its 30 proposals on Nano's batch are wrong (narrowed 4 of 13; Nano 4 of 36 over the four pairs), and on natural selections a quarter to two fifths are not right in en, es and fr (narrowed a quarter; German about one in ten, on 25 judged). **User: not decided.**
+
+
+#### Causes
 Causes it points at (candidates for the next picks, none fixed):
-- **CORE, matcher:** a selection that goes past the phrase shows nothing: 532 of the 539 constructed misses in en, es, fr and de (`moment over and over`, `hubiera perdido la cabeza`, `On prend l'eau`, `nur unter der Woche`), because `matchSelection` needs a pattern over every selected word. A word missing is completed (157 of 160).
+- **CORE, matcher:** a selection that goes past the phrase shows nothing: 532 of the 539 constructed misses in en, es, fr and de (`moment over and over`, `hubiera perdido la cabeza`, `On prend l'eau`, `nur unter der Woche`), because `matchSelection` needs a pattern over every selected word. A word missing is completed (157 of 160). The rule measured for it: "Trade-off" above, pending.
 - **LEARNING, AI prompt:** the checker would take the right phrase for 536 of the 539 phrase misses, but only English learning's prompt asks for one; es, fr and de get no proposal by design.
 - **LEARNING, phrase data:** of the 41 reported expressions selected whole, 11 are found; the rest mostly have no pattern (de all 8: `gehen davon aus`, `zur Welt kommen`; `if you don't mind`, `en ningún momento`, `en hommage à`) or only a smaller one (`open the door to`, `à la recherche de`).
 - **LEARNING, en-defs (Queue 4):** English definitions shown for phrases have the wrong sense in 25 of 83 judged (en-ja, en-es, en-hi, largely the same selections), dictionary lines in 5 of 67: `bring back` → To fetch something, `from the top` → From the beginning, `give it to someone` → To beat up…; `be suppose to` shows as an eggcorn entry.
