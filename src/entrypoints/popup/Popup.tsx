@@ -4,7 +4,8 @@ import type { CloudStatus, Counts, SyncStatus } from "../../messaging/protocol";
 import { onHost } from "../../core/url";
 import type { DataNote } from "../../core/packs/state";
 import type { SupportLinks } from "../../core/links";
-import type { Settings, SettingsPatch } from "../../core/settings";
+import type { Settings } from "../../core/settings";
+import { createSettingsView } from "../../core/settings-view";
 import { languageName, languagePair } from "../../i18n/languages";
 import { t } from "../../i18n/t";
 import {
@@ -223,6 +224,11 @@ export function Popup({ deps }: { deps: PopupDeps }) {
   const [now, setNow] = useState(deps.now);
 
   const warn = (error: unknown) => console.warn("Langle:", error);
+  const [settingsView] = useState(() =>
+    createSettingsView(setSettings, (patch) =>
+      deps.send({ type: "setSettings", patch }).catch(warn),
+    ),
+  );
 
   function refreshCounts(lang: string) {
     deps.send({ type: "counts", lang }).then(setCounts, warn);
@@ -257,14 +263,14 @@ export function Popup({ deps }: { deps: PopupDeps }) {
     deps.send({ type: "cloudCheck" }).catch(warn);
     deps.send({ type: "getSettings" }).then((s) => {
       lang = s.learningLang;
-      setSettings(s);
+      settingsView.stored(s);
       refreshCounts(lang);
     }, warn);
     refresh();
     const packs = followPackStatus(deps, (status) => setData(pairNote(status)));
     const unwatch = deps.watchSettings((s) => {
       lang = s.learningLang;
-      setSettings(s);
+      settingsView.stored(s);
     });
     const timer = setInterval(refresh, deps.refreshMs);
     return () => {
@@ -274,24 +280,13 @@ export function Popup({ deps }: { deps: PopupDeps }) {
     };
   }, []);
 
-  function patch(change: SettingsPatch) {
-    deps.send({ type: "setSettings", patch: change }).then(setSettings, warn);
-  }
-
-  /** Shows `local` at once and stores `change` (the same change, as a patch). */
-  function update(local: Partial<Settings>, change: SettingsPatch) {
-    if (!settings) return;
-    setSettings({ ...settings, ...local });
-    patch(change);
-  }
-
   /** Langle runs at all (the header's switch); while off only the header and sync show. */
   const langleOn = settings?.enabled !== false;
 
   function toggleLangle() {
     if (!settings) return;
     const enabled = !settings.enabled;
-    update({ enabled }, { enabled });
+    void settingsView.change({ enabled });
   }
 
   const view = cloudView(cloud, settings);
@@ -307,7 +302,7 @@ export function Popup({ deps }: { deps: PopupDeps }) {
     const disabledSites = siteOn
       ? [...settings.disabledSites, hostname]
       : settings.disabledSites.filter((e) => !onHost(hostname, e));
-    update({ disabledSites }, { disabledSites });
+    void settingsView.change({ disabledSites });
   }
 
   /** The nudge shows once Learning reaches 100 words, until Rate or × answers it. */
@@ -319,10 +314,7 @@ export function Popup({ deps }: { deps: PopupDeps }) {
   /** Stores that the nudge was answered, everywhere (the setting syncs). */
   function nudgeDone(): Promise<unknown> {
     if (!settings || settings.rateNudgeDone) return Promise.resolve();
-    setSettings({ ...settings, rateNudgeDone: true });
-    return deps
-      .send({ type: "setSettings", patch: { rateNudgeDone: true } })
-      .catch(warn);
+    return settingsView.change({ rateNudgeDone: true });
   }
 
   function pageAction(request: PageRequest) {
@@ -492,10 +484,7 @@ export function Popup({ deps }: { deps: PopupDeps }) {
             highlight={settings.highlight}
             onToggle={(category) => {
               const on = !settings.highlight[category];
-              update(
-                { highlight: { ...settings.highlight, [category]: on } },
-                { highlight: { [category]: on } },
-              );
+              void settingsView.change({ highlight: { [category]: on } });
             }}
           />
         )}
