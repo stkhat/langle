@@ -694,6 +694,10 @@ export const PACKS: Readonly<Record<PackName, PackInfo>> = {
     sources: [
       { ...SOURCES.wiktionaryEn, used: "the definitions" },
       {
+        ...SOURCES.udEwt,
+        used: "the order of a word's parts of speech (how often each is used)",
+      },
+      {
         ...SOURCES.wikidata,
         used: "descriptions of the capital-only words that name one notable thing (Nvidia, AirPods)",
       },

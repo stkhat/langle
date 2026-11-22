@@ -627,6 +627,54 @@ Limits:
 - Hovered in Playwright's Chromium with a temporary profile and native Russian (2026-11-22): the English definition shows for the ("The definite grammatical article that…"), an, okay, require, totally ("To the fullest extent or degree"), adaptation and cite; has and feet show the base's line ("has → have", foot with its Russian). A word with nothing (tidings, raiment) still opens a card, with its IPA and no meaning; America and Britannia, capitalised mid-sentence, get neither a highlight nor a card. The browser translator's line for the English definitions was not tried (the browser's Translator API exists in that Chromium, but no translation was requested), and the definitions shown instead were not judged.
 - Versions already on npm are untouched; an installed pack is replaced when the extension's lock names the new version.
 
+## en-ru gaps: okay and an, 2026-11-23
+
+Two fixes the user approved after a study of what en-ru shows without the Russian edition. The rules are in [architecture](../specs/architecture.md) (C2 and "Definitions translated at display time"). They use no edition's data and change no pair pack.
+
+- A-b, data: in `en-defs` a pointer takes its target's sense of the same part of speech, and the treebank's main use leads where the lead is a rare use. okay: "Endorsement…" → "All right, acceptable, permitted." (2 verb tags → "To approve").
+- B-a, code: a closed-class word's usage note is translated, and the word is not. an: literal "an" → the translation of "Used before a vowel sound."
+
+`en-defs` 2026.1122.1 → 2026.1122.2: 777 terms changed (260 short meanings), 20,414,484 → 20,443,114 bytes. The other packs are byte-identical and the gate report is the same for all 19 pairs.
+
+Hover tokens changed on the 2026-11 corpora (level 1000; word and phrase highlights; share of word tokens: 171,625 English, 72,835 Spanish, 82,121 French, 70,944 German):
+
+| Pair | A-b | B-a | Both |
+|---|--:|--:|--:|
+| en-ja | 5 | 0 | 5 (0.003%) |
+| en-es | 17 | 0 | 17 (0.010%) |
+| en-pt | 316 | 0 | 316 (0.184%) |
+| en-ru | 311 | 465 | 776 (0.452%) |
+| en-fr | 302 | 0 | 302 (0.176%) |
+| en-de | 302 | 0 | 302 (0.176%) |
+| en-zh | 9 | 0 | 9 (0.005%) |
+| en-it | 10 | 0 | 10 (0.006%) |
+| en-pl | 6 | 0 | 6 (0.003%) |
+| en-th | 12 | 0 | 12 (0.007%) |
+| en-hi | 24 | 0 | 24 (0.014%) |
+| en-ar | 35 | 465 | 500 (0.291%) |
+| en-id | 10 | 0 | 10 (0.006%) |
+| en-tr | 33 | 0 | 33 (0.019%) |
+| en-ko | 29 | 0 | 29 (0.017%) |
+| es-en, fr-en, de-en, de-fr | 0 | 0 | 0 |
+
+okay is 284 of the tokens in each of pt, ru, fr and de; an is all of B-a. No token is changed by both rules, and no highlight, key or name changes.
+
+Known by eye to be doubtful, all from the part-of-speech match, as the tag then picks another sense:
+
+| Term | Tokens | Before | After |
+|---|---|---|---|
+| favorite (noun tag) | 3 in ru, de, tr | Most-liked. (…) | A person or thing who enjoys special regard or favour. |
+| centre (verb tag) | 1 in ru, fr, de | The point in the interior of a circle… | To cause (an object) to occupy the center of an area. |
+| dis | 1 in 13 pairs (a second token improves: "To put (someone) down…") | Any of a group of minor female deities in Scandinavian folklore. | Ampelodesmos mauritanicus syn. Ampelodesmos tenax, a reedy grass… |
+| dat | 1 in the 14 pairs other than zh | Introducing a clause that is the object of a verb… | The thing, person, idea, quality, event, action, or time indicated… |
+
+Not judged or checked:
+- No translation was requested and no judge ran: whether the translated lines are better is not known, "an"'s included.
+- Not hovered in a browser.
+- Not measured: the dictionary window's other senses, and the line under a phrase that gives its main word (at most 10 phrase tokens a pair have a word whose definition changed).
+- Outside the corpora only the pack diff was looked at. B-a can act on any closed-class word whose definition is a usage note and that a pair lacks.
+- Not fixed: has and did without a meaning (option C, not approved), open-class usage notes (could, might), variants a pair lacks (A-d), words the treebank lacks (cuz).
+
 ## Other learning languages (estimated)
 Rows other than English in the matrix are estimated from source sizes (kaikki sense counts, 2026-11-13), not measured. Rules:
 - T1~: a bilingual dictionary with a confirmed license (zh → en, ja → en).
