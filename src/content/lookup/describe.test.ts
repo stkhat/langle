@@ -154,6 +154,14 @@ const ENTRIES: Record<string, DictionaryEntry> = {
     senses: [{ text: "Misspelling of spill the beans." }],
     glossLang: "en",
   },
+  un: {
+    head: "un",
+    kind: "word",
+    short: "Used before a humming sound",
+    lines: ["Used before a humming sound"],
+    senses: [{ pos: "article", text: "Used before a humming sound." }],
+    glossLang: "en",
+  },
 };
 
 /** IPA the language pack has, also for terms no dictionary has. */
@@ -718,6 +726,20 @@ describe("describeTerm with an English definition", () => {
     expect(cached()).toEqual([]);
   });
 
+  it("translates an article's definition that is a usage note, never the article", async () => {
+    const { send } = fakeSend();
+    const { calls, translator } = recordingTranslator();
+    const card = await describeTerm(
+      { key: "un", kind: "word", surface: "Un" },
+      deps(send, translator),
+    );
+    expect(calls).toEqual([["Used before a humming sound.", "hover", EN_JA]]);
+    expect(card.machineTranslated).toBe("definition");
+    expect(card.short).toBe("訳(Used before a humming sound.)");
+    // As any translated definition's: the window marks only a literal translation.
+    expect(windowView(card).machineTranslated).toBe(false);
+  });
+
   it("translates a noun's definition that names a kind of word: it is the noun's meaning", async () => {
     const { send } = fakeSend();
     const { calls, translator } = recordingTranslator();
@@ -890,6 +912,21 @@ describe("translateSenses", () => {
     send: ReturnType<typeof fakeSend>["send"],
     translator: Parameters<typeof translateSenses>[1]["translator"],
   ) => ({ send, lang: "en", nativeLang: "ja", translator });
+
+  it("translates an article's usage note as the short meaning", async () => {
+    const { send } = fakeSend();
+    const { translator } = recordingTranslator();
+    const article: TermCard = {
+      ...card,
+      key: "un",
+      kind: "word",
+      short: "Used before a humming sound",
+      senses: [{ pos: "article", text: "Used before a humming sound." }],
+    };
+    const translated = await translateSenses(article, deps(send, translator));
+    expect(translated.machineTranslated).toBe("definition");
+    expect(translated.short).toBe("訳(Used before a humming sound.)");
+  });
 
   it("translates the short meaning and the first four senses, pointers left as written", async () => {
     const { send, cached } = fakeSend();
