@@ -152,3 +152,19 @@ Endings alone cannot tell a bare-noun or adverb complement ((기분) 상하게 �
 ### To check in Chrome, once the packs are on npm
 
 ruling, inferior, pleased, progression, brilliant, framework, concern (ko) and wooden (hi); present and abandon still without hanja; bore with bear unsaved, then saved.
+
+## Real-site re-check (2026-11-22)
+
+In the user's Chrome on the check build of `7b54251` (main with #230 and #232), en-ko, en-hi and en-defs 2026.1122.0 from jsDelivr (the log held 17 info mirror records, all served by jsDelivr). Settings were saved, set through `langle:check-settings` (learning en, native ko, then hi, then ko again with Known highlighted and YouTube on) and restored; read back, every key equal. Where: English Wikipedia (the "Bore (engineering)" page, which has no article; **all test words below were inserted** as one paragraph into the tab's DOM), YouTube Ken Robinson (iG9CE55wbtY, 2:00 and 2:07: the Korean line under the English one, hover card, dictionary window, no clipping or overlap) and an auto-captioned cooking video, "French Onion Soup Everyone Needs To Make" (kd6lUmbj5ig, Joshua Weissman; the corpus lists it as "The Best French Onion Soup Ever"; its captions carry "[music]"). Videos muted through the video element.
+
+Hover lines seen (card unless noted):
+- **Syllable pages gone**: ruling 권위 있는 사람의 명령 또는 법률에 대한 결정 (Machine translation; the dictionary window also lists adjective 그 규칙; 우세한; 수석; 통치; 제어 with the English definition); inferior 순위, 지위 또는 품질이 낮습니다 (MT); pleased 행복, 콘텐츠 (MT; "content" read as the noun); progression 한 가지에서 다른 것으로 이동하는 행위 (MT); brilliant 찬란하다 / 燦爛하다 (the known hanja without brackets); framework 규모 / 틀 / 골격; concern 우려 / 염려 / 심려. None is a lone syllable.
+- **No hanja in brackets**: present 선사하다; abandon 방치하다 / 단념하다 / 포기하다.
+- **Labels cut**: commence 시작되다 / 시작하다; rob 빼앗다.
+- **Complements kept**: rectify (잘못된 것을) 바로잡다; awake 깨어 있는 / (잠에서) 깨다 / 깨우다, 일으키다; liquidate (회사를) 정리하다, 청산하다; deem (…로) 여기다, 생각하다, 간주하다; predetermine 미리 계획하다, 예정하다 (the bracket "(미리)" is gone from this line: not checked against its edition gloss); dispatch (타) (군대·특사 등을) 급파 [특파] 하다 / (서한을) 보내다, 발송하다, 통지하다: the one-syllable label "(타)" stays, as the two-syllable minimum says. spit's hover shows 침; its dictionary window 침을뱉다, 뱉다 (verb) and 침 (noun).
+- **hi**: wooden लकड़ी से बना है (MT), coarse मोटा / परुष. No कठ-.
+- **bore** ("The bore of the gun is wide.", "He is such a bore"): both read "bore → bear", 곰, status Known; the dictionary window shows bear as saved: the Known button is active and "Remove" is offered, so bear is saved as Known in the user's data. Nothing was saved, removed or changed. This is the open decision above.
+- gruelling 매우 어렵거나 부담스럽습니다 (MT): keyed gruelling, not gruel.
+- Also seen: wooden 목조, coarse 상스럽다 / 비속하다 (ko); cooked → cook 요리하다 / 요리사; baggy 헐렁하다; sachet 향주머니; interest 이자 / 흥미 / 이익.
+
+Problems: none new. The hover card of the video shows the previous word for a moment after the pointer moves (a screenshot within a second saw it); a second later it was right. The Wikipedia tab left open before this check (Emeritus) was not touched.
