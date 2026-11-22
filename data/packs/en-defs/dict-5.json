@@ -1,4 +1,8 @@
 {
+"harmlessly":[["adverb","In a harmless manner."]],
+"harmonic":[["adjective","Pertaining to harmony."],["adjective","Pleasant to hear; harmonious; melodious."],["adjective","Recurring periodically."],["noun","A component frequency of the signal of a wave that is an integer multiple of the fundamental frequency."]],
+"harmonic analysis":[["noun","A study of the representation of functions or signals as the superposition of basic waves, involving the notions of harmonic functions, trigonometric series, Fourier series, Fourier transforms, almost periodic functions, and others."]],
+"harmonic balancer":[["noun","A device connected to the crankshaft of an engine to reduce torsional vibration and to serve as a pulley for drive belts."]],
 "harmonic function":[["noun","A function of two, three or n variables which is a solution to any of Laplace's equations"]],
 "harmonic mean":[["noun","A type of measure of central tendency calculated as the reciprocal of the mean of the reciprocals, i.e., H=n/1/x_1+1/x_2+⋯+1/x_n."]],
 "harmonic minor scale":[["noun","a type of minor scale with the 3rd and 6th notes lowered by one semitone, with the interval pattern"]],
@@ -7525,6 +7529,7 @@
 "inferential":[["adjective","Of, pertaining to, or derived using inference."]],
 "inferential statistics":[["noun","A branch of statistics studying statistical inference—drawing conclusions about a population from a random sample drawn from it, or, more generally, about a random process from its observed behavior during a finite period of time."]],
 "inferentially":[["adverb","With respect to, or by means of, inference"]],
+"inferior":[["adjective","Lower in rank, status, or quality."],["adjective","Of low rank, standard or quality."],["adjective","(of a court or tribunal) Susceptible to having its decisions overturned by a higher court."],["noun","A person of lower rank, stature, or ability to another."]],
 "inferior alveolar artery":[["noun","A branch of the maxillary artery that is distributed to the mucous membrane of the mouth and through the mandibular canal to the teeth of the lower jaw."]],
 "inferior cervical ganglion":[["noun","A ganglion that is located between the base of the transverse process of the seventh cervical vertebra and the fifth rib and is usually partly or completely fused with the first thoracic ganglion to form the stellate ganglion."]],
 "inferior colliculus":[["noun","The nucleus just caudal to the superior colliculus, which is involved in the relay of auditory information."]],
@@ -11159,6 +11164,7 @@
 "keeling curve":[["noun","A graph that plots the ongoing change in concentration of carbon dioxide in Earth's atmosphere since the 1950s."]],
 "keeling islands":[["proper noun","Cocos (Keeling) Islands (an external territory of Australia, located on the Indian Ocean)"]],
 "keelung":[["proper noun","A city in north-eastern Taiwan."]],
+"keen":[["adjective","Often with a prepositional phrase, or with to and an infinitive: showing a quick and ardent responsiveness or willingness; eager, enthusiastic, interested."],["adjective","Fierce, intense, vehement."],["adjective","Having a fine edge or point; sharp."],["adjective","Acute of mind, having or expressing mental acuteness; penetrating, sharp."]],
 "keen as a bean":[["adjective","Very keen; enthusiastic; eager."]],
 "keen as a jew":[["adjective","Very eager."]],
 "keen as knives":[["adjective","Very keen or eager; avid."]],
@@ -13202,14 +13208,5 @@
 "lapin":[["noun","Rabbit fur."],["noun","A castrated male rabbit."]],
 "lapis":[["noun","lapis lazuli: A deep blue stone, used in making jewelry, and traditionally used to make the pigment ultramarine."]],
 "laplace":[["proper noun","Census-designated place in St. John the Baptist Parish, Louisiana, United States."],["proper noun","A town in St. John the Baptist Parish, Louisiana, United States."]],
-"laplace's equation":[["noun","The partial differential equation (∂²φ)/(∂x_1²)+(∂²φ)/(∂x_2²)+⋯+(∂²φ)/(∂x_n²)=0, commonly written Δφ=0 or ∇²φ=0, where Δ(=∇²) is the Laplace operator and φ is a scalar function."]],
-"laplacian":[["adjective","Of or related to Pierre Simon Laplace; (of mathematical terms) embodying or reflecting his methods or ideas."],["noun","The Laplace operator."]],
-"lapmb":[["proper noun","Liberation Army of Preševo, Medveđa and Bujanovac: Albanian militant group (1999–2001)."]],
-"lappet":[["noun","A small decorative fold or flap, especially of lace or muslin, in a garment or headdress."],["noun","A wattle or flap-like structure on the face."],["noun","A head-dress made with lappets for lace pendants."],["verb","To decorate with, or as if with, lappets."]],
-"lapse":[["noun","A temporary failure; a slip."],["noun","A decline or fall in standards."],["noun","A pause in continuity."],["verb","To fall away gradually; to subside."]],
-"lapse rate":[["noun","The rate of change in an atmospheric variable, especially temperature, with increase of height."]],
-"lapsed":[["adjective","Discontinued; having ceased or gone out of use."],["adjective","Changed to a less valued condition or state; especially having lost one's religious faith."],["adjective","By extension, having changed a (secular) belief or adherence."]],
-"lapsus":[["noun","A slip, lapse, or error."]],
-"lapsus linguae":[["noun","An inadvertent remark; a slip of the tongue."]],
-"laptop computer":[["noun","A portable computer that is small enough and light enough to be used on one's lap, but large enough to have an integrated keyboard."]]
+"laplace's equation":[["noun","The partial differential equation (∂²φ)/(∂x_1²)+(∂²φ)/(∂x_2²)+⋯+(∂²φ)/(∂x_n²)=0, commonly written Δφ=0 or ∇²φ=0, where Δ(=∇²) is the Laplace operator and φ is a scalar function."]]
 }

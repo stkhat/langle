@@ -22,13 +22,18 @@ const MAX_SENSES = 4;
 
 /**
  * kaikki's parts of speech of entries that are no words of the language to translate
- * with: names, romanizations, letters and symbols, affixes and punctuation.
+ * with: names; units of writing (romanizations, letters and symbols, punctuation, and
+ * syllables, glossed with what the characters read so mean: ko 이 "ruling", 理); bound
+ * pieces of words (affixes and combining forms: hi कठ- "wooden"). A word spelled like
+ * one has an entry of its own (금: the noun "gold", the syllable "brocade").
  */
 export const NOT_WORDS: ReadonlySet<string> = new Set([
   "name",
   "romanization",
   "character",
+  "syllable",
   "symbol",
+  "combining_form",
   "suffix",
   "prefix",
   "infix",
