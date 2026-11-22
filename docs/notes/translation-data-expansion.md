@@ -554,11 +554,11 @@ User decision (2026-11-21, after M0b): a pair passes by **(a)** ≥ 90% of the t
 - **Token counts**: `data/gate/en-tokens.json` (7,803 keys, 143,211 tokens) from M0a's `r4/runs/base-ja/rows.jsonl` (`scripts/data/gate-tokens.ts`); the gate looks each key up as M0a did and reproduces its figures (`data:stats`, type / tokens): ja 100 / 99.4 (M0a 99.0: the gate counts en-ja's table words too), pl 99.5 / 99.7, it 98.1 / 99.3, ru 97.7 / 99.0, fr 97.5 / 99.0, es 96.9 / 99.0, de 96.2 / 98.6, th 95.2 / 98.6, pt 95.2 / 98.3, zh 95.1 / 98.1. Every shipped pair passes by (a); so do es-en, fr-en, de-en (100) and de-fr (96.7, no token counts for German).
 - **Candidates** with M0a's best sources, tokens by the gate's code: hi 91.3, ar 97.0, id 97.5, tr 98.0, ko 98.4, fa 92.0, ur 87.8, bn 87.7, ta 84.4, te 82.4, mr 77.6. So ar, id, ko, tr pass by (a); hi by (b) (83.7% type, translator listed); fa (92.0) and ur have no translator; bn, ta, te, mr pass neither.
 - **Translator**: `NativeLanguage.translator`, from Chrome's documented list (developer.chrome.com/docs/ai/translator-api, "Supported languages", updated 2025-05-20: ar, bg, bn, cs, da, de, el, en, es, fi, fr, he, hi, hr, hu, id, it, ja, kn, ko, lt, mr, nl, no, pl, pt, ro, ru, sk, sl, sv, ta, te, th, tr, uk, vi, zh, zh-Hant), as M0b found it (fa and ur unavailable).
-- **L3 re-measured** (`learning-pairs.ts --measure`, top 5,000): de→fr 96.7 (as shipped), de→ru 94.7, de→pl 94.6, de→zh 93.4, fr→de 92.2, fr→ru 90.6 now reach (a) and could be built (de→ru stopped at provenance on 2026-11-22: "de-ru-1"); fr→pl 89.8, fr→es 88.0, de→es 87.9 and the rest stay under. (b) is not applied to French and German: their corpora exist (2026-11-fr, 2026-11-de), but the names rule ("capitalised headword") takes in German's nouns, and the key rule has not been checked against those hovers. New since L3: fr→th 23.7, de→th 25.6 (the th edition and reversed tables; the French and German tables gave no Thai terms, not looked into: under any rule either way).
+- **L3 re-measured** (`learning-pairs.ts --measure`, top 5,000): de→fr 96.7 (as shipped), de→ru 94.7, de→pl 94.6, de→zh 93.4, fr→de 92.2, fr→ru 90.6 now reach (a) and could be built (de→ru is not built: decided 2026-11-22, "de-ru-1"); fr→pl 89.8, fr→es 88.0, de→es 87.9 and the rest stay under. (b) is not applied to French and German: their corpora exist (2026-11-fr, 2026-11-de), but the names rule ("capitalised headword") takes in German's nouns, and the key rule has not been checked against those hovers. New since L3: fr→th 23.7, de→th 25.6 (the th edition and reversed tables; the French and German tables gave no Thai terms, not looked into: under any rule either way).
 
 ### de-ru-1: German → Russian, stopped at provenance (2026-11-22)
 
-**Not built, waiting on the user's decision.** The pair passes (a) only with ru.wiktionary's German entries, and the spot check found glosses there worded like dictionaries with no free license stated. No recipe, pack, wiring or judging was done.
+**Not built: the user chose option A on 2026-11-22**, for provenance, as Vietnamese was dropped for its license. The pair passes (a) only with ru.wiktionary's German entries, and the spot check found glosses there worded like dictionaries with no free license stated. No recipe, pack, wiring or judging was done.
 
 Coverage (measured again 2026-11-22; top 5,000 / top 2,000 / terms):
 
@@ -579,20 +579,22 @@ What the spot check found:
 - **Who wrote them**: one account added the first gloss checked on 20 of the 26 (10 of the 11). Many pages began as a bot's stubs of 2006–07, but these glosses came in later human edits, so `UNDOCUMENTED_IMPORTS` (pages an account created) does not describe the case. No source was found named in the sampled summaries or glosses.
 - **Wording**: six of that account's entries could be compared on translate.academic.ru (herausstellen, umsehen, hinfahren, hervorragen, schlampen, Befreiung; the last four from the second group). In all six the glosses asked about were reported identical, stress marks and spacing aside, to «БНРС» as published there. A second account's Stiftung has one sense identical to an «Универсальный немецко-русский словарь» there and one similar; a third's Vorhang is similar only.
 - **License**: the [contents page](https://dic.academic.ru/contents.nsf/ger_rus/) «БНРС» links to states "© Академик, 2000-2026", and no authors, publisher or license.
-- **Limits**: a fetch tool's model did the comparisons, with the expected wording in its prompt; asked again without it, for umsehen only, it returned the same gloss. Some of these wordings are in other dictionaries on that site too. Six further words failed with HTTP 502. Not established: the direction of copying, the printed dictionary behind «БНРС», how much of the edition is affected, and anything legal.
+- **Limits (first pass)**: a fetch tool's model did the comparisons, with the expected wording in its prompt; asked again without it, for umsehen only, it returned the same gloss. Some of these wordings are in other dictionaries on that site too. Six further words failed with HTTP 502.
+- **Direct check, made afterwards**: a script compared the wording itself on 4 of the 6 words (the other 2 could not be fetched). All 14 multiword glosses were identical on those pages; the control page had 0. Not established: the direction of copying, the printed dictionary behind «БНРС», how much of the edition is affected, and anything legal.
 - **Leaving out only that account would not be expected to save the pair**: if the second group's share held (1 of 11 by someone else), about 86%; at the one-sided 95% upper bound of that share (about 36%), about 89%.
 
-Options:
+Decision (2026-11-22):
 
-- **A (recommended)**: do not build de→ru, as with Vietnamese's non-free import.
-- **B**: tables + reversed only, 85.44%: needs an exception to the gate.
-- **C**: a new licensed source, to be found and approved (none was looked for).
+- **A, taken**: de→ru is not built. The wording could not be cleared, as with Vietnamese's non-free import.
+- B (tables + reversed only, 85.44%, needs an exception to the gate): not taken.
+- C (a new licensed source): not taken.
 
-To check because of this (none checked):
+What this means for the other pairs:
 
-- **`en-ru` (shipped)** takes 5,562 of its 61,180 terms from the same edition's English entries (`ruwiktionary`), whose histories were never sampled. The tables alone measured 95.32% in D2.
-- **fr→ru** needs the same edition (87.9% without it, L3).
-- **de→pl and de→zh** need their native editions (83.0% and 38.2% without): check provenance before building. fr→de does not (91.7% without).
+- **`en-ru` (shipped)** was checked by direct comparison, and its Russian-edition entries were left out (PR #242; see "en-ru: the Russian edition left out" below).
+- The other shipped pairs' native editions are to be checked the same way, read-only, one pair at a time (user's decision, 2026-11-22; not done yet).
+- **fr→de** is next, after the same wording check (not done yet).
+- **fr→ru, de→pl and de→zh** still need their editions checked before building (fr→ru is 87.9% without the edition, de→pl 83.0%, de→zh 38.2%; L3). fr→de does not need an edition (91.7% without).
 
 ## en-ru: the Russian edition left out, 2026-11-22
 
