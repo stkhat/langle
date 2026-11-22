@@ -162,7 +162,12 @@ export function packedEntry<Extra>(
   source: number,
   extra?: Extra,
 ): PairEntry<Extra> {
-  if (short !== shortOfPairSenses(senses))
+  const first = senses[0];
+  // A table's first word as written is no short of its own: the dictionary shows it
+  // without its asides (`tableLine`: ko "현재(現在)의" → "현재의"), as a stored one
+  // would not be.
+  const written = first?.[2] == null ? undefined : first[1].split(", ")[0];
+  if (short !== written && short !== shortOfPairSenses(senses))
     return [senses, source, extra ?? null, short];
   return extra === undefined ? [senses, source] : [senses, source, extra];
 }
