@@ -7,6 +7,8 @@
 // - notes that name a part of speech (《疑問代名詞》, 《補語にのみ用いて》 → adjective,
 //   《複数形で》 → noun); a sense that is only such a note heads the senses after it
 //   [Japanese glosses]
+// - notes that say what the sense modifies (《比較級の前に用いて》, 《動詞を修飾して》)
+//   → adverb [Japanese glosses]
 // - the gloss's main item: "…を" / "〈人〉に" or a verb ending → verb, a leading "…" →
 //   preposition, な / い / の → adjective, に / く / て / と → adverb, a kanji or
 //   katakana ending → noun, as a guess that also fits an adverb (今, 現在)
@@ -106,6 +108,16 @@ const NOTES: readonly (readonly [RegExp, string])[] = [
   [/^(?:複数形で|単数扱い|複数扱い|集合的に|単数形で)$/, "noun"],
 ];
 
+/** What a note can say a sense modifies, where only an adverb does. */
+const MODIFIED =
+  "(?:比較級|最上級|形容詞|分詞形容詞|副詞|動詞|過去分詞|文全体|文)";
+
+/** [Japanese] A note in 《》 that says the sense modifies, strengthens or precedes one of those. */
+const MODIFIER_NOTE = new RegExp(
+  `^(?:通例|しばしば|おもに)?${MODIFIED}(?:\\[句\\])?(?:(?:[・,、]|の)${MODIFIED})*` +
+    "(?:を(?:強めて|強調して|修飾して)|の前(?:に|または後の|または後に)(?:用いて|置いて)?$)",
+);
+
 const VERB_ENDING = /(する|る|う|く|す|つ|む|ぶ|ぐ|ぬ)$/;
 
 interface Inferred {
@@ -121,13 +133,16 @@ export function inferPos(
   candidates: readonly string[],
 ): Inferred | undefined {
   const has = (pos: string) => candidates.includes(pos);
-  for (const [, note] of sense.matchAll(/《([^《》]*)》/g))
+  const notes = [...sense.matchAll(/《([^《》]*)》/g)].map(([, note]) => note!);
+  for (const note of notes)
     for (const [pattern, pos] of NOTES)
-      if (pattern.test(note!))
+      if (pattern.test(note))
         return {
           pos,
           header: outside(sense).replace(/[\s,、;…]/g, "") === "",
         };
+  if (has("adverb") && notes.some((note) => MODIFIER_NOTE.test(note)))
+    return { pos: "adverb" };
   // The main item: the gloss up to its first separator.
   const items = outside(sense)
     .replace(/^[\s,、;・]+/, "")
