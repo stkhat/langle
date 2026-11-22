@@ -16,6 +16,8 @@ final class Probe: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     "variants": "return await window.__langleProbeVariants();",
     "captions": """
       const p = document.querySelector("#movie_player");
+      p.mute?.();
+      if (p.getPlayerState?.() !== 1) { p.playVideo?.(); return "playing"; }
       p.loadModule?.("captions");
       p.setOption("captions", "track", { languageCode: "en" });
       return "ok";
