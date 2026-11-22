@@ -4,9 +4,8 @@
 // Usage: node scripts/data/recipes/native.ts <native>…   (e.g. es; run the English
 // scripts first and download the recipe's raw files, see docs/development.md "Language
 // data")
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { readConllu } from "../tagger.ts";
+import { readTreebank } from "../tagger.ts";
 import {
   nativeLanguage,
   type RecipeNative,
@@ -34,6 +33,7 @@ import {
   convertTerms,
   inCapitalCase,
   inTablesCase,
+  isFormOfAnother,
   isOtherWord,
   lastScriptForm,
   withAuxiliarySenses,
@@ -484,8 +484,7 @@ export async function buildPairDictionary(
   // noun in Indonesian, where English uses "outside" as an adverb).
   const labelsEnglish = (tag: string) =>
     tag !== recipe?.reverseGlosses?.tag && tag !== recipe?.reversedTables?.tag;
-  const isForm = (key: string) =>
-    [lemmas[key] ?? []].flat().some((base) => base !== key);
+  const isForm = (key: string) => isFormOfAnother(lemmas, key);
   const merged = mergeSources(sources, {
     // A term's main part of speech: that of its most translated sense, when English
     // Wiktionary lists it first too (en/pos.json). Not for "dug", whose only table is
@@ -764,16 +763,7 @@ async function main() {
   );
   const lemmas = readPack<LemmaPack>("en/lemmas.json");
   const pos = readPack<PosPack>("en/pos.json");
-  const uses = treebankUses(
-    ["train", "dev", "test"].flatMap((split) =>
-      readConllu(
-        readFileSync(
-          join(RAW_DIR, "ud-english-ewt", `en_ewt-ud-${split}.conllu`),
-          "utf8",
-        ),
-      ),
-    ),
-  );
+  const uses = treebankUses(readTreebank());
   const entities = joinedEntities();
   const acronyms = joinedAcronyms();
   for (const native of natives) {
