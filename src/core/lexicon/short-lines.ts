@@ -776,24 +776,88 @@ function sensesOf(text: string): string[] {
 const OPENING_LABEL =
   /^\s*[(（[［]([^()（）[\]［］]*)[)）\]］]\s*(?=[^\s:：])/u;
 
+/** A Korean word that can be a label: two syllables or more, so not "(이)다". */
+const KOREAN_WORD = /^\p{Script=Hangul}{2,}$/u;
+
+/**
+ * A case particle that ends a word: such a word is a complement or a modifier of the
+ * meaning after it ("(빚을) 청산하다", "(배의) 뒷쪽에", "(잠에서) 깨다"), however often it
+ * opens a gloss.
+ */
+const CASE_PARTICLE = /(?:[을를이가의에로]|에서|에게)$/u;
+
+/** A Korean label opens the glosses of this many headwords. */
+const KOREAN_LABEL_HEADWORDS = 3;
+
+/**
+ * NATIVE (Korean): the labels a dictionary's edition glosses open with (register,
+ * region, domain, grammar: 격식, 미국, 법률, 타동사), read from the dictionary itself. A
+ * label recurs and is a bare word; what else stands there is said of the one meaning it
+ * opens ("(침을) 뱉다", "(미리) 정하다"). So a label is a word that is in the brackets
+ * opening the glosses of KOREAN_LABEL_HEADWORDS headwords or more, alone or in a list
+ * ("(가산, 법률)"), and ends in no case particle (`CASE_PARTICLE`). A rarer label stays
+ * in the line.
+ */
+export function openingLabels(
+  glosses: Iterable<readonly [head: string, gloss: string]>,
+): ReadonlySet<string> {
+  const heads = new Map<string, Set<string>>();
+  for (const [head, gloss] of glosses) {
+    let rest = gloss;
+    for (;;) {
+      const found = OPENING_LABEL.exec(rest);
+      if (!found) break;
+      for (const item of found[1]!.split(/[,，]/)) {
+        const word = item.trim();
+        if (!KOREAN_WORD.test(word) || CASE_PARTICLE.test(word)) continue;
+        let seen = heads.get(word);
+        if (!seen) heads.set(word, (seen = new Set()));
+        seen.add(head);
+      }
+      rest = rest.slice(found[0].length);
+    }
+  }
+  return new Set(
+    [...heads]
+      .filter(([, seen]) => seen.size >= KOREAN_LABEL_HEADWORDS)
+      .map(([word]) => word),
+  );
+}
+
 /**
  * A gloss without the labels in brackets that open it: each of several words ("(w
  * religiach monoteistycznych) Bóg" → "Bóg") or an abbreviation ("(истор.) Британия",
  * "(the Plough) (астрон.) Большая Медведица"), as the data build brackets an edition's
- * opening label abbreviations. One word in brackets is part of the meaning ("(Ne) …
- * pas") or, in a script without spaces, a note judges kept ("（现多）点燃").
+ * opening label abbreviations, or a Korean label of the dictionary before Korean words
+ * (`isLabel`: "(타동사) 시작하다", "(법률) 폐지하다"). After a Korean label only another
+ * one is left out: several words there are the meaning's ("(격식) (잘못된 것을)
+ * 바로잡다" → "(잘못된 것을) 바로잡다"). One other word in brackets is part of the
+ * meaning ("(Ne) … pas", "(침을) 뱉다") or, in a script without spaces, a note judges
+ * kept ("（现多）点燃").
  */
-function withoutOpeningLabels(text: string): string {
+function withoutOpeningLabels(
+  text: string,
+  isLabel: (word: string) => boolean,
+): string {
   let rest = text;
+  let labelled = false;
   for (;;) {
     const found = OPENING_LABEL.exec(rest);
-    const inside = found?.[1]?.trim() ?? "";
+    if (!found) return rest;
+    const inside = found[1]!.trim();
+    const after = rest.slice(found[0].length);
     if (
-      !found ||
+      KOREAN_WORD.test(inside) &&
+      /\p{Script=Hangul}/u.test(after) &&
+      isLabel(inside)
+    )
+      labelled = true;
+    else if (
+      labelled ||
       !(/\S\s+\S/u.test(inside) || /^\p{L}[\p{L}\p{M}-]*\.$/u.test(inside))
     )
       return rest;
-    rest = rest.slice(found[0].length);
+    rest = after;
   }
 }
 
@@ -916,14 +980,18 @@ function withoutForeignAsides(text: string): string {
   return out + text.slice(at);
 }
 
+/** A note in brackets that ends a Korean gloss and names an appendix: "(부록: 영어 도량형)". */
+const APPENDIX_NOTE = /\s*[(（]부록[:：][^()（）]*[)）]\s*$/u;
+
 /**
  * A recipe pair's edition gloss (in the native language, any script) as a hover line
  * (NATIVE, every language but Japanese, whose dictionary is EJDict):
  * - without the source's sense subscripts after a word ("Pedir₁", "Ley₁₋₉"; not O₂),
  *   an ellipsis that opens it, which stands for the word in use ("…służący do
  *   tworzenia pytań"), and a label of several words in brackets that opens it ("(w
- *   religiach monoteistycznych) Bóg" → "Bóg"); one word in brackets is part of the
- *   meaning ("(Ne) … pas") or, in a script without spaces, a note judges kept
+ *   religiach monoteistycznych) Bóg" → "Bóg") or one of the dictionary's Korean labels
+ *   (`isLabel`: `openingLabels`); another word in brackets is part of the meaning
+ *   ("(Ne) … pas", "(잠에서) 깨다") or, in a script without spaces, a note judges kept
  *   ("（现多）点燃");
  * - without asides in brackets in another script than the gloss's (ko hanja and
  *   English: `withoutForeignAsides`);
@@ -938,13 +1006,18 @@ function withoutForeignAsides(text: string): string {
  *   abbreviation: "EE. UU."), each comma item once, within the native cap (`capLine`,
  *   NATIVE_CAP).
  */
-export function editionLine(text: string): string {
+export function editionLine(
+  text: string,
+  isLabel: (word: string) => boolean = () => false,
+): string {
   const clean = withoutOpeningLabels(
     withoutForeignAsides(
       text
         .replace(/(?<=[\p{Ll}.])[₀-₉₋]+/gu, "")
-        .replace(/^\s*(?:…|\.{3})+\s*/u, ""),
+        .replace(/^\s*(?:…|\.{3})+\s*/u, "")
+        .replace(APPENDIX_NOTE, ""),
     ),
+    isLabel,
   );
   const meaning = afterQualifier(
     quotedTranslations(translatingSentence(clean)),
@@ -1013,6 +1086,15 @@ export const shortOfSenses = (
 ): string => shortOfDefinition(senses[0]?.[1] ?? "");
 
 /**
+ * A translation table's (or wordnet's) sense as a hover line: its first word, without
+ * the asides in another script that give a word's spelling, not its meaning
+ * (`withoutForeignAsides`: ko "현재(現在)의" → "현재의", "방치(放置)하다, 버리다" →
+ * "방치하다"). Asides are cut before the list is split, since one may hold a comma.
+ */
+export const tableLine = (text: string): string =>
+  withoutForeignAsides(text).split(", ")[0]!.trim();
+
+/**
  * A pair entry's short meaning (`PairPack`, `LearningPairPack`: the recipe pairs and
  * de-fr), made from its first sense: a sense with an English hint (a translation
  * table's or a wordnet's) is a list of translations, and the short is its first one
@@ -1033,7 +1115,7 @@ export const shortOfPairSenses = (
   const first = senses[0];
   if (first === undefined) return "";
   const [, text, hint] = first;
-  return hint != null ? text.split(", ")[0]! : shortOfDefinition(text);
+  return hint != null ? tableLine(text) : shortOfDefinition(text);
 };
 
 /** Whether position `at` of `text` is inside parentheses or square brackets. */
