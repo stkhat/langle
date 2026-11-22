@@ -620,43 +620,38 @@
       "files": [
         {
           "path": "capital-2.json",
-          "sha256": "5f547fc50a51dc5f276fdd7cea8262d45882e53c306fcc4b87513bfb1fcefe69",
-          "size": 1314755
+          "sha256": "b31c58fe7d1ab810c0e77b657bc845f68f8b5585e145b0dfa39f2f9b2cdecc07",
+          "size": 1278662
         },
         {
           "path": "capital.json",
-          "sha256": "25001de1f6ddd33bb932f7428aa14fdc7fc4100abd9070bd91dd519d3c347a28",
-          "size": 1999678
+          "sha256": "1ce4fae2a58d9eac0501b2204012a4f43d1ad3ce2965ca6d8dbe01646a441140",
+          "size": 1999817
         },
         {
           "path": "dict-1.json",
-          "sha256": "f3c97e6c62e672c913c2da9609bbda6ca3dac6acf6afcd34492c01450ad70f96",
-          "size": 1999783
+          "sha256": "8ca7d9102ded5bf9c937bee130dfeb2ab47dd2cda941266e2b4995fbf69d0285",
+          "size": 1999997
         },
         {
           "path": "dict-2.json",
-          "sha256": "6947c786e4c8aacff510b58fa52bf1329a129423f98358fa6601787afcacdee4",
-          "size": 1999948
+          "sha256": "ab6409d4ffa2dfc0de69baffd9d8f2cd44bf3e762737e90b02a543002c97d582",
+          "size": 1999959
         },
         {
           "path": "dict-3.json",
-          "sha256": "3c903d83dec8b110874f3272ef3425d558c65a4f21bd11de37849b4b713ff88f",
-          "size": 1999943
-        },
-        {
-          "path": "dict-4.json",
-          "sha256": "a770c170a49a945b63bffc4784199f2bdf5e2d42054d23c7752abeeaf754f671",
-          "size": 40649
+          "sha256": "d96bb3068870f6aa92ca863fae6018fe148a6f52857e71e5a57e978be895a3b6",
+          "size": 1412987
         },
         {
           "path": "index.json",
-          "sha256": "06982cc87148be7ceedf24a2f1a786a7d0d8e401ae62638d6b45bd6424790637",
-          "size": 424
+          "sha256": "f426c38b8a6785c4c57c6ad25d93e800efef4343cf125482c28ba252e6bd0c9f",
+          "size": 365
         }
       ],
       "format": 4,
       "package": "@langle/en-ru",
-      "version": "2026.1121.7"
+      "version": "2026.1122.0"
     },
     "en-th": {
       "files": [
