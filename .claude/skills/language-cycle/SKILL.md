@@ -66,6 +66,9 @@ For each pick, one after another (see "Machine load"): real-content-quality Phas
 ## Step 5 — Re-measure wide (script)
 After each merge, on an `origin/main` worktree: `sweep.ts --label=after-<step>`, then `compare-sweeps.py` against `base`. Changed rows outside the step's pairs or kinds, or any WORSE flag, are looked at before the next step; a real regression becomes the next step.
 
+## Step 5b — Selection check
+[references/selection.md](references/selection.md), on the last merged main: every cycle the offline check on all pairs (`selection-check.ts`), its judged sample and `selection-compare.py` against the previous cycle (WORSE → a pick); the on-device AI part when the prompt, phrase data or matcher changed, or every other cycle (skipped, and said so, without Chrome). No UI evaluation.
+
 ## Step 6 — Real-site check
 real-content-quality Phase 7 on the pairs the merged steps touched, plus one other native each cycle in rotation (switch pairs only through the check build's settings channel; restore the user's settings). End with the `langle:check-errors` log read, every entry explained, and the log cleared. Skip only when no merged step changes what a learner sees, and say so.
 
@@ -73,4 +76,4 @@ real-content-quality Phase 7 on the pairs the merged steps touched, plus one oth
 1. In the log: picks with PRs and before → after numbers per affected pair, Dropped ideas, queue, inventory totals (`rule-inventory.ts`), next tidy due, "Current" back to idle.
 2. `docs/status.md` only for behaviour that shipped.
 3. The log PR: commit, push, draft PR, verify, ready, `merge-when-green.sh --cleanup`.
-4. Collected trade-offs → one AskUserQuestion with the measured options. Then clean up merged worktrees and branches (memory), and fast-forward local main.
+4. Collected trade-offs → one AskUserQuestion with the measured options. Then clean up merged worktrees and branches (memory), and fast-forward local main. Before removing a step's worktree, copy its `data/raw/quality` study files to the main checkout and compare the file counts.
