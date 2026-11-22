@@ -154,7 +154,7 @@ Endings alone cannot tell a bare-noun or adverb complement ((기분) 상하게 �
 | de (runs/units) | 698 | 22 | 586 | 2 | 110 |
 | de (runs/units-c2, overlaps the row above) | 825 | 25 | 686 | 2 | 137 |
 
-Verdicts are one agent's reading of the tokens in their sentences, not a blind judging. Better: the base's meaning was wrong there. Same: a derived word of the same meaning (interested, amazing, thanks), whose status parts from the base's. Worse: a form of the saved word loses its status, or the tag is wrong.
+Verdicts are one agent's, not a blind judging: English was read token by token; in es, fr and de every pair was read, but the largest (no, muy, así, plus, schon, mehr, part of mal), the spelling variants and what units-c2 adds were judged from an example, so a few mis-tags may hide there. Better: the base's meaning was wrong there. Same: a derived word of the same meaning (interested, amazing, thanks), whose status parts from the base's. Worse: a form of the saved word loses its status, or the tag is wrong.
 
 - **Every worse pair**:
   - en, forms: media 13 > medium, teeth 3 > tooth, criteria 2, phenomena, stimuli, pence, worse 2 > bad, done 2 > do, burnt > burn.
