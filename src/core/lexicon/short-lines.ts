@@ -780,8 +780,10 @@ const OPENING_LABEL =
  * A gloss without the labels in brackets that open it: each of several words ("(w
  * religiach monoteistycznych) Bóg" → "Bóg") or an abbreviation ("(истор.) Британия",
  * "(the Plough) (астрон.) Большая Медведица"), as the data build brackets an edition's
- * opening label abbreviations. One word in brackets is part of the meaning ("(Ne) …
- * pas") or, in a script without spaces, a note judges kept ("（现多）点燃").
+ * opening label abbreviations, or a Korean label of two syllables or more before
+ * Korean words ("(타동사) 시작하다", "(격식) 공식적인", "(법률) 폐지하다"; not "(이)다").
+ * One other word in brackets is part of the meaning ("(Ne) … pas") or, in a script
+ * without spaces, a note judges kept ("（现多）点燃").
  */
 function withoutOpeningLabels(text: string): string {
   let rest = text;
@@ -790,7 +792,12 @@ function withoutOpeningLabels(text: string): string {
     const inside = found?.[1]?.trim() ?? "";
     if (
       !found ||
-      !(/\S\s+\S/u.test(inside) || /^\p{L}[\p{L}\p{M}-]*\.$/u.test(inside))
+      !(
+        /\S\s+\S/u.test(inside) ||
+        /^\p{L}[\p{L}\p{M}-]*\.$/u.test(inside) ||
+        (/^\p{Script=Hangul}{2,}$/u.test(inside) &&
+          /\p{Script=Hangul}/u.test(rest.slice(found[0].length)))
+      )
     )
       return rest;
     rest = rest.slice(found[0].length);
@@ -916,6 +923,9 @@ function withoutForeignAsides(text: string): string {
   return out + text.slice(at);
 }
 
+/** A note in brackets that ends a Korean gloss and names an appendix: "(부록: 영어 도량형)". */
+const APPENDIX_NOTE = /\s*[(（]부록[:：][^()（）]*[)）]\s*$/u;
+
 /**
  * A recipe pair's edition gloss (in the native language, any script) as a hover line
  * (NATIVE, every language but Japanese, whose dictionary is EJDict):
@@ -943,7 +953,8 @@ export function editionLine(text: string): string {
     withoutForeignAsides(
       text
         .replace(/(?<=[\p{Ll}.])[₀-₉₋]+/gu, "")
-        .replace(/^\s*(?:…|\.{3})+\s*/u, ""),
+        .replace(/^\s*(?:…|\.{3})+\s*/u, "")
+        .replace(APPENDIX_NOTE, ""),
     ),
   );
   const meaning = afterQualifier(
@@ -1013,6 +1024,15 @@ export const shortOfSenses = (
 ): string => shortOfDefinition(senses[0]?.[1] ?? "");
 
 /**
+ * A translation table's (or wordnet's) sense as a hover line: its first word, without
+ * the asides in another script that give a word's spelling, not its meaning
+ * (`withoutForeignAsides`: ko "현재(現在)의" → "현재의", "방치(放置)하다, 버리다" →
+ * "방치하다"). Asides are cut before the list is split, since one may hold a comma.
+ */
+export const tableLine = (text: string): string =>
+  withoutForeignAsides(text).split(", ")[0]!.trim();
+
+/**
  * A pair entry's short meaning (`PairPack`, `LearningPairPack`: the recipe pairs and
  * de-fr), made from its first sense: a sense with an English hint (a translation
  * table's or a wordnet's) is a list of translations, and the short is its first one
@@ -1033,7 +1053,7 @@ export const shortOfPairSenses = (
   const first = senses[0];
   if (first === undefined) return "";
   const [, text, hint] = first;
-  return hint != null ? text.split(", ")[0]! : shortOfDefinition(text);
+  return hint != null ? tableLine(text) : shortOfDefinition(text);
 };
 
 /** Whether position `at` of `text` is inside parentheses or square brackets. */
