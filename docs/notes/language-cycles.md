@@ -66,10 +66,10 @@ Not done yet: Claude in Chrome did not answer (see Current).
 ### Rule inventory (c001)
 At `da71c99` (main `aed609c`): 18 branches (=), 4 tables, 33 fields, 7 one-off (+1) and 13 same-value (+1), 21 language-named files with 4,260 lines (+17), 1,960 lines of quality notes (+86, korean-quality), 25 repeated study scripts (+1). Under the 15% trigger; the next tidy is due at c002 anyway (third cycle, and en-ko was added since c000). `cycles/c001/inventory.json`.
 
-### Trade-offs for the user (measured, not built)
-- How names look: no hover (kept), a name hover, or New with the common word's meaning.
-- Capitalised runs with no entry (Stack Overflow type) as names: 330 runs / 725 tokens in en-es.
-- B2b compounds with translation tables in 5+ languages highlighted as phrases (prime minister, ice pack, real estate): +1.6 phrases per 1,000 tokens, ~70% useful.
+### Trade-offs (asked 2026-11-22; user's answers)
+- How names look: no hover (kept), a name hover, or New with the common word's meaning. **User: keep no hover.**
+- Capitalised runs with no entry (Stack Overflow type) as names: 330 runs / 725 tokens in en-es. **User: keep as now (each word keeps its meaning); don't re-propose without new evidence.**
+- B2b compounds with translation tables in 5+ languages highlighted as phrases (prime minister, ice pack, real estate): +1.6 phrases per 1,000 tokens, ~70% useful. **User: keep as now (selection only).**
 
 ### Next: a selection check in the cycle (user, 2026-11-22; build after c001's fixes)
 What a learner gets when they select several words: is the expression found, and is its meaning right; and whether the on-device AI's prompt should change. Not UI (layout, flicker, latency of the card): out of scope by the user's choice.
