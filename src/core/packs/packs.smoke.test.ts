@@ -1009,6 +1009,12 @@ describe("generated packs: native hygiene (U1-7)", () => {
     ipa,
   });
 
+  it("en-defs: okay leads with the adjective, its main use", () => {
+    expect(defs.okay?.[0]).toEqual([
+      "adjective",
+      "All right, acceptable, permitted.",
+    ]);
+  });
   it("ja: okay follows the first of OK's spellings past the Oklahoma abbreviation", () => {
     expect(ja.entry("okay")?.lines[0]).toBe("大丈夫な");
     expect(ja.entry("ok", "lower")?.lines.join()).not.toMatch(/Oklahoma/);

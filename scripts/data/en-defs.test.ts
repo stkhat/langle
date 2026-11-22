@@ -333,3 +333,87 @@ describe("buildEnDefs: a lowercase word beside a capitalised one (hi-4)", () => 
     expect(stats.capitalised).toBe(2);
   });
 });
+
+describe("buildEnDefs: a pointer's part of speech and a word's main use", () => {
+  const fixture = join(
+    import.meta.dirname,
+    "fixtures",
+    "kaikki-main-use.jsonl",
+  );
+  const build = async (
+    uses: Record<string, Record<string, number>> = {},
+    lemmas: Record<string, string> = {},
+  ) =>
+    (
+      await buildEnDefs(fixture, {
+        vocab: ["kwib", "vasc", "blan", "drell", "sarn", "morv", "plon"],
+        lemmas,
+        phrases: { detect: [], more: [], gap: [] },
+        uses: new Map(
+          Object.entries(uses).map(([word, counts]) => [
+            word,
+            new Map(Object.entries(counts)),
+          ]),
+        ),
+      })
+    ).defs;
+
+  it("gives a pointer sense its target's sense of the same part of speech, else the best", async () => {
+    const defs = await build();
+    expect(defs.kwib).toEqual([
+      // The adverb's, for want of one, is the best: the noun's, shown once.
+      ["noun", "A stamp of approval."],
+      ["verb", "To approve of a plan."],
+      ["adjective", "Good enough; allowed."],
+      ["interjection", "Used to agree with a plan."],
+    ]);
+    expect(defs.vasc).toEqual([["adjective", "A clay pot."]]);
+  });
+
+  it("leads with the main use's sense over a rarely used lead, counting no interjection as the lead's", async () => {
+    const defs = await build({
+      kwib: { adjective: 12, interjection: 10, verb: 1 },
+    });
+    expect(defs.kwib!.map(([pos]) => pos)).toEqual([
+      "adjective",
+      "noun",
+      "verb",
+      "interjection",
+    ]);
+  });
+
+  it("leads with a main use's sense from past the cap", async () => {
+    const defs = await build({ blan: { adjective: 30 } });
+    expect(defs.blan).toHaveLength(4);
+    expect(defs.blan![0]).toEqual(["adjective", "Made of rails."]);
+  });
+
+  it("moves the main use's senses up, but none that is a usage note", async () => {
+    const defs = await build({ plon: { adjective: 30 } });
+    expect(defs.plon!.map(([, text]) => text)).toEqual([
+      "Shaped like a bell.",
+      "Sounding like a bell.",
+      "A small bell.",
+      "Used of a thin sound.",
+    ]);
+  });
+
+  it.each<[string, string, Record<string, number>]>([
+    ["too few uses", "morv", { adjective: 19 }],
+    ["uses of no class", "morv", { adjective: 19, other: 50 }],
+    ["a lead used more often", "morv", { adjective: 30, noun: 4 }],
+    ["a main use with no sense", "morv", { verb: 30 }],
+    ["a main use's usage note", "drell", { interjection: 30 }],
+    ["a closed-class lead", "sarn", { noun: 30 }],
+  ])("keeps the source's order for %s", async (_, word, uses) => {
+    const defs = await build({ [word]: uses });
+    expect(defs[word]).toEqual((await build())[word]);
+  });
+
+  it("keeps the source's order for another word's form", async () => {
+    const uses = { morv: { adjective: 30 } };
+    expect((await build(uses)).morv![0]![0]).toBe("adjective");
+    const form = await build(uses, { morv: "morve" });
+    expect(form.morv![0]![0]).toBe("noun");
+  });
+});
