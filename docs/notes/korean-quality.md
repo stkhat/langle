@@ -142,7 +142,7 @@ Endings alone cannot tell a bare-noun or adverb complement ((기분) 상하게 �
   - A. A1b for saved words too: code only, with those losses.
   - B. A saved base claims a form only in the part of speech it is a form of: keeps plurals, needs that part of speech in the en pack, still parts meeting from meet.
   - C. Keep the rule: bore is bear's while bear is saved.
-- **Decided: A** (the user, 2026-11-22), on the English estimate above.
+- **Decided: A** (the user, 2026-11-22), first on the English estimate above; confirmed the same day for all four languages (en, es, fr, de) after the user saw the per-language numbers below.
 - **Rule** ([architecture](../specs/architecture.md) "A1b and saved words"): a saved base other than the form does not claim a word that A1b reads as itself and that would be keyed to itself unsaved; the word is then what it is with that base unsaved. A saved form keeps its own status.
 - **Measured** on the 2026-11 corpora (measure.ts of d3f1e6b), every affected base saved, as Known and again as Learning. With nothing saved, rows.jsonl is byte-identical in all 21 runs (en × 15 natives, es-en, fr-en, and de-en, de-fr on two German corpora). The 638 was English only; the other languages change far more, mostly for the better:
 
@@ -166,7 +166,10 @@ Verdicts are one agent's, not a blind judging: English was read token by token; 
 - **Phrases** (bases saved as Learning): a released word no longer hides a dictionary phrase: en +12 / −1, es +36, fr +64 / −1, de +1.
 - **Classify time**: unchanged within noise (median of 5 alternating runs, ms per 1,000 tokens, before → after with nothing / Known / Learning saved: en-ja 7.85 → 7.94 / 7.84 → 7.99 / 7.97 → 7.92, es-en 7.75 → 7.69 / 7.64 → 7.63 / 7.60 → 7.60).
 - **History, not changed**: `historyKeys` files a sentence under every base of its words, so saving a base can still import a sentence that has it only through a released form: en 386 (base, sentence) pairs in 370 sentences (110 bases; bear 1, "full bore"), es 295 in 287, fr 56 in 56, de 449 in 419 (units-c2 531 in 494).
-- **Not seen in a browser yet**: the Playwright repro with bear saved could not run in the step's sandbox (no local port). measure.ts with the en-ko packs on its sentences gives bore's noun for both bore sentences and bear (나르다 / 견디다) for "They bore the pain well", with bear known or learning.
+- **Checked in Playwright** by the parent session on 6cef1a1 (A) and fe6d6c6 (main): the E2E fixture's check build, temporary profiles, the repo's packs. Not seen on real sites.
+  - "The bore of the gun is wide. He is such a bore. They bore the pain well.", natives ko and ja, bear unsaved / Known / Learning (`analyze`, `lookup`, hover card): 6 of 6 pass on A. With bear saved both noun bores key bore and the verb keys bear; on main all three key bear (4 of 6 fail). Unsaved, A is as main, and the verb keys bore. The repro had expected bear there, and had told statuses apart by category, which only Learning does, as bore is Known by rank: both expectations were corrected for the run.
+  - es no and muy, fr plus, de schon, with número, mucho, plaire, schonen saved as Learning (`analyze` and `lookup` only, no hover): on main the word takes the saved base and its meaning; on A it is itself (no, muy "very", plus, schon "already"), as unsaved.
+- **Open, not fixed**: for native ja the noun bore's card still reads "bear(実をつける)の過去形 / クマ / …穴をあける" on A, as with nothing saved. en-ja's `pos.json` labels that pointer sense a weak noun (`n~`), the likely cause (inferred, not tested by changing it). Of the 162 verb-form pointer senses a pattern count finds in en-ja, two are labelled noun: bore and sown.
 
 ### `measure.ts` differed from the extension (fixed by d3f1e6b, not merged yet)
 
