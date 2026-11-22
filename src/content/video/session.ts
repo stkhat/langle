@@ -8,8 +8,10 @@ import type { DataNote } from "../../core/packs/state";
 import {
   hostBlocked,
   mergeSettings,
+  type Settings,
   type SettingsPatch,
 } from "../../core/settings";
+import { createSettingsView } from "../../core/settings-view";
 import { documentCasing, textCasing } from "../../core/text/casing";
 import { hostnameOf } from "../../core/url";
 import { followPackStatus, pairNote } from "../../messaging/pack-status";
@@ -592,10 +594,17 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     await cards.refresh(card);
   }
 
+  const settingsView = createSettingsView(
+    followSettings,
+    (patch) =>
+      // In turn with the session's other tasks, which warn when they fail.
+      new Promise<void>((resolve) => {
+        run(() => deps.send({ type: "setSettings", patch }).finally(resolve));
+      }),
+  );
+
   function changeSettings(patch: SettingsPatch) {
-    settings = mergeSettings(patch, settings);
-    store.set({ settings });
-    run(() => deps.send({ type: "setSettings", patch }));
+    void settingsView.change(patch);
   }
 
   /** Runs `task` for the current video, if there is one. */
@@ -739,7 +748,8 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       : unsupportedPage(hostname(), "video");
 
   const offNavigate = adapter.onNavigate((change) => open(change?.reload));
-  const unwatch = deps.watchSettings((next) => {
+  /** The settings to show changed: what follows from them does too. */
+  function followSettings(next: Settings) {
     const levelChanged = next.knownLevel !== settings.knownLevel;
     // The tracks (and the translation's source) are chosen for the language pair.
     const pairChanged =
@@ -757,7 +767,9 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     // Switched off for this site: give the page back; switched on: start.
     else if (siteOn() !== wasOn) open();
     else if (levelChanged) withWatch(analyzeAll);
-  });
+  }
+  settingsView.stored(settings);
+  const unwatch = deps.watchSettings(settingsView.stored);
   open();
 
   return {

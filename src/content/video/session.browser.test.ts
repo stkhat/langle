@@ -11,7 +11,7 @@ import {
   fakeExplanationProvider,
   HANG,
 } from "../../testing/explain";
-import { noTranslation } from "../../testing/stubs";
+import { heldWrites, noTranslation } from "../../testing/stubs";
 import type { TranslationProvider } from "../translate/translator";
 import type {
   CaptionRequest,
@@ -2092,6 +2092,23 @@ describe("settings from the video UI", () => {
       known: true,
     });
     await expect.poll(() => bg.settings().highlight.known).toBe(true);
+  });
+
+  it("keeps the last change while the one before it is stored", async () => {
+    let writes!: ReturnType<typeof heldWrites>;
+    const { state, app, bg } = await start(undefined, {
+      send: (send) => (writes = heldWrites(send)).send,
+    });
+    await ready(state);
+    app.toggleHighlight("known");
+    app.toggleHighlight("known");
+    await expect.poll(() => writes.waiting()).toBeGreaterThan(0);
+    await writes.storeNext();
+    expect(state().settings.highlight.known).toBe(false);
+    await expect.poll(() => writes.waiting()).toBe(1);
+    await writes.storeNext();
+    expect(state().settings.highlight.known).toBe(false);
+    expect(bg.settings().highlight.known).toBe(false);
   });
 
   it("changes the subtitle position and the translation switches", async () => {
