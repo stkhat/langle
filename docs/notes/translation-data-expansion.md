@@ -556,6 +556,35 @@ User decision (2026-11-21, after M0b): a pair passes by **(a)** ≥ 90% of the t
 - **Translator**: `NativeLanguage.translator`, from Chrome's documented list (developer.chrome.com/docs/ai/translator-api, "Supported languages", updated 2025-05-20: ar, bg, bn, cs, da, de, el, en, es, fi, fr, he, hi, hr, hu, id, it, ja, kn, ko, lt, mr, nl, no, pl, pt, ro, ru, sk, sl, sv, ta, te, th, tr, uk, vi, zh, zh-Hant), as M0b found it (fa and ur unavailable).
 - **L3 re-measured** (`learning-pairs.ts --measure`, top 5,000): de→fr 96.7 (as shipped), de→ru 94.7, de→pl 94.6, de→zh 93.4, fr→de 92.2, fr→ru 90.6 now reach (a) and could be built; fr→pl 89.8, fr→es 88.0, de→es 87.9 and the rest stay under. (b) is not applied to French and German: their corpora exist (2026-11-fr, 2026-11-de), but the names rule ("capitalised headword") takes in German's nouns, and the key rule has not been checked against those hovers. New since L3: fr→th 23.7, de→th 25.6 (the th edition and reversed tables; the French and German tables gave no Thai terms, not looked into: under any rule either way).
 
+## en-ru: the Russian edition left out, 2026-11-22
+
+Decided by the user: the shipped English → Russian pack no longer reads ru.wiktionary's English entries. Sections above give ru as it was before.
+
+Why: in a random sample of those glosses, 5 of the 13 comparable ones of four or more words were worded like dictionaries that state no free license. The source could not be cleared: which way the wording traveled, how much of the edition it concerns and the legal position are all not established. The sample is small, and alike wording alone shows neither a source nor an infringement.
+
+What changed: the ru recipe is English Wiktionary's translation tables alone (Wikidata's names follow, as in every pair). No filter, word list or stand-in line.
+
+| | 2026.1121.7 | 2026.1122.0 |
+|---|---|---|
+| Terms | 61,180 | 55,645 |
+| from the translation tables | 41,942 | 41,969 |
+| from the Russian edition | 5,562 | 0 |
+| from Wikidata | 13,676 | 13,676 |
+| Size, raw | 9.36 MB | 8.69 MB |
+| Top 2,000 | 98.3% | 96.8% |
+| Top 5,000 (gate, rule (a)) | 97.74% | 95.26% |
+| Tokens | 99.02% | 93.45% |
+| Phrases | 19.2% | 18.0% |
+
+Of the edition's 5,562 terms 5,535 are lost and 27 fall back to the tables. Of the 5.6 points of tokens lost, 4.4 are "the".
+
+Limits:
+- A lost term shows its English definition (or that definition translated by the browser) where `en-defs` has one ("the", "an", "okay", "require"), and an inflected form its base's meaning (feet → foot). An auxiliary read as its base shows the grammar line only ("has → have").
+- Before `en-defs` was rebuilt, 161 lost terms had neither and showed no meaning: 64 of the 143,211 gate tokens (totally 29, household 9, engage 5). `en-defs` leaves out a term that every English pair has, so it depends on en-ru's terms. It is rebuilt in this change (`en-defs` 2026.1122.0 -> 2026.1122.1: 129,971 -> 129,998 terms, 27 added, none removed or changed, 20,407,523 -> 20,414,484 bytes), and the other 23 packs are byte-identical. Measured with Langle's own dictionary code (the entry, else the lowercase or capital entry, else a base form's) over the lost terms: 138 still show no meaning, and 5 of the 143,211 gate tokens (America 2, Pittsburgh, Russell, Scott). They are mostly capitalised headwords (80, of which America, Pittsburgh, Oakland are places and names the hover treats as names) and rare, old or variant spellings (58: tidings, raiment, barmy, cyder, verandah), and have no English definition in the build either. `gonna` is among the 138 but is a contraction, which the hover explains itself.
+- The edition's Russian entries also said whether a capitalised headword's Russian word is a word or a name (`nativeKindOf`). Without them 363 headwords from the tables change that mark, their senses unchanged. By rule D, 53 of them (Einstein, East, Eden) are now ignored as names where a document always capitalises them.
+- Hovered in Playwright's Chromium with a temporary profile and native Russian (2026-11-22): the English definition shows for the ("The definite grammatical article that…"), an, okay, require, totally ("To the fullest extent or degree"), adaptation and cite; has and feet show the base's line ("has → have", foot with its Russian). A word with nothing (tidings, raiment) still opens a card, with its IPA and no meaning; America and Britannia, capitalised mid-sentence, get neither a highlight nor a card. The browser translator's line for the English definitions was not tried (the browser's Translator API exists in that Chromium, but no translation was requested), and the definitions shown instead were not judged.
+- Versions already on npm are untouched; an installed pack is replaced when the extension's lock names the new version.
+
 ## Other learning languages (estimated)
 Rows other than English in the matrix are estimated from source sizes (kaikki sense counts, 2026-11-13), not measured. Rules:
 - T1~: a bilingual dictionary with a confirmed license (zh → en, ja → en).
