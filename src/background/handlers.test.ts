@@ -805,6 +805,47 @@ describe("handlers: analyze", () => {
     });
   });
 
+  it("gives a word that is itself its own key and status, though another base of it is saved", async () => {
+    const analyze = () =>
+      value({ type: "analyze", lang: "en", blocks: ["The bore."] });
+    const unsaved = await analyze();
+    for (const status of ["known", "learning"] as const) {
+      store.termIndex.mockResolvedValue(new Map([["bear", status]]));
+      const result = await analyze();
+      expect(result).toEqual(unsaved);
+      expect(result.spans[0]![1]).toMatchObject({
+        key: "bore",
+        category: "new",
+        pos: "noun",
+      });
+      expect(result.unsaved).toContain("bore");
+      expect(result.saved).toEqual([]);
+    }
+    store.termIndex.mockResolvedValue(
+      new Map([
+        ["bear", "learning"],
+        ["bore", "known"],
+      ]),
+    );
+    const both = await analyze();
+    expect(both.spans[0]![1]).toMatchObject({ key: "bore", category: "known" });
+    expect(both.saved).toEqual(["bore"]);
+  });
+
+  it("keeps a saved base's key for an inflected verb form", async () => {
+    store.termIndex.mockResolvedValue(new Map([["rise", "known"]]));
+    const result = await value({
+      type: "analyze",
+      lang: "en",
+      blocks: ["The yeast rose."],
+    });
+    expect(result.spans[0]!.find((s) => s.start === 10)).toMatchObject({
+      key: "rise",
+      category: "known",
+    });
+    expect(result.saved).toEqual(["rise"]);
+  });
+
   it("takes a word the document always capitalises for a name: ignored, no dictionary meaning kept", async () => {
     // "crust" is a given name in the test lexicon; its capitalised headword is about
     // one person. "Yeast" is capitalised inside a sentence: its capitalised senses count.
