@@ -2,16 +2,19 @@ import type { ModelDownload, TranslationProvider } from "./translator";
 
 /**
  * Who waits for a translation, the most urgent first: the playing subtitle line, the
- * dictionary window, the hover card, the lists' rows (architecture.md: "Definitions
- * translated at display time").
+ * dictionary window, the hover card (a tap on a phone), the cards about to play, the
+ * lists' rows (architecture.md: "Definitions translated at display time";
+ * mobile-translation.md: "Requests and priorities").
  */
-export type TranslationPriority = "subtitle" | "window" | "hover" | "list";
+export type TranslationPriority =
+  "subtitle" | "window" | "hover" | "ahead" | "list";
 
 const RANK: Readonly<Record<TranslationPriority, number>> = {
   subtitle: 0,
   window: 1,
   hover: 2,
-  list: 3,
+  ahead: 3,
+  list: 4,
 };
 
 export interface TranslationPair {
