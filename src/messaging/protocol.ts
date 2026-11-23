@@ -278,6 +278,11 @@ export type Request =
       keys: string[];
       sourceUrl?: string;
     }
+  /**
+   * What the word list's Anki and CSV exports add to its rows, for the terms `ids` of
+   * `lang`: the pronunciation and the sentence it was saved from (else the newest).
+   */
+  | { type: "exportDetails"; lang: string; ids: string[] }
   /** Content scripts cannot open the options page themselves. */
   | { type: "openOptions" }
   /**
@@ -383,6 +388,13 @@ export interface LookupResult {
   yourMeanings: YourMeaning[];
   /** The key of the meaning chosen for `sentence` at `sourceUrl`, if any. */
   chosenHere?: string;
+}
+
+/** What an exported row adds to the word list's (`exportDetails`). */
+export interface ExportDetails {
+  ipa?: string;
+  /** Where the term was saved, else its newest occurrence; none without occurrences. */
+  occurrence?: { sentence: string; title: string; link: string };
 }
 
 /** A short meaning as lists show it. */
@@ -564,6 +576,8 @@ interface ResponseMap {
   listTermsWithStats: TermSummary[];
   /** Keyed by term key. */
   termSummaries: Record<string, TermBrief>;
+  /** Keyed by term id; a term that is gone is left out. */
+  exportDetails: Record<string, ExportDetails>;
   openOptions: null;
   /** How many sentences were added. */
   recordHistory: { kept: number };
