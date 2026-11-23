@@ -1,0 +1,278 @@
+import LangleCore
+import XCTest
+
+// Ports of src/app/testing/reference-native.test.ts, one for one: each class is a `describe`,
+// each method the `test` of the same name, so the TS, Kotlin and Swift sides can be compared.
+
+let origin = "https://app.langle.invalid"
+let article = "https://example.com/article"
+
+final class TheHostsStartTests: XCTestCase {
+  func test_gets_onInstalled_with_install_on_the_first_run() {
+    let h = Harness()
+    let host = h.connect(.host)
+    let installed = host.record("runtime.onInstalled")
+    host.call("bridge.hello", ["context": "host"])
+    XCTAssertEqual(installed.seen, [[["reason": "install"]]])
+    XCTAssertEqual(h.router.installed, "1.0.0")
+    XCTAssertEqual(h.persistence.saved["installed"], ["version": "1.0.0"])
+  }
+
+  func test_gets_onInstalled_with_update_when_the_build_changed() {
+    let h = Harness(version: "1.0.0", installedVersion: "0.9.0")
+    let host = h.connect(.host)
+    let installed = host.record("runtime.onInstalled")
+    host.call("bridge.hello", ["context": "host"])
+    XCTAssertEqual(installed.seen, [[["reason": "update", "previousVersion": "0.9.0"]]])
+  }
+
+  func test_gets_onStartup_otherwise_and_nothing_when_it_is_created_again() {
+    let h = Harness(installedVersion: "1.0.0")
+    let first = h.connect(.host)
+    let startup = first.record("runtime.onStartup")
+    first.call("bridge.hello", ["context": "host"])
+    first.disconnect()
+    let second = h.connect(.host)
+    let again = second.record("runtime.onStartup")
+    let installed = second.record("runtime.onInstalled")
+    second.call("bridge.hello", ["context": "host"])
+    XCTAssertEqual(startup.seen, [[]])
+    XCTAssertEqual(again.seen, [])
+    XCTAssertEqual(installed.seen, [])
+  }
+}
+
+final class StorageTests: XCTestCase {
+  func test_keeps_three_areas_with_get_set_remove_and_clear() {
+    let h = Harness(local: ["a": 1])
+    let page = h.connect(.page(url: "\(origin)/options.html"))
+    page.call("storage.local.set", ["b": 2])
+    page.call("storage.sync.set", ["s": true])
+    page.call("storage.session.set", ["tab": 3])
+    XCTAssertEqual(page.call("storage.local.get", nil).value, ["a": 1, "b": 2])
+    XCTAssertEqual(page.call("storage.local.get", ["b", "missing"]).value, ["b": 2])
+    page.call("storage.local.remove", ["a"])
+    page.call("storage.session.clear")
+    XCTAssertEqual(page.call("storage.local.get", nil).value, ["b": 2])
+    XCTAssertEqual(page.call("storage.sync.get", nil).value, ["s": true])
+    XCTAssertEqual(page.call("storage.session.get", nil).value, [:])
+  }
+
+  func test_posts_onChanged_to_every_context_before_it_replies_to_the_writer() {
+    let h = Harness()
+    let host = h.connect(.host)
+    let tabId = h.router.openTab(url: article)
+    let content = h.connect(.content(tabId: tabId))
+    var order: [String] = []
+    host.on("storage.onChanged") { args in
+      order.append("host onChanged")
+      XCTAssertEqual(args, [["settings": ["newValue": ["on": true]]], "sync"])
+      return .value(nil)
+    }
+    content.on("storage.onChanged") { _ in
+      order.append("content onChanged")
+      return .value(nil)
+    }
+    content.call("storage.sync.set", [["settings": ["on": true]]]) { order.append("writer resolved") }
+    XCTAssertEqual(order, ["host onChanged", "content onChanged", "writer resolved"])
+  }
+
+  func test_gives_old_and_new_values_and_posts_nothing_when_nothing_changed() {
+    let h = Harness(local: ["a": 1, "b": 2])
+    let host = h.connect(.host)
+    let changed = host.record("storage.onChanged")
+    host.call("storage.local.set", ["a": 1])
+    host.call("storage.local.remove", ["missing"])
+    host.call("storage.local.set", ["a": 5])
+    host.call("storage.local.remove", ["b"])
+    XCTAssertEqual(
+      changed.seen,
+      [
+        [["a": ["oldValue": 1, "newValue": 5]], "local"],
+        [["b": ["oldValue": 2]], "local"],
+      ])
+  }
+
+  func test_keeps_local_and_sync_for_the_next_process_not_session() {
+    let first = Harness()
+    let host = first.connect(.host)
+    host.call("storage.local.set", ["l": 1])
+    host.call("storage.sync.set", ["s": 1])
+    host.call("storage.session.set", ["x": 1])
+    let next = Harness(persistence: first.persistence)
+    XCTAssertEqual(next.router.store.stored(.local), ["l": 1])
+    XCTAssertEqual(next.router.store.stored(.sync), ["s": 1])
+    XCTAssertEqual(next.router.store.stored(.session), [:])
+  }
+}
+
+final class MessagesTests: XCTestCase {
+  func test_a_content_scripts_message_reaches_the_host_with_the_sender_native_code_knows() {
+    let h = Harness()
+    let host = h.connect(.host)
+    var senders: [JSONValue] = []
+    host.on("runtime.onMessage") { args in
+      senders.append(args[1])
+      return .value(["echo": args[0]])
+    }
+    host.call("bridge.hello", ["context": "host"])
+    let tabId = h.router.openTab(url: article)
+    let content = h.connect(.content(tabId: tabId))
+    // A second argument claiming another sender is not believed.
+    let answer = content.call("runtime.sendMessage", ["type": "counts"], ["tab": ["id": 99]])
+    XCTAssertEqual(answer.value, ["echo": ["type": "counts"]])
+    XCTAssertEqual(
+      senders,
+      [
+        [
+          "id": "langle-app",
+          "url": .string(article),
+          "origin": "https://example.com",
+          "tab": [
+            "id": .number(Double(tabId)), "url": .string(article), "active": true, "windowId": 1,
+            "incognito": false,
+          ],
+          "frameId": 0,
+        ]
+      ])
+  }
+
+  func test_the_hosts_error_reaches_the_sender() {
+    let h = Harness()
+    let host = h.connect(.host)
+    host.on("runtime.onMessage") { _ in .error("bad request") }
+    host.call("bridge.hello", ["context": "host"])
+    let page = h.connect(.page(url: "\(origin)/popup.html"))
+    XCTAssertEqual(page.call("runtime.sendMessage", [:]).error, "bad request")
+  }
+
+  func test_a_message_waits_for_the_hosts_hello() {
+    let h = Harness()
+    let page = h.connect(.page(url: "\(origin)/popup.html"))
+    let answer = page.call("runtime.sendMessage", ["type": "a"])
+    XCTAssertFalse(answer.settled)
+    let host = h.connect(.host)
+    host.on("runtime.onMessage") { _ in .value("late but there") }
+    host.call("bridge.hello", ["context": "host"])
+    XCTAssertEqual(answer.value, "late but there")
+  }
+
+  func test_a_message_fails_with_Chromes_text_when_the_host_has_not_said_hello_in_10_s() {
+    let h = Harness()
+    let page = h.connect(.page(url: "\(origin)/popup.html"))
+    let answer = page.call("runtime.sendMessage", ["type": "a"])
+    h.advance(by: 9_999)
+    XCTAssertFalse(answer.settled)
+    h.advance(by: 1)
+    XCTAssertEqual(answer.error, noReceiver)
+  }
+
+  func test_a_message_fails_with_Chromes_text_when_the_host_goes_away_before_it_answers() {
+    let h = Harness()
+    let host = h.connect(.host)
+    host.on("runtime.onMessage") { _ in .never }
+    host.call("bridge.hello", ["context": "host"])
+    let page = h.connect(.page(url: "\(origin)/popup.html"))
+    let answer = page.call("runtime.sendMessage", [:])
+    XCTAssertFalse(answer.settled)
+    host.disconnect()
+    h.settle()
+    XCTAssertEqual(answer.error, noReceiver)
+  }
+
+  func test_tabs_sendMessage_reaches_the_tabs_top_frame_or_fails_as_Chrome_does() {
+    let h = Harness()
+    let host = h.connect(.host)
+    let tabId = h.router.openTab(url: article)
+    let top = h.connect(.content(tabId: tabId))
+    let frame = h.connect(.content(tabId: tabId, frameId: 4))
+    top.on("runtime.onMessage") { args in .value(["top": args[1]]) }
+    frame.on("runtime.onMessage") { _ in .value("frame") }
+    let tab = JSONValue.number(Double(tabId))
+    XCTAssertEqual(host.call("tabs.sendMessage", tab, ["type": "summary"]).error, noReceiver)
+    top.call("bridge.hello", ["context": "content"])
+    frame.call("bridge.hello", ["context": "content"])
+    XCTAssertEqual(
+      host.call("tabs.sendMessage", tab, ["type": "summary"]).value,
+      ["top": ["id": "langle-app", "url": .string("\(origin)/"), "origin": .string(origin)]])
+    XCTAssertEqual(host.call("tabs.sendMessage", tab, [:], ["frameId": 4]).value, "frame")
+    XCTAssertEqual(host.call("tabs.sendMessage", 99, [:]).error, noReceiver)
+  }
+}
+
+final class TabsTests: XCTestCase {
+  func test_query_finds_the_active_tab_create_opens_app_pages_get_and_remove_know_them() {
+    let h = Harness()
+    let host = h.connect(.host)
+    let articleTab = h.router.openTab(url: article)
+    let active = host.call("tabs.query", ["active": true]).value??.array
+    XCTAssertEqual(active?.map { $0["id"] }, [.number(Double(articleTab))])
+    XCTAssertEqual(active?.first?["url"], .string(article))
+    let welcome = host.call("tabs.create", ["url": .string("\(origin)/welcome.html")]).value??["id"]
+    let nowActive = host.call("tabs.query", ["active": true]).value??.array
+    XCTAssertEqual(nowActive?.map { $0["id"] }, [welcome])
+    XCTAssertEqual(nowActive?.first?["url"], .string("\(origin)/welcome.html"))
+    host.call("tabs.update", .number(Double(articleTab)), ["active": true])
+    XCTAssertEqual(host.call("tabs.get", welcome!).value??["active"], false)
+    host.call("tabs.remove", welcome!)
+    XCTAssertEqual(
+      host.call("tabs.get", welcome!).error, "No tab with id: \(JSONValue.jsString(welcome))."
+    )
+  }
+
+  func test_openOptionsPage_opens_Settings_openPopup_reload_and_tabs_reload_are_logged() {
+    let h = Harness()
+    let host = h.connect(.host)
+    host.call("runtime.openOptionsPage")
+    host.call("action.openPopup")
+    host.call("runtime.reload")
+    host.call("tabs.reload", 1)
+    XCTAssertEqual(h.router.tabs.all.map(\.url), ["\(origin)/options.html"])
+    XCTAssertEqual(h.router.tabs.all.map(\.active), [true])
+    XCTAssertEqual(
+      h.actions, [.openTab(h.router.tabs.all[0]), .openPopup, .reloadHost, .reloadTab(1)])
+  }
+}
+
+final class AlarmsTests: XCTestCase {
+  func test_fire_on_the_host_at_their_time_again_when_periodic_and_can_be_cleared() {
+    let h = Harness(now: 0)
+    let host = h.connect(.host)
+    let fired = host.record("alarms.onAlarm")
+    host.call("bridge.hello", ["context": "host"])
+    host.call("alarms.create", "once", ["delayInMinutes": 1])
+    host.call("alarms.create", "often", ["periodInMinutes": 2])
+    XCTAssertEqual(host.call("alarms.get", "once").value, ["name": "once", "scheduledTime": 60_000])
+    h.advance(by: 4 * 60_000)
+    XCTAssertEqual(
+      fired.seen,
+      [
+        [["name": "once", "scheduledTime": 60_000]],
+        [["name": "often", "scheduledTime": 120_000, "periodInMinutes": 2]],
+        [["name": "often", "scheduledTime": 240_000, "periodInMinutes": 2]],
+      ])
+    XCTAssertEqual(host.call("alarms.get", "once").value, .some(nil))
+    XCTAssertEqual(host.call("alarms.clear", "often").value, true)
+    XCTAssertEqual(host.call("alarms.clear", "often").value, false)
+    h.advance(by: 10 * 60_000)
+    XCTAssertEqual(fired.seen.count, 3)
+  }
+}
+
+final class BadEnvelopesTests: XCTestCase {
+  func test_are_answered_with_an_error_and_logged() {
+    let h = Harness()
+    let host = h.connect(.host)
+    host.post(#"{"v":1,"kind":"call","id":"x1","api":"identity.get","args":[]}"#)
+    host.post("not json")
+    XCTAssertEqual(
+      host.received,
+      [
+        [
+          "v": 1, "kind": "reply", "id": "x1", "ok": false,
+          "error": ["message": "unknown call api identity.get"],
+        ]
+      ])
+    XCTAssertEqual(h.errors.count, 2)
+  }
+}
