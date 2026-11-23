@@ -23,6 +23,8 @@ export default tseslint.config(
       // Android prototypes' Gradle outputs (git ignores them through their own .gitignore).
       "mobile/**/build",
       "mobile/**/.gradle",
+      // The langle-app build copied into the Android app (git-ignored).
+      "mobile/android/app/src/main/assets/langle-app",
       // Claude Code worktrees: whole checkouts that would be linted again.
       ".claude",
     ],

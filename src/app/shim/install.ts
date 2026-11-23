@@ -1,6 +1,6 @@
 import type { Bridge } from "../bridge/bridge";
 import { createAlarms } from "./alarms";
-import { createAction, createWindows } from "./misc";
+import { createAction, createI18n, createWindows } from "./misc";
 import { createRuntime, type AppInfo } from "./runtime";
 import { createStorage } from "./storage";
 import { createTabs } from "./tabs";
@@ -20,6 +20,7 @@ export function installShim(bridge: Bridge, info: AppInfo) {
     alarms: createAlarms(bridge),
     windows: createWindows(),
     action: createAction(bridge),
+    i18n: createI18n(),
   };
   const globals = globalThis as { browser?: unknown; chrome?: unknown };
   globals.browser = shim;
