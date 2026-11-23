@@ -29,3 +29,6 @@ src/core/packs/packs.lock.json
 # Android prototypes' Gradle outputs (git ignores them through their own .gitignore)
 mobile/**/build
 mobile/**/.gradle
+
+# The langle-app build copied into the Android app (git-ignored)
+mobile/android/app/src/main/assets/langle-app
