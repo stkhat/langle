@@ -102,6 +102,51 @@ describe("createTranslationQueue", () => {
     ]);
   });
 
+  it("takes cards about to play after the hover card and before the lists", async () => {
+    const t = heldTranslator();
+    const queue = createTranslationQueue(() => t.provider);
+    const first = queue.translate("first", "hover", EN_JA);
+    await flush();
+    const all = [
+      first,
+      queue.translate("list 1", "list", EN_JA),
+      queue.translate("ahead 1", "ahead", EN_JA),
+      queue.translate("window 1", "window", EN_JA),
+      queue.translate("hover 1", "hover", EN_JA),
+      queue.translate("ahead 2", "ahead", EN_JA),
+      queue.translate("subtitle 1", "subtitle", EN_JA),
+    ];
+    await flush();
+    await t.releaseAll();
+    await Promise.all(all);
+    expect(t.started).toEqual([
+      "first",
+      "subtitle 1",
+      "window 1",
+      "hover 1",
+      "ahead 1",
+      "ahead 2",
+      "list 1",
+    ]);
+  });
+
+  it("moves a card about to play up to the subtitle line when it starts playing", async () => {
+    const t = heldTranslator();
+    const queue = createTranslationQueue(() => t.provider);
+    const first = queue.translate("first", "hover", EN_JA);
+    await flush();
+    const all = [
+      first,
+      queue.translate("a", "ahead", EN_JA),
+      queue.translate("b", "ahead", EN_JA),
+      queue.translate("b", "subtitle", EN_JA),
+    ];
+    await flush();
+    await t.releaseAll();
+    await Promise.all(all);
+    expect(t.started).toEqual(["first", "b", "a"]);
+  });
+
   it("tells its listeners about every new translation, whoever asked", async () => {
     const queue = createTranslationQueue(() => ({
       translate: async (text) => (text === "none" ? undefined : `ja(${text})`),
