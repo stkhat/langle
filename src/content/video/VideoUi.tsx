@@ -341,6 +341,13 @@ export function MenuUi(props: {
         onToggleTranscript={() =>
           app.changeSettings({ transcriptShown: !settings.transcriptShown })
         }
+        // No stepping through a Short's subtitles.
+        pauseEachSentence={vertical ? undefined : settings.pauseEachSentence}
+        onTogglePauseEach={() =>
+          app.changeSettings({
+            pauseEachSentence: !settings.pauseEachSentence,
+          })
+        }
         size={settings.subtitleSize}
         opacity={settings.subtitleOpacity}
         onPosition={(subtitlePosition) =>

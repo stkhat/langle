@@ -52,6 +52,7 @@ import { captionCards, type TimedTranslation } from "./captions";
 import { createCards } from "./cards";
 import { holdPlayback } from "./hold";
 import { followPlayback, playingAt } from "./playback";
+import { startStepping } from "./stepping";
 import type { PlatformAdapter } from "./platform";
 import { createRecorder } from "./recorder";
 import { createSelection } from "./selection";
@@ -243,6 +244,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
   });
 
   const hold = holdPlayback({ store, adapter });
+  const steps = startStepping({ store, adapter, settings: () => settings });
 
   /**
    * Our subtitles replace the site's exactly while there are some and Langle is on
@@ -407,6 +409,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       }
       store.set(now);
     }
+    steps.tick(video.currentTime * 1000, !video.paused);
     if (now.current >= 0 && w.recorder.play(now.current))
       void played(w, now.current).catch(warn);
     if (state.translationSource === "builtIn")
@@ -884,6 +887,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       selection.clear();
       explain.close();
       hold.stop();
+      steps.stop();
       watch?.controller.abort();
       watch = undefined;
       offSiteCaptions();
