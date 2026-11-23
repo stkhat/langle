@@ -1,9 +1,10 @@
 /**
  * youtube.com's MAIN world, from document_start: posts the player's /api/timedtext
  * responses and answers the adapter's calls to the player API. Requests and responses
- * pass through unchanged. No dependencies: this code runs inside the page.
+ * pass through unchanged, and no body is read until the gate is on (`PageGate`). No
+ * dependencies: this code runs inside the page.
  */
-import { installPageScript } from "../page-channel";
+import { installPageScript, type PageGate } from "../page-channel";
 import {
   CHANNEL,
   isCall,
@@ -43,7 +44,7 @@ const CAPTION_CHOICE_KEY = /^yt-player-.*caption/;
 export const installYouTubeHooks = () =>
   installPageScript<PageCall>(CHANNEL, isCall, install);
 
-function install() {
+function install(gate: PageGate) {
   const origin = location.origin;
   const XHR = XMLHttpRequest.prototype;
   const originalOpen = XHR.open;
@@ -98,7 +99,8 @@ function install() {
     this: XMLHttpRequest,
     ...args: Parameters<XMLHttpRequest["open"]>
   ) {
-    openedUrls.set(this, String(args[1]));
+    if (gate.off) openedUrls.delete(this);
+    else openedUrls.set(this, String(args[1]));
     return originalOpen.apply(this, args as Parameters<typeof originalOpen>);
   } as typeof XHR.open;
 
@@ -106,16 +108,18 @@ function install() {
     this: XMLHttpRequest,
     ...args: Parameters<XMLHttpRequest["send"]>
   ) {
-    const opened = openedUrls.get(this);
+    const opened = gate.off ? undefined : openedUrls.get(this);
     const url = opened === undefined ? undefined : timedtextUrl(opened);
     if (url) {
-      this.addEventListener("load", () => {
-        try {
-          post(url, xhrBody(this));
-        } catch {
-          // Never disturb the player.
-        }
-      });
+      this.addEventListener("load", () =>
+        gate.whenOn(() => {
+          try {
+            post(url, xhrBody(this));
+          } catch {
+            // Never disturb the player.
+          }
+        }),
+      );
     }
     return originalSend.apply(this, args);
   };
@@ -125,14 +129,24 @@ function install() {
     ...args: Parameters<typeof window.fetch>
   ) {
     const result = originalFetch.apply(this, args);
+    if (gate.off) return result;
     const [input] = args;
     const url = timedtextUrl(
       input instanceof Request ? input.url : String(input),
     );
     if (url) {
       result
-        .then((response) => response.clone().text())
-        .then((body) => post(url, body))
+        .then((response) => {
+          if (gate.off) return;
+          // Copied before the page reads it; the copy is read only once on.
+          const copy = response.clone();
+          gate.whenOn(() => {
+            copy
+              .text()
+              .then((body) => post(url, body))
+              .catch(() => {});
+          });
+        })
         .catch(() => {});
     }
     return result;

@@ -15,6 +15,12 @@ import {
   type ErrorCollector,
 } from "./error-collector";
 import {
+  mergeSettings,
+  SETTINGS_KEY,
+  SETTINGS_TIMES_KEY,
+} from "../src/core/settings";
+import { CONSENT_VERSION, SETUP_KEY } from "../src/core/setup";
+import {
   BLOCK_MIRROR_HOSTS,
   routePackMirrors,
   type MirrorRouting,
@@ -49,13 +55,14 @@ export const extensionPathOf = (build: Build) =>
 
 /**
  * A fresh browser profile with a built extension loaded. The lock's mirrors are routed
- * to data/packs/ first (pack-mirrors.ts), then the extension is loaded through CDP:
- * once installed, it downloads its language pair's packs at once.
+ * to data/packs/ first (pack-mirrors.ts), then the extension is loaded through CDP
+ * (after `before`, if given): once installed, it opens its setup and nothing else.
  */
 async function launchWithExtension(
   build: Build,
   port: number,
   mirrors: MirrorRouting,
+  before: ((context: BrowserContext) => Promise<void>) | null,
 ): Promise<BrowserContext> {
   const extensionPath = extensionPathOf(build);
   if (!fs.existsSync(path.join(extensionPath, "manifest.json")))
@@ -68,10 +75,9 @@ async function launchWithExtension(
     // Playwright turns extensions off; --disable-extensions-except would load this one
     // at launch, before the routes.
     ignoreDefaultArgs: ["--disable-extensions"],
-    // A Japanese UI, so a new install starts with English → Japanese and downloads
-    // nothing else: Linux reads the UI language from LANGUAGE (it ignores --lang),
-    // Windows from --lang; macOS from the system's languages (`startPair` sees to the
-    // pair there, and specs that need it take the other pair's data away).
+    // A Japanese UI, which the setup fills in: Linux reads the UI language from
+    // LANGUAGE (it ignores --lang), Windows from --lang; macOS from the system's
+    // languages.
     env: { ...process.env, LANGUAGE: "ja" },
     args: [
       // For the error collector's CDP connection.
@@ -83,6 +89,7 @@ async function launchWithExtension(
     ],
   });
   await routePackMirrors(context, mirrors);
+  await before?.(context);
   const cdp = await connectBrowserCdp(port);
   try {
     const reply = await cdp.send("Extensions.loadUnpacked", {
@@ -103,10 +110,22 @@ async function extensionIdOf(context: BrowserContext): Promise<string> {
   return new URL(worker.url()).host;
 }
 
+/** The setup's pages that are open. */
+export const setupPages = (context: BrowserContext) =>
+  context.pages().filter((page) => page.url().endsWith("/welcome.html"));
+
+/** The setup a new install opens. */
+export async function setupPage(context: BrowserContext): Promise<Page> {
+  await base.expect.poll(() => setupPages(context).length).toBe(1);
+  const page = setupPages(context)[0]!;
+  await page.waitForLoadState();
+  return page;
+}
+
 /**
- * Waits for the language pair a new install stores (from the browser's UI language),
- * then makes it `pair` where it is another one: the specs are written for the
- * development pair whatever the OS's language.
+ * Sets the new install up with `pair`, as consent and Start would leave it, and closes
+ * the setup it opened: without the return to a tab and the popup, which first-run.spec.ts
+ * tests.
  */
 async function useStartPair(
   context: BrowserContext,
@@ -115,49 +134,39 @@ async function useStartPair(
   const worker =
     context.serviceWorkers()[0] ??
     (await context.waitForEvent("serviceworker"));
-  const stored = () =>
-    worker.evaluate(async () => {
-      const { chrome: api } = globalThis as unknown as {
-        chrome: {
-          storage: {
-            sync: { get(key: string): Promise<{ settings?: object }> };
-          };
-        };
-      };
-      return (await api.storage.sync.get("settings")).settings;
-    });
-  await base.expect.poll(stored).toBeDefined();
+  await (await setupPage(context)).close();
+  // What Start stores (`storeChosenPair`, then the setup): all settings with their
+  // times, so browser sync's space is as full as it is after a real setup.
+  const values = mergeSettings({ learningLang, nativeLang });
   await worker.evaluate(
-    async ([learningLang, nativeLang]) => {
+    async ([sync, local]) => {
       const { chrome: api } = globalThis as unknown as {
         chrome: {
           storage: {
-            sync: {
-              get(key: string): Promise<{ settings?: object }>;
-              set(items: object): Promise<void>;
-            };
+            local: { set(items: object): Promise<void> };
+            sync: { set(items: object): Promise<void> };
           };
         };
       };
-      const { settings } = await api.storage.sync.get("settings");
-      const pair = settings as { learningLang?: string; nativeLang?: string };
-      if (pair.learningLang === learningLang && pair.nativeLang === nativeLang)
-        return;
-      await api.storage.sync.set({
-        settings: { ...settings, learningLang, nativeLang },
-      });
+      await api.storage.sync.set(sync);
+      await api.storage.local.set(local);
     },
-    [learningLang, nativeLang] as const,
+    [
+      { [SETTINGS_KEY]: values, [SETTINGS_TIMES_KEY]: { values, times: {} } },
+      { [SETUP_KEY]: { consent: CONSENT_VERSION, languages: true } },
+    ] as const,
   );
 }
 
 export const test = base.extend<{
   build: Build;
   /**
-   * The pair each test starts with (default: English → Japanese, the development
-   * pair); null keeps the one the new install chose.
+   * The pair each test starts set up with (default: English → Japanese, the
+   * development pair); null leaves the new install at its setup.
    */
   startPair: readonly [string, string] | null;
+  /** Runs in the browser before Langle is installed in it. */
+  beforeInstall: ((context: BrowserContext) => Promise<void>) | null;
   /**
    * The lock's mirrors wait until `releasePackMirrors` (pack-mirrors.ts): all of them,
    * or those of these packs' files.
@@ -171,6 +180,7 @@ export const test = base.extend<{
 }>({
   build: ["check", { option: true }],
   startPair: [["en", "ja"], { option: true }],
+  beforeInstall: [null, { option: true }],
   mirrorsHeld: [false, { option: true }],
   mirrorBitsPerSecond: [0, { option: true }],
   // eslint-disable-next-line no-empty-pattern
@@ -178,13 +188,15 @@ export const test = base.extend<{
     await use(await freePort());
   },
   context: async (
-    { build, startPair, mirrorsHeld, mirrorBitsPerSecond, port },
+    { build, startPair, beforeInstall, mirrorsHeld, mirrorBitsPerSecond, port },
     use,
   ) => {
-    const context = await launchWithExtension(build, port, {
-      held: mirrorsHeld,
-      bitsPerSecond: mirrorBitsPerSecond,
-    });
+    const context = await launchWithExtension(
+      build,
+      port,
+      { held: mirrorsHeld, bitsPerSecond: mirrorBitsPerSecond },
+      beforeInstall,
+    );
     if (startPair) await useStartPair(context, startPair);
     await use(context);
     await context.close();

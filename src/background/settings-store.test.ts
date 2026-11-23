@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 import { DEFAULT_SETTINGS } from "../core/settings";
@@ -7,7 +7,7 @@ import {
   getTimedSettings,
   setSettings,
   settingsStored,
-  storeStartingPair,
+  storeChosenPair,
 } from "./settings-store";
 
 beforeEach(() => {
@@ -63,45 +63,33 @@ describe("settings store", () => {
   });
 });
 
-describe("storeStartingPair", () => {
-  const pair = async () => {
-    const { learningLang, nativeLang } = await getSettings();
-    return `${learningLang}>${nativeLang}`;
-  };
+describe("storeChosenPair", () => {
+  const spanish = { learningLang: "en", nativeLang: "es" };
 
-  it("stores the pair the UI language suggests on a new install", async () => {
+  it("stores the pair chosen at the first run", async () => {
     expect(await settingsStored()).toBe(false);
-    await storeStartingPair("install", "es-419");
-    expect(await settingsStored()).toBe(true);
-    expect(await pair()).toBe("en>es");
-    const stored = await browser.storage.sync.get("settings");
-    expect(stored.settings).toEqual({
+    await storeChosenPair(spanish);
+    expect((await browser.storage.sync.get("settings")).settings).toEqual({
       ...DEFAULT_SETTINGS,
-      learningLang: "en",
-      nativeLang: "es",
+      ...spanish,
     });
   });
 
-  it("stores the default pair after an update", async () => {
-    await storeStartingPair("update", "en-US");
-    expect(await settingsStored()).toBe(true);
-    expect(await pair()).toBe("en>ja");
-  });
-
-  it("keeps the settings stored already, from this device or another", async () => {
+  it("changes only the pair of the settings stored already", async () => {
     await setSettings({ knownLevel: 5000 });
-    await storeStartingPair("install", "en-US");
-    expect(await pair()).toBe("en>ja");
-    expect((await getSettings()).knownLevel).toBe(5000);
+    await storeChosenPair(spanish);
+    expect(await getSettings()).toMatchObject({ ...spanish, knownLevel: 5000 });
+  });
 
-    fakeBrowser.reset();
-    await browser.storage.sync.set({
-      settings: { learningLang: "en", nativeLang: "pt" },
-    });
-    await storeStartingPair("install", "ja");
-    expect(await pair()).toBe("en>pt");
+  it("writes nothing when the stored pair is chosen again", async () => {
+    await setSettings(spanish);
+    const set = vi.spyOn(browser.storage.sync, "set");
+    await storeChosenPair(spanish);
+    expect(set).not.toHaveBeenCalled();
+    set.mockRestore();
   });
 });
+
 describe("field times", () => {
   const at = (time: number) => () => time;
   const storedTimes = async () =>
@@ -166,10 +154,16 @@ describe("field times", () => {
   });
 
   it("gives the starting pair time 0, so any device's choice wins over it", async () => {
-    await storeStartingPair("install", "es-419");
+    await storeChosenPair({ learningLang: "en", nativeLang: "es" });
     expect(await storedTimes()).toEqual({
       values: { ...DEFAULT_SETTINGS, learningLang: "en", nativeLang: "es" },
       times: {},
     });
+  });
+
+  it("times a chosen pair that replaces a stored one, as any change", async () => {
+    await setSettings({}, () => 1000);
+    await storeChosenPair({ learningLang: "en", nativeLang: "es" }, () => 2000);
+    expect((await getTimedSettings()).times).toEqual({ nativeLang: 2000 });
   });
 });

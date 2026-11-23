@@ -8,6 +8,8 @@
 const KOFI_URL = "";
 /** "Send feedback": a short Google Form. */
 export const FEEDBACK_URL = "";
+/** The consent screen's "Privacy policy": the public policy, hidden while empty. */
+export const PRIVACY_POLICY_URL = "";
 /** "Become a sponsor" / "Sponsor this spot": the page for would-be sponsors. */
 export const SPONSOR_PAGE_URL = "";
 

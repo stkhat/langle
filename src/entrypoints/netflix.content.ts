@@ -1,5 +1,8 @@
 import { startContentCheck } from "../check/start";
 import { createNetflixAdapter } from "../content/video/netflix/adapter";
+import { runWhenSetUp } from "../content/setup";
+import { tellPage } from "../content/video/page-channel";
+import { CHANNEL } from "../content/video/netflix/messages";
 import { runVideoSite } from "../content/video/run";
 
 export default defineContentScript({
@@ -9,6 +12,9 @@ export default defineContentScript({
   main(ctx) {
     // `npm run build:check` only: the error log and the settings channel (src/check/).
     if (import.meta.env.MODE === "check") startContentCheck("netflix");
-    return runVideoSite(ctx, createNetflixAdapter());
+    runWhenSetUp(ctx, () => runVideoSite(ctx, createNetflixAdapter()), {
+      needsPageLoad: true,
+      waiting: () => tellPage(CHANNEL, "wait"),
+    });
   },
 });

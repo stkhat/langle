@@ -5,10 +5,10 @@ import { supportLinks } from "../../core/links";
 import { send } from "../../messaging/client";
 import { watchPackState, watchSettings } from "../../messaging/storage";
 import { download } from "../../ui/backup/download";
-import { mountPage } from "../../ui/mount-page";
+import { mountSetUpPage } from "../../ui/mount-page";
 import { SettingsPage, type SettingsDeps } from "./SettingsPage";
 
-mountPage(() => {
+mountSetUpPage(() => {
   const env = createBrowserEnv();
   const deps: SettingsDeps = {
     send,
