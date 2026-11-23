@@ -155,6 +155,28 @@ export function createListMeanings(o: {
       }
     },
     /**
+     * Translates now every row of `rows` that needs it (an export of rows not all
+     * shown yet); resolves once each has its translation or got none.
+     */
+    async translateAll(rows: readonly ListRow[]) {
+      await Promise.all(
+        rows.map(async ({ key, head }) => {
+          heads.set(key, head);
+          const w = want(key);
+          if (!w || stopped()) return;
+          const translated = await o.translator.translate(
+            w.text,
+            "list",
+            w.pair,
+          );
+          if (!translated || stopped()) return;
+          if (w.definition)
+            keepTranslations(o.send, o.lang(), [{ text: w.text, translated }]);
+          apply(w.text, w.pair, translated);
+        }),
+      );
+    },
+    /**
      * The list's meanings came or were read again (in English where not cached): the
      * rows among `keys` (default: all) shown so far ask, mostly for translations the
      * queue keeps.

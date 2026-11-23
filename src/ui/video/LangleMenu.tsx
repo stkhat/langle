@@ -28,6 +28,11 @@ export interface LangleMenuProps {
    * there is no transcript (a Short): no switch.
    */
   transcriptShown?: boolean;
+  /**
+   * `Settings.pauseEachSentence`: the "Pause after each sentence" switch. Undefined
+   * where there are no sentences to step through (a Short): no switch.
+   */
+  pauseEachSentence?: boolean;
   /** `Settings.subtitleSize`, or the value being dragged. */
   size: number;
   /** `Settings.subtitleOpacity`, or the value being dragged. */
@@ -35,6 +40,7 @@ export interface LangleMenuProps {
   onPosition: (position: Settings["subtitlePosition"]) => void;
   onToggleTranslation: () => void;
   onToggleTranscript?: () => void;
+  onTogglePauseEach?: () => void;
   /** While a slider is dragged: show the value, do not save it yet. */
   onPreview: (look: { size?: number; opacity?: number }) => void;
   /** A slider was let go: save the value. */
@@ -218,6 +224,13 @@ export function LangleMenu(props: LangleMenuProps) {
         checked={props.showTranslation}
         onToggle={props.onToggleTranslation}
       />
+      {props.pauseEachSentence !== undefined && (
+        <MenuSwitch
+          label={t("video.menu.pauseEach")}
+          checked={props.pauseEachSentence}
+          onToggle={() => props.onTogglePauseEach?.()}
+        />
+      )}
       {props.showPositions !== false && (
         <div
           style={{

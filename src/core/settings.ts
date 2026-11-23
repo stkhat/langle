@@ -49,6 +49,13 @@ export interface Settings {
    * L menu's switch (menu only, not on the settings page).
    */
   transcriptShown: boolean;
+  /**
+   * Keys that step through a video's sentences while Langle is on for it (Settings →
+   * Video subtitles): each a single character, lower case, the three different.
+   */
+  stepKeys: StepKeys;
+  /** The video pauses at the end of each transcript card (the L menu's switch). */
+  pauseEachSentence: boolean;
   /** Where Langle runs; `youtubeComments` also needs `youtube`. */
   sites: {
     youtube: boolean;
@@ -83,6 +90,41 @@ export interface Settings {
    * on any device.
    */
   rateNudgeDone: boolean;
+}
+
+/** The actions of `Settings.stepKeys`, in the order the settings page shows them. */
+export const STEP_ACTIONS = ["previous", "replay", "next"] as const;
+export type StepAction = (typeof STEP_ACTIONS)[number];
+
+export type StepKeys = { on: boolean } & Record<StepAction, string>;
+
+/**
+ * The key an action may take: one printable character other than a space, without
+ * Ctrl, Alt or Meta (Shift leaves the site's Shift shortcuts alone), in lower case;
+ * undefined for any other key.
+ */
+export function stepKeyOf(event: {
+  key: string;
+  ctrlKey?: boolean;
+  altKey?: boolean;
+  metaKey?: boolean;
+}): string | undefined {
+  if (event.ctrlKey || event.altKey || event.metaKey) return undefined;
+  const key = event.key.toLowerCase();
+  return [...key].length === 1 && key.trim() !== "" ? key : undefined;
+}
+
+/** `keys` with `action` on `key`; the action that had it takes `action`'s old key. */
+export function assignStepKey(
+  keys: StepKeys,
+  action: StepAction,
+  key: string,
+): StepKeys {
+  const next = { ...keys };
+  for (const other of STEP_ACTIONS)
+    if (other !== action && keys[other] === key) next[other] = keys[action];
+  next[action] = key;
+  return next;
 }
 
 /** A partial update: top-level keys, and nested groups key by key. */
@@ -127,6 +169,8 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   subtitleOpacity: 80,
   transcriptTranslation: true,
   transcriptShown: true,
+  stepKeys: { on: true, previous: "a", replay: "s", next: "d" },
+  pauseEachSentence: false,
   sites: {
     youtube: true,
     youtubeComments: true,
@@ -175,6 +219,21 @@ function flags<T extends Record<string, boolean>>(value: unknown, base: T): T {
   const out = {} as Record<string, boolean>;
   for (const key of Object.keys(base)) out[key] = bool(input[key], base[key]!);
   return out as T;
+}
+
+/** Step keys from stored input: the base's keys unless all three are valid and different. */
+function stepKeys(value: unknown, base: StepKeys): StepKeys {
+  const input = isDict(value) ? value : {};
+  const keys = STEP_ACTIONS.map((action) => {
+    const key = input[action];
+    return typeof key === "string" ? stepKeyOf({ key }) : base[action];
+  });
+  const valid = keys.every(Boolean) && new Set(keys).size === keys.length;
+  const out = { on: bool(input.on, base.on) } as StepKeys;
+  STEP_ACTIONS.forEach((action, i) => {
+    out[action] = valid ? keys[i]! : base[action];
+  });
+  return out;
 }
 
 /** A slider's value: a finite number rounded to `step` and kept within `min`–`max`. */
@@ -241,6 +300,8 @@ export function mergeSettings(
       base.transcriptTranslation,
     ),
     transcriptShown: bool(v.transcriptShown, base.transcriptShown),
+    stepKeys: stepKeys(v.stepKeys, base.stepKeys),
+    pauseEachSentence: bool(v.pauseEachSentence, base.pauseEachSentence),
     sites: flags(v.sites, base.sites),
     videoOn: flags(v.videoOn, base.videoOn),
     neverRunOn: strings(v.neverRunOn, base.neverRunOn),

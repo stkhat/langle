@@ -27,7 +27,8 @@
 | `npm run build` / `npm run build:firefox` | build to `.output/chrome-mv3` / `.output/firefox-mv3` |
 | `npm run build:check` | self-reloading Chrome build in `.output/langle-check` (see below) |
 | `npm run build:check-download` | check build that downloads its language data from the E2E server's mirror, in `.output/chrome-mv3-check-download` (see "Language data downloads in E2E") |
-| `npm run test:manifest` | check both built manifests |
+| `npm run build:app` | the phone app's build in `.output/langle-app-mv3` ([mobile-app.md](specs/mobile-app.md) "The `langle-app` build target") |
+| `npm run test:manifest` | check the built manifests (both browsers and the phone app) |
 | `npm run test:e2e:build` | production, check and check-download builds, then run E2E |
 | `npm run test:e2e:real` | E2E error checks on real sites (Wikipedia, BBC, YouTube); needs the network |
 | `npm run verify` | everything a push needs, in about 75 s (`scripts/verify.ts`): check, unit, browser on Chromium, builds and E2E on the host, while the Firefox browser tests run in Docker (3 containers) alongside; one line per stage, and the part of the log that says why when one fails (full logs in `$(git rev-parse --git-path langle-verify)`). The first failure stops the rest. When it passes, it records the tree it tested for the pre-push hook |
