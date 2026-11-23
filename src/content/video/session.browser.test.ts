@@ -832,6 +832,78 @@ describe("translating ahead", () => {
     session.app.setEnabled(true);
     await expect.poll(() => asked).toContain("Bake it.");
   });
+
+  it("asks again for the playing card that got no translation when the window changes", async () => {
+    const asked: string[] = [];
+    const translator: TranslationProvider = {
+      translate: async (text) => {
+        asked.push(text);
+        // The first answer for the playing card is missing.
+        return text === "Mix the flour." && asked.length === 1
+          ? undefined
+          : `ja(${text})`;
+      },
+    };
+    const { state, video } = await start(builtIn(SPREAD), {
+      translatorAvailable: true,
+      translator,
+    });
+    await ready(state);
+    await expect
+      .poll(() => asked.filter((t) => t === "Mix the flour."))
+      .toHaveLength(1);
+    expect(state().translations[0]).toBeFalsy();
+    // 0.5 s: "Mix the flour." still plays, but the window moved on.
+    await seekTo(video, 0.5);
+    await expect.poll(() => state().translations[0]).toBe("ja(Mix the flour.)");
+  });
+
+  it("aborts what was asked ahead when the site moves to another video", async () => {
+    const started: string[] = [];
+    const held: (() => void)[] = [];
+    const translator: TranslationProvider = {
+      translate(text) {
+        started.push(text);
+        return new Promise((resolve) =>
+          held.push(() => resolve(`ja(${text})`)),
+        );
+      },
+    };
+    const NEXT: Cue[] = [{ startMs: 0, endMs: 1000, text: "Serve it." }];
+    const { state, site, session } = await start(
+      { vid1: builtIn(SPREAD).vid1, vid2: builtIn(NEXT).vid1 },
+      { translatorAvailable: true, translator },
+    );
+    await ready(state);
+    await expect.poll(() => started).toEqual(["Mix the flour."]);
+    site.navigate("vid2");
+    await expect.poll(() => state().videoId).toBe("vid2");
+    await ready(state);
+    held.shift()!();
+    // The paused video sends no playback event: setEnabled runs the session's update.
+    session.app.setEnabled(true);
+    await expect.poll(() => started).toContain("Serve it.");
+    for (const release of held.splice(0)) release();
+    // Once "Serve it." is shown, a job for "Add the water." would have started.
+    await expect.poll(() => state().translations[0]).toBe("ja(Serve it.)");
+    expect(started).not.toContain("Add the water.");
+  });
+
+  it("asks for nothing ahead while an ad shows", async () => {
+    const { asked, translator } = recording();
+    const { state, video, site } = await start(builtIn(SPREAD), {
+      translatorAvailable: true,
+      translator,
+    });
+    await ready(state);
+    await expect.poll(() => state().translations[1]).toBe("ja(Add the water.)");
+    site.setAd(true);
+    await seekTo(video, 3);
+    expect(asked).not.toContain("Bake it.");
+    site.setAd(false);
+    await seekTo(video, 3.1);
+    await expect.poll(() => asked).toContain("Bake it.");
+  });
 });
 
 describe("on and off", () => {
