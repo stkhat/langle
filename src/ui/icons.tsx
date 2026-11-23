@@ -105,6 +105,14 @@ export function ChevronUpIcon() {
   );
 }
 
+export function ChevronDownIcon() {
+  return (
+    <Outline size={14} stroke={2} cap join>
+      <path d="M6 9l6 6 6-6"></path>
+    </Outline>
+  );
+}
+
 export function PlayIcon() {
   return (
     <svg

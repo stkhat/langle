@@ -1252,6 +1252,59 @@ describe("handlers: termSummaries", () => {
   });
 });
 
+describe("handlers: exportDetails", () => {
+  it("gives each saved term's pronunciation and the sentence it was saved from, else the newest", async () => {
+    store.termIndex.mockResolvedValue(
+      new Map([
+        ["loaf", "learning"],
+        ["rise", "known"],
+        ["crust", "learning"],
+      ]),
+    );
+    store.occurrencesOf.mockImplementation(async (id: string) => {
+      if (id === "en:loaf")
+        return [
+          occurrence(3, BREAD, "A warm loaf.", { textQuote: "A warm loaf." }),
+          {
+            ...occurrence(2, VIDEO, "Shape the loaf.", { timeMs: 12_500 }),
+            origin: "saved" as const,
+          },
+        ];
+      if (id === "en:rise")
+        return [
+          occurrence(5, BREAD, "Let it rise.", { textQuote: "Let it rise." }),
+        ];
+      return [];
+    });
+    const answer = await value({
+      type: "exportDetails",
+      lang: "en",
+      // A term not saved, another language's and a repeat are left out.
+      ids: ["en:loaf", "en:rise", "en:crust", "en:gone", "es:pan", "en:loaf"],
+    });
+    expect(answer).toEqual({
+      "en:loaf": {
+        ipa: "/loʊf/",
+        occurrence: {
+          sentence: "Shape the loaf.",
+          title: "Baking video",
+          link: "https://www.youtube.com/watch?v=abc&t=12s",
+        },
+      },
+      // The test pack has no pronunciation for these.
+      "en:rise": {
+        occurrence: {
+          sentence: "Let it rise.",
+          title: "Bread",
+          link: expect.stringContaining("https://example.com/bread"),
+        },
+      },
+      "en:crust": {},
+    });
+    expect(store.occurrencesOf).toHaveBeenCalledTimes(3);
+  });
+});
+
 describe("handlers: warmDictionary", () => {
   it("loads the dictionary of the native language before any lookup", async () => {
     expect(filesRead(loadPack)).toEqual([]);
