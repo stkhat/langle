@@ -16,7 +16,7 @@
 - [x] M0: `langle-app` target, protocol, shim, reference native (branch `claude/mobile-m0`)
 - [x] S1: iOS spike (branch `claude/mobile-s1`): the storage plan holds; the host must stay in the view hierarchy (notes/mobile.md "iOS extension host spike")
 - [ ] S2: Android spike (branch `claude/mobile-s2`)
-- [ ] M2: iOS shell (branch `claude/mobile-m2`)
+- [x] M2: iOS shell (branch `claude/mobile-m2`)
 - [ ] M1: Android shell (branch `claude/mobile-m1`; after S2 answers 3–5)
 
 ## Running order
