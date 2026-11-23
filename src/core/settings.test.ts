@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SETTINGS, hostBlocked, mergeSettings } from "./settings";
+import {
+  assignStepKey,
+  DEFAULT_SETTINGS,
+  hostBlocked,
+  mergeSettings,
+  stepKeyOf,
+} from "./settings";
 
 describe("DEFAULT_SETTINGS", () => {
   it("match the spec and the mock", () => {
@@ -24,6 +30,8 @@ describe("DEFAULT_SETTINGS", () => {
       subtitleOpacity: 80,
       transcriptTranslation: true,
       transcriptShown: true,
+      stepKeys: { on: true, previous: "a", replay: "s", next: "d" },
+      pauseEachSentence: false,
       sites: {
         youtube: true,
         youtubeComments: true,
@@ -45,6 +53,29 @@ describe("DEFAULT_SETTINGS", () => {
 });
 
 describe("mergeSettings", () => {
+  it("keeps step keys that are single characters, all different, in lower case", () => {
+    expect(
+      mergeSettings({ stepKeys: { previous: "Q", replay: "w", next: "e" } })
+        .stepKeys,
+    ).toEqual({ on: true, previous: "q", replay: "w", next: "e" });
+    expect(mergeSettings({ stepKeys: { on: false } }).stepKeys.on).toBe(false);
+  });
+
+  it("falls back to the default step keys when one is invalid or two are the same", () => {
+    const defaults = { on: true, previous: "a", replay: "s", next: "d" };
+    for (const next of ["a", " ", "Enter", 3])
+      expect(mergeSettings({ stepKeys: { next } }).stepKeys).toEqual(defaults);
+  });
+
+  it("keeps pausing after each sentence off for anything but a boolean", () => {
+    expect(mergeSettings({ pauseEachSentence: true }).pauseEachSentence).toBe(
+      true,
+    );
+    expect(mergeSettings({ pauseEachSentence: "yes" }).pauseEachSentence).toBe(
+      false,
+    );
+  });
+
   it("keeps the transcript closed once the user closed it, and open for anything but a boolean", () => {
     expect(mergeSettings({ transcriptShown: false }).transcriptShown).toBe(
       false,
@@ -207,5 +238,32 @@ describe("hostBlocked", () => {
     expect(hostBlocked("example.com", settings)).toBe(true);
     expect(hostBlocked("www.youtube.com", settings)).toBe(true);
     expect(mergeSettings({ enabled: "no" }).enabled).toBe(true);
+  });
+});
+
+describe("step keys", () => {
+  const keys = { on: true, previous: "a", replay: "s", next: "d" };
+
+  it("takes one printable character without Ctrl, Alt or Meta, in lower case", () => {
+    expect(stepKeyOf({ key: "Q" })).toBe("q");
+    expect(stepKeyOf({ key: "," })).toBe(",");
+    expect(stepKeyOf({ key: "é" })).toBe("é");
+    for (const key of [" ", "Enter", "ArrowLeft", "Escape", "Shift"])
+      expect(stepKeyOf({ key })).toBeUndefined();
+    expect(stepKeyOf({ key: "a", ctrlKey: true })).toBeUndefined();
+    expect(stepKeyOf({ key: "a", altKey: true })).toBeUndefined();
+    expect(stepKeyOf({ key: "a", metaKey: true })).toBeUndefined();
+  });
+
+  it("gives an action a new key, and the action that had it the old one", () => {
+    expect(assignStepKey(keys, "replay", "r")).toEqual({
+      ...keys,
+      replay: "r",
+    });
+    expect(assignStepKey(keys, "previous", "d")).toEqual({
+      ...keys,
+      previous: "d",
+      next: "a",
+    });
   });
 });

@@ -1002,6 +1002,125 @@ describe("on and off", () => {
     expect(video.paused).toBe(false);
   });
 
+  describe("step keys", () => {
+    /** Presses `key` on `target` as the page would get it; true when Langle took it. */
+    function press(key: string, target: Element = document.body) {
+      const event = new KeyboardEvent("keydown", {
+        key,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      });
+      target.dispatchEvent(event);
+      return event.defaultPrevented;
+    }
+
+    it("go to the previous card, the same card again and the next card, and play", async () => {
+      const { state, video, site } = await start();
+      await ready(state);
+      await seekTo(video, 1.2);
+      await expect.poll(() => state().card).toBe(1);
+      expect(press("a")).toBe(true);
+      expect(site.log.seeks).toEqual([0]);
+      await expect.poll(() => site.log.playback).toEqual(["play"]);
+      video.pause();
+      await seekTo(video, 1.2);
+      await expect.poll(() => state().card).toBe(1);
+      expect(press("S")).toBe(true);
+      expect(press("d")).toBe(true);
+      expect(site.log.seeks).toEqual([0, 1000, 2500]);
+    });
+
+    it("keep the key from the site, and do nothing past the last card", async () => {
+      const { state, video, site } = await start();
+      await ready(state);
+      await seekTo(video, 3);
+      await expect.poll(() => state().card).toBe(2);
+      let siteGot = 0;
+      const siteKeys = () => siteGot++;
+      document.addEventListener("keydown", siteKeys);
+      cleanups.push(() => document.removeEventListener("keydown", siteKeys));
+      expect(press("d")).toBe(true);
+      expect(siteGot).toBe(0);
+      expect(site.log.seeks).toEqual([]);
+      expect(press("k")).toBe(false);
+      expect(siteGot).toBe(1);
+    });
+
+    it("are left alone while typing in a field, a comment box or Langle's own field", async () => {
+      const { state, video, site } = await start();
+      await ready(state);
+      await seekTo(video, 1.2);
+      const input = document.createElement("input");
+      const box = document.createElement("div");
+      box.contentEditable = "true";
+      const host = document.createElement("div");
+      const inner = document.createElement("textarea");
+      host.attachShadow({ mode: "open" }).append(inner);
+      document.body.append(input, box, host);
+      cleanups.push(() => [input, box, host].forEach((e) => e.remove()));
+      for (const target of [input, box, inner])
+        expect(press("d", target)).toBe(false);
+      expect(site.log.seeks).toEqual([]);
+    });
+
+    it("are left to the site while Langle is off for the video, on a Short or switched off", async () => {
+      const off = await start();
+      await ready(off.state);
+      off.app.setEnabled(false);
+      expect(press("d")).toBe(false);
+      expect(off.site.log.seeks).toEqual([]);
+      off.app.setEnabled(true);
+      off.site.adapter.vertical = () => true;
+      expect(press("d")).toBe(false);
+      expect(off.site.log.seeks).toEqual([]);
+      off.session.stop();
+
+      const unset = await start(undefined, {
+        settings: {
+          stepKeys: { on: false, previous: "a", replay: "s", next: "d" },
+        },
+      });
+      await ready(unset.state);
+      expect(press("d")).toBe(false);
+      expect(unset.site.log.seeks).toEqual([]);
+    });
+
+    it("follow the keys the user chose", async () => {
+      const { state, site } = await start(undefined, {
+        settings: {
+          stepKeys: { on: true, previous: ",", replay: "r", next: "." },
+        },
+      });
+      await ready(state);
+      expect(press("d")).toBe(false);
+      expect(press(".")).toBe(true);
+      expect(site.log.seeks).toEqual([1000]);
+    });
+  });
+
+  it("pauses at the end of each card, while its line shows, when asked to", async () => {
+    const { state, video, site } = await start(undefined, {
+      settings: { pauseEachSentence: true },
+    });
+    await ready(state);
+    await seekTo(video, 0.6);
+    await video.play();
+    await expect.poll(() => site.log.playback).toEqual(["pause"]);
+    await expect.poll(() => video.paused).toBe(true);
+    expect(video.currentTime).toBeLessThan(1);
+    expect(state().card).toBe(0);
+    // Played on: past the end it paused at, to the next card's end.
+    await video.play();
+    await expect
+      .poll(() => site.log.playback, { timeout: 3000 })
+      .toEqual(["pause", "pause"]);
+    await expect.poll(() => video.paused).toBe(true);
+    expect(video.currentTime).toBeGreaterThan(1);
+    expect(video.currentTime).toBeLessThan(2);
+    expect(state().card).toBe(1);
+  });
+
   it("keeps a playing video playing when a card is clicked", async () => {
     const { state, video, site, session } = await start();
     await ready(state);
