@@ -71,13 +71,10 @@ export function BackupButtons(props: {
   const fileInput = useRef<HTMLInputElement>(null);
   const menuBox = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState(false);
-  usePressAway(
-    menu,
-    () => setMenu(false),
-    (event) =>
-      menuBox.current !== null &&
-      event.composedPath().includes(menuBox.current),
-  );
+  /** A press on the button or in the menu keeps it; decided while the press happens. */
+  const inMenu = (event: PointerEvent) =>
+    menuBox.current !== null && event.composedPath().includes(menuBox.current);
+  usePressAway(menu, () => setMenu(false), inMenu, { now: inMenu });
 
   async function exportWords(item: ExportItem) {
     setMenu(false);
