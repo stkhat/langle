@@ -233,6 +233,7 @@ class MainActivity : Activity() {
     val dialog = Dialog(this, android.R.style.Theme_Material_Light_Dialog_NoActionBar)
     val sheet = Sheet(tabId, context, dialog)
     context.onProcessGone = ::appProfileGone
+    context.onClose = { dialog.dismiss() }
     context.onLeaveApp = { link ->
       dialog.dismiss()
       browsing.load(link)
@@ -248,12 +249,17 @@ class MainActivity : Activity() {
     dialog.show()
   }
 
-  /** The sheet went away (back, a tap outside, or the router closed its tab). */
+  /**
+   * The sheet went away (back, a tap outside, `window.close()`, the router closed its tab, or
+   * another sheet replaced it; dialogs report it after the fact).
+   */
   private fun closed(closed: Sheet) {
     closed.context.close()
-    if (sheet === closed) sheet = null
     closed.tabId?.let { if (router.tabs.get(it) != null) router.tabs.remove(it) }
-    router.tabs.activate(browsingTab)
+    if (sheet === closed) {
+      sheet = null
+      router.tabs.activate(browsingTab)
+    }
   }
 
   /**
