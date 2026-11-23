@@ -1,8 +1,36 @@
 # HANDOFF: spike S2 (Android extension host), paused 2026-11-24
 
-Paused on the coordinator's request (machine short on memory). The emulator is stopped
-(`adb emu kill`; `pgrep -fl qemu-system` printed nothing). AVD data untouched. Nothing pushed;
-`npm run verify` not run.
+Second pause (2026-11-24, ~04:55 JST): Q3–Q5 measured on WebView 145 (below). The emulator is left
+**booted** so the user can sign in to Google and update Android System WebView from the Play Store.
+origin/main is merged in (ad8e5dd8). Nothing pushed; `npm run verify` not run.
+
+## Measured 2026-11-24 on WebView 145.0.7632.218 (Q3–Q5)
+
+- Q3, IndexedDB in ProfileStore profile "langle" on `https://appassets.androidplatform.net` (WebViewAssetLoader):
+  - write: 1,000 rows + 20,971,520-byte ArrayBuffer in 478 ms (default profile, same origin: 258 ms), checksum efd3b250.
+  - after force-stop + relaunch: 1,000 rows ok, 20,971,520 bytes, checksum efd3b250, read 187 ms; usage 21.1 MB,
+    `persisted()` false. Same origin in the two profiles keeps separate localStorage ("store-langle" vs "store-default").
+  - on disk: `app_webview/Default/` and `app_webview/Profile 1/` (the "langle" profile; IndexedDB 20,692 KB, profile 21,164 KB).
+  - `WebStorage.getInstance().deleteAllData()` + `CookieManager.getInstance().removeAllCookies` (removed=true) + flush:
+    default profile then had no database (`indexedDB.databases()` empty), no cookie, no localStorage (its IndexedDB dir 28 KB);
+    "langle" profile after relaunch: 1,000 rows ok, checksum efd3b250, its cookie and localStorage still there.
+  - a cookie set ~20 s before a force-stop was lost in the default profile (one run); one set ~45 s before survived
+    (CookieManager flush timing; Langle keeps nothing in cookies).
+- Q4, 1 s setInterval for 2 min, four WebViews in "langle" (visible 200 px control, View.GONE attached, 0x0 attached,
+  never attached) + a visible default-profile page on about:blank, app in the foreground:
+  all four 121 ticks in 121.5 s, mean 1,000 ms, max 1,071 ms, 0 gaps > 1.5 s; `visibilityState` "visible" for all, even GONE
+  and detached. (Unlike iOS, detached is not throttled.)
+  - extra: app sent to the background (HOME) right after start: attached views 7 ticks then nothing for ~75 s
+    (`visibilityState` hidden); the detached one had one 73,254 ms gap, i.e. stopped too, and resumed when the app came back.
+    The app process was cached (procState 15) and not frozen (`isFrozen=false`) 20 s after HOME; cause not established.
+- Q5, page WebView (default profile, Wikipedia) + GONE host WebView ("langle", app origin):
+  - two renderer processes (`sandboxed_process0 …:1` / `:2`, isolated uids); `getWebViewRenderProcess` objects differ.
+    Five WebViews in two profiles (timer mode) also gave two renderers: one per profile.
+  - `adb shell kill` / `kill -9` on a renderer pid: "Operation not permitted" (user build, isolated uid); `run-as … kill`
+    also refused. Used `WebViewRenderProcess.terminate()` instead.
+  - terminate host's renderer: only `host` got `onRenderProcessGone` (didCrash=false, priority 2); recreated, new process,
+    page reloaded and posted "ready". The page WebView was untouched.
+  - terminate page's renderer: only `page` got it; recreated, Wikipedia reloaded (pageFinished). Host untouched.
 
 ## Done
 
