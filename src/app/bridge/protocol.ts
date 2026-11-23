@@ -7,7 +7,7 @@
 export const PROTOCOL_VERSION = 1;
 
 /** What a script can ask native code to do. */
-export const CALL_APIS = [
+const CALL_APIS = [
   "bridge.hello",
   "runtime.sendMessage",
   "runtime.openOptionsPage",
@@ -38,7 +38,7 @@ export const CALL_APIS = [
 ] as const;
 
 /** What native code tells a script. */
-export const EVENT_APIS = [
+const EVENT_APIS = [
   "runtime.onMessage",
   "runtime.onInstalled",
   "runtime.onStartup",
@@ -57,12 +57,12 @@ export interface Call {
   args: unknown[];
 }
 
-export type Reply =
+type Reply =
   | { v: 1; kind: "reply"; id: string; ok: true; value?: unknown }
   | { v: 1; kind: "reply"; id: string; ok: false; error: { message: string } };
 
 /** `replyId`: the event expects an answer, sent as a reply with that id. */
-export interface Event {
+interface Event {
   v: 1;
   kind: "event";
   api: EventApi;

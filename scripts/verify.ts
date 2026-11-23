@@ -1,5 +1,6 @@
 // `npm run verify`: everything a push needs, in two lanes at once. The host lane runs
-// check, unit, browser tests on Chromium, then builds and E2E; the Firefox lane runs the
+// check, unit, browser tests on Chromium, builds and E2E, then the phone app's build and
+// its manifest; the Firefox lane runs the
 // browser tests in CI's Playwright image (scripts/test-firefox.ts), which uses the Docker
 // VM's own CPUs. Each lane's output goes to a log; the console gets one line per stage
 // and, when one fails, the part of its log that says why. The first failure stops the
@@ -42,6 +43,21 @@ const LANES: Record<string, Stage[]> = {
     {
       name: "builds and E2E",
       args: ["run", "test:e2e:build", "--", "--reporter=dot"],
+    },
+    // The phone app's build (docs/specs/mobile-app.md) and what its manifest may ask.
+    { name: "app build", args: ["run", "build:app"] },
+    {
+      name: "app manifest",
+      args: [
+        "exec",
+        "--",
+        "vitest",
+        "run",
+        "--project",
+        "manifest",
+        "tests/app-manifest.test.ts",
+        "--reporter=dot",
+      ],
     },
   ],
   firefox: [

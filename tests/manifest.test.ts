@@ -61,6 +61,10 @@ describe.each(["chrome-mv3", "firefox-mv3"])("%s manifest", (dir) => {
       expect(existsSync(`.output/${dir}/icon-off/${size}.png`)).toBe(true);
   });
 
+  test("leaves out the phone app's shim", () => {
+    expect(existsSync(`.output/${dir}/langle-shim.js`)).toBe(false);
+  });
+
   test("requests no host permissions", () => {
     expect(manifest().host_permissions).toBeUndefined();
   });
