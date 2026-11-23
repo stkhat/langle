@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Translate probe</title>
+<script>
+  const run = new URLSearchParams(location.search).get("run");
+  let worker;
+
+  function start() {
+    const started = performance.now();
+    worker = new Worker("worker.js");
+    worker.onerror = (e) => {
+      console.log(`ERROR ${e.message}`);
+      Host.report(
+        JSON.stringify({ engine: "bergamot", run, error: e.message }),
+      );
+    };
+    worker.onmessage = ({ data }) => {
+      const ms = Math.round(performance.now() - started);
+      if (data.log) console.log(data.log);
+      else if (data.first) console.log(`FIRST ${ms}`);
+      else if (data.held)
+        console.log(`HELD ${JSON.stringify({ ms, ...data.held })}`);
+      else if (data.error && run === "lifecycle")
+        console.log(`ERROR ${data.error}`);
+      else Host.report(JSON.stringify({ engine: "bergamot", run, ...data }));
+    };
+    worker.postMessage(run);
+  }
+
+  // The "lifecycle" run: the engine lives only between load and release.
+  function command(name) {
+    if (name === "load" && !worker) start();
+    if (name === "release" && worker) {
+      worker.terminate();
+      worker = undefined;
+      console.log("RELEASED");
+    }
+  }
+
+  if (run === "lifecycle") console.log("READY");
+  else start();
+</script>
