@@ -1,0 +1,7 @@
+{
+  "v": 1,
+  "kind": "call",
+  "id": "h1",
+  "api": "bridge.hello",
+  "args": [{ "context": "content" }]
+}
