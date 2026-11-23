@@ -1,4 +1,4 @@
-# Mobile app: implementation plan (M0 and spikes S1, S2)
+# Mobile app: implementation plan (M0, spikes S1 and S2, M1 and M2)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -16,11 +16,12 @@
 - [x] M0: `langle-app` target, protocol, shim, reference native (branch `claude/mobile-m0`)
 - [x] S1: iOS spike (branch `claude/mobile-s1`): the storage plan holds; the host must stay in the view hierarchy (notes/mobile.md "iOS extension host spike")
 - [ ] S2: Android spike (branch `claude/mobile-s2`)
-- [ ] M1 / M2 planned after S1 and S2 report (their results may change the storage task)
+- [ ] M2: iOS shell (branch `claude/mobile-m2`)
+- [ ] M1: Android shell (branch `claude/mobile-m1`; after S2 answers 3–5)
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
-- Every branch is cut from `claude/langle-mobile-app-build-5ac38c`, which holds the spec and this plan, and its PR is based on it (stacked).
+- M0 and S1 branches were cut from `claude/langle-mobile-app-build-5ac38c`, which held the spec and this plan. M0 is on `main` now: S2, M1 and M2 PRs are based on `main`.
 
 ## Before you start (every agent)
 - Read [CLAUDE.md](../../CLAUDE.md), [docs/testing.md](../testing.md) and the spec.
@@ -248,3 +249,97 @@ A throwaway app in `mobile/prototypes/android-host-spike/`. Start from `android-
   - a section "Android extension host spike (S2, <date>)" in [docs/notes/mobile.md](../notes/mobile.md) right after "Android prototypes";
   - a draft PR based on `claude/langle-mobile-app-build-5ac38c`, ready when done, ticking S2 here;
   - a report of the answers.
+
+---
+
+## M1 and M2: the native shells (planned 2026-11-24, after M0 and S1)
+Spec [mobile-app.md](../specs/mobile-app.md) "Build order" 2. Each shell has the engine implementation, the router, the key-value store, the extension host, the app origin and a minimal screen (one page and an address field). It is done when Langle runs on an article end to end. M2 (iOS) starts first. M1 (Android) starts when S2 has answered its questions 3–5, because those answers may change its storage and host tasks.
+
+**Shape shared by both:**
+- **A core without the engine**, tested on the Mac without a device:
+  - envelopes (parse and produce `mobile/protocol/*.json`; `bad-version.json` is rejected);
+  - the router: contexts by kind (`host`, `content` per tab and frame, `page`), the sender filled in natively, calls to a host that has not said hello wait up to 10 s and then fail with "Could not establish connection. Receiving end does not exist.";
+  - the key-value store (`local` and `sync` persisted, `session` in memory). For each write: save, post `storage.onChanged` to every context, then reply to the writer. Nothing is posted when nothing changed;
+  - the manifest reader: the parts of `.output/langle-app-mv3/manifest.json` the app supports (the same rules as `tests/app-manifest.test.ts`), and a refusal naming what it does not support;
+  - Chrome match patterns (`<all_urls>`, `*://m.youtube.com/*`, scheme, host wildcard, path glob);
+  - alarms on an injectable clock;
+  - tabs: ids, the active tab, app pages opened by `tabs.create`.
+  Its behaviour copies `src/app/testing/reference-native.ts`. Port the cases in `src/app/testing/reference-native.test.ts` one for one, and keep their names so the three can be compared.
+- **The app**, behind `BrowsingEngine` / `Page` (spec "Engine boundary"):
+  - the extension host: a hidden page in the app profile on the app origin. It loads `host.html`, a page the app writes: it sets `__langleAppInfo`, runs `langle-shim.js`, then `background.js`;
+  - content scripts from the manifest: in Langle's world, `__langleAppInfo` and then `langle-shim.js` at document start, then each script's `js` at its `run_at`. `world: "MAIN"` scripts go in the page world without the shim;
+  - app pages (`popup.html`, `options.html`, `wordlist.html`, `welcome.html`) open in app-origin pages with the shim in the page world;
+  - the bundled build: `npm run build:app` (or `wxt build -b langle-app --mode check` for a check build, if WXT allows the two together; otherwise add a script that does) is copied into the app by one script per platform. Its output is git-ignored;
+  - losing the renderer or the host's content process: recreate the host first, then reload the pages;
+  - the minimal screen: an address field, back and forward, one browsing page, and a button that opens `popup.html` in a sheet. No styling beyond the system's.
+- **Done when**, on the Simulator or the emulator:
+  - the E2E article page (`node e2e/serve.ts`, `/article-en.html`) loads in the app, and Langle's highlights appear on it;
+  - first run works: `runtime.onInstalled` opens `welcome.html`, and setup finishes (packs download);
+  - a word is saved (a tap on a word opens the dictionary, as a click does on the desktop; if the tap does not reach it, set the word's state through the check build's settings channel and say so) and is still saved after the app is killed and relaunched;
+  - the check build's error log (`checkErrorLog` in `storage.local`, read through the host) is empty, or each entry is fixed or explained;
+  - a screenshot of the article with highlights is in the PR.
+- **Devices, one at a time** (the dev Mac has 16 GB). Write and build everything first. When you reach the device steps, check that the other device is off (`pgrep -fl qemu-system`, `xcrun simctl list devices booted`), then **stop and report** that you are ready for the device. The parent resumes you when the device is free. Shut the device down when done.
+- **Native tests run locally, not in `verify` or CI** (spec "Testing"). Add their commands to [development.md](../development.md) "Mobile app".
+- Libraries: no new third-party libraries beyond the ones named here. Ask the parent (report and stop) before adding one.
+
+### M2: iOS shell (one agent, Opus)
+Branch `claude/mobile-m2` from `main`. Read [notes/mobile.md](../notes/mobile.md) "iOS prototype" and "iOS extension host spike (S1)", and the S1 prototype `mobile/prototypes/ios-host-spike/` (its hand-written project, scheme handler and `check.sh`).
+
+**Files**
+| Path | Responsibility |
+| --- | --- |
+| `mobile/ios/LangleCore/Package.swift` | Swift package, macOS 15 and iOS 26.4, no dependencies |
+| `mobile/ios/LangleCore/Sources/LangleCore/` | `Envelope`, `JSONValue`, `Router`, `KeyValueStore` (persisted as one JSON file per area, written atomically, in Application Support), `Manifest`, `MatchPattern`, `Alarms`, `Tabs` |
+| `mobile/ios/LangleCore/Tests/LangleCoreTests/` | XCTest: golden files (read from `../../protocol/` relative to the package, found from `#filePath`), ports of the reference-native tests, match patterns, manifest refusals |
+| `mobile/ios/Langle.xcodeproj`, `mobile/ios/Langle/` | the app: SwiftUI shell, `WebKitEngine` (`BrowsingEngine` over WKWebView), `AppSchemeHandler` (`langle-app://app/` from the bundled build), `ExtensionHost`, `ContentInjector` |
+| `mobile/ios/scripts/bundle-build.sh` | copies `.output/langle-app-mv3/` into the app's resources (a build phase or run before `xcodebuild`) |
+| `mobile/ios/check.sh` | installs and launches on the booted Simulator and drives the checks, as S1's did |
+
+**Tasks**
+- [ ] **Core**: write the package test-first. `swift test` in `mobile/ios/LangleCore` passes on the Mac. Commit after each type.
+- [ ] **Engine**: `WebKitEngine` and `WebKitPage`.
+  - Browsing pages use `WKWebsiteDataStore.default()`. The host and app pages share one `WKWebsiteDataStore(forIdentifier:)` with a fixed UUID (S1).
+  - Langle's world is `WKContentWorld.world(name: "langle")`. The handler `langleBridge` (a `WKScriptMessageHandler`; replies and events go back through `__langleBridgeReceive`) is added only in that world for browsing pages, and in `.page` for app-origin pages.
+  - Native → script: `evaluateJavaScript("__langleBridgeReceive(…)", in: frame, in: world)` with the JSON as a string literal. Check how `src/app/bridge/native-transport.ts` expects to receive on iOS and match it.
+  - The frame id is 0 for the top frame (top frame only).
+- [ ] **Host**: `ExtensionHost` keeps its WKWebView in the view hierarchy (zero size, hidden; S1 measured that a detached one runs at half speed). On `webViewWebContentProcessDidTerminate` it is recreated, and then the pages reload.
+- [ ] **Shell**: one window; the address field; back and forward; the Langle button opening `popup.html` in a sheet. `tabs.create` with `welcome.html` or `wordlist.html` opens them in a sheet too.
+- [ ] **Builds**: `xcodebuild -project mobile/ios/Langle.xcodeproj -scheme Langle -destination 'generic/platform=iOS Simulator' build` passes. Then report and stop for the Simulator (above).
+- [ ] **On the Simulator**: the "Done when" list. Use `check.sh`, the unified log and `simctl io booted screenshot`.
+- [ ] **Docs**:
+  - development.md "Mobile app": how to build, test and run the iOS app;
+  - architecture.md: `mobile/ios/` in the code layout;
+  - status.md: one line;
+  - tick M2 in Progress.
+- [ ] `npm run verify`, push, draft PR "Mobile app M2: iOS shell" based on `main`, then `gh pr ready`.
+
+### M1: Android shell (one agent, Opus; after S2 answers 3–5)
+Branch `claude/mobile-m1` from `main`. Read [notes/mobile.md](../notes/mobile.md) "Android prototypes" and "Android extension host spike (S2)", and `mobile/prototypes/android-host-spike/`. Gradle and the SDK set up as in [development.md](../development.md) "Mobile app" (`source scripts/mobile/env.sh`).
+
+**Files**
+| Path | Responsibility |
+| --- | --- |
+| `mobile/android/settings.gradle.kts`, `build.gradle.kts`, `gradlew` | the Gradle project (copy the wrapper from `mobile/prototypes/android-webview`) |
+| `mobile/android/core/` | pure Kotlin/JVM module, `kotlinx-serialization-json` only: `Envelope`, `Router`, `KeyValueStore` (one JSON file per area, written atomically through a temp file and a rename), `Manifest`, `MatchPattern`, `Alarms`, `Tabs`. JUnit 5 tests: golden files from `../../protocol/`, ports of the reference-native tests, match patterns, manifest refusals |
+| `mobile/android/app/` | the app: `WebViewEngine` (`BrowsingEngine` over System WebView, androidx.webkit 1.18.0), `ExtensionHost`, `ContentInjector`, the app origin (`WebViewAssetLoader` on `appassets.androidplatform.net` from the bundled build), the activity with the minimal screen |
+| `mobile/android/scripts/bundle-build.sh` | copies `.output/langle-app-mv3/` into `app/src/main/assets/langle-app/` (git-ignored) |
+| `mobile/android/check.sh` | installs and drives the app on the emulator, as the prototypes' scripts do |
+
+**Tasks**
+- [ ] **Core**: test-first. `./gradlew :core:test` passes on the Mac without the emulator.
+- [ ] **Feature check**: at start, `WebViewFeature.isFeatureSupported` for `JS_INJECTION_IN_FRAME_AND_WORLD`, `WEB_MESSAGE_LISTENER`, `DOCUMENT_START_SCRIPT` and `MULTI_PROFILE`. Without them the screen says "Update Android System WebView" (through the app's string resources), browsing still works, and Langle is not injected.
+- [ ] **Engine**: `WebViewEngine` and `WebViewPage`.
+  - Browsing pages use the default profile. The host and app pages use the `ProfileStore` profile "langle" (change this if S2 found otherwise).
+  - Langle's world: `getExecutionWorld(webView, "langle")`. Scripts go in with `addJavaScriptOnEvent(…, INJECTION_EVENT_DOCUMENT_START, …, world)`. Document-end and idle scripts are queued at document start and run on `DOMContentLoaded`.
+  - The listener `langleBridge` is added with `addWebMessageListener(…, world, …)` for browsing pages. For app-origin pages it is added in the page world, allowed only for the app origin.
+  - Native → script: the frame's `JavaScriptReplyProxy`, kept from its first message (the hello), carries replies and events. Check `src/app/bridge/native-transport.ts`'s Android side and match it.
+- [ ] **Host**: `ExtensionHost` keeps its WebView attached at zero size, or as S2 found best. `onRenderProcessGone` returns true, destroys every WebView, creates the host first and then reloads the pages (spec "Losing the renderer").
+- [ ] **Shell**: one activity; the address field; back and forward; the Langle button opening `popup.html` in a bottom sheet. `tabs.create` with `welcome.html` or `wordlist.html` opens them the same way.
+- [ ] **Builds**: `./gradlew :app:assembleDebug` passes. Then report and stop for the emulator (above). The emulator's WebView must be 146.0.7680.10 or later (the user updates it from the Play Store; S2 records it).
+- [ ] **On the emulator**: the "Done when" list. The emulator reaches the Mac's `localhost` at `10.0.2.2`.
+- [ ] **Docs**:
+  - development.md "Mobile app": how to build, test and run the Android app;
+  - architecture.md: `mobile/android/` in the code layout;
+  - status.md: one line;
+  - tick M1 in Progress.
+- [ ] `npm run verify`, push, draft PR "Mobile app M1: Android shell" based on `main`, then `gh pr ready`.

@@ -892,9 +892,33 @@ for (const build of ["production", "check"] as const)
         await group.getByRole("button", { name: "Known" }).click();
         await group.getByRole("button", { name: "Remove" }).click();
         await expect(rows).toHaveCount(3);
-        const listDownload = list.waitForEvent("download");
-        await list.getByRole("button", { name: en["backup.export"] }).click();
-        await listDownload;
+        // Export: the words shown for Anki and as CSV, then the backup.
+        const exportMenu = list.getByRole("menu", {
+          name: en["backup.export"],
+        });
+        const exportAs = async (item: string) => {
+          const downloading = list.waitForEvent("download");
+          await list.getByRole("button", { name: en["backup.export"] }).click();
+          await exportMenu.getByRole("menuitem", { name: item }).click();
+          return downloading;
+        };
+        const anki = await exportAs(en["export.anki"]);
+        expect(anki.suggestedFilename()).toMatch(
+          /^langle-anki-en-ja-\d{4}-\d\d-\d\d\.txt$/,
+        );
+        const notes = fs.readFileSync(await anki.path(), "utf8").split("\n");
+        expect(notes[3]).toBe("#deck:Langle English");
+        expect(
+          notes
+            .filter((line) => line.startsWith("en:"))
+            .map((line) => line.split("\t")[1]),
+        ).toHaveLength(3);
+        await expect(list.getByText("Exported 3 words")).toBeVisible();
+        const csv = await exportAs(en["export.csv"]);
+        expect(fs.readFileSync(await csv.path(), "utf8")).toMatch(
+          /^\uFEFFWord,Kind,Status,Meaning,IPA,/,
+        );
+        await exportAs(en["backup.exportBackup"]);
         await list.getByLabel(en["backup.file"]).setInputFiles(file);
         await expect(list.getByText(/^Imported \d+ words?$/)).toBeVisible();
       });
