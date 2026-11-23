@@ -17,7 +17,7 @@
 - [x] S1: iOS spike (branch `claude/mobile-s1`): the storage plan holds; the host must stay in the view hierarchy (notes/mobile.md "iOS extension host spike")
 - [x] S2: Android spike (branch `claude/mobile-s2`): the plan holds on WebView 146.0.7680.10 or later; renderers are per profile, and the host stops in the background (notes/mobile.md "Android extension host spike")
 - [ ] M2: iOS shell (branch `claude/mobile-m2`)
-- [ ] M1: Android shell (branch `claude/mobile-m1`; after S2 answers 3–5)
+- [x] M1: Android shell (branch `claude/mobile-m1`): Langle runs on the E2E article on the emulator (WebView Dev 160): highlights, a saved word survives a restart, the error log is empty
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
@@ -326,20 +326,20 @@ Branch `claude/mobile-m1` from `main`. Read [notes/mobile.md](../notes/mobile.md
 | `mobile/android/check.sh` | installs and drives the app on the emulator, as the prototypes' scripts do |
 
 **Tasks**
-- [ ] **Core**: test-first. `./gradlew :core:test` passes on the Mac without the emulator.
-- [ ] **Feature check**: at start, `WebViewFeature.isFeatureSupported` for `JS_INJECTION_IN_FRAME_AND_WORLD`, `WEB_MESSAGE_LISTENER`, `DOCUMENT_START_SCRIPT` and `MULTI_PROFILE`. Without them the screen says "Update Android System WebView" (through the app's string resources), browsing still works, and Langle is not injected.
-- [ ] **Engine**: `WebViewEngine` and `WebViewPage`.
+- [x] **Core**: test-first. `./gradlew :core:test` passes on the Mac without the emulator.
+- [x] **Feature check**: at start, `WebViewFeature.isFeatureSupported` for `JS_INJECTION_IN_FRAME_AND_WORLD`, `WEB_MESSAGE_LISTENER`, `DOCUMENT_START_SCRIPT` and `MULTI_PROFILE`. Without them the screen says "Update Android System WebView" (through the app's string resources), browsing still works, and Langle is not injected.
+- [x] **Engine**: `WebViewEngine` and `WebViewPage`.
   - Browsing pages use the default profile. The host and app pages use the `ProfileStore` profile "langle" (change this if S2 found otherwise).
   - Langle's world: `getExecutionWorld(webView, "langle")`. Scripts go in with `addJavaScriptOnEvent(…, INJECTION_EVENT_DOCUMENT_START, …, world)`. Document-end and idle scripts are queued at document start and run on `DOMContentLoaded`.
   - The listener `langleBridge` is added with `addWebMessageListener(…, world, …)` for browsing pages. For app-origin pages it is added in the page world, allowed only for the app origin.
   - Native → script: the frame's `JavaScriptReplyProxy`, kept from its first message (the hello), carries replies and events. Check `src/app/bridge/native-transport.ts`'s Android side and match it.
-- [ ] **Host**: `ExtensionHost` keeps its WebView attached at zero size, or as S2 found best. `onRenderProcessGone` returns true, destroys every WebView, creates the host first and then reloads the pages (spec "Losing the renderer").
-- [ ] **Shell**: one activity; the address field; back and forward; the Langle button opening `popup.html` in a bottom sheet. `tabs.create` with `welcome.html` or `wordlist.html` opens them the same way.
-- [ ] **Builds**: `./gradlew :app:assembleDebug` passes. Then report and stop for the emulator (above). The emulator's WebView must be 146.0.7680.10 or later (the user updates it from the Play Store; S2 records it).
-- [ ] **On the emulator**: the "Done when" list. The emulator reaches the Mac's `localhost` at `10.0.2.2`.
-- [ ] **Docs**:
+- [x] **Host**: `ExtensionHost` keeps its WebView attached at zero size, or as S2 found best. `onRenderProcessGone` returns true, destroys every WebView, creates the host first and then reloads the pages (spec "Losing the renderer").
+- [x] **Shell**: one activity; the address field; back and forward; the Langle button opening `popup.html` in a bottom sheet. `tabs.create` with `welcome.html` or `wordlist.html` opens them the same way.
+- [x] **Builds**: `./gradlew :app:assembleDebug` passes. Then report and stop for the emulator (above). The emulator's WebView must be 146.0.7680.10 or later (the user updates it from the Play Store; S2 records it).
+- [x] **On the emulator**: the "Done when" list. `check.sh launch` forwards the E2E port with `adb reverse` (`10.0.2.2` did not reach it).
+- [x] **Docs**:
   - development.md "Mobile app": how to build, test and run the Android app;
   - architecture.md: `mobile/android/` in the code layout;
   - status.md: one line;
   - tick M1 in Progress.
-- [ ] `npm run verify`, push, draft PR "Mobile app M1: Android shell" based on `main`, then `gh pr ready`.
+- [x] `npm run verify`, push, draft PR "Mobile app M1: Android shell" based on `main`, then `gh pr ready`.
