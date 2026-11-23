@@ -46,7 +46,7 @@ import { sendStatus } from "../lookup/status";
 import { warn } from "../lookup/warn";
 import { createStore } from "../store";
 import type { TranslationPair } from "../translate/queue";
-import { builtInTranslatorAvailable } from "../translate/translator";
+import { translatorBackend } from "../translate/backend";
 import { cardRuns, splitRun } from "../../core/subtitles/runs";
 import { captionCards, type TimedTranslation } from "./captions";
 import { createCards } from "./cards";
@@ -85,7 +85,7 @@ function firstStartingAt(cues: readonly { startMs: number }[], ms: number) {
 
 export interface VideoDeps extends LookupDeps {
   adapter: PlatformAdapter;
-  /** Default: asks the built-in translator. */
+  /** Default: asks this platform's translator (`translatorBackend`). */
   translatorAvailable?(from: string, to: string): Promise<boolean>;
 }
 
@@ -351,7 +351,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
   async function load(w: Watch) {
     const { signal } = w.controller;
     const translatorAvailable = await (
-      deps.translatorAvailable ?? builtInTranslatorAvailable
+      deps.translatorAvailable ?? translatorBackend().available
     )(lang(), settings.nativeLang);
     const captions = await adapter.loadCaptions({
       learningLang: lang(),

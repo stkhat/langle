@@ -1,5 +1,5 @@
 import { speak } from "../../content/lookup/speak";
-import { createBuiltInTranslator } from "../../content/translate/translator";
+import { translatorBackend } from "../../content/translate/backend";
 import { SPONSOR_PAGE_URL } from "../../core/links";
 import { SPONSOR_CARD } from "../../core/sponsors";
 import { send } from "../../messaging/client";
@@ -15,7 +15,7 @@ mountPage(() => {
     download,
     watchPackState,
     speak,
-    createTranslator: createBuiltInTranslator,
+    createTranslator: translatorBackend().create,
     sponsorCard: SPONSOR_CARD,
     sponsorPage: SPONSOR_PAGE_URL,
   };

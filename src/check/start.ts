@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import { downloadTranslationModels } from "../content/translate/translator";
+import { translatorBackend } from "../content/translate/backend";
 import { PACK_STATE_KEY, type PackStates } from "../core/packs/state";
 import { send } from "../messaging/client";
 import { answerSettingsRequests } from "./settings-channel";
@@ -130,7 +130,7 @@ export function startContentCheck(name: string): void {
     // Settings starts the translator's models on a choice; without a user activation
     // Chrome may refuse, and the dictionary window's click starts them later.
     pairChosen: (learning, native) =>
-      void downloadTranslationModels(learning, native),
+      void translatorBackend().downloadModels(learning, native),
     // Settings' "Remove": refuses a pack the chosen pair uses.
     removePack: async (pack) => {
       await send({ type: "removePack", pack });

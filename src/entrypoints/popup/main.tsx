@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import { downloadModelsOnFirstActivation } from "../../content/translate/translator";
+import { translatorBackend } from "../../content/translate/backend";
 import "@fontsource/nunito/latin-600.css";
 import "@fontsource/nunito/latin-800.css";
 import { createBrowserEnv } from "../../core/browser-env";
@@ -15,7 +15,7 @@ mountPage(() => {
   // model downloads for the chosen languages (a new install chooses them without one).
   send({ type: "getSettings" }).then(
     ({ learningLang, nativeLang }) =>
-      downloadModelsOnFirstActivation(
+      translatorBackend().downloadOnFirstActivation(
         document,
         () => ({ learning: learningLang, native: nativeLang }),
         { now: true },
