@@ -134,3 +134,39 @@ test("× closes the transcript sidebar for good, the player takes the whole wind
   await expect(transcript).toBeVisible();
   await expect.poll(playerWidth).toBe(windowWidth - 392);
 });
+
+test("A, S and D step to the previous card, the same card again and the next card", async ({
+  context,
+  extensionId,
+}) => {
+  await showNewWords(context, extensionId);
+  await routeNetflix(context);
+  const page = await context.newPage();
+  await page.goto(NETFLIX_WATCH);
+  const transcript = page.getByRole("complementary", {
+    name: en["app.name"],
+  });
+  await transcript
+    .getByRole("button", { name: LINE })
+    .click({ position: ON_TIME });
+  const video = page.locator(".watch-video video");
+  await video.evaluate((v: HTMLVideoElement) => v.pause());
+  const playing = transcript.locator('[aria-current="true"]');
+  await expect(playing).toContainText(LINE);
+  // Focus on the page, not a field: the keys are Langle's.
+  await page.locator("body").focus();
+
+  await page.keyboard.press("d");
+  await expect(playing).not.toContainText(LINE);
+  await expect
+    .poll(() => video.evaluate((v: HTMLVideoElement) => v.paused))
+    .toBe(false);
+  await video.evaluate((v: HTMLVideoElement) => v.pause());
+  await page.keyboard.press("a");
+  await expect(playing).toContainText(LINE);
+  await page.keyboard.press("a");
+  await expect(playing).not.toContainText(LINE);
+  await video.evaluate((v: HTMLVideoElement) => v.pause());
+  await page.keyboard.press("s");
+  await expect(playing).not.toContainText(LINE);
+});
