@@ -16,7 +16,7 @@
 - [x] M0: `langle-app` target, protocol, shim, reference native (branch `claude/mobile-m0`)
 - [x] S1: iOS spike (branch `claude/mobile-s1`): the storage plan holds; the host must stay in the view hierarchy (notes/mobile.md "iOS extension host spike")
 - [x] S2: Android spike (branch `claude/mobile-s2`): the plan holds on WebView 146.0.7680.10 or later; renderers are per profile, and the host stops in the background (notes/mobile.md "Android extension host spike")
-- [ ] M2: iOS shell (branch `claude/mobile-m2`)
+- [x] M2: iOS shell (branch `claude/mobile-m2`)
 - [x] M1: Android shell (branch `claude/mobile-m1`): Langle runs on the E2E article on the emulator (WebView Dev 160): highlights, a saved word survives a restart, the error log is empty
 
 ## Running order
