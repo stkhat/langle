@@ -88,6 +88,19 @@ describe("installShim", () => {
     expect(native.calls).toEqual([{ api: "action.openPopup", args: [] }]);
   });
 
+  test("i18n.getUILanguage is the web view's language (the first run reads it)", () => {
+    const { i18n } = installShim(fakeBridge().bridge, INFO);
+    expect(i18n.getUILanguage()).toBe(navigator.language);
+  });
+
+  test("i18n.detectLanguage is always unsure (the web views have no detector)", async () => {
+    const { i18n } = installShim(fakeBridge().bridge, INFO);
+    await expect(i18n.detectLanguage()).resolves.toEqual({
+      isReliable: false,
+      languages: [],
+    });
+  });
+
   test("leaves out what the app does not have", () => {
     const shim = installShim(fakeBridge().bridge, INFO) as Record<
       string,
