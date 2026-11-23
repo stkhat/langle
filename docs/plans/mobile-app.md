@@ -15,7 +15,7 @@
 - [x] Design approved (2026-11-24): [docs/specs/mobile-app.md](../specs/mobile-app.md)
 - [x] M0: `langle-app` target, protocol, shim, reference native (branch `claude/mobile-m0`)
 - [x] S1: iOS spike (branch `claude/mobile-s1`): the storage plan holds; the host must stay in the view hierarchy (notes/mobile.md "iOS extension host spike")
-- [ ] S2: Android spike (branch `claude/mobile-s2`)
+- [x] S2: Android spike (branch `claude/mobile-s2`): the plan holds on WebView 146.0.7680.10 or later; renderers are per profile, and the host stops in the background (notes/mobile.md "Android extension host spike")
 - [ ] M2: iOS shell (branch `claude/mobile-m2`)
 - [ ] M1: Android shell (branch `claude/mobile-m1`; after S2 answers 3–5)
 
