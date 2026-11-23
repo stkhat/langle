@@ -1,5 +1,5 @@
 // Kept identical in all prototypes (android-webview, android-geckoview, ios-wkwebview).
-// Injected at document start in every frame (page world: WebView has no isolated world).
+// Injected at document start in every frame (page world: it patches the page's own functions).
 // Reports to the app through `langleNative` (WebViewCompat.addWebMessageListener).
 // 1. YouTube ad fields are pruned from the player response before the player reads it.
 // 2. /api/timedtext responses are recorded; window.__langleProbeVariants() refetches variants.
