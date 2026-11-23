@@ -84,6 +84,33 @@ class MatchPattern(val pattern: String) {
     return glob(path, parts.pathAndQuery)
   }
 
+  /**
+   * A regular expression, in the syntax JavaScript and Java share, matching the URLs this pattern
+   * matches as `location.href` writes them (lower-case scheme and host, no default port, a path).
+   * Android registers scripts per WebView, not per document, so injected scripts test it.
+   */
+  val regex: String by lazy {
+    val alternatives =
+      schemes.sorted().map { scheme ->
+        if (scheme == "file") return@map "file://"
+        val hostPart =
+          when {
+            host == null -> ANY_HOST
+            subdomains -> "(?:$HOST_LABELS\\.)?" + escape(host)
+            else -> escape(host)
+          }
+        val portPart =
+          when {
+            port == null -> "(?::[0-9]+)?"
+            port == DEFAULT_PORTS[scheme] -> "(?::$port)?"
+            else -> ":$port"
+          }
+        escape(scheme) + "://" + hostPart + portPart
+      }
+    val path = this.path.split('*').joinToString("[^#]*") { escape(it) }
+    "^(?:" + alternatives.joinToString("|") + ")" + path + "(?:#.*)?$"
+  }
+
   override fun toString() = pattern
 
   override fun equals(other: Any?) = other is MatchPattern && other.pattern == pattern
@@ -94,6 +121,13 @@ class MatchPattern(val pattern: String) {
     private val ALL_URL_SCHEMES = setOf("http", "https", "ws", "wss", "ftp", "file")
     private val KNOWN_SCHEMES = ALL_URL_SCHEMES
     private val DEFAULT_PORTS = mapOf("http" to 80, "https" to 443, "ws" to 80, "wss" to 443, "ftp" to 21)
+
+    private const val HOST_LABELS = "[^/?#:@\\[\\]]+"
+    private const val ANY_HOST = "(?:\\[[0-9a-f:.]*\\]|$HOST_LABELS)"
+
+    /** Every character but letters and digits as `\\uXXXX`, which both syntaxes read. */
+    private fun escape(text: String) =
+      text.map { if (it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9') "$it" else "\\u%04x".format(it.code) }.joinToString("")
 
     /** `*` matches any run of characters; everything else itself. */
     internal fun glob(pattern: String, text: String): Boolean {

@@ -66,6 +66,37 @@ class MatchPatternTest {
   }
 
   @Test
+  fun `its regular expression agrees with it on URLs as location href writes them`() {
+    val patterns =
+      listOf(
+        "<all_urls>", "*://m.youtube.com/*", "https://m.youtube.com/*", "https://*.example.com/*", "https://*/*",
+        "http://localhost/*", "http://localhost:4719/*", "https://example.com:443/*", "https://example.com/watch*",
+        "https://example.com/a/*/c", "https://example.com/a", "file:///*", "https://example.com/a.b?c=*",
+      )
+    val urls =
+      listOf(
+        "https://example.com/", "https://example.com/article", "http://10.0.2.2:4719/article-en.html",
+        "https://m.youtube.com/watch?v=x", "http://m.youtube.com/", "https://www.youtube.com/watch?v=x",
+        "ftp://m.youtube.com/", "https://a.b.example.com/x", "https://badexample.com/", "http://localhost:4719/a",
+        "http://localhost:8080/a", "https://example.com/watch?v=1", "https://example.com/a/b/x/c",
+        "https://example.com/a/b/x/d", "https://example.com/a/b", "https://example.com/a#part", "https://example.com/a?x#c",
+        "https://example.com/axbxc=1", "https://example.com/a.b?c=1", "about:blank", "data:text/html,x",
+        "chrome://version/", "file:///sdcard/a.html", "http://[::1]:8080/x", "https://example.com:8443/a",
+        "https://appassets.androidplatform.net/popup.html",
+      )
+    var matched = 0
+    for (pattern in patterns) {
+      val regex = Regex(MatchPattern(pattern).regex)
+      for (url in urls) {
+        val expected = matches(pattern, url)
+        if (expected) matched++
+        assertEquals(expected, regex.containsMatchIn(url), "$pattern on $url")
+      }
+    }
+    assertTrue(matched > 20, "too few matches to compare: $matched")
+  }
+
+  @Test
   fun `gives a page's origin as the engines do`() {
     assertEquals("https://example.com", WebUrl.parse("https://Example.com:443/a?b#c")?.origin)
     assertEquals("http://10.0.2.2:4719", WebUrl.parse("http://10.0.2.2:4719/article-en.html")?.origin)
