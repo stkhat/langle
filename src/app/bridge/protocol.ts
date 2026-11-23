@@ -75,8 +75,18 @@ export type Envelope = Call | Reply | Event;
 const callApis: ReadonlySet<string> = new Set(CALL_APIS);
 const eventApis: ReadonlySet<string> = new Set(EVENT_APIS);
 
+/** Why a text is not an envelope. */
+export interface ParseError {
+  error: string;
+}
+
+/** Tells a parse error from an envelope (an error reply has an `error` too). */
+export const isParseError = (
+  result: Envelope | ParseError,
+): result is ParseError => !("kind" in result);
+
 /** Reads an envelope, or says why it is not one. */
-export function parseEnvelope(json: string): Envelope | { error: string } {
+export function parseEnvelope(json: string): Envelope | ParseError {
   let value: unknown;
   try {
     value = JSON.parse(json);
