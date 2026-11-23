@@ -306,7 +306,7 @@ The app is the browser, so blocking runs in the app, outside any extension API a
    - iOS: `WKWebView`, default UA and a Safari-like UA.
    - Android: GeckoView and System WebView, to choose the engine.
    - In both: one compiled filter list on an article, and the ad-field pruning on `m.youtube.com`; check that captions are still captured and that playback is not stopped.
-3. Finish the translation design (both platforms' engines are named, the open points are in "Open issues and risks" 4), then design the extension API shim and the engine boundary (the Android engine is chosen: "Android engine").
+3. Translation designed ([mobile-translation.md](../specs/mobile-translation.md)); the extension host, API shim and engine boundary designed 2026-11-24 ([mobile-app.md](../specs/mobile-app.md), [plan](../plans/mobile-app.md)).
 4. Then: `m.youtube.com` adapter, own-cloud sync.
 
 The phone mock is drawn (2026-11-22): the mock's `Mobile app` page, specified in [ui.md](../specs/ui.md) "Mobile app". It looks like an app (home with tabs, a title bar with no URL) while staying a full browser underneath, for the store reviews above.
