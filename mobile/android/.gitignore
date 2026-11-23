@@ -1,0 +1,10 @@
+.gradle
+.kotlin
+/build
+/core/build
+/app/build
+/local.properties
+*.iml
+.idea
+# The bundled langle-app build (scripts/bundle-build.sh).
+/app/src/main/assets/langle-app
