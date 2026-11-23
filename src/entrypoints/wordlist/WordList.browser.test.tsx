@@ -184,7 +184,7 @@ function fake(options: FakeOptions = {}) {
   let terms = [...(options.terms ?? TERMS)];
   const missing = new Set(options.missing ?? []);
   const sent: Request[] = [];
-  const downloads: { name: string; text: string }[] = [];
+  const downloads: { name: string; text: string; type?: string }[] = [];
   const spoken: string[] = [];
   const packListeners = new Set<(states: PackStates) => void>();
   const unavailable = () => {
@@ -262,6 +262,30 @@ function fake(options: FakeOptions = {}) {
           return null;
         case "exportJson":
           return '{"format":"langle-export"}';
+        case "exportDetails":
+          return Object.fromEntries(
+            request.ids.flatMap((id) => {
+              const key = id.slice("en:".length);
+              if (!terms.some((t) => t.id === id)) return [];
+              const all = OCCURRENCES[key] ?? [];
+              const o = all.find((x) => x.origin === "saved") ?? all[0];
+              return [
+                [
+                  id,
+                  {
+                    ipa: `/${key}/`,
+                    ...(o && {
+                      occurrence: {
+                        sentence: o.sentence,
+                        title: o.source.title,
+                        link: o.link,
+                      },
+                    }),
+                  },
+                ],
+              ];
+            }),
+          );
         case "importJson":
           if (options.importError) throw options.importError;
           terms = [...terms, term("overnight", "known", 1, NOW - 3 * HOUR)];
@@ -271,7 +295,8 @@ function fake(options: FakeOptions = {}) {
       }
     }) as WordListDeps["send"],
     now: () => NOW,
-    download: (name, text) => downloads.push({ name, text }),
+    download: (name, text, type) =>
+      downloads.push({ name, text, ...(type !== undefined && { type }) }),
     speak: (text) => spoken.push(text),
     createTranslator: () => options.translator ?? noTranslation,
     sponsorCard: options.sponsorCard ?? null,
@@ -739,6 +764,7 @@ describe("WordList", () => {
   it("exports and imports through the shared backup buttons", async () => {
     const { screen, downloads, heads } = await open();
     await screen.getByRole("button", { name: "Export" }).click();
+    await screen.getByRole("menuitem", { name: "Backup (JSON)" }).click();
     await expect
       .poll(() => downloads)
       .toEqual([
@@ -757,6 +783,161 @@ describe("WordList", () => {
     await expect.element(screen.getByText("Imported 1 word")).toBeVisible();
     // The list is read again.
     await expect.poll(heads).toContain("overnight");
+  });
+
+  it("exports the words shown for Anki from the Export menu", async () => {
+    const { screen, downloads, sent } = await open();
+    const exportButton = screen.getByRole("button", { name: "Export" });
+    await exportButton.click();
+    const menu = screen.getByRole("menu", { name: "Export" });
+    await expect.element(menu.getByText("Shown words · 6")).toBeVisible();
+    await expect.element(exportButton).toHaveAttribute("aria-expanded", "true");
+    await menu.getByRole("menuitem", { name: "Anki (.txt)" }).click();
+    await expect.element(screen.getByText("Exported 6 words")).toBeVisible();
+    expect(menu.query()).toBeNull();
+    expect(downloads).toHaveLength(1);
+    const file = downloads[0]!;
+    expect(file.name).toBe("langle-anki-en-ja-2026-11-10.txt");
+    expect(file.type).toBe("text/plain;charset=utf-8");
+    const lines = file.text.trimEnd().split("\n");
+    expect(lines.slice(0, 6)).toEqual([
+      "#separator:tab",
+      "#html:true",
+      "#notetype:Basic",
+      "#deck:Langle English",
+      "#guid column:1",
+      "#tags column:4",
+    ]);
+    // In the list's order, with what the details panel shows.
+    expect(lines.slice(6).map((line) => line.split("\t")[1])).toEqual([
+      "tedious",
+      "figure out",
+      "knead",
+      "heavy lifting",
+      "honestly",
+      "crackle",
+    ]);
+    expect(lines[7]!.split("\t")).toEqual([
+      "en:figure out",
+      "figure out",
+      "見つけ出す、理解する<br>/figure out/<br>" +
+        "<i>So today we're going to <b>figure out</b> how to make bread from scratch.</i><br>" +
+        '<a href="https://www.youtube.com/watch?v=bake1&amp;t=56s">Baking bread from scratch at home</a>',
+      "langle learning phrase",
+    ]);
+    expect(lines[10]!.split("\t")[3]).toBe("langle known");
+    expect(sent.find((r) => r.type === "exportDetails")).toEqual({
+      type: "exportDetails",
+      lang: "en",
+      ids: TERMS.map((t) => t.id),
+    });
+  });
+
+  it("exports the filtered words as CSV, and the backup from the same menu", async () => {
+    const { screen, downloads } = await open();
+    await screen
+      .getByRole("group", { name: "Status" })
+      .getByRole("button", { name: "Learning" })
+      .click();
+    await screen.getByRole("button", { name: "Export" }).click();
+    const menu = screen.getByRole("menu", { name: "Export" });
+    await expect.element(menu.getByText("Shown words · 4")).toBeVisible();
+    await menu.getByRole("menuitem", { name: "CSV" }).click();
+    await expect.element(screen.getByText("Exported 4 words")).toBeVisible();
+    const csv = downloads[0]!;
+    expect(csv.name).toBe("langle-words-en-ja-2026-11-10.csv");
+    expect(csv.type).toBe("text/csv;charset=utf-8");
+    const rows = csv.text.split("\r\n");
+    expect(rows[0]).toBe(
+      "\uFEFFWord,Kind,Status,Meaning,IPA,Sentence,Source,URL,Seen,Last seen,Saved,Learned",
+    );
+    expect(rows.slice(1, -1).map((row) => row.split(",")[0])).toEqual([
+      "tedious",
+      "figure out",
+      "knead",
+      "heavy lifting",
+    ]);
+    expect(rows[1]).toBe(
+      "tedious,Word,Learning,退屈な、面倒な,/tedious/,It can feel tedious at first.," +
+        "Why patient bakers end up with better bread," +
+        "https://www.theweekendtable.example/patient-bakers,2,2026-11-10,2026-11-10,",
+    );
+
+    await screen.getByRole("button", { name: "Export" }).click();
+    await screen.getByRole("menuitem", { name: "Backup (JSON)" }).click();
+    await expect
+      .poll(() => downloads.map((d) => d.name))
+      .toEqual([
+        "langle-words-en-ja-2026-11-10.csv",
+        "langle-backup-2026-11-10.json",
+      ]);
+  });
+
+  it("cannot export words when none are shown, and closes the menu on Escape", async () => {
+    const { screen } = await open();
+    await screen
+      .getByRole("searchbox", { name: "Search saved words" })
+      .fill("zzz");
+    await screen.getByRole("button", { name: "Export" }).click();
+    const menu = screen.getByRole("menu", { name: "Export" });
+    await expect.element(menu.getByText("Shown words · 0")).toBeVisible();
+    await expect
+      .element(menu.getByRole("menuitem", { name: "Anki (.txt)" }))
+      .toBeDisabled();
+    await expect
+      .element(menu.getByRole("menuitem", { name: "Backup (JSON)" }))
+      .toBeEnabled();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => menu.query()).toBeNull();
+  });
+
+  it("translates meanings still in English before exporting them", async () => {
+    const asked: string[] = [];
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      ...term(
+        `word${i}`,
+        "learning" as const,
+        1,
+        NOW - i * HOUR,
+        `Meaning ${i}`,
+      ),
+      glossLang: "en",
+      definition: `Meaning ${i}`,
+    }));
+    const { screen, downloads } = await open({
+      translator: {
+        async translate(text) {
+          asked.push(text);
+          return `ja(${text})`;
+        },
+      },
+      terms: many,
+    });
+    await screen.getByRole("button", { name: "Export" }).click();
+    await screen.getByRole("menuitem", { name: "CSV" }).click();
+    await expect.element(screen.getByText("Exported 60 words")).toBeVisible();
+    const rows = downloads[0]!.text.split("\r\n").slice(1, -1);
+    // Rows never scrolled into view are translated too.
+    expect(rows.map((row) => row.split(",")[3])).toEqual(
+      many.map((_, i) => `ja(Meaning ${i})`),
+    );
+  });
+
+  it("names the other pair's files and deck by its languages", async () => {
+    const { screen, downloads } = await open({
+      settings: { learningLang: "es", nativeLang: "en" },
+      terms: [
+        {
+          ...term("hablar", "learning", 1, NOW - HOUR, "to speak"),
+          id: "es:hablar",
+        },
+      ],
+    });
+    await screen.getByRole("button", { name: "Export" }).click();
+    await screen.getByRole("menuitem", { name: "Anki (.txt)" }).click();
+    await expect.element(screen.getByText("Exported 1 word")).toBeVisible();
+    expect(downloads[0]!.name).toBe("langle-anki-es-en-2026-11-10.txt");
+    expect(downloads[0]!.text).toContain("#deck:Langle Spanish\n");
   });
 
   it("shows why an import failed", async () => {

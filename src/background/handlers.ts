@@ -52,6 +52,7 @@ import {
   MAX_CACHED_TRANSLATIONS,
   MAX_TRANSLATION_TEXT,
   type ExplanationKey,
+  type ExportDetails,
   type OccurrenceView,
   type Origin,
   type Reply,
@@ -631,6 +632,41 @@ export function createHandlers({
           ...(lines !== undefined && { meanings: lines }),
         };
       });
+    },
+
+    async exportDetails({ lang, ids }) {
+      const [pack, index] = await allOf([
+        resources.pack(lang),
+        store.termIndex(lang),
+      ]);
+      const prefix = `${lang}:`;
+      const wanted = [
+        ...new Set(ids.filter((id) => typeof id === "string")),
+      ].filter(
+        (id) => id.startsWith(prefix) && index.has(id.slice(prefix.length)),
+      );
+      const details = await Promise.all(
+        wanted.map(async (id): Promise<[string, ExportDetails]> => {
+          const occurrences = await store.occurrencesOf(id);
+          const o =
+            occurrences.find((x) => x.origin === "saved") ?? occurrences[0];
+          const ipa = pack.ipa(id.slice(prefix.length));
+          return [
+            id,
+            {
+              ...(ipa !== undefined && { ipa }),
+              ...(o && {
+                occurrence: {
+                  sentence: o.sentence,
+                  title: o.source.title,
+                  link: occurrenceLink(o.source, o.pos),
+                },
+              }),
+            },
+          ];
+        }),
+      );
+      return Object.fromEntries(details);
     },
 
     async termSummaries({ lang, keys, sourceUrl }) {
