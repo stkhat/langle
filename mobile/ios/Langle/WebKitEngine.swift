@@ -22,13 +22,13 @@ final class WebKitEngine: BrowsingEngine {
     WebKitPage(profile: profile, schemeHandler: schemeHandler, delegate: delegate)
   }
 
-  /// Deletes the app's data store (`check.sh launch … -reset 1`, a first run again).
+  /// Empties the app's data store (`check.sh launch … -reset 1`, a first run again). It clears
+  /// the store rather than removing it: `WKWebsiteDataStore.remove(forIdentifier:)` crashes in
+  /// WebKit (iOS 26.4 Simulator) when it runs before any web view exists.
   static func removeAppStore() async {
-    do {
-      try await WKWebsiteDataStore.remove(forIdentifier: appStoreID)
-    } catch {
-      Log.app.error("could not remove the app store: \(error.localizedDescription, privacy: .public)")
-    }
+    let store = WKWebsiteDataStore(forIdentifier: appStoreID)
+    await store.removeData(
+      ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
   }
 }
 

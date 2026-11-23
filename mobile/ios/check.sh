@@ -6,7 +6,7 @@
 #   check.sh install                installs the built app on the booted Simulator
 #   check.sh launch [args…]         relaunches the app; args: -url <url>, -reset 1 (a first run)
 #   check.sh cmd <name>             errors | clear-errors | state: the result goes to the log
-#   check.sh eval <target> <js>     runs <js> (an async function body) in host | page | langle | sheet
+#   check.sh js <target> <js|@file>  runs <js> (an async function body) in host | page | langle | sheet
 #   check.sh log [seconds]          the app's log for the last <seconds> (default 60)
 #   check.sh kill                   terminates the app
 #   check.sh screenshot <file.png>  saves a screenshot of the Simulator
@@ -35,9 +35,11 @@ launch)
 cmd)
   xcrun simctl spawn booted notifyutil -p "$bundle.${2:?usage: check.sh cmd <name>}"
   ;;
-eval)
-  target="${2:?usage: check.sh eval <target> <js>}"
-  source="${3:?usage: check.sh eval <target> <js>}"
+js)
+  target="${2:?usage: check.sh js <target> <js>}"
+  source="${3:?usage: check.sh js <target> <js>}"
+  # @file: the script is in that file.
+  case "$source" in @*) source=$(cat "${source#@}") ;; esac
   data=$(xcrun simctl get_app_container booted "$bundle" data)
   mkdir -p "$data/Documents"
   node -e 'process.stdout.write(JSON.stringify({target: process.argv[1], source: process.argv[2]}))' \
@@ -45,7 +47,7 @@ eval)
   xcrun simctl spawn booted notifyutil -p "$bundle.eval"
   ;;
 log)
-  xcrun simctl spawn booted log show --style compact --last "${2:-60}s" \
+  xcrun simctl spawn booted log show --info --debug --style compact --last "${2:-60}s" \
     --predicate "subsystem == \"$bundle\""
   ;;
 kill)
