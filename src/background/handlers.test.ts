@@ -805,6 +805,47 @@ describe("handlers: analyze", () => {
     });
   });
 
+  it("gives a word that is itself its own key and status, though another base of it is saved", async () => {
+    const analyze = () =>
+      value({ type: "analyze", lang: "en", blocks: ["The bore."] });
+    const unsaved = await analyze();
+    for (const status of ["known", "learning"] as const) {
+      store.termIndex.mockResolvedValue(new Map([["bear", status]]));
+      const result = await analyze();
+      expect(result).toEqual(unsaved);
+      expect(result.spans[0]![1]).toMatchObject({
+        key: "bore",
+        category: "new",
+        pos: "noun",
+      });
+      expect(result.unsaved).toContain("bore");
+      expect(result.saved).toEqual([]);
+    }
+    store.termIndex.mockResolvedValue(
+      new Map([
+        ["bear", "learning"],
+        ["bore", "known"],
+      ]),
+    );
+    const both = await analyze();
+    expect(both.spans[0]![1]).toMatchObject({ key: "bore", category: "known" });
+    expect(both.saved).toEqual(["bore"]);
+  });
+
+  it("keeps a saved base's key for an inflected verb form", async () => {
+    store.termIndex.mockResolvedValue(new Map([["rise", "known"]]));
+    const result = await value({
+      type: "analyze",
+      lang: "en",
+      blocks: ["The yeast rose."],
+    });
+    expect(result.spans[0]!.find((s) => s.start === 10)).toMatchObject({
+      key: "rise",
+      category: "known",
+    });
+    expect(result.saved).toEqual(["rise"]);
+  });
+
   it("takes a word the document always capitalises for a name: ignored, no dictionary meaning kept", async () => {
     // "crust" is a given name in the test lexicon; its capitalised headword is about
     // one person. "Yeast" is capitalised inside a sentence: its capitalised senses count.
@@ -1601,6 +1642,7 @@ describe("handlers: machine translations of English definitions", () => {
           entry: (term) => ({ head: term, kind: "phrase", ...definition }),
           outline: () => undefined,
           capitalMeaning: () => undefined,
+          acronym: () => undefined,
           senseLine: (sense) => sense.text,
         }),
       },
@@ -1734,6 +1776,42 @@ describe("handlers: machine translations of English definitions", () => {
       },
     });
     expect(translations.get).not.toHaveBeenCalled();
+  });
+
+  it("gives lists an article's usage note as a definition to translate", async () => {
+    handle = createHandlers({
+      ...deps,
+      resources: {
+        ...deps.resources,
+        dictionary: async (from, to) => ({
+          from,
+          to,
+          short: () => "Used before a humming sound",
+          entry: (term) => ({
+            head: term,
+            kind: "word",
+            short: "Used before a humming sound",
+            lines: ["Used before a humming sound"],
+            senses: [{ pos: "article", text: "Used before a humming sound." }],
+            glossLang: "en",
+          }),
+          outline: () => undefined,
+          capitalMeaning: () => undefined,
+          acronym: () => undefined,
+          senseLine: (sense) => sense.text,
+        }),
+      },
+    });
+    expect(
+      await value({ type: "termSummaries", lang: "en", keys: ["un"] }),
+    ).toEqual({
+      un: {
+        short: "Used before a humming sound",
+        glossLang: "en",
+        definition: "Used before a humming sound.",
+        status: "new",
+      },
+    });
   });
 
   it("does not read the cache for lists without English definitions", async () => {

@@ -121,6 +121,21 @@ describe("wordCases", () => {
       ["us", false],
     ]);
   });
+  it("reads a caps run through a capital letter alone (WITH A BLOCK, OH, I LOVE)", () => {
+    const upper = (text: string) =>
+      wordCases(tokenize(text, "en"), "en")
+        .filter((w) => w.written === "upper" && w.key.length > 1)
+        .map((w) => [w.key, w.capsRun, w.acronym === true]);
+    expect(upper("Hit it WITH A BLOCK. OH, I LOVE it. The CAT report")).toEqual(
+      [
+        ["with", true, false],
+        ["block", true, false],
+        ["oh", true, false],
+        ["love", true, false],
+        ["cat", false, true],
+      ],
+    );
+  });
 });
 
 describe("documentCasing", () => {
@@ -147,7 +162,24 @@ describe("documentCasing", () => {
   it("takes no evidence from labels, ALL-CAPS words, plural acronyms or starts", () => {
     expect(
       casingOf("Then we saw [Mark] and the NASA AEDs near Helen."),
-    ).toEqual({ mode: "mixed", words: { helen: [1, 0] } });
+    ).toEqual({
+      mode: "mixed",
+      words: { helen: [1, 0] },
+      // Acronyms alone, and how often the document writes them in lower case.
+      acronyms: { nasa: 0, aeds: 0 },
+    });
+  });
+  it("counts an acronym's lower-case writings; a caps run's words are no acronyms", () => {
+    expect(
+      casingOf(
+        "We saw a LOT of it. There was a lot.",
+        "HE SAID IT. The CAT left.",
+      ),
+    ).toEqual({
+      mode: "mixed",
+      words: {},
+      acronyms: { lot: 1, cat: 0 },
+    });
   });
 });
 

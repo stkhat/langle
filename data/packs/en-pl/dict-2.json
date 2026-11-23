@@ -1,4 +1,5 @@
 {
+"grand":[[["adjective","okazały, wielki, ogromny"],["adjective","o osobach: wspaniały, dostojny, wybitny, szlachetny"],["adjective","o rzeczach lub pojęciach: świetny, wspaniały, majestatyczny"],["noun","o pieniądzach: tysiąc"]],0],
 "grand canyon":[[["proper noun","Wielki Kanion, Wielki Kanion Kolorado"]],0],
 "grand duchy":[[["noun","wielkie księstwo","a dominion or region ruled by a grand duke or grand duchess"]],1],
 "grand duchy of finland":[[["proper noun","Wielkie Księstwo Finlandii","former European state"]],1],
@@ -17639,7 +17640,7 @@
 "picayune":[[["adjective","trywialny, lichy, błahy"],["adjective","małostkowy"],["noun","błahostka"]],0],
 "piccaninny":[[["noun","mały czarnuch, czarnoskóre dziecko"],["adjective","kurduplowaty, bardzo mały"]],0],
 "piccolo":[[["noun","pikolo"]],0],
-"pick":[[["noun","elita"],["noun","kilof"],["noun","wybór"],["noun","wykałaczka"]],0],
+"pick":[[["verb","zrywać, zbierać","to remove a fruit or plant for consumption"],["noun","kilof, oskard, czekan","pickaxe"],["verb","dłubać, grzebać, gmerać","to grasp and pull with fingers"],["verb","wybrać, wybierać","to decide upon, from a set of options; to select"]],1],
 "pick at":[[["verb","dziobać"]],0],
 "pick off":[[["verb","wystrzelać"]],0],
 "pick on":[[["verb","czepiać się"]],0],
@@ -24351,8 +24352,5 @@
 "satisfying":[[["adjective","satysfakcjonujący"],["verb","imiesłów czasu teraźniejszego (present participle) czasownika to satisfy",null,"satisfy"]],0],
 "satisfyingly":[[["adverb","satysfakcjonująco"]],0],
 "satrap":[[["noun","satrapa"]],0],
-"satrapy":[[["noun","satrapia"]],0],
-"satsuma":[[["noun","odmiana japońskiej mandarynki"]],0],
-"saturate":[[["verb","nasiąkać"],["verb","nasycać"],["verb","przepajać"],["verb","przemaczać"]],0],
-"saturated":[[["adjective","nasycony"],["adjective","w teorii grafów: nasycony"],["verb","forma czasu przeszłego prostego (past simple) czasownika to saturate",null,"saturate"],["verb","imiesłów czasu przeszłego (past participle) czasownika to saturate",null,"saturate"]],0]
+"satrapy":[[["noun","satrapia"]],0]
 }

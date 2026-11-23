@@ -387,8 +387,32 @@ describe("isUsageNoteShort", () => {
       isUsageNoteShort({
         kind: "word",
         short: "Used as an intensifier",
-        senses,
+        senses: [{ pos: "adverb", text: "Used as an intensifier." }],
       }),
     ).toBe(true);
+  });
+  it.each([
+    "article",
+    "determiner",
+    "pronoun",
+    "preposition",
+    "postposition",
+    "particle",
+    "conjunction",
+  ])("reads no closed-class word's as one (%s)", (pos) => {
+    const note = {
+      short: "Used before a humming sound",
+      senses: [{ pos, text: "Used before a humming sound." }],
+    };
+    expect(isUsageNoteShort({ kind: "word", ...note })).toBe(false);
+    expect(isUsageNoteShort({ kind: "phrase", ...note })).toBe(true);
+  });
+  it("reads a word's class from the sense its short meaning was cut from", () => {
+    const noun = { pos: "noun", text: "Used tea leaves; dregs." };
+    const article = { pos: "article", text: "Used before a hum; a buzz." };
+    const note = (short: string, senses: (typeof noun)[]) =>
+      isUsageNoteShort({ kind: "word", short, senses });
+    expect(note("Used before a hum", [noun, article])).toBe(false);
+    expect(note("Used tea leaves", [article, noun])).toBe(true);
   });
 });

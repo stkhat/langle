@@ -18,6 +18,7 @@ import {
   inNativeCase,
   inTablesCase,
   lastScriptForm,
+  lesserUse,
   mergeSources,
   nativeKindOf,
   nativeLetterOf,
@@ -28,6 +29,7 @@ import {
   readTranslationTables,
   rowWords,
   termKeyOf,
+  treebankUses,
   usesOfForm,
   withAbbreviations,
   withAuxiliarySenses,
@@ -865,6 +867,11 @@ describe("packedEntry", () => {
     expect(packedEntry("luz", senses, 1)).toEqual([senses, 1]);
     expect(packedEntry("luz", senses, 1, "word")).toEqual([senses, 1, "word"]);
   });
+  it("leaves out a table's first word as written, which the dictionary shows without its asides", () => {
+    const senses: PairSense[] = [["adjective", "현재(現在)의, 지금의", "now"]];
+    expect(packedEntry("현재(現在)의", senses, 0)).toEqual([senses, 0]);
+    expect(packedEntry("현재의", senses, 0)).toEqual([senses, 0]);
+  });
   it("stores any other short last, the third item null when there is none", () => {
     const senses: PairSense[] = [
       ["proper noun", "ciudad de Ohio, Estados Unidos", "city in Ohio"],
@@ -905,7 +912,28 @@ describe("mergeSources", () => {
       lacking: [],
       pointing: [],
       expanded: [],
+      lessened: [],
     });
+  });
+  it("takes a term a source gives only in a lesser use from the next that has its main use", () => {
+    const edition = new Map<string, SourceTerm>([
+      ["just", { short: "공정하다", senses: [["adjective", "공정하다"]] }],
+    ]);
+    const glosses = new Map<string, SourceTerm>([
+      ["just", { short: "바로", senses: [["adverb", "바로"]] }],
+    ]);
+    const merged = mergeSources(
+      [
+        { tag: "enwiktionary-translations", terms: edition },
+        { tag: "enwiktionary-ko", terms: glosses },
+      ],
+      {
+        lesser: (_, senses) =>
+          senses[0]![0] === "adjective" ? ["adverb"] : undefined,
+      },
+    );
+    expect(merged.dict.just).toEqual(["바로", [["adverb", "바로"]], 1]);
+    expect(merged.lessened).toEqual(["just"]);
   });
   it("takes a closed-class term a source only describes from the next that translates it", () => {
     const edition = new Map<string, SourceTerm>([
@@ -1672,5 +1700,151 @@ describe("inflectionOf (id-2)", () => {
         "noun",
       ),
     ).toBeUndefined();
+  });
+});
+
+describe("lesserUse", () => {
+  const uses = (counts: Record<string, number>) =>
+    new Map(Object.entries(counts));
+  it("gives the main use's labels when every sense is of a use the treebank rarely has", () => {
+    expect(
+      lesserUse(
+        [["adverb", "비교급 앞에서 쓰는 부사"]],
+        uses({ determiner: 300 }),
+        ["article", "adverb"],
+        "article",
+      ),
+    ).toEqual(["article", "determiner"]);
+    expect(
+      lesserUse(
+        [["adjective", "공정하다"]],
+        uses({ adverb: 50 }),
+        ["adjective", "adverb"],
+        "adverb",
+      ),
+    ).toEqual(["adverb"]);
+    expect(
+      lesserUse(
+        [["noun", "إرادة"]],
+        uses({ modal: 40, noun: 2 }),
+        ["verb", "noun"],
+        "verb",
+      ),
+    ).toEqual(["verb"]);
+  });
+  it("counts no use of no class", () => {
+    expect(
+      lesserUse(
+        [["noun", "Google"]],
+        uses({ other: 46, verb: 3 }),
+        ["noun", "verb"],
+        "noun",
+      ),
+    ).toBeUndefined();
+  });
+  it("keeps a term the treebank often uses as an interjection", () => {
+    expect(
+      lesserUse(
+        [["adverb", "хорошо, ладно"]],
+        uses({ adjective: 12, interjection: 10 }),
+        ["noun", "adjective", "adverb", "interjection"],
+        "adjective",
+      ),
+    ).toBeUndefined();
+  });
+  it("keeps a term with a sense of a use the treebank has often enough", () => {
+    expect(
+      lesserUse(
+        [["noun", "걱정"]],
+        uses({ noun: 63, verb: 21 }),
+        ["noun", "verb"],
+        "noun",
+      ),
+    ).toBeUndefined();
+    expect(
+      lesserUse(
+        [["noun", "걱정"]],
+        uses({ noun: 3, verb: 21 }),
+        ["noun", "verb"],
+        "verb",
+      ),
+    ).toBeUndefined();
+  });
+  it("counts a verb's senses as a modal's", () => {
+    expect(
+      lesserUse(
+        [["verb", "…하여 주시겠습니까"]],
+        uses({ modal: 200 }),
+        ["verb"],
+        "verb",
+      ),
+    ).toBeUndefined();
+    expect(
+      lesserUse(
+        [["verb", "…하여 주시겠습니까"]],
+        uses({ modal: 200 }),
+        ["verb", "noun"],
+        undefined,
+      ),
+    ).toBeUndefined();
+  });
+  it("leaves alone a label English Wiktionary does not give the word, the most translated one, a rare word and a form", () => {
+    // th "the": a description of the article, labelled a noun.
+    expect(
+      lesserUse(
+        [["noun", "คำใช้บ่งบอก"]],
+        uses({ determiner: 300 }),
+        ["article"],
+        "article",
+      ),
+    ).toBeUndefined();
+    expect(
+      lesserUse(
+        [["adjective", "예쁜"]],
+        uses({ adverb: 66, adjective: 3 }),
+        ["adjective", "adverb"],
+        "adjective",
+      ),
+    ).toBeUndefined();
+    expect(
+      lesserUse(
+        [["noun", "의사"]],
+        uses({ adjective: 19 }),
+        ["adjective", "noun"],
+        "adjective",
+      ),
+    ).toBeUndefined();
+    expect(
+      lesserUse(
+        [["adverb", "따르면"]],
+        uses({ verb: 60 }),
+        ["adverb", "verb"],
+        undefined,
+        true,
+      ),
+    ).toBeUndefined();
+    expect(
+      lesserUse(
+        [["noun", "의사", "doctor", "medic"]],
+        uses({ adjective: 60 }),
+        ["noun", "adjective"],
+        undefined,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe("treebankUses", () => {
+  it("counts each word's uses by class, in lower case", () => {
+    const counted = treebankUses([
+      { words: ["The", "dog", "will", "run"], tags: ["DT", "NN", "MD", "VB"] },
+      { words: ["the", "run", ","], tags: ["DT", "NN", ","] },
+    ]);
+    expect([...counted.get("the")!]).toEqual([["determiner", 2]]);
+    expect([...counted.get("run")!]).toEqual([
+      ["verb", 1],
+      ["noun", 1],
+    ]);
+    expect([...counted.get(",")!]).toEqual([["other", 1]]);
   });
 });

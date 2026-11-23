@@ -333,7 +333,7 @@ export function createHandlers({
     const names =
       read?.mode === "mixed" &&
       pack.namesByCase &&
-      Object.keys(read.words).length > 0;
+      (Object.keys(read.words).length > 0 || read.acronyms !== undefined);
     const tags = bySense && pack.tagger !== undefined;
     const withCasing = read ? { ...options, casing: read } : options;
     if (!names && !tags) return withCasing;
@@ -351,6 +351,7 @@ export function createHandlers({
       ...withCasing,
       ...(names && {
         capitalMeaning: (key: string) => dictionary.capitalMeaning(key),
+        acronym: (key: string) => dictionary.acronym(key),
       }),
       ...(tags && { outline: (key: string) => dictionary.outline(key) }),
     };

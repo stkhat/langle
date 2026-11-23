@@ -259,6 +259,9 @@ async function download() {
 const readSplit = (split: Split) =>
   readConllu(readFileSync(join(EWT_DIR, `en_ewt-ud-${split}.conllu`), "utf8"));
 
+/** The sentences of all the treebank's splits, downloaded before. */
+export const readTreebank = () => SPLITS.flatMap(readSplit);
+
 async function main() {
   await download();
   const model = train(readSplit("train"), { log: console.log });

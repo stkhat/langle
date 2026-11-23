@@ -267,7 +267,7 @@ export function spanishTagger(model: PerceptronModel): Tagger {
       tagSentence(
         model,
         tokens.map((token) => token.replaceAll("’", "'")),
-      ).map(({ tag, margin }) => udTokenTag(tag, margin)),
+      ).map(udTokenTag),
     uses: (words) => words.map((_, i) => use(words, i)),
     role,
   };

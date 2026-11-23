@@ -1,6 +1,7 @@
 import type {
   AcronymsPack,
   CapitalsPack,
+  UppercasePack,
   ContractionPack,
   DefsPack,
   DictPack,
@@ -45,6 +46,7 @@ interface BuiltOtherwise {
     contractions: ContractionPack;
     capitals: CapitalsPack;
     acronyms: AcronymsPack;
+    uppercase: UppercasePack;
   };
   "en-ja": {
     dict: DictPack;
@@ -109,6 +111,7 @@ const LOADERS: {
         "contractions",
         "capitals",
         "acronyms",
+        "uppercase",
       ],
       fetchJson,
     ),

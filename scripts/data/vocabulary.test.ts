@@ -66,6 +66,10 @@ describe("rule E: the vocabulary from the example corpus", () => {
     expect(result.added).not.toContain("ai");
     expect(result.added).toContain("omg");
   });
+  it("lists the vocabulary words the examples write more often in capitals (OMG)", () => {
+    // Not "ai": the sloth is no vocabulary word; not the words written in lower case.
+    expect(result.uppercase).toEqual(["omg"]);
+  });
   it("takes a common word that is also a name, and lists it as a name", () => {
     expect(result.added).toContain("joey");
     expect(result.names.joey).toBe("g");

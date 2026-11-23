@@ -12,24 +12,26 @@ import type { HandlerDeps } from "../background/handlers";
 
 /**
  * A tagger that knows a few words for sure (tagged without scoring) and tags every
- * other one as a noun it is not sure of: "rose" is a past tense, "the" a determiner.
+ * other one as a noun it is not sure of: "rose" is a past tense, "bore" a singular
+ * noun, "the" a determiner.
  */
 const TEST_TAGGER: PackFiles["en"]["tagger"] = {
   tags: ["NN", "VBD"],
-  words: { rose: "VBD", the: "DT" },
+  words: { rose: "VBD", bore: "NN", the: "DT" },
   weights: {},
   scale: 10,
 };
 
 const TEST_PACKS: PackFiles = {
   en: {
-    // "rose" is a word of its own and a form of "rise".
+    // "rose" is a word of its own and a form of "rise", as "bore" is of "bear".
     lemmas: {
       loaves: "loaf",
       ferments: "ferment",
       gave: "give",
       made: "make",
       rose: "rise",
+      bore: "bear",
     },
     // "yeast" is ranked 2,500: known at the default level (3,000), new at 2,000.
     freq: [
@@ -45,8 +47,11 @@ const TEST_PACKS: PackFiles = {
       crust: ["noun"],
       rise: ["verb", "noun"],
       rose: ["noun", "verb"],
+      bear: ["noun", "verb"],
+      bore: ["noun", "verb"],
     },
     vocab: [
+      ...["bear", "bore"],
       ...["crust", "ferment", "figure", "from", "give", "loaf", "out"],
       ...["rise", "rose", "scratch", "the", "up", "yeast"],
     ],
@@ -65,9 +70,12 @@ const TEST_PACKS: PackFiles = {
     contractions: {},
     capitals: [],
     acronyms: {},
+    uppercase: [],
   },
   "en-ja": {
     dict: {
+      bear: ["クマ", ["クマ"]],
+      bore: ["穴", ["穴"]],
       crust: ["パンの皮", ["パンの皮"]],
       ferment: ["発酵する", ["発酵する"]],
       loaf: ["パンのひと塊", ["パンのひと塊"]],
@@ -183,7 +191,7 @@ const TEST_PACKS: PackFiles = {
   "en-pt": {
     dict: { loaf: [[["noun", "pão"]], 0] },
   },
-  // Translation tables first, then the edition (`afterTables`).
+  // Translation tables only.
   "en-ru": {
     dict: {
       loaf: [[["noun", "буханка, батон", "block of bread"]], 0],
@@ -227,6 +235,11 @@ const TEST_PACKS: PackFiles = {
   "en-tr": {
     dict: { loaf: [[["noun", "somun"]], 0] },
   },
+  // The Korean Wiktionary's English entries, the tables, English Wiktionary's Korean
+  // entries, then the Korean edition's tables read the other way.
+  "en-ko": {
+    dict: { loaf: [[["noun", "빵 한 덩어리"]], 0] },
+  },
   // German → French (L3): de.wiktionary's tables first; Essen's capitalised sense marked.
   "de-fr": {
     dict: {
@@ -243,7 +256,7 @@ const TEST_PACKS: PackFiles = {
   },
 };
 
-const { crust, ferment, loaf, rise, rose, the, yeast } =
+const { bear, bore, crust, ferment, loaf, rise, rose, the, yeast } =
   TEST_PACKS["en-ja"].dict;
 const { comer, ...esDefs1 } = TEST_PACKS["es-en"].defs;
 
@@ -260,11 +273,11 @@ const TEST_FILES: Readonly<Record<string, unknown>> = {
   ),
   "/packs/en-ja/index.json": {
     shards: [
-      { file: "dict-1.json", first: "crust", last: "loaf" },
+      { file: "dict-1.json", first: "bear", last: "loaf" },
       { file: "dict-2.json", first: "rise", last: "yeast" },
     ],
   },
-  "/packs/en-ja/dict-1.json": { crust, ferment, loaf },
+  "/packs/en-ja/dict-1.json": { bear, bore, crust, ferment, loaf },
   "/packs/en-ja/dict-2.json": { rise, rose, the, yeast },
   "/packs/en-ja/phrases.json": TEST_PACKS["en-ja"].phrases,
   "/packs/en-ja/capital.json": TEST_PACKS["en-ja"].capital,
@@ -332,7 +345,7 @@ const TEST_FILES: Readonly<Record<string, unknown>> = {
   "/packs/en-pt/dict-1.json": TEST_PACKS["en-pt"].dict,
   "/packs/en-ru/index.json": {
     shards: [{ file: "dict-1.json", first: "loaf", last: "loaf" }],
-    sources: ["enwiktionary-translations", "ruwiktionary"],
+    sources: ["enwiktionary-translations"],
   },
   "/packs/en-ru/dict-1.json": TEST_PACKS["en-ru"].dict,
   "/packs/en-fr/index.json": {
@@ -401,6 +414,11 @@ const TEST_FILES: Readonly<Record<string, unknown>> = {
     ],
   },
   "/packs/en-tr/dict-1.json": TEST_PACKS["en-tr"].dict,
+  "/packs/en-ko/index.json": {
+    shards: [{ file: "dict-1.json", first: "loaf", last: "loaf" }],
+    sources: ["enwiktionary-translations", "kowiktionary", "enwiktionary-ko"],
+  },
+  "/packs/en-ko/dict-1.json": TEST_PACKS["en-ko"].dict,
   "/packs/de-fr/index.json": {
     shards: [{ file: "dict-1.json", first: "essen", last: "haus" }],
     sources: [

@@ -194,6 +194,8 @@ const PACKS: Pick<PackFiles, "en" | "en-ja" | "en-defs"> = {
     tagger: { tags: ["NN", "VB"], words: {}, weights: {}, scale: 10 },
     contractions: {},
     capitals: ["DEA", "GPU"],
+    // A vocabulary word text writes mostly in capitals: its entry means the acronym.
+    uppercase: ["ceo"],
     // Known only by what it stands for: a word where the document spells one out.
     acronyms: {
       NYPD: [
@@ -275,6 +277,8 @@ export function testBackground(
       get: async () => settings,
       set: async (patch: SettingsPatch) => {
         settings = mergeSettings(patch, settings);
+        // As `storage.onChanged` does, before the write is answered.
+        settingsWatchers.emit(settings);
         return settings;
       },
     },

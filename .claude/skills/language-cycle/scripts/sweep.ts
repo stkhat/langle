@@ -3,7 +3,7 @@
 // measure.ts runs once per pair; both are real-content-quality's scripts.
 //
 //   npx jiti .claude/skills/language-cycle/scripts/sweep.ts --cycle=<name> \
-//     [--repo=<checkout>] [--label=sweep] [--pairs=en-ja,de-fr] [--jobs=3] [--level=3000] \
+//     [--repo=<checkout>] [--label=sweep] [--pairs=en-ja,de-fr] [--jobs=2] [--level=3000] \
 //     [--repeat=3]
 //
 // (or CYCLE, REPO, LABEL, PAIRS, JOBS, LEVEL, REPEAT in the environment).
@@ -42,7 +42,8 @@ const REPO = repo();
 const CYCLE = setting("cycle");
 if (!CYCLE) throw new Error("Set --cycle=<name> (e.g. c001)");
 const LABEL = setting("label", "sweep")!;
-const JOBS = Number(setting("jobs", "3"));
+// Two at a time: the cycle runs on the user's own machine (SKILL.md "Machine load").
+const JOBS = Number(setting("jobs", "2"));
 const LEVEL = setting("level", "3000")!;
 const REPEAT = Math.max(1, Number(setting("repeat", "3")));
 const OUT = join(qualityRoot(), "cycles", CYCLE, LABEL);

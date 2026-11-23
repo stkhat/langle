@@ -15,8 +15,9 @@ import { mergeSettings, type Settings } from "../../core/settings";
 import type { ExplanationProvider } from "../../core/explain/provider";
 import type { LanguagePair } from "../../core/packs/pairs";
 import { fakeExplanationProvider } from "../../testing/explain";
+import en from "../../i18n/locales/en.json";
 import { SettingsPage, type SettingsDeps } from "./SettingsPage";
-import { listeners, settingsListeners } from "../../testing/stubs";
+import { heldWrites, listeners, settingsListeners } from "../../testing/stubs";
 
 const NOW = new Date(2026, 10, 10, 12, 0, 0).getTime();
 const MINUTE = 60_000;
@@ -307,6 +308,7 @@ describe("SettingsPage", () => {
       "Arabic (العربية)",
       "Indonesian (Bahasa Indonesia)",
       "Turkish (Türkçe)",
+      "Korean (한국어)",
     ]);
     const ui = screen.getByRole("combobox", { name: /Interface language/ });
     await expect.element(ui).toHaveDisplayValue("English");
@@ -389,6 +391,60 @@ describe("SettingsPage", () => {
       { learningLang: "es", nativeLang: "en" },
       { learningLang: "en", nativeLang: "ja" },
     ]);
+  });
+
+  it("keeps the last language chosen while the choices before it are stored", async () => {
+    const f = fake();
+    const writes = heldWrites(f.deps.send);
+    const screen = await render(
+      <SettingsPage deps={{ ...f.deps, send: writes.send }} />,
+    );
+    const learning = screen.getByRole("combobox", {
+      name: /Learning language/,
+    });
+    await expect.element(learning).toBeVisible();
+    for (const value of ["de", "en"])
+      await userEvent.selectOptions(learning, value);
+    const native = screen.getByRole("combobox", { name: /Your language/ });
+    const offered = optionLabels(native.element());
+
+    // German is stored while English is still on its way.
+    await writes.storeNext();
+    expect((learning.element() as HTMLSelectElement).value).toBe("en");
+    expect(optionLabels(native.element())).toEqual(offered);
+
+    await writes.storeNext();
+    expect((learning.element() as HTMLSelectElement).value).toBe("en");
+    expect(f.settings()).toMatchObject({
+      learningLang: "en",
+      nativeLang: "ja",
+    });
+  });
+
+  it("loses no site added while the ones before it are stored", async () => {
+    const f = fake();
+    const writes = heldWrites(f.deps.send);
+    const screen = await render(
+      <SettingsPage deps={{ ...f.deps, send: writes.send }} />,
+    );
+    const add = async (host: string) => {
+      const button = screen.getByRole("button", { name: "+ Add site" });
+      if (button.query()) await userEvent.click(button);
+      const input = screen.getByRole("textbox", {
+        name: en["settings.sites.addInput"],
+      });
+      await userEvent.fill(input, host);
+      await userEvent.keyboard("{Enter}");
+    };
+    await expect
+      .element(screen.getByRole("button", { name: "+ Add site" }))
+      .toBeVisible();
+    await add("a.com");
+    await add("b.com");
+    await writes.storeNext();
+    await add("c.com");
+    while (writes.waiting()) await writes.storeNext();
+    expect(f.settings().neverRunOn).toEqual(["a.com", "b.com", "c.com"]);
   });
 
   it("starts the translator's model download when a language is chosen", async () => {

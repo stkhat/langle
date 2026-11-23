@@ -202,6 +202,21 @@ export const NOMINAL_POS: ReadonlySet<string> = new Set([
   "adjective",
 ]);
 
+/**
+ * The closed classes (as the dictionaries label senses): the grammar words a language
+ * translates rather than defines, whose definitions say how they are used. A word of
+ * one is never translated literally (`isUsageNoteShort`).
+ */
+export const CLOSED_CLASSES: ReadonlySet<string> = new Set([
+  "pronoun",
+  "determiner",
+  "article",
+  "preposition",
+  "postposition",
+  "conjunction",
+  "particle",
+]);
+
 /** A word of a gloss's head noun phrase. */
 const WORD = "[\\p{L}'’-]+";
 /**
@@ -291,12 +306,14 @@ export function isUsageNote(text: string, pos?: string): boolean {
 }
 
 /**
- * Whether an entry's short meaning is a usage note (`isUsageNote`). A phrase's is read
- * with the part of speech of the sense it was cut from (the first sense that starts
- * with it, else the first: the short meaning is the first sense up to its first ";"),
- * so a name for its function counts ("A mild intensifier"). A word's does not: its
- * literal translation would be the word itself ("gonna"), and its first sense is by
- * convention its main one.
+ * Whether an entry's short meaning is a usage note that gives way to the term's literal
+ * translation (`isUsageNote`). It is read with the part of speech of the sense it was
+ * cut from (the first sense that starts with it, else the first: the short meaning is a
+ * sense up to its first ";"). A phrase's name for its function counts ("A mild
+ * intensifier"). A word's does not: its literal translation would be the word itself
+ * ("gonna"), and its first sense is by convention its main one. A word of a closed
+ * class (CLOSED_CLASSES) has none: alone, it has no translation to give (the article
+ * "an"), and how it is used is its meaning ("Used before a vowel sound.").
  */
 export function isUsageNoteShort({
   kind,
@@ -307,12 +324,13 @@ export function isUsageNoteShort({
   short: string;
   senses: readonly { pos?: string; text: string }[];
 }): boolean {
-  if (kind !== "phrase") return isUsageNote(short);
   const head = withoutLabels(short);
-  const sense =
+  const pos = (
     senses.find((sense) => withoutLabels(sense.text).startsWith(head)) ??
-    senses[0];
-  return isUsageNote(short, sense?.pos);
+    senses[0]
+  )?.pos;
+  if (kind === "phrase") return isUsageNote(short, pos);
+  return (pos === undefined || !CLOSED_CLASSES.has(pos)) && isUsageNote(short);
 }
 
 /**

@@ -3,6 +3,7 @@
  * the universal ones with the verb form of verbs and auxiliaries (VERB.Fin, AUX.Part,
  * VERB.Inf, VERB.Ger), read here as the dictionaries' parts of speech.
  */
+import type { ScoredTag } from "./perceptron";
 import type { TaggedWord, TokenTag, WordUse } from "./tagger";
 
 /** Universal tag → the dictionaries' part of speech. */
@@ -39,7 +40,21 @@ const MORPH: ReadonlySet<string> = new Set([
 const INFLECTED = /\.(Fin|Part|Ger)$/;
 
 /** A universal tag (with its verb form) as a `TokenTag`. */
-export function udTokenTag(tag: string, confidence: number): TokenTag {
+export function udTokenTag({ tag, margin, rivals }: ScoredTag): TokenTag {
+  return {
+    ...readingOf(tag),
+    confidence: margin,
+    ...(rivals && {
+      rivals: rivals.map(({ tag: rival, behind }) => ({
+        ...readingOf(rival),
+        behind,
+      })),
+    }),
+  };
+}
+
+/** What a universal tag says of a word. */
+function readingOf(tag: string): Omit<TokenTag, "confidence" | "rivals"> {
   const upos = tag.split(".")[0]!;
   const label = Object.hasOwn(LABELS, upos) ? LABELS[upos]! : "other";
   return {
@@ -48,7 +63,7 @@ export function udTokenTag(tag: string, confidence: number): TokenTag {
     inflected: INFLECTED.test(tag),
     morph: MORPH.has(label),
     proper: upos === "PROPN",
-    confidence,
+    kind: upos,
   };
 }
 

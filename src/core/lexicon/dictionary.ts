@@ -42,11 +42,13 @@ import {
   japaneseForm,
   japanesePointer,
   keyOf,
+  openingLabels,
   pointerLine,
   shortLines,
   shortOfDefinition,
   shortOfPairSenses,
   shortOfSenses,
+  tableLine,
   type Pointer,
 } from "./short-lines";
 
@@ -161,6 +163,14 @@ export interface DictionaryProvider {
    * meaning by it. Undefined without such a headword.
    */
   capitalMeaning(term: string): CapitalMeaning | undefined;
+  /**
+   * Whether the dictionary has a headword for the term written in capitals, an
+   * acronym's own (US → EE. UU., RAM; not CAT, whose only headword is the animal's):
+   * undefined for a dictionary that keeps no headwords by case (the definitions
+   * dictionaries, the learning pairs). Rule D reads an acronym without one as a name
+   * (`documentNames`).
+   */
+  acronym(term: string): boolean | undefined;
   /**
    * One sense as a short line, as the hover card's lines make it (`lines` before they
    * are ordered and followed): a meaning the user chose shows so in the hover card and
@@ -277,12 +287,14 @@ function dictionaryOver(
   senseLine: DictionaryProvider["senseLine"],
   capitalMeaning: (head: string) => CapitalMeaning | undefined = () =>
     undefined,
+  acronym: (head: string) => boolean | undefined = () => undefined,
 ): DictionaryProvider {
   /** Outlines are read for every analyzed word with a tag: each headword's once. */
   const outlines = new Map<string, EntryOutline | undefined>();
   return {
     senseLine,
     capitalMeaning: (term) => capitalMeaning(keyOf(term)),
+    acronym: (term) => acronym(keyOf(term)),
     outline: (term) => {
       const head = keyOf(term);
       if (!outlines.has(head)) outlines.set(head, outline(head));
@@ -445,6 +457,7 @@ export function createEnJaDictionary(
         ? cleanShort(sense.text)
         : definitionLine(sense.text, definitionPointerOf),
     (head) => meaningOf(capitalOf(head)),
+    (head) => own(data.capital, head.toUpperCase()) !== undefined,
   );
 }
 
@@ -1006,6 +1019,17 @@ export function createPairDictionary({
   /** Whether the pair writes most of its nouns capitalised (`nounsCapitalised`), read once. */
   let nounCased: boolean | undefined;
   const nounCase = () => (nounCased ??= nounsCapitalised(dict));
+  /** Whether the pair keeps capitalised headwords apart (`capitalKey`), read once. */
+  let cased: boolean | undefined;
+  const keepsCase = () =>
+    (cased ??= Object.keys(dict).some((key) => /^\p{Lu}/u.test(key)));
+  /**
+   * The Korean labels the edition's glosses open with (`openingLabels`), read once,
+   * when a line first has a word that may be one.
+   */
+  let labels: ReadonlySet<string> | undefined;
+  const isLabel = (word: string) =>
+    (labels ??= openingLabels(editionGlosses(dict))).has(word);
   /** Unmarked degrees read as pointers: their line stays a gloss's, cut to the cap. */
   const degrees = new WeakSet<PairSenses[number]>();
   /** A learning pair's capitalised senses (`LearningPairPack`). */
@@ -1072,7 +1096,7 @@ export function createPairDictionary({
     const [, text, hint, target] = sense;
     return target !== undefined && !degrees.has(sense)
       ? pointerLine(text)
-      : pairLine({ text, ...(hint != null && { hint }) });
+      : pairLine({ text, ...(hint != null && { hint }) }, isLabel);
   };
   /**
    * A term's meanings (not its pointers) in rule A2's order for `pos`: each one's line
@@ -1254,12 +1278,14 @@ export function createPairDictionary({
     },
     (sense, glossLang) =>
       glossLang === undefined
-        ? pairLine(sense)
+        ? pairLine(sense, isLabel)
         : definitionLine(sense.text, definitionPointerOf),
     (head) => {
       const meaning = capitalOf(head)?.[2];
       return typeof meaning === "string" ? meaning : undefined;
     },
+    // A learning pair keeps its capitalised senses under lowercase keys: no case.
+    (head) => (keepsCase() ? capitalOf(head, true) !== undefined : undefined),
   );
 }
 
@@ -1367,8 +1393,18 @@ function caseOnce<T extends { line: string; pos: string; meaning?: boolean }>(
  * A pair sense's line: an edition's gloss as `editionLine` makes it; a translation
  * table's sense is a list of words, and its line is the first one.
  */
-const pairLine = ({ text, hint }: Pick<Sense, "text" | "hint">) =>
-  hint === undefined ? editionLine(text) : text.split(", ")[0]!.trim();
+const pairLine = (
+  { text, hint }: Pick<Sense, "text" | "hint">,
+  isLabel: (word: string) => boolean,
+) => (hint === undefined ? editionLine(text, isLabel) : tableLine(text));
+
+/** A pair pack's edition glosses (no hint), each with its headword. */
+function* editionGlosses(
+  dict: PairPack | LearningPairPack,
+): Generator<readonly [head: string, gloss: string]> {
+  for (const [head, [senses]] of Object.entries<AnyPairEntry>(dict))
+    for (const [, text, hint] of senses) if (hint == null) yield [head, text];
+}
 
 /** The outline of a headword's English definitions, when it has some. */
 function definitionOutline(

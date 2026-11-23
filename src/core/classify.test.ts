@@ -1488,6 +1488,114 @@ describe("keys and parts of speech by tags (rules A1 and A2)", () => {
   });
 });
 
+describe("a saved base and a word that is itself (rules A1, A1b)", () => {
+  const make = (boreTag: string) =>
+    createLanguagePack("en", {
+      lemmas: { bore: "bear" },
+      freq: ["the", "full", "they", "bear"],
+      ipa: {},
+      vocab: new Set(["the", "full", "they", "bear", "bore", "saw"]),
+      patterns: { detect: ["full bore"], more: ["full bear"], gap: [] },
+      pos: { bear: ["noun", "verb"], bore: ["noun", "verb"] },
+      names: { bore: "p" },
+      tagger: {
+        tags: ["NN", "VBD"],
+        words: { bore: boreTag, the: "DT", full: "JJ", they: "PRP" },
+        weights: {},
+        scale: 10,
+      },
+    });
+  const noun = make("NN");
+  const entries: Record<string, EntryOutline> = {
+    bore: { firstMeaning: true, meaning: true, pos: ["noun"] },
+    bear: { firstMeaning: true, meaning: true, pos: ["noun", "verb"] },
+  };
+  const run = (
+    text: string,
+    saved: Record<string, TermStatus>,
+    options: Partial<ClassifyOptions> = {},
+    lang = noun,
+  ) =>
+    createClassifier(lang)
+      .classify(lang.tokenize(text), {
+        terms: terms(saved),
+        knownLevel: 1,
+        outline: (key) => entries[key],
+        ...options,
+      })
+      .map((s) => ({ ...s, text: text.slice(s.start, s.end) }));
+  const STATUSES = ["known", "learning"] as const;
+
+  it.each(STATUSES)(
+    "reads the word as with nothing saved when another base is %s",
+    (status) => {
+      for (const knownLevel of [1, 10]) {
+        const unsaved = run("The bore.", {}, { knownLevel });
+        expect(run("The bore.", { bear: status }, { knownLevel })).toEqual(
+          unsaved,
+        );
+        expect(unsaved[1]).toMatchObject({ key: "bore", pos: "noun" });
+      }
+      const spans = run("The bore.", { bear: status });
+      expect(spans[1]!.category).toBe("new");
+      expect(unsavedKeys(spans)).toContain("bore");
+    },
+  );
+  it("gives the word its own status when it is saved too", () => {
+    expect(
+      run("The bore.", { bore: "known", bear: "learning" })[1],
+    ).toMatchObject({ key: "bore", category: "known" });
+  });
+  it.each(STATUSES)("keeps a %s base's key for a verb form", (status) => {
+    expect(
+      run("They bore it.", { bear: status }, {}, make("VBD"))[1],
+    ).toMatchObject({ key: "bear", category: status, pos: "verb" });
+  });
+  it("keeps the saved key where the language does not list the word as its tag's part of speech", () => {
+    expect(
+      run("The bore.", { bear: "known" }, {}, make("RB"))[1],
+    ).toMatchObject({ key: "bear", category: "known" });
+  });
+  it("keeps the saved key where, unsaved, the key would be that base", () => {
+    // No entry of its own: A1 looks it up by bear, so it is not let go as a new "bear".
+    const outline = (key: string) =>
+      key === "bear" ? entries.bear : undefined;
+    expect(run("The bore.", {}, { outline })[1]!.key).toBe("bear");
+    expect(run("The bore.", { bear: "known" }, { outline })[1]).toMatchObject({
+      key: "bear",
+      category: "known",
+    });
+  });
+  it("keeps the saved key where A1 does not run", () => {
+    const kept = { key: "bear", category: "known" };
+    const saved = { bear: "known" } as const;
+    expect(run("The bore.", saved, { outline: undefined })[1]).toMatchObject(
+      kept,
+    );
+    // Capitals that count: the capitalised senses come first, whatever the tag.
+    const text = "They saw the Bore.";
+    const casing = documentCasing([blockCasing(noun.tokenize(text), "en")]);
+    const capital = run(text, saved, {
+      casing,
+      capitalMeaning: () => "word",
+    }).find((s) => s.text === "Bore");
+    expect(capital).toMatchObject({ ...kept, capital: true });
+  });
+  it("lets a dictionary phrase over the word, but not over a form of a word being learned", () => {
+    const learning = { bear: "learning" } as const;
+    expect(run("full bore", learning)).toEqual(run("full bore", {}));
+    expect(run("full bore", learning)).toMatchObject([{ key: "full bore" }]);
+    expect(run("full bore", { bore: "learning" })).toHaveLength(2);
+    expect(run("full bore", learning, { outline: undefined })).toHaveLength(2);
+    expect(run("full bore", learning, {}, make("VBD"))).toHaveLength(2);
+  });
+  it("matches a saved phrase through that base as before", () => {
+    expect(
+      run("full bore", { "full bear": "learning", bear: "known" }),
+    ).toMatchObject([{ key: "full bear", category: "learning" }]);
+  });
+});
+
 describe("capital-only words", () => {
   const capitals = createLanguagePack("en", {
     lemmas: {},
@@ -1569,6 +1677,85 @@ describe("capital-only words", () => {
     expect(capital("(DEA) We saw it in Tokyo.", "DEA")).toBe(false);
     expect(capital("We saw it in Tokyo. (DEA) We saw it.", "DEA")).toBe(false);
     expect(capital("(LAUGHTER) We saw it in Tokyo.", "LAUGHTER")).toBe(false);
+  });
+});
+
+describe("acronyms a common word is spelled like (rule D)", () => {
+  const pack = createLanguagePack("en", {
+    lemmas: { cats: "cat" },
+    freq: ["the", "said", "it", "a"],
+    ipa: {},
+    vocab: new Set(
+      ["the", "said", "it", "a", "lot", "cat", "report", "ceo", "us"].concat([
+        "we",
+        "saw",
+        "touchdown",
+        "ok",
+        "of",
+      ]),
+    ),
+    patterns: { detect: [], more: [], gap: [] },
+    pos: {
+      the: ["article"],
+      a: ["article"],
+      we: ["pronoun"],
+      of: ["preposition"],
+    },
+    names: { ok: "x!" },
+    capitals: ["VPN"],
+    uppercase: ["ceo"],
+  });
+  /** The pair keeps US in capitals, no other acronym. */
+  const headwords = new Set(["us"]);
+  const run = (
+    blocks: string[],
+    acronym: (key: string) => boolean | undefined = (key) => headwords.has(key),
+  ) => {
+    const casing = documentCasing(
+      blocks.map((b) => blockCasing(pack.tokenize(b), "en")),
+    );
+    return blocks.flatMap((block) =>
+      createClassifier(pack)
+        .classify(pack.tokenize(block), {
+          terms: terms(),
+          knownLevel: 4,
+          casing,
+          acronym,
+        })
+        .filter((s) => /^\p{Lu}{2}/u.test(block.slice(s.start, s.end)))
+        .map(
+          (s) =>
+            `${block.slice(s.start, s.end)}:${s.name ? "name" : s.category}`,
+        ),
+    );
+  };
+
+  it("are names where the dictionary has no headword in capitals for them", () => {
+    expect(run(["We saw the CAT report.", "The CATs said it."])).toEqual([
+      "CAT:name",
+      "CATs:name",
+    ]);
+  });
+
+  it("stay words the dictionary, the language or the document reads as written", () => {
+    // A headword in capitals; a word text writes mostly in capitals (its entry means
+    // the acronym); a capital-only word; a capitalised common word.
+    expect(
+      run([
+        "The US said it.",
+        "The CEO said it.",
+        "We saw a VPN.",
+        "We said OK.",
+      ]),
+    ).toEqual(["US:new", "CEO:new", "VPN:new", "OK:new"]);
+    // The document writes it in lower case too; capitals for emphasis.
+    expect(run(["We saw a LOT of it.", "A lot of it."])).toEqual(["LOT:new"]);
+    expect(run(["We said TOUCHDOWN."])).toEqual(["TOUCHDOWN:new"]);
+    expect(run(["We saw THE CAT."])).toEqual(["THE:known", "CAT:new"]);
+    // A dictionary that keeps no headwords by case says nothing.
+    expect(run(["We saw the CAT report."], () => undefined)).toEqual([
+      "CAT:new",
+    ]);
   });
 });
 

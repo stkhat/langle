@@ -65,6 +65,28 @@ describe("unbracketed", () => {
 });
 
 describe("readReverseGlosses", () => {
+  it("reads no syllable's page or combining form as a word, and keeps a word spelled the same", async () => {
+    const entry = (word: string, pos: string, gloss: string) => ({
+      word,
+      lang_code: "ko",
+      pos,
+      senses: [{ glosses: [gloss] }],
+    });
+    const path = file([
+      // Korean syllables glossed with their hanja's meanings (理 "ruling", 錦 "brocade").
+      entry("이", "syllable", "hound"),
+      entry("금", "syllable", "bank"),
+      entry("금", "noun", "dog"),
+      entry("개", "combining_form", "big"),
+    ]);
+    const { terms } = await readReverseGlosses(path, {
+      native: "ko",
+      termKey,
+      letter: /\p{Script=Hangul}/u,
+      fits: fitsEnglishPos(pos),
+    });
+    expect([...terms.keys()]).toEqual(["dog"]);
+  });
   it("gives a term the native words whose gloss names it, the gloss's first item first", async () => {
     const path = file([
       {

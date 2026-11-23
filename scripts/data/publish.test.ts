@@ -336,6 +336,18 @@ describe("recipePack", () => {
       ],
     ]);
   });
+  it("lists no Russian edition in en-ru: that source could not be cleared", () => {
+    expect(recipePack("ru").sources.map((s) => [s.title, s.used])).toEqual([
+      [
+        "English Wiktionary, English entries",
+        "Russian translations (translation tables)",
+      ],
+      [
+        "Wikidata",
+        "Russian labels and descriptions of the capital-only words that name one notable thing (Nvidia, Shinkansen)",
+      ],
+    ]);
+  });
   it("refuses a source it has no license record of", () => {
     expect(() =>
       recipePack("fr", { tables: { langCodes: ["fr"] }, wordnets: ["omw-fr"] }),

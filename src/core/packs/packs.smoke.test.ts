@@ -240,6 +240,13 @@ describe("generated phrases", () => {
     expect(phrases.detect).toContain("spill the beans");
   });
 
+  it("detect figurative compounds but leave transparent ones to selections", () => {
+    for (const phrase of ["grey area", "small talk", "acid test"])
+      expect(phrases.detect).toContain(phrase);
+    for (const phrase of ["instant coffee", "digital signature"])
+      expect(phrases.more).toContain(phrase);
+  });
+
   it("keep patterns with a slot for selections only", () => {
     expect(phrases.more).toContain("make up one's mind");
     expect(phrases.more).toContain("pull someone's leg");
@@ -579,12 +586,13 @@ describe("generated en-es dictionary", () => {
   });
 });
 
-// The pairs D2 added: Russian and German take English Wiktionary's translation tables
-// first and their own Wiktionary for the rest; French takes its own first, as Spanish.
+// The pairs D2 added: Russian takes English Wiktionary's translation tables and no
+// edition (2026-11-22: it could not be cleared), German the tables and then its own
+// Wiktionary; French takes its own first, as Spanish.
 describe.each([
   {
     pack: "en-ru",
-    sources: ["enwiktionary-translations", "ruwiktionary", "wikidata"],
+    sources: ["enwiktionary-translations", "wikidata"],
     bread: "хлеб",
   },
   {
@@ -641,6 +649,25 @@ describe.each([
       (term) => !Object.hasOwn(dict, term),
     );
     expect(dictionary.entry(englishOnly!)?.glossLang).toBe("en");
+  });
+});
+
+describe("en-ru without the Russian edition", () => {
+  it("shows the English definition of words only that edition had", async () => {
+    const { dict } = await loadPack("en-ru");
+    const dictionary = createPairDictionary({ dict, defs, ipa, native: "ru" });
+    for (const word of [
+      "the",
+      "an",
+      "okay",
+      "require",
+      "totally",
+      "household",
+    ]) {
+      const entry = dictionary.entry(word);
+      expect(entry?.glossLang, word).toBe("en");
+      expect(entry?.lines[0], word).toMatch(/[A-Za-z]/);
+    }
   });
 });
 
@@ -727,6 +754,16 @@ describe.each([
     ],
     bread: "ekmek",
   },
+  {
+    pack: "en-ko",
+    sources: [
+      "enwiktionary-translations",
+      "kowiktionary",
+      "enwiktionary-ko",
+      "wikidata",
+    ],
+    bread: "빵",
+  },
 ] as const)("generated $pack dictionary", ({ pack, sources, bread }) => {
   const index = read(`packs/${pack}/index.json`) as ShardIndex;
   const load = loadPack(pack).then(({ dict }) => ({
@@ -768,11 +805,11 @@ describe.each([
 });
 
 // Every recipe pair with an edition keeps its forms as pointers (format 2); the tables
-// and reverse glosses give none (en-hi has no edition), nor does the Indonesian
-// edition, whose English entries list no forms.
+// and reverse glosses give none (en-hi has no edition), nor do the Indonesian and
+// Korean editions, whose English entries list no forms (ko: 11 of 17,829 entries).
 describe.each(
   recipeNatives().filter(
-    (native) => RECIPES[native].edition && native !== "id",
+    (native) => RECIPES[native].edition && !["id", "ko"].includes(native),
   ),
 )("generated en-%s pointers", (native) => {
   const load = loadPack(`en-${native}`).then(({ dict }) => ({
@@ -884,6 +921,12 @@ const FIRST_LINES: Readonly<
     be: "imek",
     better: "daha iyi",
   },
+  ko: {
+    english: "영어",
+    january: "일월",
+    be: "이다",
+    better: "더 좋은",
+  },
 };
 
 describe.each(recipeNatives())("generated en-%s first lines", (native) => {
@@ -966,6 +1009,12 @@ describe("generated packs: native hygiene (U1-7)", () => {
     ipa,
   });
 
+  it("en-defs: okay leads with the adjective, its main use", () => {
+    expect(defs.okay?.[0]).toEqual([
+      "adjective",
+      "All right, acceptable, permitted.",
+    ]);
+  });
   it("ja: okay follows the first of OK's spellings past the Oklahoma abbreviation", () => {
     expect(ja.entry("okay")?.lines[0]).toBe("大丈夫な");
     expect(ja.entry("ok", "lower")?.lines.join()).not.toMatch(/Oklahoma/);
@@ -980,10 +1029,6 @@ describe("generated packs: native hygiene (U1-7)", () => {
     expect(await shown("fr", "least", "lower", "adjective")).toMatch(
       /^le moins/,
     );
-  });
-  it("ru: a label abbreviation is not the line, even before a capital", async () => {
-    expect(await shown("ru", "britannia", "capital")).toMatch(/^Британия/);
-    expect(await shown("ru", "gonna")).not.toMatch(/разг/);
   });
   it("reads unmarked pointers and gives a modal's pointer its verb senses", async () => {
     // es armor: "grafía alternativa de armour" only points, so the tables' term.
@@ -1031,16 +1076,15 @@ describe("generated packs: native follow-ups (U1-8)", () => {
         /^ser \/ estar/,
       );
     // Have as one keeps its pointer.
-    expect(await shown("ru", "has", undefined, "auxiliary")).toMatch(
-      /^форма третьего лица/,
+    expect(await shown("pl", "has", undefined, "auxiliary")).toMatch(
+      /^forma 3\. os/,
     );
   });
   it("keep a form's pointer beside another word of its spelling (es dug: no teat)", async () => {
     expect(await shown("es", "dug")).not.toMatch(/teta/);
     expect(await shown("es", "dug")).toMatch(/cavar/);
   });
-  it("leave a two-part label and a mid-gloss abbreviation out of the line", async () => {
-    expect(await shown("ru", "lyric", undefined, "noun")).not.toMatch(/ч\./);
+  it("leave a mid-gloss abbreviation out of the line", async () => {
     expect(await shown("de", "frippery")).not.toMatch(/bzw$/);
   });
   it("show an adjective's sense first where the tag says so (pt low)", async () => {

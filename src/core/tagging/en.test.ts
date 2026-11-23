@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { englishTagger } from "./en";
 import type { PerceptronModel } from "./perceptron";
-import { trustedTag, type TaggedWord, type TokenTag } from "./tagger";
+import { readTag, type TaggedWord, type TokenTag } from "./tagger";
 
 /**
  * A model that knows some words for sure and scores the others from one feature: a
@@ -78,6 +78,17 @@ describe("englishTagger: tag", () => {
       morph: true,
       proper: false,
       confidence: 3,
+      // The next best tag, a noun 3 behind, for `readTag`.
+      rivals: [
+        {
+          tag: "NN",
+          label: "noun",
+          inflected: false,
+          morph: false,
+          proper: false,
+          behind: 3,
+        },
+      ],
     });
     expect(harvey).toMatchObject({ label: "noun", proper: true });
     expect(dog).toMatchObject({ label: "noun", confidence: 0 });
@@ -294,21 +305,101 @@ describe("englishTagger: role", () => {
   });
 });
 
-describe("trustedTag", () => {
+describe("readTag", () => {
   const sure = tagOf("NN", "noun");
+  /** A tag the tagger is not sure of, with its next best tags. */
+  const unsure = (
+    best: TokenTag,
+    ...rivals: readonly [TokenTag, number][]
+  ): TokenTag => ({
+    ...best,
+    confidence: rivals[0]![1],
+    rivals: rivals.map(([rival, behind]) => ({
+      tag: rival.tag,
+      label: rival.label,
+      inflected: rival.inflected,
+      morph: rival.morph,
+      proper: rival.proper,
+      ...(rival.kind === undefined ? {} : { kind: rival.kind }),
+      behind,
+    })),
+  });
+  const VBN = tagOf("VBN", "verb", true);
+  const VBG = tagOf("VBG", "verb", true);
+  const JJS = tagOf("JJS", "adjective", true);
   it("trusts a confident tag", () => {
-    expect(trustedTag(sure, 5, "loaf", ["loaf"])).toBe(true);
-    expect(trustedTag({ ...sure, confidence: 4.9 }, 5, "loaf", ["loaf"])).toBe(
-      false,
-    );
+    expect(readTag(sure, 5, "loaf", ["loaf"])).toEqual(sure);
+    expect(
+      readTag({ ...sure, confidence: 4.9 }, 5, "loaf", ["loaf"]),
+    ).toBeUndefined();
   });
   it("never trusts a proper-noun tag", () => {
-    expect(trustedTag({ ...sure, proper: true }, 5, "deposit", [])).toBe(false);
+    expect(
+      readTag({ ...sure, proper: true }, 5, "deposit", []),
+    ).toBeUndefined();
   });
   it("needs an inflected form's tag to say so", () => {
     // "calmer" is not a headword: a bare noun tag cannot be right.
-    expect(trustedTag(sure, 5, "calmer", ["calm"])).toBe(false);
-    expect(trustedTag(T.VBD!, 5, "calmed", ["calm"])).toBe(true);
-    expect(trustedTag(sure, 5, "dough", [])).toBe(true);
+    expect(readTag(sure, 5, "calmer", ["calm"])).toBeUndefined();
+    expect(readTag(T.VBD!, 5, "calmed", ["calm"])).toEqual(T.VBD);
+    expect(readTag(sure, 5, "dough", [])).toEqual(sure);
+  });
+  it("counts tags that say the same of the word as one", () => {
+    // "netted": a past 2.7 ahead of a participle, a verb either way; 19 of the next.
+    const netted = unsure(T.VBD!, [VBN, 2.7], [T.JJ!, 18.9]);
+    expect(readTag(netted, 5, "netted", ["net"])).toEqual({
+      ...T.VBD,
+      confidence: 18.9,
+    });
+    // A bare noun and an adjective say different things: 2 apart is no evidence.
+    expect(
+      readTag(unsure(sure, [T.JJ!, 2], [T.RB!, 9]), 5, "dough", []),
+    ).toBeUndefined();
+  });
+  it("reads an inflected form by the best tag its form can carry", () => {
+    // "looming": the noun it cannot be is 3.6 behind (no noun tag with an ending
+    // listed, so it says nothing), the adjective 11.8, as JJS says it.
+    const looming = unsure(VBG, [sure, 3.6], [T.JJ!, 11.8], [JJS, 19.1]);
+    expect(readTag(looming, 5, "looming", ["loom"])).toEqual({
+      ...VBG,
+      confidence: 11.8,
+    });
+    // A bare tag first: the best with an ending, by its own lead.
+    const first = unsure(sure, [VBG, 1], [JJS, 9]);
+    expect(readTag(first, 5, "looming", ["loom"])).toEqual({
+      ...VBG,
+      confidence: 8,
+    });
+    // As a headword of its own, the noun 3.6 behind still counts against it.
+    expect(readTag(looming, 5, "looming", ["looming", "loom"])).toBeUndefined();
+  });
+  it("counts a tag the form cannot carry as its part of speech with an ending", () => {
+    // "Strep A cases": a verb only 1.7 ahead of a noun, which NNS says of the form.
+    const NNS = tagOf("NNS", "noun", true);
+    const VBZ = tagOf("VBZ", "verb", true);
+    const cases = unsure(VBZ, [sure, 1.7], [NNS, 8.6]);
+    expect(readTag(cases, 5, "cases", ["case"])).toBeUndefined();
+  });
+  it("reads nothing when the tagger is sure of a tag the form cannot carry", () => {
+    // "research funding": a noun 5.9 ahead, a gerund noun the dictionary has no entry for.
+    const funding = (ahead: number) =>
+      unsure(sure, [VBG, ahead], [T.JJ!, 17], [T.RB!, 19.1]);
+    expect(readTag(funding(5.9), 5, "funding", ["fund"])).toBeUndefined();
+    // Unsure of it: the best tag the form can carry, ahead of all listed but the noun.
+    const read = readTag(funding(3), 5, "funding", ["fund"]);
+    expect(read?.tag).toBe("VBG");
+    expect(read?.confidence).toBeCloseTo(16.1);
+  });
+  it("tells apart tags of the kinds the grammar tells apart", () => {
+    // Spanish "has" in "has hecho": an auxiliary 1 ahead of a verb is no evidence.
+    const verb = { ...tagOf("VERB.Fin", "verb", true), kind: "VERB" };
+    const aux = { ...verb, tag: "AUX.Fin", kind: "AUX" };
+    expect(
+      readTag(unsure(aux, [verb, 1], [T.NN!, 9]), 5, "has", ["haber"]),
+    ).toBeUndefined();
+  });
+  it("bounds the lead by the last tag listed when all listed say the same", () => {
+    const listed = unsure(T.VBD!, [VBN, 1], [VBG, 6]);
+    expect(readTag(listed, 5, "netted", ["net"])?.confidence).toBe(6);
   });
 });

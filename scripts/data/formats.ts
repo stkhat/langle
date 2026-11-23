@@ -188,6 +188,13 @@ const SOURCES = {
     by: WIKTIONARY_AUTHORS,
     license: LICENSES.ccBySa4,
   },
+  wiktionaryKo: {
+    title: "English Wiktionary, Korean entries",
+    via: KAIKKI,
+    url: "https://kaikki.org/dictionary/Korean/",
+    by: WIKTIONARY_AUTHORS,
+    license: LICENSES.ccBySa4,
+  },
   wiktionaryHi: {
     title: "English Wiktionary, Hindi entries",
     via: KAIKKI,
@@ -258,13 +265,6 @@ const SOURCES = {
     by: "the contributors to Wikcionário, listed in each page's history",
     license: LICENSES.ccBySa4,
   },
-  wiktionaryRuEdition: {
-    title: "Russian Wiktionary (Викисловарь), English entries",
-    via: KAIKKI,
-    url: "https://ru.wiktionary.org/",
-    by: "the contributors to Викисловарь, listed in each page's history",
-    license: LICENSES.ccBySa4,
-  },
   wiktionaryFrEdition: {
     title: "French Wiktionary (Wiktionnaire), English entries",
     via: KAIKKI,
@@ -327,6 +327,21 @@ const SOURCES = {
     via: KAIKKI,
     url: "https://tr.wiktionary.org/",
     by: "the contributors to the Turkish Wiktionary, listed in each page's history",
+    license: LICENSES.ccBySa4,
+  },
+  wiktionaryKoEdition: {
+    title: "Korean Wiktionary (위키낱말사전), English entries",
+    via: KAIKKI,
+    url: "https://ko.wiktionary.org/",
+    by: "the contributors to the Korean Wiktionary, listed in each page's history",
+    license: LICENSES.ccBySa4,
+  },
+  wiktionaryKoEditionTables: {
+    title:
+      "Korean Wiktionary (위키낱말사전), Korean entries' translation tables",
+    via: KAIKKI,
+    url: "https://ko.wiktionary.org/",
+    by: "the contributors to the Korean Wiktionary, listed in each page's history",
     license: LICENSES.ccBySa4,
   },
   wiktionaryThEditionTables: {
@@ -459,7 +474,6 @@ const SOURCES = {
 const RECIPE_SOURCES: Readonly<Record<string, Source>> = {
   eswiktionary: SOURCES.wiktionaryEsEdition,
   ptwiktionary: SOURCES.wiktionaryPtEdition,
-  ruwiktionary: SOURCES.wiktionaryRuEdition,
   frwiktionary: SOURCES.wiktionaryFrEdition,
   dewiktionary: SOURCES.wiktionaryDeEdition,
   zhwiktionary: SOURCES.wiktionaryZhEdition,
@@ -475,6 +489,9 @@ const RECIPE_SOURCES: Readonly<Record<string, Source>> = {
   trwiktionary: SOURCES.wiktionaryTrEdition,
   "trwiktionary-translations": SOURCES.wiktionaryTrEditionTables,
   "enwiktionary-tr": SOURCES.wiktionaryTr,
+  kowiktionary: SOURCES.wiktionaryKoEdition,
+  "kowiktionary-translations": SOURCES.wiktionaryKoEditionTables,
+  "enwiktionary-ko": SOURCES.wiktionaryKo,
   [TABLES_TAG]: SOURCES.wiktionaryEn,
   "omw-it": SOURCES.wordnetIt,
   "omw-iwn": SOURCES.wordnetIwn,
@@ -676,6 +693,10 @@ export const PACKS: Readonly<Record<PackName, PackInfo>> = {
     description: "English definitions of English words and phrases",
     sources: [
       { ...SOURCES.wiktionaryEn, used: "the definitions" },
+      {
+        ...SOURCES.udEwt,
+        used: "the order of a word's parts of speech (how often each is used)",
+      },
       {
         ...SOURCES.wikidata,
         used: "descriptions of the capital-only words that name one notable thing (Nvidia, AirPods)",
