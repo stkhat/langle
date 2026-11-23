@@ -11,11 +11,13 @@ import {
   fitsPairCap,
   japaneseForm,
   japanesePointer,
+  openingLabels,
   pointerLine,
   shortLines,
   shortOfDefinition,
   shortOfPairSenses,
   shortOfSenses,
+  tableLine,
   translatedLine,
 } from "./short-lines";
 
@@ -588,6 +590,10 @@ describe("firstSentence", () => {
       firstSentence("maison (famille). Note d’usage : le « h » est…"),
     ).toBe("maison (famille)");
   });
+  it("ends at a period before a letter of a script without case", () => {
+    expect(firstSentence("세다. 열거하다.")).toBe("세다");
+    expect(firstSentence("좋아서, 잘. 실제로.")).toBe("좋아서, 잘");
+  });
   it("does not end after an abbreviation or a number", () => {
     expect(firstSentence("EE. UU.")).toBe("EE. UU.");
     expect(firstSentence("a. de J. C. (antes de Jesucristo)")).toBe(
@@ -602,7 +608,117 @@ describe("firstSentence", () => {
   });
 });
 
+describe("tableLine", () => {
+  it("is a table's first word, without asides in another script", () => {
+    expect(tableLine("현재(現在)의")).toBe("현재의");
+    expect(tableLine("방치(放置)하다, 기치(棄置)하다, 버리다")).toBe(
+      "방치하다",
+    );
+    expect(tableLine("인정 (認定)")).toBe("인정");
+    expect(tableLine("corteza, costra")).toBe("corteza");
+    // An aside in the word's own script stays.
+    expect(tableLine("(Ne) … pas, jamais")).toBe("(Ne) … pas");
+  });
+});
+
 describe("editionLine", () => {
+  it("drops asides in brackets written in another script than the gloss", () => {
+    expect(editionLine("발음(發音)하다")).toBe("발음하다");
+    expect(editionLine("주 (週), 주일")).toBe("주, 주일");
+    expect(editionLine("소유하다(To have; to have ownership of.)")).toBe(
+      "소유하다",
+    );
+    expect(editionLine("ความดัง [from 17th c.]")).toBe("ความดัง");
+    expect(editionLine("魣鳕属（Molva）的鱼")).toBe("魣鳕属的鱼");
+    // An appendix note ends a Korean gloss.
+    expect(editionLine("옆구리. (부록: 신체 부분의 영어 이름)")).toBe("옆구리");
+    // An aside in the gloss's own script stays, and so does a gloss of only asides.
+    expect(editionLine("(Ne) … pas")).toBe("(Ne) … pas");
+    expect(editionLine("(DNA)")).toBe("(DNA)");
+  });
+  it("drops the dictionary's Korean labels, not a complement or modifier", () => {
+    const labels = openingLabels([
+      // Bare words that open the glosses of three headwords, alone or in a list.
+      ["commence", "(타동사) 시작하다"],
+      ["rob", "(타동사)빼앗다"],
+      ["harden", "(자동사, 타동사) 굳다"],
+      ["rectify", "(격식) (잘못된 것을) 바로잡다"],
+      ["deem", "(격식) 여기다"],
+      ["dispatch", "(법률) (격식) 보내다"],
+      // A complement recurs too, but ends in a case particle.
+      ...["amortize", "dispossess", "expropriate"].map(
+        (head) => [head, "(재산을) 몰수하다"] as const,
+      ),
+      ...["abaft", "cargo hold", "stern"].map(
+        (head) => [head, "(배의) 뒤쪽"] as const,
+      ),
+      // Three glosses of one headword are one headword's.
+      ...[1, 2, 3].map(() => ["shark", "(어류) 상어"] as const),
+    ]);
+    expect(labels).toEqual(new Set(["타동사", "격식"]));
+    const line = (text: string) =>
+      editionLine(text, (word) => labels.has(word));
+    expect(line("(타동사) 시작하다")).toBe("시작하다");
+    expect(line("(타동사)빼앗다")).toBe("빼앗다");
+    expect(line("(타동사) (격식) 보내다")).toBe("보내다");
+    // What follows a label in brackets is the meaning's.
+    expect(line("(격식) (잘못된 것을) 바로잡다")).toBe(
+      "(잘못된 것을) 바로잡다",
+    );
+    expect(line("(격식) (순서를) 뒤바꾸다")).toBe("(순서를) 뒤바꾸다");
+    for (const kept of [
+      "(잠에서) 깨다",
+      "(침을) 뱉다",
+      "(냄비로) 요리하다",
+      "(신부의) 들러리",
+      "(항구의) 정박지",
+      "(말이) 울다",
+      "(빚을) 청산하다",
+      "(재산을) 몰수하다",
+      "(배의) 뒤쪽",
+      "(마지못해) 동의하다",
+      "(미리) 정하다",
+      "(젊은) 독신 여성",
+      "(어류) 상어",
+      "(이)다",
+    ])
+      expect(line(kept)).toBe(kept);
+    // Without a dictionary's labels one word in brackets stays.
+    expect(editionLine("(격식) 여기다")).toBe("(격식) 여기다");
+  });
+  it("keeps a caseless gloss's period-separated translations apart", () => {
+    expect(editionLine("햇빛. 일광.")).toBe("햇빛");
+    expect(editionLine("가다, 나가다.")).toBe("가다, 나가다");
+  });
+  it("takes the translations a caseless description is followed by", () => {
+    expect(
+      editionLine(
+        "장소를 막연히 말할 때 쓰는 말. 어디에, 어느 곳에, 어딘가에.",
+      ),
+    ).toBe("어디에, 어느 곳에, 어딘가에");
+    expect(
+      editionLine("주의, 관심을 끌기 위해 말하는 감탄사. 어이, 여봐."),
+    ).toBe("어이, 여봐");
+    // In a cased script, a sentence after a description is a note.
+    expect(editionLine("Unité de mesure de masse. Symbole : lb")).toBe(
+      "Unité de mesure de masse",
+    );
+  });
+  it("takes the words in quotes a description ends with", () => {
+    expect(
+      editionLine(
+        "삼인칭 남성 여격, 목적격 대명사 '그에게', '그를'. (부록: 영어 인칭대명사)",
+      ),
+    ).toBe("그에게, 그를");
+    expect(editionLine("나라 이름 '룩셈부르크'")).toBe("룩셈부르크");
+    expect(editionLine("(인도, 동아프리카) '창고'")).toBe("창고");
+    // English quoted in a gloss, or quotes that do not end it, stay.
+    expect(editionLine("'data'의 원형")).toBe("'data'의 원형");
+    expect(editionLine("이름 'Mike'")).toBe("이름 'Mike'");
+    expect(editionLine("quién es, quién esta, contracción de 'who is'")).toBe(
+      "quién es, quién esta, contracción de 'who is'",
+    );
+  });
   it("drops sense subscripts after a word and an opening ellipsis", () => {
     expect(editionLine("Exigir, pedir₃")).toBe("Exigir, pedir");
     expect(editionLine("Ley₁₋₉")).toBe("Ley");

@@ -18976,7 +18976,7 @@
 "evasion":[[["noun","unikanie, wykręcanie się, uchylanie się"]],0],
 "evasive":[[["adjective","wymijający, wykrętny, unikający"]],0],
 "eve":[[["noun","wigilia, dzień przed"]],0],
-"even":[[["adjective","równy, płaski"],["adjective","równy, stały, niezmienny (np. głos)"],["adjective","równy, sprawiedliwy (np. podział)"],["adjective","parzysty"]],0],
+"even":[[["adverb","nawet","implying extreme example"],["adjective","parzysty","arithmetic: divisible by two"],["adjective","równy, gładki, płaski","flat and level"],["adverb","nawet, jeszcze","emphasising comparative"]],1],
 "even a blind squirrel can find a nut once in a while":[[["proverb","trafiło się ślepej kurze ziarno","a usually unreliable person can be right sometimes"]],1],
 "even as":[[["conjunction","nawet gdy","at the very same time as"]],1],
 "even function":[[["noun","funkcja parzysta"]],0],
@@ -21735,7 +21735,7 @@
 "fortysomething":[[["noun","czterdziestolatek, czterdziestolatka","A person between 40 and 49 years in age"]],1],
 "forum":[[["noun","forum"]],0],
 "forum selection clause":[[["noun","umowa jurysdykcyjna, umowa dotycząca jurysdykcji","contractual clause for the place of legal dispute"]],1],
-"forward":[[["adjective","(skierowany) do przodu"],["adjective","przedni"],["adjective","śmiały"],["adjective","impertynencki, arogancki"]],0],
+"forward":[[["adverb","do przodu, naprzód","at, near or towards the front of something"],["noun","napastnik","player nearest to the opposing soccer team"]],1],
 "forwarder":[[["noun","spedytor, osoba wysyłająca"]],0],
 "forwarding":[[["noun","wysyłka","The act by which something is forwarded."]],1],
 "forwardly":[[["adverb","arogancko"]],0],
@@ -24107,6 +24107,5 @@
 "gramophone record":[[["noun","płyta gramofonowa"]],0],
 "grampus":[[["noun","delfin Risso, delfin szary, Grampus griseus"],["noun","orka, Orcinus orca"]],0],
 "gran":[[["noun","babcia, babunia"]],0],
-"granary":[[["noun","spichlerz"]],0],
-"grand":[[["adjective","okazały, wielki, ogromny"],["adjective","o osobach: wspaniały, dostojny, wybitny, szlachetny"],["adjective","o rzeczach lub pojęciach: świetny, wspaniały, majestatyczny"],["noun","o pieniądzach: tysiąc"]],0]
+"granary":[[["noun","spichlerz"]],0]
 }

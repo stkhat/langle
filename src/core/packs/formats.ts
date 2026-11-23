@@ -39,8 +39,8 @@ export const learningOf = (pair: LearningPairName) =>
  */
 export const PACK_FORMATS: Readonly<Record<PackName, number>> = {
   // 5: contractions.json (2026-11-19). 6: capitals.json (2026-11-19). 7: acronyms.json
-  // (2026-11-21).
-  en: 7,
+  // (2026-11-21). 8: uppercase.json (2026-11-22).
+  en: 8,
   // 5: capital-only words in capital.json, with no lower-case entry (2026-11-19).
   "en-ja": 5,
   // 2: no stored short definition, the first sense's made at lookup (2026-11-21; the

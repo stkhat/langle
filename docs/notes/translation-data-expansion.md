@@ -295,7 +295,7 @@ M0a of round 4: every cell of the learner matrix with at least 5M learners that 
 ### Method
 
 - **Gate words**: D5's top 5,000 English content words (`GATE`, 4,998 of D5's list). "Base" is D5's "All, main senses": the tables, N's edition (id, ko, th, tr) and OMW main senses (id, th, ar: omw-arb), read by the recipe readers.
-- **S1, reverse glosses**: English Wiktionary's N entries (`kaikki-<n>.jsonl`). Entries that are names, romanizations, characters, symbols, affixes or punctuation are skipped, and so are senses that are forms or alternatives or tagged obsolete, archaic, misspelling, abbreviation or initialism. The headword must hold a letter of N's script. The sense's last gloss loses its bracketed parts (nested) and is split on commas and semicolons. An item counts when, with a trailing period trimmed (and a leading "to" for verbs), it is exactly an English term key (lower case allowed); no substrings. The N words of one term are ordered by: the item first in its gloss, then N's frequency rank (FrequencyWords 2018), then file order. **Main senses** (the counted variant): the N word's part-of-speech class (noun, verb, adjective-or-adverb) must be one of the English word's classes (`en/pos.json`); other classes match any. Letting any part of speech count adds at most 0.3 points. **Registers** (th-2, 2026-11-21, `REGISTER_TAGS`): a sense tagged away from everyday speech or the plain meaning (formal, literary, poetic, dated, rare, figuratively, idiomatic, euphemistic, in-compounds and the like) of an N word that has a plain sense is left out: the word is read in its main sense (สวัสดี is hello, not "wellness"; ทาย to guess, not "given"; ตราบ not "sector"). Judged blind on en-th's S1 lines, every first line from a formal sense was misleading (5 of 5). Slang, colloquial and humorous senses stay: videos speak so (แบบ, แอบ for the hedge "kind of", judged fitting; ปัง for "awesome"). A word whose every sense is marked keeps them (ตราบ, a formal word, stays "as long as"; a first build that counted any other sense dropped it, and judges preferred the old "as long as" on 13 units). An offensive sense (derogatory, offensive, vulgar, slur, ethnic) is never a line (frustration: ส้นตีน).
+- **S1, reverse glosses**: English Wiktionary's N entries (`kaikki-<n>.jsonl`). Entries that are names, romanizations, characters, syllables, symbols, affixes, combining forms or punctuation are skipped (syllables and combining forms since ko-4, 2026-11-22), and so are senses that are forms or alternatives or tagged obsolete, archaic, misspelling, abbreviation or initialism. The headword must hold a letter of N's script. The sense's last gloss loses its bracketed parts (nested) and is split on commas and semicolons. An item counts when, with a trailing period trimmed (and a leading "to" for verbs), it is exactly an English term key (lower case allowed); no substrings. The N words of one term are ordered by: the item first in its gloss, then N's frequency rank (FrequencyWords 2018), then file order. **Main senses** (the counted variant): the N word's part-of-speech class (noun, verb, adjective-or-adverb) must be one of the English word's classes (`en/pos.json`); other classes match any. Letting any part of speech count adds at most 0.3 points. **Registers** (th-2, 2026-11-21, `REGISTER_TAGS`): a sense tagged away from everyday speech or the plain meaning (formal, literary, poetic, dated, rare, figuratively, idiomatic, euphemistic, in-compounds and the like) of an N word that has a plain sense is left out: the word is read in its main sense (สวัสดี is hello, not "wellness"; ทาย to guess, not "given"; ตราบ not "sector"). Judged blind on en-th's S1 lines, every first line from a formal sense was misleading (5 of 5). Slang, colloquial and humorous senses stay: videos speak so (แบบ, แอบ for the hedge "kind of", judged fitting; ปัง for "awesome"). A word whose every sense is marked keeps them (ตราบ, a formal word, stays "as long as"; a first build that counted any other sense dropped it, and judges preferred the old "as long as" on 13 units). An offensive sense (derogatory, offensive, vulgar, slur, ethnic) is never a line (frustration: ส้นตีน).
 - **S2, reversed tables**: N's edition's own words whose translation tables have an English row naming the term (row split on commas and semicolons, `tableWord`, a leading article or "to" dropped, then exact). Ordered by how many languages that sense's table covers, then rank; main senses as S1. Only the id, ko, th and tr editions exist; the id edition has 5 such entries.
 - **Tokens**: the 2026-11 corpora (YouTube, Netflix, articles) through Langle's own lookup (`base-<n>` runs of the real-content runner). Counted: word tokens whose ja hover shows lines, names (capitalised headwords) apart: 143,211 tokens. A token is covered when its key is a contraction, or the key or one of its bases (`en/lemmas.json`) has a meaning in the pair. On the offered natives this rule lands within 0.3 points of the share the extension actually shows.
 - **th without LEXiTRON**: the th edition's pages that D5 traced to LEXiTRON (`d5/lexitron/titles.json`, license unknown) left out. Its rows below are "th".
@@ -525,6 +525,28 @@ Sources: English Wiktionary's tables, the tr edition (Vikisözlük; its English 
 - Rendered in Chromium (hover card over video and article, the phrase card, a long Turkish line wrapping, the dictionary window) next to the mock: its rows, labels and spacing; Turkish letters (ı, İ, ş, ğ) render, nothing clipped.
 - Left for tr-2 (quality on real content): the edition's capitalised glosses ("Vurup yere devirmek", "Kadın garson", about 160 in a sample) and its English left in glosses (guerdon); class glosses on names ("Bir soyadı", "bir erkek adı"); lines to check: go (a second line "go"), light (hafif before ışık), people → millet, figure out → "açığa çıkarmak" (anlamak). tr-3: the real-site check in the user's Chrome. tr-2's findings and fixes: [turkish-quality](turkish-quality.md) (the capitals stay as written; class glosses on names are already left out).
 
+### ko-1: English → Korean as built (2026-11-22)
+
+Sources: English Wiktionary's tables, the ko edition (위키낱말사전; its English entries define English words in Korean) and S1 (English Wiktionary's Korean entries read backwards). No wordnet: KorLex is for research only. Korean is written in hangul with spaces between words, left to right; hanja appear only in brackets beside a word. It passes by rule (a).
+
+- **Provenance** (D5's method plus every big creator of pages; Wikimedia's MediaWiki history dump `2026-10.kowiktionary.all-time.tsv.bz2`; `data/raw/quality/r4-ko/provenance-ko.txt`, `prov/`). Of the edition's main-namespace pages, Gusibbot created 206,064, Russ 138,871 and 아흔 19,152; the rest are people's.
+  - Gusibbot is the bot of the admin 아흔, registered in 2009 for replacements and error fixes. Its creations come in batches: "Automated import of articles" (June 2010 to July 2011, 81,987 pages; again in October–November 2011 and April–May 2012), "Automated import" (November 2011, 20,800) and "초안" ("draft", November 2011 to March 2012, 43,000). The first revisions of all 5,165 of its English pages that have glosses today: 1,545 of the June 2010 – July 2011 ones came with their Korean glosses (sunshine "햇빛. 일光", coil, creek, integrity; name stubs "남자 이름"). No page names their source: not the bot list (위키낱말사전:봇/명단), 아흔's talk page, nor the community boards of 2009–2012; and they are not taken from the wiki's own Korean entries. From October 2011 on, its creations are empty drafts ("*'''1.'''" and a draft category) whose glosses people added by hand later (Russ, K11312, 아흔, HappyMidnight), each in its own revision.
+  - So the batch is left out as VikiBot's and ZilentBot's are: the pages Gusibbot created before October 2011 with the summary "Automated import of articles" (`UNDOCUMENTED_IMPORTS`, which gained `before`: only the pages created before a date). Its later empty drafts stay: a reader of the page history can tell who wrote each gloss. Gate with the edition first: 92.8 → 92.0% of the top 5,000 (tokens 98.4 → 98.3%).
+  - Russ's pages ("새글(영어에서)", "해석은 노어쪽참고": translated by hand from the English and Russian Wiktionaries) and 아흔's ("새글") were typed one by one. Stay.
+  - Altostratus.AIbot (registered 2026-09-21, an AI-assisted account) fills drafts with glosses it writes ("초안 보충 … AI 보조 편집"). Up to the dump's end (2026-11-01) all 28,638 of its main-namespace edits are on Korean titles; none of the extract's English entries has an edit by it, and of 300 English drafts it filled by 2026-11-17, one is in the extract, with an older gloss. No effect now; a later kaikki refresh would need its edits left out (a rule by editor, not by page creator).
+  - 15 random gate words whose line the edition decides (`prov-sample-ko.json`): 14 pages created by hand (2006–2009: 아흔/A-heun 7, Nichetas 3, Russ 2, Altostratus 1, 청양고추 1); bargain is an empty Gusibbot draft of October 2011 whose gloss HappyMidnight added in 2012. Several hand-written glosses follow the conventions of printed English–Korean dictionaries (float "【경제】 <통화를> 변동 환율제로 하다", conceive "[보통 부정문] 상상하다 … 《of》", bargain "(with somebody) (about/over/for something) 협상[흥정]하다"): typed by people, as in the other editions; noted for ko-2.
+- **Order** (judged blind as for tr, two judge subagents, 60 sampled gate words each, no context; `data/raw/quality/r4-ko/`, tallies from the result files):
+  - The tables first against the edition first (1,972 gate words differ): preferred 31 : 15 and 28 : 12; good 53 against 42 and 54 against 42. The tables first (`afterTables`): the edition's glosses carry hanja, English definitions and dictionary labels.
+  - S1 before S2 against S2 first (88 differ): preferred 32 : 17 and 31 : 16.
+  - S2 (the edition's Korean entries whose tables list the English word) against leaving it out (178 differ): leaving it out preferred 32 : 21 and 34 : 16; S2's lines misleading 4 and 7 times against 0 (cow → 우유, younger → 남동생, slap → 올리다). Left out, at 0.6 points of the top 5,000.
+  - S1 ordered by the Korean FrequencyWords 2018 list against its own order (818 differ): tied, 20 : 20 and 19 : 20. The list counts inflected forms, so a verb's -다 form, which the dictionaries give, is rare in it (가다 19,326th, 갔어 1,072nd): not used. Phrases by rank (137 differ) lost 15 : 24 and 11 : 17.
+  - Built: tables, edition, S1.
+- **Shared rules** (the hover line of an edition gloss, `editionLine`; the 5,000 gate words' lines diffed for ko, th, ar, hi, zh, ru, tr, id, es, fr, de): a word of a script without case is no abbreviation, so a period after it ends a sentence and a closing one goes (ko "가다." → 가다, "세다. 열거하다." → 세다; before, a hangul word counted as "capitals"); an aside in brackets written in another script than the gloss is left out (`withoutForeignAsides`: ko hanja "발음(發音)하다" → 발음하다, English "소유하다(To have; …)" → 소유하다; th "[from 17th c.]", zh "魣鳕属（Molva）的鱼"); in a script without case, a description followed by a sentence of translations gives the translations (`translatingSentence`: somewhere "장소를 막연히 말할 때 쓰는 말. 어디에, …" → "어디에, 어느 곳에, 어딘가에"; in a cased script the next sentence is a note, fr "Symbole : lb"). Lines changed: ko 391 + 26, th 2, zh 2, fr 1 (move "…, ...." → without the dots), ar, hi, ru, tr, id, es, de 0. Judged blind on ko (60 of 391): preferred 20 : 12 and 19 : 9.
+- **Gate as built** (`data:stats`): top 5,000 91.4% (4,572: tables 3,818, edition 531, S1 223; M0a predicted 92.5 with the whole edition), top 2,000 95.9%, tokens 98.2% (140,564 of 143,211), phrases 11.4% (8,473).
+- `en-ko` 2026.1121.0: 27,393 terms (tables 18,586, edition 4,354, S1 4,523), 4.13 MB raw (`dict-1.json` 2.00, `dict-2.json` 0.32, `capital.json` 1.82).
+- Rendered in Chromium (hover card over video and article, the phrase card, a long Korean line wrapping, the dictionary window) next to the Japanese render and the mock (`project/Main.dc.html`): its rows, labels and spacing; hangul renders, nothing clipped (`data/raw/quality/r4-ko/render/`).
+- Left for ko-2 (quality on real content): register (penis → 자지 first, a vulgar table word); the edition's English constructions outside brackets ("~ (something) (to somebody) 읽다", "« keep doing something »"), part-of-speech labels in brackets ("(타동사) 얻다"), appendix notes ("아들. (부록: …)"), a period before a bracket ("시작하다. (차의) 시동을 걸다"); table words tagged negative (be "이다, 아니다", "있다, 계시다, 없다"); lines to check: figure out → 맞히다, good "(사람에 대하여)" as a whole gloss, single (no main sense). ko-3: the real-site check in the user's Chrome.
+
 ### G: the gate rule as built (2026-11-21)
 
 User decision (2026-11-21, after M0b): a pair passes by **(a)** ≥ 90% of the top 5,000 content words, or **(b)** ≥ 90% of the corpus's word tokens when Chrome's translator translates English into N (architecture "Quality gate").
@@ -532,7 +554,149 @@ User decision (2026-11-21, after M0b): a pair passes by **(a)** ≥ 90% of the t
 - **Token counts**: `data/gate/en-tokens.json` (7,803 keys, 143,211 tokens) from M0a's `r4/runs/base-ja/rows.jsonl` (`scripts/data/gate-tokens.ts`); the gate looks each key up as M0a did and reproduces its figures (`data:stats`, type / tokens): ja 100 / 99.4 (M0a 99.0: the gate counts en-ja's table words too), pl 99.5 / 99.7, it 98.1 / 99.3, ru 97.7 / 99.0, fr 97.5 / 99.0, es 96.9 / 99.0, de 96.2 / 98.6, th 95.2 / 98.6, pt 95.2 / 98.3, zh 95.1 / 98.1. Every shipped pair passes by (a); so do es-en, fr-en, de-en (100) and de-fr (96.7, no token counts for German).
 - **Candidates** with M0a's best sources, tokens by the gate's code: hi 91.3, ar 97.0, id 97.5, tr 98.0, ko 98.4, fa 92.0, ur 87.8, bn 87.7, ta 84.4, te 82.4, mr 77.6. So ar, id, ko, tr pass by (a); hi by (b) (83.7% type, translator listed); fa (92.0) and ur have no translator; bn, ta, te, mr pass neither.
 - **Translator**: `NativeLanguage.translator`, from Chrome's documented list (developer.chrome.com/docs/ai/translator-api, "Supported languages", updated 2025-05-20: ar, bg, bn, cs, da, de, el, en, es, fi, fr, he, hi, hr, hu, id, it, ja, kn, ko, lt, mr, nl, no, pl, pt, ro, ru, sk, sl, sv, ta, te, th, tr, uk, vi, zh, zh-Hant), as M0b found it (fa and ur unavailable).
-- **L3 re-measured** (`learning-pairs.ts --measure`, top 5,000): de→fr 96.7 (as shipped), de→ru 94.7, de→pl 94.6, de→zh 93.4, fr→de 92.2, fr→ru 90.6 now reach (a) and could be built; fr→pl 89.8, fr→es 88.0, de→es 87.9 and the rest stay under. (b) is not applied to French and German: their corpora exist (2026-11-fr, 2026-11-de), but the names rule ("capitalised headword") takes in German's nouns, and the key rule has not been checked against those hovers. New since L3: fr→th 23.7, de→th 25.6 (the th edition and reversed tables; the French and German tables gave no Thai terms, not looked into: under any rule either way).
+- **L3 re-measured** (`learning-pairs.ts --measure`, top 5,000): de→fr 96.7 (as shipped), de→ru 94.7, de→pl 94.6, de→zh 93.4, fr→de 92.2, fr→ru 90.6 now reach (a) and could be built (de→ru is not built: decided 2026-11-22, "de-ru-1"); fr→pl 89.8, fr→es 88.0, de→es 87.9 and the rest stay under. (b) is not applied to French and German: their corpora exist (2026-11-fr, 2026-11-de), but the names rule ("capitalised headword") takes in German's nouns, and the key rule has not been checked against those hovers. New since L3: fr→th 23.7, de→th 25.6 (the th edition and reversed tables; the French and German tables gave no Thai terms, not looked into: under any rule either way).
+
+### de-ru-1: German → Russian, stopped at provenance (2026-11-22)
+
+**Not built: the user chose option A on 2026-11-22**, for provenance, as Vietnamese was dropped for its license. The pair passes (a) only with ru.wiktionary's German entries, and the spot check found glosses there worded like dictionaries with no free license stated. No recipe, pack, wiring or judging was done.
+
+Coverage (measured again 2026-11-22; top 5,000 / top 2,000 / terms):
+
+| Sources | Top 5,000 | Top 2,000 | Terms |
+|---|---|---|---|
+| ru.wiktionary's German entries (edition) | 90.62 | 91.90 | 26,788 |
+| de.wiktionary's Russian rows (tables) | 75.28 | 83.60 | 15,035 |
+| Reversed tables | 71.52 | 78.05 | 14,625 |
+| Edition + tables | 93.94 | 94.95 | 28,863 |
+| **Tables + reversed, no edition entries** | **85.44** | 90.00 | 20,447 |
+| All three | 94.74 | 95.60 | 29,811 |
+
+The reversed tables are ru.wiktionary's too (75.28 wholly without that edition); their provenance was not checked.
+
+465 gate words are only in the edition; the gate needs at least 228 of them.
+
+What the spot check found:
+
+- **Sample**: 15 random gate words the edition covers and 15 that only it covers, page histories through the read-only API. 26 were read (all 15, and 11 of the second group); the run then ended on dropped connections.
+- **Who wrote them**: one account added the first gloss checked on 20 of the 26 (10 of the 11). Many pages began as a bot's stubs of 2006–07, but these glosses came in later human edits, so `UNDOCUMENTED_IMPORTS` (pages an account created) does not describe the case. No source was found named in the sampled summaries or glosses.
+- **Wording**: six of that account's entries could be compared on translate.academic.ru (herausstellen, umsehen, hinfahren, hervorragen, schlampen, Befreiung; the last four from the second group). In all six the glosses asked about were reported identical, stress marks and spacing aside, to «БНРС» as published there. A second account's Stiftung has one sense identical to an «Универсальный немецко-русский словарь» there and one similar; a third's Vorhang is similar only.
+- **License**: the [contents page](https://dic.academic.ru/contents.nsf/ger_rus/) «БНРС» links to states "© Академик, 2000-2026", and no authors, publisher or license.
+- **Limits (first pass)**: a fetch tool's model did the comparisons, with the expected wording in its prompt; asked again without it, for umsehen only, it returned the same gloss. Some of these wordings are in other dictionaries on that site too. Six further words failed with HTTP 502.
+- **Direct check, made afterwards**: a script compared the wording itself on 4 of the 6 words (the other 2 could not be fetched). All 14 multiword glosses were identical on those pages; the control page had 0. Not established: the direction of copying, the printed dictionary behind «БНРС», how much of the edition is affected, and anything legal.
+- **Leaving out only that account would not be expected to save the pair**: if the second group's share held (1 of 11 by someone else), about 86%; at the one-sided 95% upper bound of that share (about 36%), about 89%.
+
+Decision (2026-11-22):
+
+- **A, taken**: de→ru is not built. The wording could not be cleared, so the source is not used.
+- B (tables + reversed only, 85.44%, needs an exception to the gate): not taken.
+- C (a new licensed source): not taken.
+
+What this means for the other pairs:
+
+- **`en-ru` (shipped)** was checked by direct comparison, and its Russian-edition entries were left out (PR #242; see "en-ru: the Russian edition left out" below).
+- The other shipped pairs' native editions are to be checked the same way, read-only, one pair at a time (user's decision, 2026-11-22; not done yet).
+- **fr→de** is next, after the same wording check (not done yet).
+- **fr→de, fr→ru, de→pl and de→zh** all depend on their native edition and are checked before building. fr→de depends on that edition's translation tables read backwards; the other three on its entries as well. Without the edition's entries only: fr→de 91.7, fr→ru 87.9, de→pl 83.0, de→zh 38.2. Wholly without the edition (tables alone; L3): 84.4, 70.5, 66.3, 14.3, all under the gate.
+
+## en-ru: the Russian edition left out, 2026-11-22
+
+Decided by the user: the shipped English → Russian pack no longer reads ru.wiktionary's English entries. Sections above give ru as it was before.
+
+Why: in a random sample of those glosses, 5 of the 13 comparable ones of four or more words were worded like dictionaries that state no free license. The source could not be cleared: which way the wording traveled, how much of the edition it concerns and the legal position are all not established. The sample is small, and alike wording alone shows neither a source nor an infringement.
+
+What changed: the ru recipe is English Wiktionary's translation tables alone (Wikidata's names follow, as in every pair). No filter, word list or stand-in line.
+
+| | 2026.1121.7 | 2026.1122.0 |
+|---|---|---|
+| Terms | 61,180 | 55,645 |
+| from the translation tables | 41,942 | 41,969 |
+| from the Russian edition | 5,562 | 0 |
+| from Wikidata | 13,676 | 13,676 |
+| Size, raw | 9.36 MB | 8.69 MB |
+| Top 2,000 | 98.3% | 96.8% |
+| Top 5,000 (gate, rule (a)) | 97.74% | 95.26% |
+| Tokens | 99.02% | 93.45% |
+| Phrases | 19.2% | 18.0% |
+
+Of the edition's 5,562 terms 5,535 are lost and 27 fall back to the tables. Of the 5.6 points of tokens lost, 4.4 are "the".
+
+Limits:
+- A lost term shows its English definition (or that definition translated by the browser) where `en-defs` has one ("the", "an", "okay", "require"), and an inflected form its base's meaning (feet → foot). An auxiliary read as its base shows the grammar line only ("has → have").
+- Before `en-defs` was rebuilt, 161 lost terms had neither and showed no meaning: 64 of the 143,211 gate tokens (totally 29, household 9, engage 5). `en-defs` leaves out a term that every English pair has, so it depends on en-ru's terms. It is rebuilt in this change (`en-defs` 2026.1122.0 -> 2026.1122.1: 129,971 -> 129,998 terms, 27 added, none removed or changed, 20,407,523 -> 20,414,484 bytes), and the other 23 packs are byte-identical. Measured with Langle's own dictionary code (the entry, else the lowercase or capital entry, else a base form's) over the lost terms: 138 still show no meaning, and 5 of the 143,211 gate tokens (America 2, Pittsburgh, Russell, Scott). They are mostly capitalised headwords (80, of which America, Pittsburgh, Oakland are places and names the hover treats as names) and rare, old or variant spellings (58: tidings, raiment, barmy, cyder, verandah), and have no English definition in the build either. `gonna` is among the 138 but is a contraction, which the hover explains itself.
+- The edition's Russian entries also said whether a capitalised headword's Russian word is a word or a name (`nativeKindOf`). Without them 363 headwords from the tables change that mark, their senses unchanged. By rule D, 53 of them (Einstein, East, Eden) are now ignored as names where a document always capitalises them.
+- Hovered in Playwright's Chromium with a temporary profile and native Russian (2026-11-22): the English definition shows for the ("The definite grammatical article that…"), an, okay, require, totally ("To the fullest extent or degree"), adaptation and cite; has and feet show the base's line ("has → have", foot with its Russian). A word with nothing (tidings, raiment) still opens a card, with its IPA and no meaning; America and Britannia, capitalised mid-sentence, get neither a highlight nor a card. The browser translator's line for the English definitions was not tried (the browser's Translator API exists in that Chromium, but no translation was requested), and the definitions shown instead were not judged.
+- Versions already on npm are untouched; an installed pack is replaced when the extension's lock names the new version.
+
+## en-ru gaps: okay and an, 2026-11-23
+
+Two fixes the user approved after a study of what en-ru shows without the Russian edition. The rules are in [architecture](../specs/architecture.md) (C2 and "Definitions translated at display time"). They use no edition's data and change no pair pack.
+
+- A-b, data: in `en-defs` a pointer takes its target's sense of the same part of speech, and the treebank's main use leads where the lead is a rare use. okay: "Endorsement…" → "All right, acceptable, permitted." (2 verb tags → "To approve").
+- B-a, code: a closed-class word's usage note is translated, and the word is not. an: literal "an" → the translation of "Used before a vowel sound."
+
+`en-defs` 2026.1122.1 → 2026.1122.2: 777 terms changed (260 short meanings), 20,414,484 → 20,443,114 bytes. The other packs are byte-identical and the gate report is the same for all 19 pairs.
+
+Hover tokens changed on the 2026-11 corpora (level 1000; word and phrase highlights; share of word tokens: 171,625 English, 72,835 Spanish, 82,121 French, 70,944 German):
+
+| Pair | A-b | B-a | Both |
+|---|--:|--:|--:|
+| en-ja | 5 | 0 | 5 (0.003%) |
+| en-es | 17 | 0 | 17 (0.010%) |
+| en-pt | 316 | 0 | 316 (0.184%) |
+| en-ru | 311 | 465 | 776 (0.452%) |
+| en-fr | 302 | 0 | 302 (0.176%) |
+| en-de | 302 | 0 | 302 (0.176%) |
+| en-zh | 9 | 0 | 9 (0.005%) |
+| en-it | 10 | 0 | 10 (0.006%) |
+| en-pl | 6 | 0 | 6 (0.003%) |
+| en-th | 12 | 0 | 12 (0.007%) |
+| en-hi | 24 | 0 | 24 (0.014%) |
+| en-ar | 35 | 465 | 500 (0.291%) |
+| en-id | 10 | 0 | 10 (0.006%) |
+| en-tr | 33 | 0 | 33 (0.019%) |
+| en-ko | 29 | 0 | 29 (0.017%) |
+| es-en, fr-en, de-en, de-fr | 0 | 0 | 0 |
+
+okay is 284 of the tokens in each of pt, ru, fr and de; an is all of B-a. No token is changed by both rules, and no highlight, key or name changes.
+
+### Judged, 2026-11-23
+
+The 389 texts were translated by Chrome 157's built-in translator on macOS, in a page, for all 15 natives, and judged blind: one judge per language, the skill's rubric, sides shuffled, up to 12 sentences per change. 349 items stand for 2,342 of the 2,351 changed tokens (the other 9 show the same line on both sides). Weighted: by each change's tokens. Usable: good or acceptable. These are rates of changed hovers only, and the judges are models, not native speakers.
+
+| | After : before : same | Weighted | Usable items | Usable tokens |
+|---|--:|--:|--:|--:|
+| All | 158 : 69 : 122 | 2,144 : 73 : 125 | 63 → 167 of 349 | 63 → 2,153 of 2,342 |
+| B-a (an; ru, ar) | 24 : 0 : 0 | 930 : 0 : 0 | 0 → 24 of 24 | 0 → 930 of 930 |
+| A-b | 134 : 69 : 122 | 1,214 : 73 : 125 | 63 → 143 of 325 | 63 → 1,223 of 1,412 |
+| okay, in A-b (ru, de, pt, fr) | 49 : 0 : 7 | 1,129 : 0 : 7 | 0 → 48 of 56 | 0 → 1,128 of 1,136 |
+
+an is acceptable in every item, good in none. Before is preferred in two pairs, ko 6 : 11 : 11 and tr 7 : 13 : 11 (dispatcher 9 of each), though usable items still rise there (5 → 8, 7 → 8).
+
+By term:
+
+| Term | After : before : same | Usable items | Found |
+|---|--:|--:|---|
+| standup | 14 : 0 : 0 | 0 → 14 | better |
+| pushup | 10 : 0 : 0 | 0 → 10 | better |
+| résumé | 10 : 0 : 0 | 0 → 4 | better |
+| heart-to-heart | 10 : 1 : 0 | 11 → 11 | better |
+| programme | 6 : 0 : 0 | 0 → 6 | better |
+| centre | 3 : 0 : 0 | 0 → 2 | better, though doubtful by eye |
+| dat | 6 : 0 : 8 | 0 → 3 | better, though doubtful by eye |
+| dis | 8 : 0 : 18 | 0 → 0 | not worse, though doubtful by eye; still wrong or misleading |
+| dispatcher (40 tokens: ar, ko, tr, pt) | 0 : 36 : 0 | 0 → 0 | **worse**: "To send (a shipment)…" → a long line of the noun dispatch; wrong on both sides, misleading after in ko |
+| favorite (ru, de, tr) | 0 : 9 : 0 | 9 → 0 | **worse**: "Most-liked." → "A person or thing who enjoys special regard…" |
+| else (zh) | 0 : 2 : 0 | 2 → 0 | **worse**: "Other" → "Otherwise, if not." |
+| whir | 4 : 12 : 0 | 16 → 16 | **worse**: "To move or vibrate…" → "A sibilant buzz or vibration" |
+| grey | 1 : 3 : 8 | 4 → 4 | **worse**: "Of a color between…" → "An achromatic colour between…" |
+
+The five regressions are not fixed.
+
+Not judged or checked:
+- Not hovered in a browser, on the real sites or elsewhere. The translator was tried only as above: no other browser or system.
+- Not measured: the dictionary window's other senses, and the line under a phrase that gives its main word (at most 10 phrase tokens a pair have a word whose definition changed).
+- Outside the corpora only the pack diff was looked at. B-a can act on any closed-class word whose definition is a usage note and that a pair lacks.
+- Not fixed: has and did without a meaning (option C, not approved), open-class usage notes (could, might), variants a pair lacks (A-d), words the treebank lacks (cuz).
 
 ## Other learning languages (estimated)
 Rows other than English in the matrix are estimated from source sizes (kaikki sense counts, 2026-11-13), not measured. Rules:

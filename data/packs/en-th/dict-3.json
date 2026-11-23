@@ -1,9 +1,4 @@
 {
-"northern shrike":[[["noun","นกนอร์เทิร์นชริก","a butcherbird of northern North America"]],2],
-"northern territory":[[["proper noun","นอร์เทิร์นเทร์ริทอรี","territory in northern Australia"]],0],
-"northern thai":[[["proper noun","ภาษาถิ่นพายัพ, ภาษาไทยถิ่นเหนือ, ภาษาเหนือ","language"]],0],
-"northern tree shrew":[[["noun","กระแตเหนือ","Tupaia belangerii"]],0],
-"northernmost":[[["adjective","ที่อยู่เหนือสุด","situated farthest north"]],2],
 "northland":[[["noun","ดินแดนทางเหนือ","any region lying in or toward the north"]],2],
 "northward":[[["adverb","ทางทิศเหนือ","in a northern direction"],["adjective","ที่ไปทางทิศเหนือ","moving toward the north"],["noun","เหนือ, น., ทิศเหนือ","the cardinal compass point that is at 0 or 360 degrees"]],2],
 "northwards":[[["adverb","ทางทิศเหนือ","in a northern direction"]],2],
@@ -397,7 +392,7 @@
 "of late":[[["prepositional phrase","ช่วงนี้","recently"]],0],
 "of the essence":[[["adjective","ซึ่งสำคัญที่สุด","of the greatest importance"]],2],
 "of two minds":[[["prepositional phrase","สองจิตสองใจ","undecided or unsure"]],0],
-"off":[[["adjective","ปิด"]],1],
+"off":[[["adverb","ไปที่อื่น","from a particular thing or place or position (`forth' is obsolete)"],["verb","เก็บ, ฆาตกรรม, ฆ่า","kill intentionally and with premeditation"],["adverb","ห่าง","at a distance in space or time"],["adjective","ซึ่งหยุดงาน, หยุดงาน","not performing or scheduled for duties"]],2],
 "off and on":[[["adverb","โดยไม่ปกติ","not regularly"]],2],
 "off-licence":[[["noun","ร้านขายเหล้า","a store that sells alcoholic beverages for consumption elsewhere"]],2],
 "off-white":[[["adjective","ขาว","of something having a color tending toward white"],["noun","สีงาช้าง, สีนวล","a shade of white the color of bleached bones"]],2],
@@ -9885,7 +9880,7 @@
 "specialty":[[["noun","จุดแข็ง, จุดเด่น","an asset of special worth or utility"],["noun","ลักษณะเฉพาะ","a distinguishing trait"],["noun","อาชีพเฉพาะทาง","the special line of work you have adopted as your career"]],2],
 "specie":[[["noun","เงินโลหะ","coins collectively"]],2],
 "species":[[["noun","ชนิด, สปีชีส์, พันธุ์","group of plants or animals having similar appearance"],["noun","ชนิด","rank in a taxonomic classification"]],0],
-"specific":[[["noun","ความจริงเฉพาะ","a fact about some part (as opposed to general)"]],2],
+"specific":[[["adjective","เฉพาะ"],["adjective","จำเพาะ"],["adjective","ประจำ"]],4],
 "specific gravity":[[["noun","ความถ่วงจำเพาะ"]],4],
 "specific heat":[[["noun","ความร้อนจำเพาะ","specific heat capacity"]],0],
 "specific heat capacity":[[["noun","ความจุความร้อนจำเพาะ","heat capacity per unit mass"]],0],
@@ -10761,7 +10756,7 @@
 "storage cell":[[["noun","เซลล์ทุติยภูมิ","a cell that can be recharged"]],2],
 "storage device":[[["noun","อุปกรณ์สำรองข้อมูล","a device that preserves information for retrieval"]],2],
 "storage medium":[[["noun","สื่อสำรองข้อมูล","a medium for storing information"]],2],
-"store":[[["verb","เก็บ"]],1],
+"store":[[["noun","ร้าน, ร้านค้า","a mercantile establishment for the retail sale of goods or services"],["verb","เก็บ, ตุน, เก็บเอาไว้ใช้","keep or lay aside for future use"],["verb","หาที่จัดเก็บ","find a place for and put away for storage"],["noun","หน่วยความจำคอมพิวเตอร์, เมมโมรี่, เมม","an electronic memory device"]],2],
 "store detective":[[["noun","นักสืบประจำห้างร้าน","a private detective employed by a merchant to stop pilferage"]],2],
 "store up":[[["verb","สะสม"]],3],
 "storefront":[[["noun","หน้าร้าน","the front side of a store facing the street"]],2],
@@ -13394,6 +13389,5 @@
 "tragedienne":[[["noun","นักแสดงโศกนาฏกรรมหญิง","an actress who specializes in tragic roles"]],2],
 "tragedy":[[["noun","โศกนาฏกรรม","drama or similar work"]],0],
 "tragic":[[["adjective","น่าเศร้า","causing great sadness"]],0],
-"tragically":[[["adverb","อย่างโศกเศร้า","in a tragic manner"]],2],
-"trail":[[["verb","(สกรรมกริยา)ลาก"],["verb","(สกรรมกริยา)ตามรอย"],["verb","(สกรรมกริยา)เลื้อย"],["noun","ทาง"]],1]
+"tragically":[[["adverb","อย่างโศกเศร้า","in a tragic manner"]],2]
 }

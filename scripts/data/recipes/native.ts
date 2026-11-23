@@ -5,6 +5,7 @@
 // scripts first and download the recipe's raw files, see docs/development.md "Language
 // data")
 import { join } from "node:path";
+import { readTreebank } from "../tagger.ts";
 import {
   nativeLanguage,
   type RecipeNative,
@@ -32,11 +33,14 @@ import {
   convertTerms,
   inCapitalCase,
   inTablesCase,
+  isFormOfAnother,
   isOtherWord,
   lastScriptForm,
   withAuxiliarySenses,
   lesserLowercase,
+  lesserUse,
   mergeSources,
+  OPEN_CLASSES,
   nativeLetterOf,
   packedEntry,
   readEdition,
@@ -47,6 +51,8 @@ import {
   type PairSense,
   type SourceTerm,
   type TermKey,
+  treebankUses,
+  type TreebankUses,
 } from "./recipe.ts";
 import { RECIPES, recipeTags, TABLES_TAG, type Recipe } from "./recipes.ts";
 import {
@@ -321,6 +327,7 @@ export async function buildPairDictionary(
     lemmas = {},
     contractions = {},
     pos = {},
+    uses = new Map(),
     entities = {},
     acronyms = {},
   }: {
@@ -335,6 +342,8 @@ export async function buildPairDictionary(
     /** English base forms and parts of speech (en/lemmas.json, en/pos.json), to read degrees. */
     lemmas?: LemmaPack;
     pos?: PosPack;
+    /** How often the English treebank uses each word as each part of speech (`lesserUse`). */
+    uses?: TreebankUses;
     /** The words that joined from Wikidata, with their entities (`joinedEntities`). */
     entities?: Entities;
     /** The acronyms known only by what they stand for (`joinedAcronyms`). */
@@ -469,6 +478,13 @@ export async function buildPairDictionary(
     for (const { terms } of [...sources, ...capitalSources])
       convertTerms(terms, shown);
   }
+  // A word the English lemmas take to another base is that word's form.
+  // The sources whose labels are the English word's part of speech: not the reverse
+  // glosses' or reversed tables', which are the native word's (id outside: luar, a
+  // noun in Indonesian, where English uses "outside" as an adverb).
+  const labelsEnglish = (tag: string) =>
+    tag !== recipe?.reverseGlosses?.tag && tag !== recipe?.reversedTables?.tag;
+  const isForm = (key: string) => isFormOfAnother(lemmas, key);
   const merged = mergeSources(sources, {
     // A term's main part of speech: that of its most translated sense, when English
     // Wiktionary lists it first too (en/pos.json). Not for "dug", whose only table is
@@ -500,6 +516,16 @@ export async function buildPairDictionary(
       isOtherWord(key, taken, later, tableTerms),
     expansionsOf: (key) =>
       Object.hasOwn(contractions, key) ? contractions[key]! : [],
+    lesser: (key, senses, from) =>
+      labelsEnglish(from)
+        ? lesserUse(
+            senses,
+            uses.get(key),
+            pos[key] ?? [],
+            tableTerms.mainPos.get(key),
+            isForm(key),
+          )
+        : undefined,
   });
   const {
     capital,
@@ -530,7 +556,27 @@ export async function buildPairDictionary(
       (!tableTerms.lowercase.has(key) ||
         lesserLowercase(key, tableTerms.coverage, lemmas)),
   );
-  const left = new Set(uncased);
+  // A term no source gives in its main use, a closed class's (the article, a modal),
+  // has no meaning in the language (`lesserUse`): the language says that use with no
+  // word. One whose main use is of an open class keeps its senses, which often say that
+  // use too (th somewhere: บางแห่ง, the noun's "an unknown location").
+  const lesserLeft = Object.entries(merged.dict)
+    .filter(([key, [, senses, from]]) => {
+      if (!labelsEnglish(merged.sources[from]!)) return false;
+      const main = lesserUse(
+        senses,
+        uses.get(key),
+        pos[key] ?? [],
+        tableTerms.mainPos.get(key),
+        isForm(key),
+      );
+      return (
+        main !== undefined &&
+        main.every((label) => !OPEN_CLASSES.includes(label))
+      );
+    })
+    .map(([key]) => key);
+  const left = new Set([...uncased, ...lesserLeft]);
   const dict = Object.fromEntries(
     Object.entries(merged.dict).filter(([key]) => !left.has(key)),
   );
@@ -655,10 +701,14 @@ export async function buildPairDictionary(
       /** Terms taken from a later source for a meaning in their main part of speech. */
       lacking: merged.lacking,
       expanded: merged.expanded,
+      /** Terms taken from a later source for their main use (`lesserUse`). */
+      lessened: merged.lessened,
       /** Terms that only point and kept their pointers beside a later source's other word (dug). */
       pointing: merged.pointing,
       /** Lowercase terms of words English writes only capitalised, left out. */
       uncased,
+      /** Terms no source gives in their main use, left to en-defs (`lesserUse`). */
+      lesserLeft,
       capitals,
       /** Glosses left out as classes of names, with how many headwords share each. */
       classes,
@@ -713,12 +763,13 @@ async function main() {
   );
   const lemmas = readPack<LemmaPack>("en/lemmas.json");
   const pos = readPack<PosPack>("en/pos.json");
+  const uses = treebankUses(readTreebank());
   const entities = joinedEntities();
   const acronyms = joinedAcronyms();
   for (const native of natives) {
     const { dict, capital, sources, counts, stats } = await buildPairDictionary(
       native,
-      { termKey, names, lemmas, pos, contractions, entities, acronyms },
+      { termKey, names, lemmas, pos, uses, contractions, entities, acronyms },
     );
     // Each short stored only where the dictionary would not make it (format 4).
     const index = writeShards(
@@ -764,7 +815,7 @@ async function main() {
         `abbreviations: ${stats.abbreviations.slice(0, 30).join(" ")}`,
     );
     console.log(
-      `  ${stats.expanded.length} contractions taken from a later source that translates their expansion: ${stats.expanded.slice(0, 20).join(", ")}; ${stats.wordless} table terms left to later sources (their main sense said with no word); ${stats.auxiliarySenses} edition senses labelled an auxiliary's`,
+      `  ${stats.expanded.length} contractions taken from a later source that translates their expansion: ${stats.expanded.slice(0, 20).join(", ")}; ${stats.wordless} table terms left to later sources (their main sense said with no word); ${stats.lessened.length} terms taken from a later source for their main use: ${stats.lessened.slice(0, 30).join(", ")}; ${stats.lesserLeft.length} terms left out for want of their main use: ${stats.lesserLeft.slice(0, 40).join(", ")}; ${stats.auxiliarySenses} edition senses labelled an auxiliary's`,
     );
     console.log(
       "  class glosses:",

@@ -1,4 +1,6 @@
 {
+"ischium":[[["noun","isquion","the lowest of three bones of the pelvis"]],1],
+"isinglass":[[["noun","cola de pescado, colapez, colapiscis","gelatine obtained from fish"]],1],
 "islamic emirate of afghanistan":[[["proper noun","Emirato Islámico de Afganistán","official name of Afghanistan under Taliban rule"]],1],
 "islamic fundamentalism":[[["noun","fundamentalismo islámico","movement towards Islamic conservatism"]],1],
 "islamic republic of afghanistan":[[["proper noun","República Islámica de Afganistán","official name of Afghanistan"]],1],
@@ -1420,7 +1422,7 @@
 "leukemic":[[["adjective","leucémico","relating to leukemia"]],1],
 "leukocyte":[[["noun","leucocito","scientific name for white blood cell — see also white blood cell"]],1],
 "levee":[[["noun","malecón, dique","embankment to prevent inundation"]],1],
-"level":[[["adjective","nivelado"],["adjective","horizontal"],["adjective","igual, uniforme, empatado"],["adjective","plano, llano"]],0],
+"level":[[["noun","nivel","degree or amount"],["adjective","nivelado, al ras","same height at all places"],["verb","nivelar","to adjust so as to make level"],["adjective","nivel, niveles","being unvaried"]],1],
 "level crossing":[[["noun","paso a nivel","at-grade crossing"]],1],
 "level playing field":[[["noun","condiciones de competencia equitativas","a situation which offers no advantage to any particular person or side"]],1],
 "level tone":[[["noun","tono nivelado","Translations"]],1],
@@ -3095,7 +3097,7 @@
 "meals on wheels":[[["noun","vianda","service that delivers food to those unable to cook for themselves"]],1],
 "mealworm":[[["noun","gusano de la harina","larva of the Tenebrio molitor"]],1],
 "mealy":[[["adjective","harinoso","resembling meal"]],1],
-"mean":[[["adjective","mezquino, tacaño, agarrado"],["adjective","malo, malvado"],["adjective","malhumorado"],["adjective","humilde, pobre"]],0],
+"mean":[[["adjective","malo, mala gente, mala onda","low-minded; acting without consideration of others"],["verb","querer decir","to convey, indicate"],["verb","pretender","to intend; plan on doing"],["adjective","medio","having the mean as its value"]],1],
 "mean business":[[["verb","no andarse con chiquitas","Translations"]],1],
 "mean free path":[[["noun","camino libre medio","average distance travelled by molecules in a gas or liquid"]],1],
 "mean the world to":[[["verb","significar todo para, significar el mundo para","Translations"]],1],
@@ -15286,7 +15288,7 @@
 "soulful":[[["adjective","conmovedor"],["adjective","sentimental"]],0],
 "soulless":[[["adjective","desalmado, desangelado","as if without a soul"]],1],
 "soulmate":[[["noun","alma gemela","Someone with whom one has a special connection"]],1],
-"sound":[[["adjective","sano, salvo"],["adjective","sólido, robusto, firme, fuerte"],["adjective","dicho del sueño: profundo"],["adjective","severo, fuerte, contundente"]],0],
+"sound":[[["noun","sonido","sensation perceived by the ear"],["verb","sonar","to produce a sound"],["adjective","sano","healthy"],["noun","estrecho, seno","long narrow inlet"]],1],
 "sound bite":[[["noun","cuña, extracto expresivo, cita lapidaria","Translations"]],1],
 "sound box":[[["noun","boca de sonido, caja de resonancia","resonant chamber of a stringed musical instrument"]],1],
 "sound card":[[["noun","tarjeta de sonido, placa de sonido","a computer hardware device used for generating and capturing sounds"]],1],
@@ -16286,7 +16288,7 @@
 "stile":[[["noun","montante","steps or short ladder over a fence, wall, or hedge"]],1],
 "stiletto":[[["noun","estilete"],["noun","tacón de aguja"],["verb","herir con estilete"]],0],
 "stiletto heel":[[["noun","tacón de aguja","heel of a high and narrow shoe"]],1],
-"still":[[["noun","instantánea"],["noun","cada uno de las imágenes o fotografías que forman una película"],["noun","calma, quietud"],["adjective","inmóvil, quieto, detenido"]],0],
+"still":[[["adverb","todavía, aún, seguir","up to a time, as in the preceding time"],["adjective","quieto, glaxo","not moving, calm"],["adverb","sin embargo, no obstante","nevertheless"],["adverb","todavía, aún","to an even greater degree"]],1],
 "still life":[[["noun","bodegón, naturaleza muerta","work of art"]],1],
 "still water":[[["noun","agua sin gas","water without carbonation"]],1],
 "still waters run deep":[[["proverb","las aguas quietas calan hondo","a person's calm appearance may be misleading"]],1],
@@ -21262,9 +21264,5 @@
 "vista":[[["noun","vista","distant view or prospect"]],1],
 "visual":[[["adjective","visual","related to or affecting the vision"]],1],
 "visual acuity":[[["noun","acuidad/agudez/agudeza visual","Translations"]],1],
-"visual arts":[[["noun","artes visuales","art forms that are primarily visual in nature"]],1],
-"visual field":[[["noun","campo visual, campo visivo","field of view"]],1],
-"visual novel":[[["noun","novela visual","Translations"]],1],
-"visual space":[[["noun","espacio visual","visual world as subjectively perceived by an aware observer"]],1],
-"visualization":[[["noun","visualización","the act of visualizing, or something visualized"]],1]
+"visual arts":[[["noun","artes visuales","art forms that are primarily visual in nature"]],1]
 }

@@ -45,7 +45,7 @@ Use Claude in Chrome with the check build (`docs/development.md` "Checking in yo
 
 ## Phase 2 — Run Langle's own code offline
 
-The scripts in `scripts/` run a checkout's own code with `npx jiti`, so a fix measured here is the fix that ships. Study data lives in the main checkout's git-ignored `data/raw/quality/<study>/` (worktrees symlink `data/raw` to it): `corpus/` with `manifest.json`, `runs/<label>/`, `packets/`. The first study is `2026-11`: `corpus/` is round 2, `corpus-r1/` round 1, and `runs/out2`, `runs/out3` its units and outputs. Settings are `--name=value` or environment variables; the usage is at the top of each script.
+The scripts in `scripts/` run a checkout's own code with `npx jiti`, so a fix measured here is the fix that ships. Study data lives in the main checkout's git-ignored `data/raw/quality/<study>/` (a worktree gets its own raw data from `npm run data:raw`, never a link; it reads study inputs from the main checkout by absolute path and writes its outputs under its own `data/raw/quality/`): `corpus/` with `manifest.json`, `runs/<label>/`, `packets/`. The first study is `2026-11`: `corpus/` is round 2, `corpus-r1/` round 1, and `runs/out2`, `runs/out3` its units and outputs. Settings are `--name=value` or environment variables; the usage is at the top of each script.
 
 1. Units, once per corpus: `STUDY=2026-11 npx jiti .claude/skills/real-content-quality/scripts/build-units.ts` writes `runs/units-<sha>/units.jsonl`, one line per card or paragraph:
    - videos through `captionCards` (`parseYouTubeJson3`, `alignByOverlap`, `asrSentenceCards`), with the translation the extension would pick;
@@ -123,7 +123,8 @@ Then put each open trade-off to the user, with the measured options.
 - After each hand-back, check before telling the user:
   - `gh pr view <n> --json state,mergeCommit,statusCheckRollup`;
   - no Claude attribution in the commits or the PR body;
-  - the measured numbers against what the step promised.
+  - the measured numbers against what the step promised;
+  - before the step's worktree is removed (`git worktree remove`, so `merge-when-green.sh --cleanup`, silently deletes git-ignored files), copy its `data/raw/quality` to the main checkout without overwriting different files already there, and compare with `diff -r`.
 - Then update the report's "Suggested order" with the PR and its measured result, including what got worse.
 
 CI notes:

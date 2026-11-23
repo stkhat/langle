@@ -3,9 +3,9 @@
 //
 //   npx jiti .claude/skills/real-content-quality/scripts/measure.ts \
 //     [--repo=<checkout>] [--units=<a.jsonl>,<b.jsonl>] [--out=<dir>] [--level=3000] \
-//     [--learning=en] [--native=ja] [--cap=50]
+//     [--learning=en] [--native=ja] [--cap=50] [--saved=<key>:<learning|known>,...]
 //
-// (or REPO, UNITS, OUT, LEVEL, LEARNING, NATIVE, CAP, STUDY in the environment).
+// (or REPO, UNITS, OUT, LEVEL, LEARNING, NATIVE, CAP, SAVED, STUDY in the environment).
 // A transcript's cards are classified as the extension does: the cards whose sentence
 // runs on together (`cardRuns`, in batches of 50); --runs=off classifies each alone.
 // Defaults: REPO = this checkout; OUT = <study>/runs/<REPO's short sha>-L<level>;
@@ -15,7 +15,9 @@
 // Wiring as the extension does it (src/background/language-resources.ts; the reference
 // is src/core/classify.smoke.test.ts): the pack, classifier and dictionary of the pair
 // from createLanguageResources; each document's casing from blockCasing/documentCasing
-// over its units (rule D names); unsaved words at the known level; hover lines from
+// over its units (rule D names); unsaved words at the known level, nothing saved unless
+// SAVED says (a saved word keys every form of it, whatever its tag: compare with a real
+// profile only with that profile's saved words); hover lines from
 // dictionary.entry(key, written, pos).lines, and a contraction's note (`note`: "I'm → I am",
 // describe.ts `contractionNote`). What it cannot reproduce: a meaning that
 // exists only as an English definition is machine-translated at display time (the row
@@ -55,6 +57,19 @@ const LEVEL = Number(setting("level", "3000"));
 const LEARNING = setting("learning", "en")!;
 const NATIVE = setting("native", "ja")!;
 const CAP = Number(setting("cap", "50"));
+/** The words saved in the profile measured (`--saved=bear:known,meet:learning`). */
+const SAVED = new Map(
+  (setting("saved") ?? "")
+    .split(",")
+    .filter(Boolean)
+    .map((item) => {
+      const at = item.lastIndexOf(":");
+      const status = item.slice(at + 1);
+      if (at < 1 || (status !== "learning" && status !== "known"))
+        throw new Error(`SAVED: not <key>:<learning|known>: ${item}`);
+      return [item.slice(0, at), status] as const;
+    }),
+);
 const OUT =
   setting("out") ?? join(studyDir(), "runs", `${shortSha(REPO)}-L${LEVEL}`);
 const UNITS = (setting("units") ?? join(OUT, "units.jsonl")).split(",");
@@ -290,10 +305,19 @@ for (const [doc, list] of byDoc) {
   };
   const spelledOut = inflected ?? exact;
   const options = {
-    terms: new Map(),
+    terms: SAVED,
+    // An acronym known only by what it stands for is a word where the document spells
+    // that out (background/handlers.ts `analyze`; the page sends its text only for a
+    // mixed-case document, content/lookup/lookup.ts `analyze`).
+    ...(casing?.mode === "mixed" && { spelledOut }),
     knownLevel: LEVEL,
     casing,
     capitalMeaning: (key: string) => dictionary.capitalMeaning(key),
+    // Checkouts before `DictionaryProvider.acronym` have none.
+    acronym: (key: string) =>
+      (
+        dictionary as { acronym?: (key: string) => boolean | undefined }
+      ).acronym?.(key),
     outline: (key: string) => dictionary.outline(key),
   };
   /** Phrases as one match each: the parts of a phrase with a gap together. */
@@ -505,6 +529,7 @@ const summary = {
   units: UNITS,
   pair: `${LEARNING}-${NATIVE}`,
   level: LEVEL,
+  saved: SAVED.size,
   cap: CAP,
   all: report(total),
   ...Object.fromEntries(Object.entries(sites).map(([k, v]) => [k, report(v)])),

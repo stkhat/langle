@@ -384,7 +384,11 @@ describe("chooseKey (rule A1)", () => {
       ).toBe("poder");
     });
     it("takes a headword whose entry lacks the tagged part of speech to a base that has it", () => {
-      const article = reading(tag("determiner", "DT", false));
+      // A Spanish (UD) tag says an article may carry an ending (`morph`).
+      const article = reading({
+        ...tag("determiner", "DT", false),
+        morph: true,
+      });
       expect(esKey("los", ["los", "el"], article)).toBe("el");
       // As a pronoun its own entry fits.
       expect(
@@ -394,6 +398,25 @@ describe("chooseKey (rule A1)", () => {
       expect(
         esKey("veces", ["veces", "vez"], reading(tag("noun", "NNS"))),
       ).toBe("veces");
+      // A tag without an ending makes the word itself of that part of speech, no
+      // other base's form ("full bore": not bear's noun, as bore is its past).
+      expect(
+        chooseKey(
+          "bore",
+          ["bore", "bear"],
+          reading({ ...tag("noun", "NN", false), morph: false }),
+          (word) =>
+            ({
+              bore: { firstMeaning: true, meaning: true, pos: ["verb"] },
+              bear: {
+                firstMeaning: true,
+                meaning: true,
+                pos: ["verb", "noun"],
+              },
+            })[word],
+          { ...esLang, partsOfSpeech: () => ["verb", "noun"] },
+        ),
+      ).toBeUndefined();
       // An entry that names the base it is a form of keeps it, whatever the tag.
       expect(
         esKey("dying", ["dying", "die"], reading(tag("noun", "NN", false))),

@@ -493,7 +493,8 @@ export async function describeTerm(
    * A definition that only says how the term is used ("An apophasis used by a speaker
    * to introduce…") or names its function ("A mild intensifier") reads as an
    * explanation once translated: the term itself is translated instead, as a phrase no
-   * dictionary has is ("not to mention" → 言うまでもなく).
+   * dictionary has is ("not to mention" → 言うまでもなく). Not a closed-class word
+   * ("an"): its definition is translated (`isUsageNoteShort`).
    */
   const usageNote =
     pair !== undefined && entry !== undefined && isUsageNoteShort(entry);

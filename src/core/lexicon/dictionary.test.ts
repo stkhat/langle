@@ -990,6 +990,22 @@ describe("createPairDictionary", () => {
       "To surrender",
     );
   });
+  it("reads the labels Korean glosses open with from the pack itself", () => {
+    const korean = createPairDictionary({
+      dict: {
+        accrue: [[["verb", "(법률) 권리로서 성립하다"]], 0],
+        lessee: [[["noun", "(법률) 임차인"]], 0],
+        venue: [[["noun", "(법률) 재판지"]], 0],
+        redeem: [[["verb", "(빚을) 청산하다"]], 0],
+      },
+      defs: {},
+      ipa: {},
+    });
+    const lessee = korean.entry("lessee")!;
+    expect(lessee.lines).toEqual(["임차인"]);
+    expect(korean.senseLine(lessee.senses[0]!)).toBe("임차인");
+    expect(korean.entry("redeem")?.lines).toEqual(["(빚을) 청산하다"]);
+  });
   it("outlines a term from the pair pack or the English definitions", () => {
     expect(dictionary.outline("light")).toEqual({
       firstMeaning: true,
