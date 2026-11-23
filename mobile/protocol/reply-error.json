@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "kind": "reply",
+  "id": "c2",
+  "ok": false,
+  "error": {
+    "message": "Could not establish connection. Receiving end does not exist."
+  }
+}

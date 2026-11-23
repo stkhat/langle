@@ -1,0 +1,1 @@
+{ "v": 2, "kind": "call", "id": "x", "api": "storage.local.get", "args": [] }
