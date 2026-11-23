@@ -83,6 +83,45 @@ Two throwaway apps in `mobile/prototypes/` (setup: [development.md](../developme
 - GeckoView, after a restart: an MV3 extension's event page does not run unless it has a startup listener, so it never connected to the app. With `runtime.onStartup` it does; checked with restarts that keep the data.
 - Not checked: GeckoView sign-in and article blocking, signed-in YouTube, Shorts, live streams, real phones, release APK sizes, Langle's own Firefox build inside GeckoView.
 
+## Android extension host spike (S2, 2026-11-24)
+`mobile/prototypes/android-host-spike` (spec [mobile-app.md](../specs/mobile-app.md) "Spikes before building"; copied from `android-webview`, androidx.webkit 1.18.0). Emulator `Medium_Phone_API_37.0` (Android 17, SDK 37, Google Play arm64 image). `run.sh` starts one measurement per launch (`am start` extras); each result is one logcat line. The extension host is a WebView in a `ProfileStore` profile "langle" loading `https://appassets.androidplatform.net/assets/host.html` through `WebViewAssetLoader`, with a `langleBridge` listener for that origin. The browsing page is a WebView in the default profile.
+
+**WebView versions.** The image's stable WebView is 145.0.7632.218. It reports `JS_INJECTION_IN_FRAME_AND_WORLD` **false**, and `getExecutionWorld` throws. `MULTI_PROFILE`, `WEB_MESSAGE_LISTENER` and `DOCUMENT_START_SCRIPT` are true.
+- The user's Play Store update left stable at 145.
+- Android System WebView **Dev 160.0.8171.0** was installed and made the provider (`cmd webviewupdate set-webview-implementation com.google.android.webview.dev`). It reports all four features true.
+- Questions 3–5 were measured on 145. Question 2 was measured on Dev 160; questions 2 and 5 (host renderer) were repeated there.
+
+**The lowest WebView with `JS_INJECTION_IN_FRAME_AND_WORLD` is 146.0.7680.10**, by Chromium's source (`android_webview/support_library/java/src/org/chromium/support_lib_glue/SupportLibWebViewChromiumFactory.java`):
+- The glue landed hidden behind `DEV_SUFFIX` in 19d3b9960b (main@{#1582059}, 2026-02-09). The suffix was removed in a6cae35a38 (main@{#1584520}, 2026-02-13), which was merged to the M146 branch.
+- By tag: absent in 145.0.7632.218, suffixed in 146.0.7680.0–.9, plain from 146.0.7680.10 on.
+- M146 reached Stable on 2026-03-10 (chromiumdash milestone schedule). Chrome for Android Stable shipped 146.0.7680.31 on 2026-02-25 (early stable) and 146.0.7680.111 on 2026-03-10. Today's Stable is 158/159 (2026-11-18).
+- That is Chrome's channel. WebView normally ships the same versions, but this was not checked separately.
+- So most updated phones have the feature. Phones whose WebView is not updated do not, like this emulator image, whose Play Store visit left it at 145. The app must check the feature at run time.
+
+| Question | Result |
+|---|---|
+| 2. Langle world: `getExecutionWorld(web, "langle")`, `addJavaScriptOnEvent(…, INJECTION_EVENT_DOCUMENT_START, …, world)`, `addWebMessageListener(…, "langleBridge", setOf("*"), world, …)` on `https://en.wikipedia.org/wiki/Language` (Dev 160, two runs) | The script runs before the page's scripts: `readyState` loading, 0 scripts in the document, `<html class="client-nojs …">`; Wikipedia's first inline script swapped in `client-js` 13–17 ms later. It posts and gets the native reply through `replyProxy` ("pong"). In the page world `typeof window.langleBridge` is `"undefined"` (and the world's own global too), while `RLQ` is an object there and `"undefined"` in the Langle world. The page's `window.postMessage` reaches a `message` listener in the Langle world (`e.source === window`), so `youtube-main` can talk to it as on the desktop. |
+| 3. IndexedDB in the "langle" profile on the app origin | Works. 1,000 rows plus a 20 MB `ArrayBuffer` (deterministic, FNV checksum) written in 478 ms. After a force-stop and relaunch: 1,000 rows ok, 20,971,520 bytes, same checksum, read in 187 ms; usage 21.1 MB, `persisted()` false. The same origin in the default profile keeps its own IndexedDB, `localStorage` and cookies. On disk: `app_webview/Default/` and `app_webview/Profile 1/` (the "langle" profile, 21 MB). |
+| 3. `WebStorage.getInstance().deleteAllData()` and `CookieManager.getInstance().removeAllCookies` (the default profile) | The default profile's database, `localStorage` and cookie were gone. The "langle" profile still had 1,000 rows, the checksum, its cookie and its `localStorage`, read after a relaunch. |
+| 4. Host WebViews in "langle", 1 s `setInterval` for 2 minutes, the page WebView on `about:blank`, app in the foreground | All on time: a visible 200 px control, `View.GONE` attached, 0×0 attached and **never attached** each gave 121 ticks in 121.5 s, mean gap 1,000 ms, max 1,071 ms, none over 1.5 s. `visibilityState` is `"visible"` in all four. Unlike iOS, a detached WebView is not throttled. |
+| 4. The same, app sent to the background (Home) right after start | Every variant stopped. Attached ones ran 7 ticks and then nothing for about 75 s (`visibilityState` hidden). The detached one had one 73 s gap and resumed when the app came back. The app process was cached (procState 15) and not frozen 20 s after Home; the cause was not established. |
+| 5. Renderer loss: page WebView (default profile) and a `GONE` host WebView ("langle") | One renderer process **per profile**: two `sandboxed_process0` processes (isolated uids). The two `WebViewRenderProcess` objects differ. Five WebViews in two profiles also gave two. `adb shell kill` (and `run-as … kill`) on a renderer pid is refused ("Operation not permitted", user build), so `WebViewRenderProcess.terminate()` was used. Ending the host's renderer fired `onRenderProcessGone` (didCrash false) **only for the host**; ending the page's fired it only for the page. Each was recreated (destroy, new WebView in the same profile, reload) and worked again (host "ready", Wikipedia loaded); the other WebView was untouched. Same on Dev 160 for the host. |
+
+- **The spec's plan holds on Android** where the WebView is new enough:
+  - an isolated world with a world-scoped listener;
+  - IndexedDB in the extension host's own `ProfileStore` profile on the `WebViewAssetLoader` origin, independent of the browsing data;
+  - a hidden host WebView, any of the three ways.
+- **Differences from iOS that M1 must follow**:
+  - With WebView 145 (or anything before 146.0.7680.10) there is no isolated world. M1's feature check (no injection, "Update Android System WebView") is required, not defensive.
+  - Renderers are per profile, so losing the page's renderer leaves the host running, and losing the host's leaves the pages. App pages in the "langle" profile share the host's renderer and go down with it. Recovery is per profile, not "host first, then every page".
+  - In the background the host's timers stop. Alarms and anything else that must run with the app in the background need native scheduling.
+- A cookie set about 20 s before a force-stop was lost in the default profile (one run); one set 45 s before survived. This is the cookie store's flush timing. Langle keeps nothing in cookies.
+- Limits:
+  - emulator only, one Android version;
+  - Q2 on the Dev channel only; Q3 and Q4 on 145 only;
+  - renderers ended with `terminate()`, not a real crash or a low-memory kill;
+  - not checked: iframes (`setOf("*")` with frames), a real phone, memory pressure, the real `langle-app` build.
+
 ## iOS prototype (2026-11-22)
 `mobile/prototypes/ios-wkwebview` (SwiftUI shell, a hand-written Xcode project with a synchronized folder; no generator), on the Simulator (iPhone 17, iOS 27.2), logged out, the same video and the same `probe.js`. Driven from the shell by `check.sh` (`simctl launch` arguments, Darwin notifications for commands, results in the unified log).
 - **Script**: two `WKUserScript`s at document start in every frame, in `WKContentWorld.page` (the probe must patch the page's own `JSON.parse` and `fetch`); messages back through `WKScriptMessageHandler`. Commands run with `callAsyncJavaScript` from native code, so YouTube's CSP does not apply. Isolated worlds exist (`.defaultClient` or named worlds) for the extension's own content scripts.
