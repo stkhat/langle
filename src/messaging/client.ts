@@ -62,6 +62,7 @@ const REPEATABLE: Record<RequestType, boolean> = {
   lastExport: true,
   listTermsWithStats: true,
   termSummaries: true,
+  exportDetails: true,
   // Would open a second tab.
   openOptions: false,
   // Sentences already kept for the page are skipped.

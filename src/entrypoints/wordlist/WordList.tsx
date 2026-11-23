@@ -21,6 +21,7 @@ import { Segmented } from "../../ui/Segmented";
 import { color, FONT, PAGE_BUTTON_CSS } from "../../ui/styles";
 import { DetailsPanel, savedFrom, type Details } from "./DetailsPanel";
 import { COLUMNS, Rows } from "./Rows";
+import { exportWords, type WordFormat } from "./export-words";
 import { useWordListData } from "./useWordListData";
 
 /** What the word list works with; `main.tsx` passes the browser's, tests pass fakes. */
@@ -60,6 +61,10 @@ const KIND_TABS: readonly { id: KindFilter; label: MessageKey }[] = [
   { id: "all", label: "filter.all" },
   { id: "word", label: "kind.words" },
   { id: "phrase", label: "kind.phrases" },
+];
+const EXPORTS: readonly [WordFormat, MessageKey][] = [
+  ["anki", "export.anki"],
+  ["csv", "export.csv"],
 ];
 const SORTS: readonly [Sort, MessageKey][] = [
   ["recent", "wordlist.sort.recent"],
@@ -259,6 +264,16 @@ export function WordList({ deps }: { deps: WordListDeps }) {
           class="btn"
           onNote={setNote}
           onImported={() => void reload().catch(warn)}
+          more={{
+            count: rows.length,
+            items: EXPORTS.map(([format, label]) => ({
+              label: t(label),
+              run: () => {
+                setNote({ ok: true, text: t("backup.exporting") });
+                return exportWords({ format, rows, langs, deps, data });
+              },
+            })),
+          }}
         />
       </div>
 

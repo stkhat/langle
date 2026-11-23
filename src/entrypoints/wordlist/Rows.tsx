@@ -43,7 +43,7 @@ function StatusBadge(props: { status: TermSummary["status"] }) {
  * The Meaning column: the meanings the user chose (marked, joined by " · ") instead of
  * the short meaning.
  */
-function rowMeaning(term: TermSummary, nativeLang: string) {
+export function rowMeaning(term: TermSummary, nativeLang: string) {
   const mine = term.meanings ?? [];
   if (mine.length === 0)
     return { text: term.short ?? "", lang: term.glossLang ?? nativeLang };
