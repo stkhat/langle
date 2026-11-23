@@ -22,7 +22,7 @@ export interface TranslationPair {
   to: string;
 }
 
-export interface TranslateOptions {
+interface TranslateOptions {
   /**
    * Aborting it resolves this request with no translation at once. The queue drops the
    * job when no request waits for it any more and it has not started; a job that has
