@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { parseEnvelope } from "./protocol";
+import { isParseError, parseEnvelope } from "./protocol";
 
 const GOLDEN = join(import.meta.dirname, "../../../mobile/protocol");
 const golden = readdirSync(GOLDEN)
@@ -59,11 +59,11 @@ describe("parseEnvelope", () => {
     ],
     ["something other than an object", [1, 2]],
   ])("rejects %s", (_, value) => {
-    expect(parseEnvelope(JSON.stringify(value))).toHaveProperty("error");
+    expect(isParseError(parseEnvelope(JSON.stringify(value)))).toBe(true);
   });
 
   test("rejects text that is not JSON", () => {
-    expect(parseEnvelope("{")).toHaveProperty("error");
+    expect(isParseError(parseEnvelope("{"))).toBe(true);
   });
 });
 
