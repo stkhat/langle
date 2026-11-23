@@ -63,6 +63,7 @@ jobs:
       - run: npm run build:firefox
       - run: npm run build:check
       - run: npm run build:check-download
+      - run: npm run build:app
       - run: npm run test:manifest
       - run: npm run test:e2e
       - name: Upload test reports
