@@ -5,10 +5,10 @@ import { SPONSOR_CARD } from "../../core/sponsors";
 import { send } from "../../messaging/client";
 import { watchPackState, watchSettings } from "../../messaging/storage";
 import { download } from "../../ui/backup/download";
-import { mountPage } from "../../ui/mount-page";
+import { mountSetUpPage } from "../../ui/mount-page";
 import { WordList, type WordListDeps } from "./WordList";
 
-mountPage(() => {
+mountSetUpPage(() => {
   const deps: WordListDeps = {
     send,
     now: Date.now,

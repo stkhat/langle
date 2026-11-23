@@ -58,6 +58,7 @@ import {
   type RequestOf,
   type RequestType,
   type ResponseOf,
+  type SetupRequestType,
   type MeaningLine,
   type ShortMeaning,
   type SyncStatus,
@@ -114,7 +115,8 @@ export type Handle = (
 ) => Promise<Reply>;
 
 type Handlers = {
-  [T in RequestType]: (
+  // The setup's own are answered before these (`createSetup`).
+  [T in Exclude<RequestType, SetupRequestType>]: (
     request: RequestOf<T>,
     sender: MessageSender,
   ) => Promise<ResponseOf<T>>;
@@ -800,7 +802,7 @@ export function createHandlers({
     if (!Object.hasOwn(handlers, type))
       return { ok: false, error: `Unknown request: ${type}` };
     try {
-      const handler = handlers[type as RequestType] as (
+      const handler = handlers[type as keyof Handlers] as (
         request: unknown,
         sender: MessageSender,
       ) => Promise<unknown>;

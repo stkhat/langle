@@ -3,6 +3,7 @@ import { startContentCheck } from "../../check/start";
 import { ArticleUi } from "../../content/article/ArticleUi";
 import { runArticle } from "../../content/article/article";
 import { leaveWhenOrphaned } from "../../content/orphan";
+import { runWhenSetUp } from "../../content/setup";
 import { shadowRootMode } from "../../content/shadow-host";
 import { isVideoSite } from "../../content/video/platform";
 import { answerPageRequests, contentDeps } from "../../content/wiring";
@@ -13,33 +14,35 @@ export default defineContentScript({
   // The UI is styled inline and imports no CSS: nothing to load into its shadow root
   // ("ui" would fetch a content.css that is never built) or into the page.
   cssInjectionMode: "manual",
-  async main(ctx) {
+  main(ctx) {
     // The video UI runs there and answers the popup.
     if (isVideoSite(location.hostname)) return;
     // `npm run build:check` only: the error log and the settings channel (src/check/).
     if (import.meta.env.MODE === "check") startContentCheck("article");
-    const runner = runArticle({
-      ...contentDeps(ctx),
-      async mountUi(app) {
-        const ui = await createShadowRootUi(ctx, {
-          name: "langle-article",
-          mode: shadowRootMode(),
-          position: "inline",
-          anchor: "body",
-          onMount(container, shadow) {
-            guardShadowRoot(shadow);
-            render(<ArticleUi app={app} />, container);
-          },
-          onRemove(container) {
-            if (container) render(null, container);
-          },
-        });
-        ui.mount();
-        return () => ui.remove();
-      },
+    runWhenSetUp(ctx, () => {
+      const runner = runArticle({
+        ...contentDeps(ctx),
+        async mountUi(app) {
+          const ui = await createShadowRootUi(ctx, {
+            name: "langle-article",
+            mode: shadowRootMode(),
+            position: "inline",
+            anchor: "body",
+            onMount(container, shadow) {
+              guardShadowRoot(shadow);
+              render(<ArticleUi app={app} />, container);
+            },
+            onRemove(container) {
+              if (container) render(null, container);
+            },
+          });
+          ui.mount();
+          return () => ui.remove();
+        },
+      });
+      ctx.onInvalidated(() => runner.stop());
+      leaveWhenOrphaned(ctx);
+      answerPageRequests(ctx, runner.handlePageRequest);
     });
-    ctx.onInvalidated(() => runner.stop());
-    leaveWhenOrphaned(ctx);
-    answerPageRequests(ctx, runner.handlePageRequest);
   },
 });

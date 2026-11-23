@@ -16,6 +16,7 @@ import type { Meaning } from "../core/meanings";
 import type { PackState } from "../core/packs/state";
 import type { DocumentCasing } from "../core/text/casing";
 import type { Settings, SettingsPatch } from "../core/settings";
+import type { SetupStage } from "../core/setup";
 import type { Platform, Position } from "../core/url";
 
 export interface TermRecord {
@@ -149,6 +150,14 @@ export interface KeptExplanation {
 }
 
 export type Request =
+  /** Where this device stands in the first run, with the pair its screen starts from. */
+  | { type: "setupStatus" }
+  /** Opens the setup, or shows the one that is open. */
+  | { type: "openSetup" }
+  /** "Agree and continue"; taken only from the setup page. */
+  | { type: "agreeSetup" }
+  /** "Start": stores the pair and ends the setup; taken only from the setup page. */
+  | ({ type: "startLangle" } & LanguagePair)
   | { type: "getSettings" }
   | { type: "setSettings"; patch: SettingsPatch }
   /**
@@ -308,6 +317,18 @@ export const MAX_TRANSLATION_TEXT = 1000;
 
 export type RequestType = Request["type"];
 export type RequestOf<T extends RequestType> = Extract<Request, { type: T }>;
+
+/** The requests of the first run, the only ones answered until it ends. */
+export type SetupRequestType =
+  "setupStatus" | "openSetup" | "agreeSetup" | "startLangle";
+
+export type LanguagePair = Pick<Settings, "learningLang" | "nativeLang">;
+
+export interface SetupStatus {
+  stage: SetupStage;
+  /** The pair stored here or by browser sync; null before consent, or with none. */
+  pair: LanguagePair | null;
+}
 
 export interface AnalyzeResult {
   /** Spans of each block, in the order of `blocks`; offsets are within the block. */
@@ -527,6 +548,10 @@ interface ResponseMap {
   /** How many terms were removed. */
   undoSaveAll: number;
   counts: Counts;
+  setupStatus: SetupStatus;
+  openSetup: null;
+  agreeSetup: SetupStatus;
+  startLangle: null;
   syncStatus: SyncStatus;
   cloudStatus: CloudStatus;
   cloudCheck: null;

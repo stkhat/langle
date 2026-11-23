@@ -1,11 +1,13 @@
 import type { Settings } from "../core/settings";
+import type { SetupStage } from "../core/setup";
+import { serial } from "../core/util";
 
 /** The toolbar icon's sizes, as `public/icon/` and `public/icon-off/` hold them. */
 const SIZES = [16, 32, 48, 128] as const;
 
 /**
  * The toolbar icon's files: the colored mark (the manifest's icons) while Langle is on, the
- * gray one from `public/icon-off/` while it is switched off.
+ * gray one from `public/icon-off/` while it is switched off or not set up.
  */
 export function toolbarIconPaths(enabled: boolean): Record<number, string> {
   const dir = enabled ? "icon" : "icon-off";
@@ -17,6 +19,8 @@ export interface ToolbarIconDeps {
   /** `action.setIcon({ path })`. */
   setIcon(path: Record<number, string>): Promise<void>;
   getSettings(): Promise<Settings>;
+  getSetupStage(): Promise<SetupStage>;
+  watchSetupStage(listener: (stage: SetupStage) => void): () => void;
   watchSettings(
     listener: (settings: Settings, previous: Settings) => void,
   ): () => void;
@@ -25,22 +29,32 @@ export interface ToolbarIconDeps {
 }
 
 /**
- * Keeps the toolbar icon gray while Langle is switched off: set from the stored
- * settings now and at each browser start, and again whenever `enabled` changes (on
- * any device). Registers its listeners synchronously, so a change that wakes the
- * worker is heard. Returns an unwatch.
+ * Keeps the toolbar icon gray while Langle is switched off or not set up (the settings
+ * are then not read): set from what is stored now and at each browser start, and again
+ * whenever the setup or `enabled` changes (on any device). Registers its listeners
+ * synchronously, so a change that wakes the worker is heard. Returns an unwatch.
  */
 export function followToolbarIcon(deps: ToolbarIconDeps): () => void {
-  const warn = (error: unknown) => console.error(error);
-  const apply = (enabled: boolean) =>
-    deps.setIcon(toolbarIconPaths(enabled)).catch(warn);
+  // One after another, so the last change is the icon's last state.
+  const applies = serial();
   const applyStored = () => {
-    deps.getSettings().then((s) => apply(s.enabled), warn);
+    applies
+      .run(async () => {
+        const on =
+          (await deps.getSetupStage()) === "ready" &&
+          (await deps.getSettings()).enabled;
+        await deps.setIcon(toolbarIconPaths(on));
+      })
+      .catch((error: unknown) => console.error(error));
   };
   deps.onStartup.addListener(applyStored);
-  const unwatch = deps.watchSettings((settings, previous) => {
-    if (settings.enabled !== previous.enabled) void apply(settings.enabled);
+  const unwatchSetup = deps.watchSetupStage(applyStored);
+  const unwatchSettings = deps.watchSettings((settings, previous) => {
+    if (settings.enabled !== previous.enabled) applyStored();
   });
   applyStored();
-  return unwatch;
+  return () => {
+    unwatchSetup();
+    unwatchSettings();
+  };
 }

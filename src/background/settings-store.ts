@@ -6,9 +6,7 @@ import {
   type FileSettings,
   type TimedSettings,
 } from "../core/cloud/settings";
-import { firstPair } from "../core/languages";
 import {
-  DEFAULT_SETTINGS,
   mergeSettings,
   SETTINGS_KEY,
   SETTINGS_TIMES_KEY,
@@ -152,30 +150,30 @@ export async function settingsStored(): Promise<boolean> {
 }
 
 /**
- * Stores the language pair to start with when no settings are stored (`onInstalled`):
- * on a new install the pair the browser's UI language suggests (`firstPair`), after an
- * update the default pair, the one used so far. Stored settings win: those of this
- * device, or those browser sync brought from another one. The pair counts as never
- * changed (time 0), so any device's choice wins over it in cloud sync.
+ * Stores the pair chosen at the first run. With no settings stored it counts as never
+ * changed (time 0), so any device's choice wins over it in cloud sync; one that
+ * replaces a stored pair (this device's, or one browser sync brought) is a change as
+ * any other.
  */
-export function storeStartingPair(
-  reason: string,
-  uiLanguage: string,
+export function storeChosenPair(
+  pair: Pick<Settings, "learningLang" | "nativeLang">,
+  now = Date.now,
 ): Promise<void> {
   return writes.run(async () => {
-    if (await settingsStored()) return;
-    const pair =
-      reason === "install"
-        ? firstPair(uiLanguage)
-        : {
-            learningLang: DEFAULT_SETTINGS.learningLang,
-            nativeLang: DEFAULT_SETTINGS.nativeLang,
-          };
-    const settings = mergeSettings(pair);
-    const timed: TimedSettings = { values: settings, times: {} };
+    let next: TimedSettings;
+    if (await settingsStored()) {
+      const at = now();
+      const { timed } = await readTimed(at);
+      const { learningLang, nativeLang } = timed.values;
+      if (pair.learningLang === learningLang && pair.nativeLang === nativeLang)
+        return;
+      next = stampSettings(mergeSettings(pair, timed.values), at, timed);
+    } else {
+      next = { values: mergeSettings(pair), times: {} };
+    }
     await browser.storage.sync.set({
-      [SETTINGS_KEY]: settings,
-      [SETTINGS_TIMES_KEY]: timed,
+      [SETTINGS_KEY]: next.values,
+      [SETTINGS_TIMES_KEY]: next,
     });
   });
 }

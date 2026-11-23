@@ -225,25 +225,45 @@ export async function downloadTranslationModels(
   native: string,
   g: TranslatorGlobal = globalThis as TranslatorGlobal,
 ): Promise<void> {
+  await (
+    await startTranslationModels(learning, native, g)
+  ).downloaded;
+}
+
+/**
+ * `downloadTranslationModels` for a page that closes after the click (the setup):
+ * resolves once every download is asked for, `downloaded` once they ended.
+ */
+export async function startTranslationModels(
+  learning: string,
+  native: string,
+  g: TranslatorGlobal = globalThis as TranslatorGlobal,
+): Promise<{ downloaded: Promise<unknown> }> {
   const api = g.Translator;
-  if (!api) return;
+  if (!api) return { downloaded: Promise.resolve() };
   const sources = [...new Set(["en", learning])].filter(
     (from) => from !== native,
   );
+  const downloads: Promise<unknown>[] = [];
   await Promise.all(
     sources.map(async (from) => {
       const pair = { sourceLanguage: from, targetLanguage: native };
       try {
         if ((await api.availability(pair)) !== "downloadable") return;
         // Created to start the download; the content scripts create their own.
-        (
-          await api.create({ ...pair, monitor: monitorFor(g, pair) })
-        ).destroy?.();
+        const created = api.create({ ...pair, monitor: monitorFor(g, pair) });
+        downloads.push(
+          created
+            .then((translator) => translator.destroy?.())
+            // No download now: the dictionary window's click starts it later.
+            .catch(() => {}),
+        );
       } catch {
-        // No download now: the dictionary window's click starts it later.
+        // As above: later.
       }
     }),
   );
+  return { downloaded: Promise.all(downloads) };
 }
 
 /** Input events that give the page a user activation (HTML "activation-triggering"). */
@@ -255,7 +275,7 @@ const armed = new WeakSet<EventTarget>();
 /**
  * Starts the translator's model downloads for the page's languages at the first user
  * activation on `target` (a click, a tap, a key; `downloadTranslationModels`): hover
- * cards cannot start one, and a new install chooses its languages without a click.
+ * cards cannot start one, and the setup's click may have come too early or been refused.
  * Once per target until disarmed; with `now`, also at once when the page has a user
  * activation already (the toolbar popup that a click just opened). Nothing where the
  * browser has no built-in translator. Returns the disarm.

@@ -16,6 +16,7 @@ import {
   type Platform,
 } from "../core/url";
 import { listeners } from "../core/util";
+import { getSetupStage, watchSetupStage } from "../messaging/setup";
 import { watchSettings } from "../messaging/storage";
 import type {
   HistorySentenceInput,
@@ -23,6 +24,7 @@ import type {
   SourceInput,
 } from "../messaging/protocol";
 import type { HistoryPageRecord, HistorySentenceRecord, LangleDb } from "./db";
+import { getSettings } from "./settings-store";
 import type { ImportedOccurrence } from "./term-store";
 
 export interface HistoryItem extends HistorySentenceInput {
@@ -115,14 +117,34 @@ export function addedHosts(
 /**
  * Removes the kept pages of each host added to "Never run on" (here or on another
  * device), with its subdomains. Only changes count: nothing is removed on start.
+ * Changes made before this device is set up are caught up on when the setup ends:
+ * every host listed by then is forgotten.
  */
 export function forgetNeverRunOnHosts(
   history: Pick<HistoryStore, "forgetHost">,
 ): () => void {
-  return watchSettings((settings, previous) => {
-    for (const entry of addedHosts(previous.neverRunOn, settings.neverRunOn))
-      history.forgetHost(entry).catch((error: unknown) => console.error(error));
+  const report = (error: unknown) => console.error(error);
+  const forget = (hosts: readonly string[]) => {
+    for (const entry of hosts) history.forgetHost(entry).catch(report);
+  };
+  const unwatchSetup = watchSetupStage((stage) => {
+    if (stage !== "ready") return;
+    getSettings().then(
+      (settings) => forget(addedHosts([], settings.neverRunOn)),
+      report,
+    );
   });
+  const unwatchSettings = watchSettings((settings, previous) => {
+    const added = addedHosts(previous.neverRunOn, settings.neverRunOn);
+    if (added.length === 0) return;
+    getSetupStage().then((stage) => {
+      if (stage === "ready") forget(added);
+    }, report);
+  });
+  return () => {
+    unwatchSetup();
+    unwatchSettings();
+  };
 }
 
 /** A random device id made once. */

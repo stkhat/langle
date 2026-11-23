@@ -17,7 +17,7 @@ const LANGUAGE_PAIRS: Readonly<Record<string, readonly string[]>> = inPackOrder(
 /**
  * The offered pairs with the learning languages in `LANGUAGE_PACKS`' order (English,
  * Spanish, French, German), not the lock's, whose keys are sorted: Settings list them
- * so, and a new install's first pair takes the first that fits (`firstPair`).
+ * so, and the first run offers them so (`learnableFrom`).
  */
 function inPackOrder(
   pairs: Readonly<Record<string, readonly string[]>>,
@@ -55,24 +55,47 @@ export const speechLang = (lang: string) => own(SPEECH_LANGS, lang) ?? lang;
 export const primary = (tag: string) =>
   tag.trim().split(/[-_]/)[0]!.toLowerCase();
 
+/** The languages "I speak" offers: the native language of any offered pair. */
+export const spokenLanguages = (
+  offered: Readonly<Record<string, readonly string[]>> = LANGUAGE_PAIRS,
+): string[] => [...new Set(Object.values(offered).flat())];
+
+/** The languages "I’m learning" offers with `native`, in the usual order. */
+export const learnableFrom = (
+  native: string,
+  offered: Readonly<Record<string, readonly string[]>> = LANGUAGE_PAIRS,
+): string[] =>
+  Object.keys(offered).filter((lang) => offered[lang]!.includes(native));
+
 /**
- * The pair a new install starts with, from the browser's UI language (a tag such as
- * "pt-BR"): the UI language is taken for the user's own language, so the first offered
- * pair with it as the native language, the default learning language's pair before
- * the others (Japanese → English → Japanese, English → Spanish → English); the default
- * pair when no offered pair has it.
+ * The language to learn that the languages screen fills in with `native`: `current`
+ * where it is offered, else English where it is, else the only choice; "" where the
+ * user has to choose.
  */
-export function firstPair(
+export function learningFor(
+  native: string,
+  current: string,
+  offered: Readonly<Record<string, readonly string[]>> = LANGUAGE_PAIRS,
+): string {
+  const list = learnableFrom(native, offered);
+  for (const lang of [current, DEFAULT_SETTINGS.learningLang])
+    if (list.includes(lang)) return lang;
+  return list.length === 1 ? list[0]! : "";
+}
+
+/**
+ * What the languages screen starts with: the stored pair where it is offered, else the
+ * browser's UI language (a tag such as "pt-BR") as the native language, where it is one,
+ * with `learningFor`'s language. "" for what is not guessed.
+ */
+export function suggestedPair(
   uiLanguage: string,
+  stored: { learningLang: string; nativeLang: string } | undefined,
   offered: Readonly<Record<string, readonly string[]>> = LANGUAGE_PAIRS,
 ): { learningLang: string; nativeLang: string } {
-  const native = primary(uiLanguage);
-  const { learningLang, nativeLang } = DEFAULT_SETTINGS;
-  const learning = [
-    learningLang,
-    ...Object.keys(offered).filter((lang) => lang !== learningLang),
-  ].find((lang) => own(offered, lang)?.includes(native));
-  return learning
-    ? { learningLang: learning, nativeLang: native }
-    : { learningLang, nativeLang };
+  if (stored && own(offered, stored.learningLang)?.includes(stored.nativeLang))
+    return { learningLang: stored.learningLang, nativeLang: stored.nativeLang };
+  const ui = primary(uiLanguage);
+  const native = spokenLanguages(offered).includes(ui) ? ui : "";
+  return { learningLang: learningFor(native, "", offered), nativeLang: native };
 }

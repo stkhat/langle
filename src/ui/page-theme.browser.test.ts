@@ -47,6 +47,21 @@ function extensionPage() {
 const withTheme = (theme: Settings["theme"]) =>
   mergeSettings({ theme }, DEFAULT_SETTINGS);
 
+it("follows the browser's, asking for no settings, until Langle is set up", async () => {
+  await colorScheme("dark");
+  document.documentElement.dataset.langleTheme = "system";
+  const before = new Set(document.head.children);
+  followTheme();
+  const style = document.createElement("style");
+  style.textContent = `body{background:${color.surface}}`;
+  document.head.append(style);
+  added.push(...[...document.head.children].filter((el) => !before.has(el)));
+  expect(getComputedStyle(document.body).backgroundColor).toBe(
+    rgb(palettes.dark.surface),
+  );
+  await colorScheme("light");
+});
+
 it("follows the browser's dark mode until a theme is picked", async () => {
   await colorScheme("dark");
   const page = extensionPage();

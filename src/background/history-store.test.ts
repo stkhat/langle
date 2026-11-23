@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
+import { agreed, chosen, SETUP_KEY } from "../core/setup";
 import { addedHosts, forgetNeverRunOnHosts } from "./history-store";
 import { setSettings } from "./settings-store";
 
-beforeEach(() => {
+const setUp = () =>
+  browser.storage.local.set({ [SETUP_KEY]: chosen(agreed(undefined)) });
+
+beforeEach(async () => {
   fakeBrowser.reset();
+  await setUp();
 });
 
 describe("addedHosts", () => {
@@ -57,6 +63,21 @@ describe("forgetNeverRunOnHosts", () => {
     await setSettings({ neverRunOn: ["a.com", "b.com"] });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(history.forgetHost).not.toHaveBeenCalled();
+  });
+
+  it("waits for the setup, then forgets the hosts listed by then", async () => {
+    await browser.storage.local.clear();
+    const history = { forgetHost: vi.fn(async () => 1) };
+    forgetNeverRunOnHosts(history);
+
+    await setSettings({ neverRunOn: ["a.com", "b.com"] });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(history.forgetHost).not.toHaveBeenCalled();
+
+    await setUp();
+    await vi.waitFor(() =>
+      expect(history.forgetHost.mock.calls).toEqual([["a.com"], ["b.com"]]),
+    );
   });
 
   it("logs a failure to forget and goes on", async () => {

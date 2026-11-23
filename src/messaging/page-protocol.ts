@@ -49,3 +49,33 @@ export function isPageRequest(message: unknown): message is PageRequest {
   if (typeof type !== "string" || !PAGE_TYPES.has(type)) return false;
   return type !== "pageSaveAll" || STATUSES.has(status as string);
 }
+
+/** The background asks a tab it comes back to from the setup whether Langle runs there. */
+export interface PresenceRequest {
+  type: "pagePresence";
+}
+
+/** No answer means no content script. */
+export interface Presence {
+  /** It is there, but has to see the page load again. */
+  reload: boolean;
+}
+
+export function isPresenceRequest(
+  message: unknown,
+): message is PresenceRequest {
+  return (message as { type?: unknown } | null)?.type === "pagePresence";
+}
+
+export function isPresence(value: unknown): value is Presence {
+  return typeof (value as Presence | null | undefined)?.reload === "boolean";
+}
+
+/** The background asks a tab whether the setup page is open there; `true` if so. */
+export interface SetupPing {
+  type: "setupPing";
+}
+
+export function isSetupPing(message: unknown): message is SetupPing {
+  return (message as { type?: unknown } | null)?.type === "setupPing";
+}
