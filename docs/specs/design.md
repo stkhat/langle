@@ -34,7 +34,7 @@ Development pair: learning language = English, native language = Japanese, sites
      - Providers: Chrome's Prompt API (Gemini Nano) first; the mobile app's platform models through its native bridge later ([notes](../notes/mobile.md)); the user's own API key later still, as its own step (it sends text to a third party: consent, store review and the privacy policy come first). **Without any provider everything else works**: the section is not shown, a term without an entry keeps its literal machine translation, and choosing meanings works with the dictionary's meanings
    - **Your meanings** (designed 2026-11-15, mock approved, built 2026-11-16): for a word with several meanings, the user ties a meaning to each sentence it was met in, a dictionary meaning ("Use here") or the model's ("Use this meaning"). One meaning per sentence, several per word; choosing for an unsaved term saves it as Learning. Places recorded automatically get no meaning until the user chooses one (the model would be wrong on about 3 in 10). Hover cards show the user's meanings first; the Words lists, the word list page and its details group places by meaning
    - Example sentences from Tatoeba (CC BY)
-   - Anki / CSV export
+   - **Anki / CSV export** (designed and built 2026-11-24; [ui](ui.md) "Word list page" → "Export"): the word list page writes the words it shows as an Anki import file or a CSV. Plain text files, no `.apkg`; the JSON backup stays the only file Import reads
    - More sites
 3. **Future**
    - Firefox version (alternative to highlight underlines, publishing on AMO), then Edge and others
