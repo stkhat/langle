@@ -14,7 +14,7 @@
 ## Progress
 - [x] Design approved (2026-11-24): [docs/specs/mobile-app.md](../specs/mobile-app.md)
 - [ ] M0: `langle-app` target, protocol, shim, reference native (branch `claude/mobile-m0`)
-- [ ] S1: iOS spike (branch `claude/mobile-s1`)
+- [x] S1: iOS spike (branch `claude/mobile-s1`): the storage plan holds; the host must stay in the view hierarchy (notes/mobile.md "iOS extension host spike")
 - [ ] S2: Android spike (branch `claude/mobile-s2`)
 - [ ] M1 / M2 planned after S1 and S2 report (their results may change the storage task)
 
