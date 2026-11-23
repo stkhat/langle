@@ -6,6 +6,16 @@ Not part of any phase yet. A record of what was considered for bringing Langle t
 - **Build our own browser app.** YouTube and articles open as ordinary web pages, and the extension's scripts are injected into them.
   - A general-purpose browser (any site, URL bar), so articles work too and the app is not "a YouTube wrapper" in store review.
 - **Targets: YouTube (`m.youtube.com`) and web articles.** Netflix is out: DRM licenses go only to Netflix's own apps and supported browsers, and mobile browsers are sent to the app.
+- **Android engine: System WebView** (the user's decision, 2026-11-22, risks accepted), behind a boundary that allows a later switch to GeckoView. See "Android engine" below.
+- **Translation order: a human track, then YouTube's translation (`tlang`), then on-device translation for a video where that fails** (the user's decision, 2026-11-22). The rest of the translation design is open: see "Open issues and risks" 4.
+- **Android on-device translator: Mozilla's models on Bergamot's WebAssembly build** (2026-11-22, by criteria the user approved before the measurement; measured on English→Japanese only). Because of its memory use it is **loaded only when used** (the user's decision, 2026-11-22): started for a video whose `tlang` fails and, since 2026-11-23 (the user's decision), when a tapped word, phrase or selection needs a translation; lists never start it (they show kept translations or the English). Its worker is ended 60 seconds after the last translation, and at once when the app leaves the screen (the user's decision, 2026-11-23; 60 seconds is not measured and is tuned on the real phone). The WebAssembly build stays although it missed the speed criterion in one run on one emulated core during playback (the user's decision, 2026-11-23). **Before release it is measured on a real low-end phone during playback**: if it misses 95% of sentences within 1 second there, a native build is discussed. See "Android on-device translators" below.
+- **Sentence cards without `tlang` keep the extension's rules** (`asrSentenceCards`; the user's decision, 2026-11-23). Their translation quality is measured on real content once built.
+- **iOS on-device translator on Apple Intelligence devices: Apple's Translation framework, `highFidelity`** (2026-11-23, by criteria the user approved before the judging; English→Japanese on a Mac only, speed on a real iPhone is a condition before release). Devices without Apple Intelligence get Apple's traditional models (`lowLatency`), which are judged later, at the real-iPhone check before release (the user's decision, 2026-11-23). See "Apple's translator on the same set" below.
+- **iOS releases its translation session by the same rule as Android**: 60 seconds after the last translation, and at once when the app leaves the screen (the user's decision, 2026-11-23).
+- **The lowest iOS version: 26.4** (the user's decision, 2026-11-23): the strategy can be named, and installed languages translate without a view. Downloading a language still needs a SwiftUI view. See "The lowest iOS version" below.
+- **Translate ahead: the cards that start in the next 10 seconds of video time** (the user's decision, 2026-11-23).
+- **A refused `tlang` is asked again only the next time the video is opened** (the user's decision, 2026-11-23): no retry while watching, nothing remembered about the refusal.
+- **Translated subtitles are not cached on the device**: they stay in memory, following the decided storage policy (architecture: "Subtitle tracks are processed in memory; what is stored is" the saved words' sentences and, while Sentence history is on, the played lines, each with the translation it showed). Translated definitions keep their cache (`mtCache`).
 - **Ads are blocked, on articles and on YouTube** (the user's decision, 2026-11-22, replacing "ads are not blocked"). Articles keep the original page, with ads removed (no reader view). See "Ad blocking" below.
 
 ## Rejected
@@ -36,15 +46,24 @@ Setup: the Claude desktop app's built-in browser (Chromium, not automated, `navi
 - DOM differs: present are `#movie_player`, `video.html5-main-video`, `.ytp-caption-window-container`; absent are `ytd-watch-flexy` and `.ytp-chrome-bottom` (desktop controls). Player at 375x211 under a 48 px header. A separate `PlatformAdapter` is needed for button and transcript placement.
 - Not checked here: signed-in state, Shorts, live streams. Real Android WebView and GeckoView were checked on 2026-11-22 ("Android prototypes" below), WKWebView too ("iOS prototype").
 
-## Not decided: Android engine
-- **GeckoView**: can bundle a WebExtension (`WebExtensionController`, messaging between the extension and the app), so the existing Firefox build could run almost as is. Adds tens of MB to the app.
-- **System WebView**: no extension APIs; we write the same shim as on iOS, shared between platforms.
+## Android engine: System WebView (decided 2026-11-22)
+- **Why**: GeckoView bundles the engine. Its debug APK is 210 MB, about 96 MB compressed (estimate), against 6.8 MB and about 2.2 MB for WebView. About 90 MB is the engine, which a release build does not shrink. `tlang` is refused on both ("Translated captions"), so it does not justify the size.
+- **What WebView costs, given that iOS needs the shim anyway**:
+  - Ad blocking is the large one (from the APIs, not measured): `shouldInterceptRequest` gives no resource type, sees only the first URL of a redirect, and cannot edit a response as it streams.
+  - The extension API shim and the app's own storage need an Android native side.
+  - The WebView version differs per device.
+- **A switch to GeckoView must stay possible** (the user's decision), through three boundaries:
+  1. Engine: loading, injection, messaging and blocking go through one interface. WebView types stay behind it.
+  2. Data: terms, settings and packs do not live in the browsing engine's storage, so a switch migrates none of them.
+  3. Messages: the format between the scripts and the app does not depend on the engine, and is shared with iOS.
+- **Cost of a switch** (estimates, not tried): 4-8 working days with the boundaries, 10-20 without. Site cookies would probably be lost (sign in again).
+- **A switch would not fix** the `tlang` refusal, and probably not server-side ad stitching or store policy. Whether it fixes a Google sign-in refusal is unknown.
+- GeckoView would not run the Firefox build as it is: Firefox for Android has no `identity` API and does not sync `storage.sync`, and the mobile site needs its own adapter.
 - iOS has no choice: WebKit (`WKWebView`) is required outside the EU.
-- The prototypes below do not settle it: YouTube's translated captions were refused on both engines ("Translated captions"). What differs is the extension support and the app size.
 
 ## Android prototypes (2026-11-22)
 Two throwaway apps in `mobile/prototypes/` (setup: [development.md](../development.md) "Mobile app"), on the emulator (Android 17, arm64, Google Play image), logged out, video `iG9CE55wbtY`. Both inject the same `probe.js` at document start in every frame: it prunes the player response's ad fields (`adPlacements`, `playerAds`, `adSlots`, `adBreakHeartbeatParams`, through `JSON.parse`, `Response.json` and a `ytInitialPlayerResponse` setter), records `/api/timedtext` responses, and refetches the variants measured above. Both block with EasyList's `||host^` rules (46,385 hosts) and hide with its generic `##` rules (13,636 selectors), the list fetched at run time.
-- **System WebView** (`android-webview`, WebView 145): the script goes in through `WebViewCompat.addDocumentStartJavaScript` and talks back through `addWebMessageListener`. It runs in the page's own world: WebView has no isolated world. Requests are blocked in `shouldInterceptRequest`. `cdp.mjs` drives the page over the DevTools protocol (`adb forward` to `webview_devtools_remote_<pid>`).
+- **System WebView** (`android-webview`, WebView 145): the script goes in through `WebViewCompat.addDocumentStartJavaScript` and talks back through `addWebMessageListener`. It runs in the page's own world: isolated worlds (`JS_INJECTION_IN_FRAME_AND_WORLD`) need androidx.webkit 1.16.0 and, by Chromium's source, WebView 146 or later, while the prototype has 1.14.0 and WebView 145. Not tried. Requests are blocked in `shouldInterceptRequest`. `cdp.mjs` drives the page over the DevTools protocol (`adb forward` to `webview_devtools_remote_<pid>`).
 - **GeckoView** (`android-geckoview`, GeckoView 160): a built-in MV3 extension (`ensureBuiltIn`) with a `"world": "MAIN"` content script for the probe, an isolated content script that relays to the background, and the background's native port to the app. Requests are blocked with blocking `webRequest`, elements are hidden with `scripting.insertCSS`. The app sends named commands (no `eval`: YouTube's CSP).
 
 | | System WebView | GeckoView |
@@ -101,6 +120,141 @@ Translated requests answered 200 / valid runs:
 - **The extension's code on a 429** (run on a simulated response, not on YouTube): the body gives no cues, so the translation falls to the built-in translator when there is one, else to none, without retrying.
 - **For the app**: `tlang` is no reason to pick an Android engine, and it needs a fallback on all of them. The user's decision (2026-11-22): if the app has to lean on on-device translation, discuss the design again before building it.
 
+## Android on-device translators: ML Kit vs Mozilla (2026-11-22)
+A throwaway app in `mobile/prototypes/android-translate` with a flavor per engine (and `none` as the baseline): ML Kit `translate:17.0.3`, and Mozilla's Bergamot WebAssembly v0.6.0 with Firefox 145's glue and worker settings and Mozilla's en→ja model. The engine files are not in the repo (`-PengineAssets=<dir>`; unpacked wasm sha256 starts `f38ef807`).
+
+- **Criteria, fixed before measuring**: a quality gap of 0.3 points or more picks the better one; a smaller gap picks Mozilla (no attribution duty, no metrics to Google); Mozilla needs 95% of sentences within 1 second, else a native build is discussed first.
+- **Result: Mozilla.** It is 0.81 points better and meets the speed condition with the engine running alone, as compared here. While a video plays on one CPU core it can miss it: see "Loaded only when used" below.
+
+Quality: 200 sentences from 30 YouTube videos of the local corpus, translated by each engine and by YouTube, scored blind from 1 to 5 by four `judge` agents (50 sentences each, the order shuffled per sentence).
+
+| | All | Manual captions (100) | Auto captions (100) | Good (4-5) | Bad (1-2) |
+|---|--:|--:|--:|--:|--:|
+| YouTube (reference) | 4.49 | 4.65 | 4.32 | 86% | 4% |
+| Mozilla | 3.33 | 3.52 | 3.15 | 44% | 24% |
+| ML Kit | 2.52 | 2.67 | 2.38 | 14% | 58% |
+
+Mozilla minus ML Kit: +0.81, 95% interval +0.68 to +0.96 (bootstrap by video), +0.68 to +0.98 in each judge's packet. Mozilla was better on 125 sentences, equal on 61, worse on 14. It is still far below YouTube, so it stays the last choice in the order.
+
+Cost, on one emulator (Android 17, arm64, 1 vCPU, WebView 145, host Apple M5), in airplane mode:
+
+| | ML Kit | Mozilla (WASM) |
+|---|--:|--:|
+| Per sentence, median (3 runs of 400) | 20-46 ms | 29-57 ms |
+| Per sentence, 95th percentile | 49-346 ms | 117-404 ms |
+| Share within 1 second, worst run | 99.75% | 99.25% |
+| Engine ready plus first sentence | 0.8-7.3 s | 1.1-1.5 s |
+| Memory added while held (PSS, app + renderer) | +77 MB | **+339 MB** |
+| Debug APK added (as built / deflated) | 23.2 / 9.3 MB | 2.0 / 1.8 MB |
+| English-Japanese model, download | not measured | 36.2 MB |
+| English-Japanese model, on disk | 62.2 MB | 49.6 MB |
+
+- **Memory is the risk.** The WASM heap is 73 MB after loading and 343 MB after the first sentence, even a one-word one. It is the same with `workspace` at 128, 64, 32 or 16 (checked in Node). A WASM heap does not shrink, so giving it back means ending the worker, which works (below). A native build has not been tried.
+- A fourth run with memory sampling, which disturbs timing, also met the speed condition (95th percentile 594 ms; first sentence ready after 5.8 s, ML Kit 8.3 s).
+- **Limits**: English→Japanese only; the judges are language models, not native speakers; auto captions were cut at YouTube's translated-sentence boundaries, which the real fallback does not have; emulator speed varied with the host's load, and no real phone was used.
+
+### Loaded only when used (checked 2026-11-22)
+The prototype's `lifecycle` run starts the worker, translates the 200 sentences, holds, then ends the worker. 25 cycles on throwaway boots of the same emulator (`-read-only`), some with `m.youtube.com` playing in a second WebView, which shares the renderer process.
+
+| Memory, cores, page | Cycles | Held, MB | Released, MB | First sentence | 95th percentile |
+|---|--:|--:|--:|--:|--:|
+| 4 GB, 1, engine alone | 5 | 462-464 | 154-159 | 0.6-1.8 s | not timed |
+| 4 GB, 1, YouTube playing | 3 | 570-582 | 265-279 | 1.5-4.0 s | not timed |
+| 2 GB, 1, engine alone | 6 | 420-491 | 87-185 | 0.6-15.9 s | 80 ms (1 timed) |
+| 2 GB, 1, YouTube playing | 7 | 582-611 | 273-309 | 3.3-7.6 s | **499 and 1,215 ms** (2 timed) |
+| 2 GB, 4, engine alone | 1 | 480 | 172-176 | 0.6 s | 70 ms |
+| 2 GB, 4, YouTube playing | 3 | 575-578 | 258-278 | 1.0-2.4 s | 106-313 ms |
+
+- **Release works**: about 300 MB is back within 2 seconds of ending the worker, with no growth after the second cycle and no page reload. Every cycle gave the same translations as the judged ones.
+- **2 GB did not break it**: in 17 cycles neither the app nor the renderer died. Android killed only cached background processes (`oom_score_adj` 900 and up). The 15.9 s first sentence came just after boot, while the system was still busy.
+- **One core while playing can be too slow**: in the worse timed cycle 93% of sentences took under a second and playback lost 33 of 94 seconds. With four cores every sentence took under a second and playback lost at most 0.3 seconds while translating. The user accepted this on 2026-11-23, with a real low-end phone as a check before release ("Decided").
+- **Limits**: the emulator decodes and draws video on the CPU (it used 4-8 host cores during playback), so playback costs differ on a phone. `-lowram` did not set `ro.config.low_ram`, so Android's low-RAM behavior is untested. No real phone, no app switching, English→Japanese only.
+
+### Cards and translate-ahead without `tlang` (measured and decided 2026-11-23)
+
+main's own rules (`asrSentenceCards`, at 410c8756) over the 30 stored English tracks of the 2026-11 quality corpus, against the cards made with YouTube's translation (`alignAsrSentences`):
+
+| Tracks | Videos | Cards | Also a start with `tlang` | Cut mid-sentence (`runsOn`) | Median card |
+| --- | --: | --: | --: | --: | --: |
+| Manual | 16 | 2,192 | 97% | 18% | 4.5 s |
+| Auto, punctuated | 9 | 3,678 | 82% | 7% | 2.0 s |
+| Auto, unpunctuated | 5 | 1,252 | 26% | 89% | 3.4 s |
+
+- The extension already splits without `tlang`. Only unpunctuated auto tracks differ much. `runsOn` counts every card there without end punctuation, so 89% is not an error rate.
+- Ten spans of those five videos were translated with the Mozilla model both ways and read by Claude (not judged): neither cut was always better, as YouTube's cuts also split sentences. The comparison's auto-caption items (3.15) were all cut at YouTube's sentence ends, so that score does not give the quality of these cards.
+
+The extension asks the built-in translator when a card starts to play (`translateCard`). Simulated over the same 30 tracks (one translation at a time, 1x from the start, every card at the stated time, first card left out), share of cards late / of card time without a translation:
+
+| Cards ahead | 0.3 s (4 cores) | 0.5 s (1 core) | 1.2 s (1 core, worse run) |
+| --- | --: | --: | --: |
+| 0 (now) | 100% / 8.4% | 100% / 14.3% | 100% / 33.7% |
+| 1 | 3% / 0.2% | 8% / 0.9% | 24% / 5.7% |
+| 2 | 0% / 0.0% | 1% / 0.5% | 9% / 2.3% |
+| 3 | 0% / 0.0% | 1% / 0.4% | 4% / 1.3% |
+| All | 0% / 0.0% | 1% / 0.4% | 1% / 0.7% |
+
+- The three times are 95th percentiles measured during playback, used for every card, and the first card took 2.4 or 7.6 s. Seeking, playback speed and the translator's own load on playback are not simulated.
+- Translating ahead cannot shorten the first wait: that depends on when the engine is loaded.
+
+Windows counted in video time against windows counted in cards, share of cards late (same simulation, at 1.2 s a card):
+
+| Window | 1x | 1.5x | 2x | Cards ahead, median / p95 |
+| --- | --: | --: | --: | --: |
+| 3 cards | 4% | 20% | 38% | 3 / 3 |
+| 5 cards | 2% | 15% | 36% | 5 / 5 |
+| 5 s | 2% | 21% | 41% | 1 / 4 |
+| 10 s | 1% | 14% | 37% | 2 / 7 |
+| 3 cards or 10 s | 1% | 14% | 36% | 3 / 7 |
+
+- Short cards come in bursts, so a window in seconds covers them with less work thrown away on a seek than a count large enough to do the same.
+- At 0.3 s a card no window is late in 1% or more at any of these speeds, at 0.5 s none in more than 3%. At 1.2 s and 2x none of them keeps up: that is the engine's speed, for the check on a real phone.
+
+### The translator's other uses (found and decided 2026-11-23)
+
+"Started for a video whose `tlang` fails" was proposed without counting the extension's other uses of its translator: English definitions translated at display time (hover card, dictionary window, word lists), the literal translation of a phrase or selection without an entry, and the same on articles. From the stored English→Japanese run of language cycle c001 (`after-adverb`, known level 3,000, nothing saved):
+
+| | YouTube (30 videos) | Articles (30) |
+| --- | --: | --: |
+| Words and phrases that need the translator for their meaning | 2.1% | 1.7% |
+| The same among highlighted ones (New) | 15.2% | 8.0% |
+| Among highlighted phrases | 46% (1,009 of 2,204) | 47% (202 of 429) |
+| Pages with at least one highlighted | 30 of 30 | 30 of 30 |
+| Distinct such highlighted terms a page, median | 26 | 10 |
+
+- Started only for `tlang`, the engine leaves these meanings in English. Pairs offered by the gate's token rule also count on a translator (architecture: "Quality gate").
+- Started for the word lists, it could load on nearly every video and article, as each has such a term and lists translate the rows they render.
+- The counts are of words shown, not of taps. Selections are not counted.
+
+### When to release the engine (checked and decided 2026-11-23)
+
+- Since API level 34 Android no longer tells a running app that memory is low: `ComponentCallbacks2` in the SDK 37 sources marks the `TRIM_MEMORY_RUNNING_*` levels "Apps are not notified of this level since API level 34". `TRIM_MEMORY_UI_HIDDEN` (the app's UI left the screen) and `TRIM_MEMORY_BACKGROUND` remain. So releasing cannot wait for a low-memory warning: it needs the app's own rule.
+
+### Apple's translator on the same set (run 2026-11-23)
+
+`TranslationSession(installedSource:target:)` (iOS 26 / macOS 26 and later) on this Mac (Apple M5, macOS 27.2.1), Apple Intelligence on, default strategy (which is `highFidelity` here, below), one sentence at a time: all 200 items of the comparison translated; first 1,715 ms, median 429 ms, p95 909 ms. A second run: first 1,285 ms, median 430 ms, p95 971 ms, the same 200 translations. A Mac is not an iPhone: neither the speed nor that the models are the same is checked. The sandbox blocks the translation service, so run it with the sandbox off.
+
+**Criteria, fixed before judging** (approved by the user 2026-11-23; blind, with the rubric of the Android comparison): only if Mozilla scores 0.3 points or more above Apple is Mozilla on iOS discussed again; otherwise iOS uses Apple's translator (no model to ship, no engine of about 300 MB in the app). Either way speed on a real iPhone is a condition before release.
+
+Judged 2026-11-23 by four blind judges, the three translations shuffled per item:
+
+| | Mean | Manual | Auto | Good (4-5) | Bad (1-2) |
+| --- | --: | --: | --: | --: | --: |
+| YouTube | 4.43 | 4.62 | 4.23 | 84.5% | 5% |
+| Apple (`highFidelity`) | 3.81 | 3.94 | 3.68 | 65.5% | 7% |
+| Mozilla | 3.18 | 3.42 | 2.93 | 38% | 31.5% |
+
+- Apple is 0.64 above Mozilla (95% interval by video 0.50-0.78), in each of the four packets and for manual and auto captions alike, so by the criteria iOS uses Apple where this model runs.
+- Mozilla's same translations scored 3.33 in the Android round: compare within a round only.
+- **The result holds only for Apple Intelligence.** The SDK's documentation says `highFidelity` uses Apple Intelligence models and falls back to `lowLatency`'s traditional models on devices without it. On this Mac `lowLatency` is `supported` (not installed) and fails with `notInstalled`, while the default and a named `highFidelity` gave the same 200 translations: everything judged came from Apple Intelligence's model. The traditional models need a download and are not judged: they wait for the real-iPhone check before release.
+- `init(installedSource:target:)` needs iOS 26. Naming a strategy needs iOS 26.4, and apps built with older SDKs default to the traditional models.
+
+### The lowest iOS version (checked and decided 2026-11-23: 26.4)
+
+- iOS 18: `TranslationSession` only from a SwiftUI view's `translationTask`. iOS 26.0: also without a view, for installed languages. iOS 26.4: the strategy can be named (iOS 27.2 SDK's interfaces).
+- A session made without a view cannot ask for a download (`canRequestDownloads` is false; the SDK's documentation). Where languages are to be downloaded (the traditional models), a floor of 26.4 still needs a `translationTask` view for the consent and the download. The options were first given to the user as "one code path", which holds for translating only.
+- [Apple's figures](https://developer.apple.com/support/app-store/), the latest there: iOS 26 on 79% of all iPhones and 86% of those of the last four years (2026-06-07). None for 26.4 alone or for iOS 27.
+- iOS 26 dropped the iPhone XS, XS Max and XR. [iOS 27 runs on every iPhone that runs iOS 26](https://www.macrumors.com/2026/06/08/ios-27-supports-iphone-11-newer/), so a floor of 26.4 leaves out no model that 26.0 takes.
+
 ## Ad blocking (not built; 2026-11-22)
 The app is the browser, so blocking runs in the app, outside any extension API and its limits (as Brave does; Brave on iOS also runs on WKWebView).
 - **Requests**: ad and tracker loads are stopped before they are sent, matched against filter lists in the uBlock Origin / EasyList syntax.
@@ -117,8 +271,13 @@ The app is the browser, so blocking runs in the app, outside any extension API a
 ## Open issues and risks
 1. **Google sign-in.** Google blocks sign-in from browsers embedded in other apps (OAuth `disallowed_useragent` since 2021-09-30; its help page says sign-in may be blocked in browsers "embedded inside another app"). Browsers built on the same engines (Brave / Firefox / DuckDuckGo on iOS, Firefox on Android) can sign in, so detection seems to rely on signals such as the user agent, not the engine. Android WebView's UA contains `; wv`. Unverified for our app and a policy gray area. Watching and captions work without sign-in; age-restricted and members-only videos need it.
 2. **PO token in the real engines** (see above).
-3. **Extension API shim** (WKWebView / WebView): messaging, `storage`, background work, an isolated world (`WKContentWorld` on iOS; WKUserScript can also inject into cross-origin frames).
-4. **Translation.** No Chrome Translator API. Use Apple's Translation framework (iOS) and ML Kit translation (Android), on device and free, through a native bridge.
+3. **Extension API shim** (WKWebView / WebView): messaging, `storage`, background work, an isolated world (`WKContentWorld` on iOS, `JavaScriptExecutionWorld` on Android from WebView 146, with older versions' handling still to decide; WKUserScript can also inject into cross-origin frames).
+4. **Translation.** No Chrome Translator API, so on-device translation goes through a native bridge. The order is decided ("Decided").
+   - iOS: Apple's Translation framework. `TranslationSession` without a view needs iOS 26, and downloading a language needs the user's consent. It runs on a Mac ("Apple's translator on the same set"), judged better than Mozilla with Apple Intelligence; the traditional models of other devices are not judged. To check on a real iPhone.
+   - Android: Mozilla's models (MPL 2.0) on Bergamot's WebAssembly build ("Android on-device translators" above). The [registry](https://mozilla.github.io/translations/model-registry/) has released models for all 19 pairs (de→fr through English), 17-44 MB each unpacked for Android; only en→ja is measured.
+     - Not ML Kit: lower quality on that test. Its terms also ask for Cloud Translation's attribution as far as it applies to apps (a "powered by Google Translate" mark adjacent to results), and the SDK sends usage metrics to Google, to be disclosed to users.
+     - Not [Foxlet Translate](https://github.com/yinvoke/foxlet-translate): a prebuilt native binary from a repository created 2026-08-31 by one author, too little track record to run or ship.
+   - Open: quality of Apple's traditional models (at the real-iPhone check before release) and of the other language pairs, speed on a real iPhone and on a real low-end Android phone (both required before release).
 5. **Sync.** Chrome sync cannot be read from mobile, so sync to the user's own cloud (architecture: "Sync to the user's own cloud storage") becomes required.
    - Google Drive (2026-11-22, by design, not built): sign-in goes through the system sheet (`ASWebAuthenticationSession` on iOS, Custom Tabs on Android) because Google refuses OAuth inside a WebView (item 1). Add an iOS and an Android OAuth client to the same Cloud project: `appDataFolder` belongs to the project, so the app and the extension share the same file (two clients in one project already shared it on desktop). Tokens and Drive calls live in native code behind the bridge. Still to check: creating those clients (Android needs the signing certificate's SHA-1) and "Checks before building" item 5 in the architecture; while the Cloud project is in Testing, only its test users can connect.
 6. **Touch UI.** Hover becomes tap; subtitles, dictionary window and buttons need a phone layout (mocked 2026-11-22, [ui.md](../specs/ui.md) "Mobile app").
@@ -147,7 +306,7 @@ The app is the browser, so blocking runs in the app, outside any extension API a
    - iOS: `WKWebView`, default UA and a Safari-like UA.
    - Android: GeckoView and System WebView, to choose the engine.
    - In both: one compiled filter list on an article, and the ad-field pruning on `m.youtube.com`; check that captions are still captured and that playback is not stopped.
-3. From the results, choose the Android engine and design the extension API shim.
+3. Finish the translation design (both platforms' engines are named, the open points are in "Open issues and risks" 4), then design the extension API shim and the engine boundary (the Android engine is chosen: "Android engine").
 4. Then: `m.youtube.com` adapter, own-cloud sync.
 
 The phone mock is drawn (2026-11-22): the mock's `Mobile app` page, specified in [ui.md](../specs/ui.md) "Mobile app". It looks like an app (home with tabs, a title bar with no URL) while staying a full browser underneath, for the store reviews above.
