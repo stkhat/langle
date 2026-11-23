@@ -33,7 +33,10 @@ export interface TranslateOptions {
 
 /** The content script's one way to the browser's translator. */
 export interface TranslationQueue {
-  /** `text` translated; undefined when no translation is available (now) or the request was aborted. */
+  /**
+   * `text` translated; undefined when no translation is available (now) or the
+   * request was aborted.
+   */
   translate(
     text: string,
     priority: TranslationPriority,
@@ -87,7 +90,9 @@ interface Job {
  * queue, and when it cannot open, the request gets no translation. Requests for a
  * text that is waiting or being translated share its translation; the latest
  * translations are kept, so a text asked for again is not translated again. A text
- * that got no translation (the model not there yet) is asked for again next time. A request can be aborted: it gets no translation at once, and a job whose requests were all aborted before it started is dropped.
+ * that got no translation (the model not there yet) is asked for again next time.
+ * A request can be aborted: it gets no translation at once, and a job whose requests
+ * were all aborted before it started is dropped.
  * The lists' requests never start a model download (a request of theirs waits for
  * another to start it); every new translation is told to the listeners.
  */
@@ -189,6 +194,7 @@ export function createTranslationQueue(
    */
   function leave(job: Job) {
     job.waiters -= 1;
+    // The key check covers an abort landing between a job's end and its waiter's callback.
     if (job.waiters > 0 || job.started || jobs.get(job.key) !== job) return;
     job.dropped = true;
     jobs.delete(job.key);
