@@ -20,6 +20,9 @@ export default tseslint.config(
       "data/publish",
       ".stryker-tmp",
       ".vitest",
+      // Android prototypes' Gradle outputs (git ignores them through their own .gitignore).
+      "mobile/**/build",
+      "mobile/**/.gradle",
       // Claude Code worktrees: whole checkouts that would be linted again.
       ".claude",
     ],

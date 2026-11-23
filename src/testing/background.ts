@@ -277,6 +277,8 @@ export function testBackground(
       get: async () => settings,
       set: async (patch: SettingsPatch) => {
         settings = mergeSettings(patch, settings);
+        // As `storage.onChanged` does, before the write is answered.
+        settingsWatchers.emit(settings);
         return settings;
       },
     },

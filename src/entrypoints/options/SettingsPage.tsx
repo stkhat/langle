@@ -2,11 +2,8 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import type { BrowserEnv } from "../../core/browser-env";
 import type { ExplanationProvider } from "../../core/explain/provider";
 import type { SupportLinks } from "../../core/links";
-import {
-  mergeSettings,
-  type Settings,
-  type SettingsPatch,
-} from "../../core/settings";
+import type { Settings, SettingsPatch } from "../../core/settings";
+import { createSettingsView } from "../../core/settings-view";
 import { t, type MessageKey } from "../../i18n/t";
 import type { send } from "../../messaging/client";
 import {
@@ -130,6 +127,11 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
   const packStatus = useRef<PackStatusFollower>(undefined);
 
   const warn = (error: unknown) => console.warn("Langle:", error);
+  const [settingsView] = useState(() =>
+    createSettingsView(setSettings, (patch) =>
+      deps.send({ type: "setSettings", patch }).catch(warn),
+    ),
+  );
   const refreshSync = () =>
     Promise.all([
       deps.send({ type: "syncStatus" }).then(setSync, warn),
@@ -140,11 +142,11 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
 
   useEffect(() => {
     packStatus.current = followPackStatus(deps, setPacks);
-    deps.send({ type: "getSettings" }).then(setSettings, warn);
+    deps.send({ type: "getSettings" }).then(settingsView.stored, warn);
     void refreshSync();
     void refreshHistory();
     const unwatch = deps.watchSettings((next) => {
-      setSettings(next);
+      settingsView.stored(next);
       void refreshSync();
     });
     const timer = setInterval(() => {
@@ -162,11 +164,9 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
   if (!settings) return null;
 
   function change(patch: SettingsPatch) {
-    setSettings(mergeSettings(patch, settings));
-    deps.send({ type: "setSettings", patch }).then((next) => {
-      setSettings(next);
+    void settingsView.change(patch).then(() => {
       if ("syncEnabled" in patch) void refreshSync();
-    }, warn);
+    });
   }
   const section = { settings, change };
   const view = cloudView(cloud, settings);
