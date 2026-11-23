@@ -554,7 +554,49 @@ User decision (2026-11-21, after M0b): a pair passes by **(a)** ≥ 90% of the t
 - **Token counts**: `data/gate/en-tokens.json` (7,803 keys, 143,211 tokens) from M0a's `r4/runs/base-ja/rows.jsonl` (`scripts/data/gate-tokens.ts`); the gate looks each key up as M0a did and reproduces its figures (`data:stats`, type / tokens): ja 100 / 99.4 (M0a 99.0: the gate counts en-ja's table words too), pl 99.5 / 99.7, it 98.1 / 99.3, ru 97.7 / 99.0, fr 97.5 / 99.0, es 96.9 / 99.0, de 96.2 / 98.6, th 95.2 / 98.6, pt 95.2 / 98.3, zh 95.1 / 98.1. Every shipped pair passes by (a); so do es-en, fr-en, de-en (100) and de-fr (96.7, no token counts for German).
 - **Candidates** with M0a's best sources, tokens by the gate's code: hi 91.3, ar 97.0, id 97.5, tr 98.0, ko 98.4, fa 92.0, ur 87.8, bn 87.7, ta 84.4, te 82.4, mr 77.6. So ar, id, ko, tr pass by (a); hi by (b) (83.7% type, translator listed); fa (92.0) and ur have no translator; bn, ta, te, mr pass neither.
 - **Translator**: `NativeLanguage.translator`, from Chrome's documented list (developer.chrome.com/docs/ai/translator-api, "Supported languages", updated 2025-05-20: ar, bg, bn, cs, da, de, el, en, es, fi, fr, he, hi, hr, hu, id, it, ja, kn, ko, lt, mr, nl, no, pl, pt, ro, ru, sk, sl, sv, ta, te, th, tr, uk, vi, zh, zh-Hant), as M0b found it (fa and ur unavailable).
-- **L3 re-measured** (`learning-pairs.ts --measure`, top 5,000): de→fr 96.7 (as shipped), de→ru 94.7, de→pl 94.6, de→zh 93.4, fr→de 92.2, fr→ru 90.6 now reach (a) and could be built; fr→pl 89.8, fr→es 88.0, de→es 87.9 and the rest stay under. (b) is not applied to French and German: their corpora exist (2026-11-fr, 2026-11-de), but the names rule ("capitalised headword") takes in German's nouns, and the key rule has not been checked against those hovers. New since L3: fr→th 23.7, de→th 25.6 (the th edition and reversed tables; the French and German tables gave no Thai terms, not looked into: under any rule either way).
+- **L3 re-measured** (`learning-pairs.ts --measure`, top 5,000): de→fr 96.7 (as shipped), de→ru 94.7, de→pl 94.6, de→zh 93.4, fr→de 92.2, fr→ru 90.6 now reach (a) and could be built (de→ru is not built: decided 2026-11-22, "de-ru-1"); fr→pl 89.8, fr→es 88.0, de→es 87.9 and the rest stay under. (b) is not applied to French and German: their corpora exist (2026-11-fr, 2026-11-de), but the names rule ("capitalised headword") takes in German's nouns, and the key rule has not been checked against those hovers. New since L3: fr→th 23.7, de→th 25.6 (the th edition and reversed tables; the French and German tables gave no Thai terms, not looked into: under any rule either way).
+
+### de-ru-1: German → Russian, stopped at provenance (2026-11-22)
+
+**Not built: the user chose option A on 2026-11-22**, for provenance, as Vietnamese was dropped for its license. The pair passes (a) only with ru.wiktionary's German entries, and the spot check found glosses there worded like dictionaries with no free license stated. No recipe, pack, wiring or judging was done.
+
+Coverage (measured again 2026-11-22; top 5,000 / top 2,000 / terms):
+
+| Sources | Top 5,000 | Top 2,000 | Terms |
+|---|---|---|---|
+| ru.wiktionary's German entries (edition) | 90.62 | 91.90 | 26,788 |
+| de.wiktionary's Russian rows (tables) | 75.28 | 83.60 | 15,035 |
+| Reversed tables | 71.52 | 78.05 | 14,625 |
+| Edition + tables | 93.94 | 94.95 | 28,863 |
+| **Tables + reversed, no edition entries** | **85.44** | 90.00 | 20,447 |
+| All three | 94.74 | 95.60 | 29,811 |
+
+The reversed tables are ru.wiktionary's too (75.28 wholly without that edition); their provenance was not checked.
+
+465 gate words are only in the edition; the gate needs at least 228 of them.
+
+What the spot check found:
+
+- **Sample**: 15 random gate words the edition covers and 15 that only it covers, page histories through the read-only API. 26 were read (all 15, and 11 of the second group); the run then ended on dropped connections.
+- **Who wrote them**: one account added the first gloss checked on 20 of the 26 (10 of the 11). Many pages began as a bot's stubs of 2006–07, but these glosses came in later human edits, so `UNDOCUMENTED_IMPORTS` (pages an account created) does not describe the case. No source was found named in the sampled summaries or glosses.
+- **Wording**: six of that account's entries could be compared on translate.academic.ru (herausstellen, umsehen, hinfahren, hervorragen, schlampen, Befreiung; the last four from the second group). In all six the glosses asked about were reported identical, stress marks and spacing aside, to «БНРС» as published there. A second account's Stiftung has one sense identical to an «Универсальный немецко-русский словарь» there and one similar; a third's Vorhang is similar only.
+- **License**: the [contents page](https://dic.academic.ru/contents.nsf/ger_rus/) «БНРС» links to states "© Академик, 2000-2026", and no authors, publisher or license.
+- **Limits (first pass)**: a fetch tool's model did the comparisons, with the expected wording in its prompt; asked again without it, for umsehen only, it returned the same gloss. Some of these wordings are in other dictionaries on that site too. Six further words failed with HTTP 502.
+- **Direct check, made afterwards**: a script compared the wording itself on 4 of the 6 words (the other 2 could not be fetched). All 14 multiword glosses were identical on those pages; the control page had 0. Not established: the direction of copying, the printed dictionary behind «БНРС», how much of the edition is affected, and anything legal.
+- **Leaving out only that account would not be expected to save the pair**: if the second group's share held (1 of 11 by someone else), about 86%; at the one-sided 95% upper bound of that share (about 36%), about 89%.
+
+Decision (2026-11-22):
+
+- **A, taken**: de→ru is not built. The wording could not be cleared, so the source is not used.
+- B (tables + reversed only, 85.44%, needs an exception to the gate): not taken.
+- C (a new licensed source): not taken.
+
+What this means for the other pairs:
+
+- **`en-ru` (shipped)** was checked by direct comparison, and its Russian-edition entries were left out (PR #242; see "en-ru: the Russian edition left out" below).
+- The other shipped pairs' native editions are to be checked the same way, read-only, one pair at a time (user's decision, 2026-11-22; not done yet).
+- **fr→de** is next, after the same wording check (not done yet).
+- **fr→de, fr→ru, de→pl and de→zh** all depend on their native edition and are checked before building. fr→de depends on that edition's translation tables read backwards; the other three on its entries as well. Without the edition's entries only: fr→de 91.7, fr→ru 87.9, de→pl 83.0, de→zh 38.2. Wholly without the edition (tables alone; L3): 84.4, 70.5, 66.3, 14.3, all under the gate.
 
 ## en-ru: the Russian edition left out, 2026-11-22
 
@@ -584,6 +626,77 @@ Limits:
 - The edition's Russian entries also said whether a capitalised headword's Russian word is a word or a name (`nativeKindOf`). Without them 363 headwords from the tables change that mark, their senses unchanged. By rule D, 53 of them (Einstein, East, Eden) are now ignored as names where a document always capitalises them.
 - Hovered in Playwright's Chromium with a temporary profile and native Russian (2026-11-22): the English definition shows for the ("The definite grammatical article that…"), an, okay, require, totally ("To the fullest extent or degree"), adaptation and cite; has and feet show the base's line ("has → have", foot with its Russian). A word with nothing (tidings, raiment) still opens a card, with its IPA and no meaning; America and Britannia, capitalised mid-sentence, get neither a highlight nor a card. The browser translator's line for the English definitions was not tried (the browser's Translator API exists in that Chromium, but no translation was requested), and the definitions shown instead were not judged.
 - Versions already on npm are untouched; an installed pack is replaced when the extension's lock names the new version.
+
+## en-ru gaps: okay and an, 2026-11-23
+
+Two fixes the user approved after a study of what en-ru shows without the Russian edition. The rules are in [architecture](../specs/architecture.md) (C2 and "Definitions translated at display time"). They use no edition's data and change no pair pack.
+
+- A-b, data: in `en-defs` a pointer takes its target's sense of the same part of speech, and the treebank's main use leads where the lead is a rare use. okay: "Endorsement…" → "All right, acceptable, permitted." (2 verb tags → "To approve").
+- B-a, code: a closed-class word's usage note is translated, and the word is not. an: literal "an" → the translation of "Used before a vowel sound."
+
+`en-defs` 2026.1122.1 → 2026.1122.2: 777 terms changed (260 short meanings), 20,414,484 → 20,443,114 bytes. The other packs are byte-identical and the gate report is the same for all 19 pairs.
+
+Hover tokens changed on the 2026-11 corpora (level 1000; word and phrase highlights; share of word tokens: 171,625 English, 72,835 Spanish, 82,121 French, 70,944 German):
+
+| Pair | A-b | B-a | Both |
+|---|--:|--:|--:|
+| en-ja | 5 | 0 | 5 (0.003%) |
+| en-es | 17 | 0 | 17 (0.010%) |
+| en-pt | 316 | 0 | 316 (0.184%) |
+| en-ru | 311 | 465 | 776 (0.452%) |
+| en-fr | 302 | 0 | 302 (0.176%) |
+| en-de | 302 | 0 | 302 (0.176%) |
+| en-zh | 9 | 0 | 9 (0.005%) |
+| en-it | 10 | 0 | 10 (0.006%) |
+| en-pl | 6 | 0 | 6 (0.003%) |
+| en-th | 12 | 0 | 12 (0.007%) |
+| en-hi | 24 | 0 | 24 (0.014%) |
+| en-ar | 35 | 465 | 500 (0.291%) |
+| en-id | 10 | 0 | 10 (0.006%) |
+| en-tr | 33 | 0 | 33 (0.019%) |
+| en-ko | 29 | 0 | 29 (0.017%) |
+| es-en, fr-en, de-en, de-fr | 0 | 0 | 0 |
+
+okay is 284 of the tokens in each of pt, ru, fr and de; an is all of B-a. No token is changed by both rules, and no highlight, key or name changes.
+
+### Judged, 2026-11-23
+
+The 389 texts were translated by Chrome 157's built-in translator on macOS, in a page, for all 15 natives, and judged blind: one judge per language, the skill's rubric, sides shuffled, up to 12 sentences per change. 349 items stand for 2,342 of the 2,351 changed tokens (the other 9 show the same line on both sides). Weighted: by each change's tokens. Usable: good or acceptable. These are rates of changed hovers only, and the judges are models, not native speakers.
+
+| | After : before : same | Weighted | Usable items | Usable tokens |
+|---|--:|--:|--:|--:|
+| All | 158 : 69 : 122 | 2,144 : 73 : 125 | 63 → 167 of 349 | 63 → 2,153 of 2,342 |
+| B-a (an; ru, ar) | 24 : 0 : 0 | 930 : 0 : 0 | 0 → 24 of 24 | 0 → 930 of 930 |
+| A-b | 134 : 69 : 122 | 1,214 : 73 : 125 | 63 → 143 of 325 | 63 → 1,223 of 1,412 |
+| okay, in A-b (ru, de, pt, fr) | 49 : 0 : 7 | 1,129 : 0 : 7 | 0 → 48 of 56 | 0 → 1,128 of 1,136 |
+
+an is acceptable in every item, good in none. Before is preferred in two pairs, ko 6 : 11 : 11 and tr 7 : 13 : 11 (dispatcher 9 of each), though usable items still rise there (5 → 8, 7 → 8).
+
+By term:
+
+| Term | After : before : same | Usable items | Found |
+|---|--:|--:|---|
+| standup | 14 : 0 : 0 | 0 → 14 | better |
+| pushup | 10 : 0 : 0 | 0 → 10 | better |
+| résumé | 10 : 0 : 0 | 0 → 4 | better |
+| heart-to-heart | 10 : 1 : 0 | 11 → 11 | better |
+| programme | 6 : 0 : 0 | 0 → 6 | better |
+| centre | 3 : 0 : 0 | 0 → 2 | better, though doubtful by eye |
+| dat | 6 : 0 : 8 | 0 → 3 | better, though doubtful by eye |
+| dis | 8 : 0 : 18 | 0 → 0 | not worse, though doubtful by eye; still wrong or misleading |
+| dispatcher (40 tokens: ar, ko, tr, pt) | 0 : 36 : 0 | 0 → 0 | **worse**: "To send (a shipment)…" → a long line of the noun dispatch; wrong on both sides, misleading after in ko |
+| favorite (ru, de, tr) | 0 : 9 : 0 | 9 → 0 | **worse**: "Most-liked." → "A person or thing who enjoys special regard…" |
+| else (zh) | 0 : 2 : 0 | 2 → 0 | **worse**: "Other" → "Otherwise, if not." |
+| whir | 4 : 12 : 0 | 16 → 16 | **worse**: "To move or vibrate…" → "A sibilant buzz or vibration" |
+| grey | 1 : 3 : 8 | 4 → 4 | **worse**: "Of a color between…" → "An achromatic colour between…" |
+
+The five regressions are not fixed.
+
+Not judged or checked:
+- Not hovered in a browser, on the real sites or elsewhere. The translator was tried only as above: no other browser or system.
+- Not measured: the dictionary window's other senses, and the line under a phrase that gives its main word (at most 10 phrase tokens a pair have a word whose definition changed).
+- Outside the corpora only the pack diff was looked at. B-a can act on any closed-class word whose definition is a usage note and that a pair lacks.
+- Not fixed: has and did without a meaning (option C, not approved), open-class usage notes (could, might), variants a pair lacks (A-d), words the treebank lacks (cuz).
 
 ## Other learning languages (estimated)
 Rows other than English in the matrix are estimated from source sizes (kaikki sense counts, 2026-11-13), not measured. Rules:

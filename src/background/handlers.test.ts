@@ -1778,6 +1778,42 @@ describe("handlers: machine translations of English definitions", () => {
     expect(translations.get).not.toHaveBeenCalled();
   });
 
+  it("gives lists an article's usage note as a definition to translate", async () => {
+    handle = createHandlers({
+      ...deps,
+      resources: {
+        ...deps.resources,
+        dictionary: async (from, to) => ({
+          from,
+          to,
+          short: () => "Used before a humming sound",
+          entry: (term) => ({
+            head: term,
+            kind: "word",
+            short: "Used before a humming sound",
+            lines: ["Used before a humming sound"],
+            senses: [{ pos: "article", text: "Used before a humming sound." }],
+            glossLang: "en",
+          }),
+          outline: () => undefined,
+          capitalMeaning: () => undefined,
+          acronym: () => undefined,
+          senseLine: (sense) => sense.text,
+        }),
+      },
+    });
+    expect(
+      await value({ type: "termSummaries", lang: "en", keys: ["un"] }),
+    ).toEqual({
+      un: {
+        short: "Used before a humming sound",
+        glossLang: "en",
+        definition: "Used before a humming sound.",
+        status: "new",
+      },
+    });
+  });
+
   it("does not read the cache for lists without English definitions", async () => {
     await value({
       type: "termSummaries",

@@ -1,0 +1,9 @@
+[versions]
+androidGradlePlugin = "9.0.1"
+mlkitTranslate = "17.0.3"
+
+[libraries]
+mlkit-translate = { module = "com.google.mlkit:translate", version.ref = "mlkitTranslate" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

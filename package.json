@@ -109,7 +109,8 @@
       "vitest.unit.config.ts"
     ],
     "ignore": [
-      ".claude/skills/**"
+      ".claude/skills/**",
+      "mobile/prototypes/**"
     ],
     "ignoreDependencies": [
       "opencc"
