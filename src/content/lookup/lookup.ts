@@ -12,11 +12,8 @@ import type { AnalyzeResult, SourceInput } from "../../messaging/protocol";
 import { dictionaryLinks } from "../../ui/lookup/externalDictionaries";
 import type { Store } from "../store";
 import { createTranslationQueue } from "../translate/queue";
-import {
-  createBuiltInTranslator,
-  downloadModelsOnFirstActivation,
-  type TranslationProvider,
-} from "../translate/translator";
+import { translatorBackend } from "../translate/backend";
+import type { TranslationProvider } from "../translate/translator";
 import {
   describeTerm,
   translateSenses,
@@ -35,7 +32,7 @@ export interface LookupDeps {
   ): () => void;
   /** Calls `listener` with the pack states now and after every change; returns an unsubscribe. */
   watchPackState(listener: (states: PackStates) => void): () => void;
-  /** Default: the browser's built-in translator. */
+  /** Default: this platform's translator (`translatorBackend`). */
   createTranslator?(from: string, to: string): TranslationProvider;
   /**
    * The on-device AI of the dictionary window's "In this sentence", one for the whole
@@ -176,7 +173,7 @@ export function createLookup(
   },
 ) {
   const translator = createTranslationQueue(
-    deps.createTranslator ?? createBuiltInTranslator,
+    deps.createTranslator ?? translatorBackend().create,
   );
   let queue: Promise<unknown> = Promise.resolve();
   let warmed = false;
@@ -206,7 +203,7 @@ export function createLookup(
     nativeLang: page.settings().nativeLang,
     translator,
   });
-  const disarm = downloadModelsOnFirstActivation(document, () => {
+  const disarm = translatorBackend().downloadOnFirstActivation(document, () => {
     const { learningLang, nativeLang } = page.settings();
     return { learning: learningLang, native: nativeLang };
   });
