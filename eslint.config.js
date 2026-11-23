@@ -26,6 +26,8 @@ export default tseslint.config(
       // The langle-app build copied into the Android and iOS apps (git-ignored).
       "mobile/android/app/src/main/assets/langle-app",
       "mobile/ios/build-output",
+      // SwiftPM's build folder (swift test in mobile/ios/LangleCore; git-ignored).
+      "mobile/**/.build",
       // Claude Code worktrees: whole checkouts that would be linted again.
       ".claude",
     ],
