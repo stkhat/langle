@@ -715,7 +715,222 @@ describe("the built-in translator", () => {
     await expect
       .poll(() => state().subtitleTranslation)
       .toBe("ja(It is a tangy loaf.)");
-    expect(translated).not.toContain(CUES[1]!.text);
+  });
+});
+
+describe("translating ahead", () => {
+  const builtIn = (cues: Cue[]) => ({
+    vid1: captionsOf(cues, { source: "builtIn", lang: "ja", cues: [] }),
+  });
+  /** At 0 s the window is 0–10 s; at 3 s it is 3–13 s (the clip is 4 s long). */
+  const SPREAD: Cue[] = [
+    { startMs: 0, endMs: 1000, text: "Mix the flour." },
+    { startMs: 5000, endMs: 6000, text: "Add the water." },
+    { startMs: 12000, endMs: 13000, text: "Bake it." },
+  ];
+  /** A translator that records what it is asked, and answers with `answer`. */
+  function recording(
+    answer = (text: string) => `ja(${text})` as string | undefined,
+  ) {
+    const asked: string[] = [];
+    const translator: TranslationProvider = {
+      translate: async (text) => {
+        asked.push(text);
+        return answer(text);
+      },
+    };
+    return { asked, translator };
+  }
+
+  it("translates the cards that start in the next 10 seconds before they play", async () => {
+    const { asked, translator } = recording();
+    const { state, video } = await start(builtIn(SPREAD), {
+      translatorAvailable: true,
+      translator,
+    });
+    await ready(state);
+    await expect.poll(() => state().translations[1]).toBe("ja(Add the water.)");
+    expect(asked).not.toContain("Bake it.");
+    await seekTo(video, 3);
+    await expect.poll(() => state().translations[2]).toBe("ja(Bake it.)");
+  });
+
+  it("drops the cards a seek leaves behind before they are translated", async () => {
+    const started: string[] = [];
+    const held: (() => void)[] = [];
+    const translator: TranslationProvider = {
+      translate(text) {
+        started.push(text);
+        return new Promise((resolve) =>
+          held.push(() => resolve(`ja(${text})`)),
+        );
+      },
+    };
+    const cues: Cue[] = [
+      { startMs: 0, endMs: 1000, text: "Mix the flour." },
+      { startMs: 1000, endMs: 2000, text: "Add the water." },
+      { startMs: 13000, endMs: 14000, text: "Bake it." },
+    ];
+    const { state, video } = await start(builtIn(cues), {
+      translatorAvailable: true,
+      translator,
+    });
+    await ready(state);
+    // The playing card is translated; "Add the water." waits ahead.
+    await expect.poll(() => started).toEqual(["Mix the flour."]);
+    // At 3.5 s the window is 3.5–13.5 s: "Add the water." is behind, "Bake it." comes in.
+    await seekTo(video, 3.5);
+    held.shift()!();
+    await expect.poll(() => started).toEqual(["Mix the flour.", "Bake it."]);
+    held.shift()!();
+    await expect.poll(() => state().translations[2]).toBe("ja(Bake it.)");
+    expect(started).not.toContain("Add the water.");
+  });
+
+  it("asks once for a card that stays in the window across a seek", async () => {
+    const { asked, translator } = recording();
+    const { state, video } = await start(builtIn(SPREAD), {
+      translatorAvailable: true,
+      translator,
+    });
+    await ready(state);
+    await expect.poll(() => state().translations[1]).toBe("ja(Add the water.)");
+    // 0.5 s: the window lost "Mix the flour." but keeps "Add the water."
+    await seekTo(video, 0.5);
+    await seekTo(video, 0.7);
+    expect(asked.filter((t) => t === "Add the water.")).toHaveLength(1);
+  });
+
+  it("asks again for a card that got no translation only when the window changes", async () => {
+    const { asked, translator } = recording(() => undefined);
+    const { state, video } = await start(builtIn(SPREAD), {
+      translatorAvailable: true,
+      translator,
+    });
+    await ready(state);
+    const water = () => asked.filter((t) => t === "Add the water.").length;
+    await expect.poll(water).toBe(1);
+    // 0.5 s: the window lost "Mix the flour.", so it is worked out again.
+    await seekTo(video, 0.5);
+    await expect.poll(water).toBe(2);
+    // The same cards: not asked again, however often the session updates.
+    await seekTo(video, 0.6);
+    await seekTo(video, 0.7);
+    expect(water()).toBe(2);
+  });
+
+  it("asks for nothing ahead while Langle is off", async () => {
+    const { asked, translator } = recording();
+    const { state, video, session } = await start(builtIn(SPREAD), {
+      translatorAvailable: true,
+      translator,
+    });
+    await ready(state);
+    session.app.setEnabled(false);
+    await seekTo(video, 3);
+    expect(asked).not.toContain("Bake it.");
+    session.app.setEnabled(true);
+    await expect.poll(() => asked).toContain("Bake it.");
+  });
+
+  it("asks again for the playing card that got no translation when the window changes", async () => {
+    const asked: string[] = [];
+    const translator: TranslationProvider = {
+      translate: async (text) => {
+        asked.push(text);
+        // The first answer for the playing card is missing.
+        return text === "Mix the flour." && asked.length === 1
+          ? undefined
+          : `ja(${text})`;
+      },
+    };
+    const { state, video } = await start(builtIn(SPREAD), {
+      translatorAvailable: true,
+      translator,
+    });
+    await ready(state);
+    await expect
+      .poll(() => asked.filter((t) => t === "Mix the flour."))
+      .toHaveLength(1);
+    expect(state().translations[0]).toBeFalsy();
+    // 0.5 s: "Mix the flour." still plays, but the window moved on.
+    await seekTo(video, 0.5);
+    await expect.poll(() => state().translations[0]).toBe("ja(Mix the flour.)");
+  });
+
+  it("aborts what was asked ahead when the site moves to another video", async () => {
+    const started: string[] = [];
+    const held: (() => void)[] = [];
+    const translator: TranslationProvider = {
+      translate(text) {
+        started.push(text);
+        return new Promise((resolve) =>
+          held.push(() => resolve(`ja(${text})`)),
+        );
+      },
+    };
+    const NEXT: Cue[] = [{ startMs: 0, endMs: 1000, text: "Serve it." }];
+    const { state, site, session } = await start(
+      { vid1: builtIn(SPREAD).vid1, vid2: builtIn(NEXT).vid1 },
+      { translatorAvailable: true, translator },
+    );
+    await ready(state);
+    await expect.poll(() => started).toEqual(["Mix the flour."]);
+    site.navigate("vid2");
+    await expect.poll(() => state().videoId).toBe("vid2");
+    await ready(state);
+    held.shift()!();
+    // The paused video sends no playback event: setEnabled runs the session's update.
+    session.app.setEnabled(true);
+    await expect.poll(() => started).toContain("Serve it.");
+    for (const release of held.splice(0)) release();
+    // Once "Serve it." is shown, a job for "Add the water." would have started.
+    await expect.poll(() => state().translations[0]).toBe("ja(Serve it.)");
+    expect(started).not.toContain("Add the water.");
+  });
+
+  it("drops the playing card's request when the site moves on while the model downloads", async () => {
+    const started: string[] = [];
+    let opened!: (ready: boolean) => void;
+    const opening = new Promise<boolean>((resolve) => (opened = resolve));
+    const translator: TranslationProvider = {
+      open: () => opening,
+      translate: async (text) => {
+        started.push(text);
+        return `ja(${text})`;
+      },
+    };
+    const NEXT: Cue[] = [{ startMs: 0, endMs: 1000, text: "Serve it." }];
+    const { state, site, session } = await start(
+      { vid1: builtIn(SPREAD).vid1, vid2: builtIn(NEXT).vid1 },
+      { translatorAvailable: true, translator },
+    );
+    await ready(state);
+    site.navigate("vid2");
+    await expect.poll(() => state().videoId).toBe("vid2");
+    await ready(state);
+    // The download ends: only the new video's card is translated.
+    opened(true);
+    // The paused video sends no playback event: setEnabled runs the session's update.
+    session.app.setEnabled(true);
+    await expect.poll(() => state().translations[0]).toBe("ja(Serve it.)");
+    expect(started).toEqual(["Serve it."]);
+  });
+
+  it("asks for nothing ahead while an ad shows", async () => {
+    const { asked, translator } = recording();
+    const { state, video, site } = await start(builtIn(SPREAD), {
+      translatorAvailable: true,
+      translator,
+    });
+    await ready(state);
+    await expect.poll(() => state().translations[1]).toBe("ja(Add the water.)");
+    site.setAd(true);
+    await seekTo(video, 3);
+    expect(asked).not.toContain("Bake it.");
+    site.setAd(false);
+    await seekTo(video, 3.1);
+    await expect.poll(() => asked).toContain("Bake it.");
   });
 });
 
@@ -2362,6 +2577,7 @@ describe("translating English definitions", () => {
         "You figure out the yeast.",
         "Knead the dough.",
         "To come to understand",
+        "It is a tangy loaf.",
       ]);
   });
 
