@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "kind": "event",
+  "api": "runtime.onMessage",
+  "args": [
+    { "type": "counts" },
+    {
+      "tab": { "id": 3, "url": "https://example.com/" },
+      "frameId": 0,
+      "url": "https://example.com/"
+    }
+  ],
+  "replyId": "n7"
+}

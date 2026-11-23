@@ -1,0 +1,6 @@
+{
+  "v": 1,
+  "kind": "event",
+  "api": "storage.onChanged",
+  "args": [{ "settings": { "newValue": 1 } }, "local"]
+}

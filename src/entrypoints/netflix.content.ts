@@ -7,6 +7,8 @@ import { runVideoSite } from "../content/video/run";
 
 export default defineContentScript({
   matches: ["*://www.netflix.com/*"],
+  // The phone app has no Netflix (docs/specs/mobile-app.md).
+  exclude: ["langle-app"],
   // Early, to hear about the first manifest the player parses.
   runAt: "document_start",
   main(ctx) {
