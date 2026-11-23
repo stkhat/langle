@@ -78,6 +78,8 @@ struct PageContainer: UIViewRepresentable {
 
   private func update(_ container: UIView) {
     if page.superview !== container {
+      // Another page's view (the container showed another page before): it goes.
+      for view in container.subviews where view !== host { view.removeFromSuperview() }
       page.removeFromSuperview()
       page.frame = container.bounds
       page.autoresizingMask = [.flexibleWidth, .flexibleHeight]

@@ -190,7 +190,7 @@ final class AppModel: ObservableObject {
       scripts: { _ in injector.appPageScripts() })
     context.load(target)
     let next = Sheet(tabId: tabId, context: context)
-    if sheet == nil {
+    if sheet == nil && shown == nil {
       sheet = next
     } else {
       // Replaces the open sheet once it is dismissed.
