@@ -1,8 +1,7 @@
 // `npm run verify`: everything a push needs, in two lanes at once. The host lane runs
 // check, unit, browser tests on Chromium, builds and E2E, then the phone app's build and
-// its manifest; the Firefox lane runs the
-// browser tests in CI's Playwright image (scripts/test-firefox.ts), which uses the Docker
-// VM's own CPUs. Each lane's output goes to a log; the console gets one line per stage
+// its manifest; the Firefox lane runs the browser tests in CI's Playwright image
+// (scripts/test-firefox.ts), which uses the Docker VM's own CPUs. Each lane's output goes to a log; the console gets one line per stage
 // and, when one fails, the part of its log that says why. The first failure stops the
 // other lane. One run at a time on the machine (scripts/test-lock.ts): a second waits.
 //
