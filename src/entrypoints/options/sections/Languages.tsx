@@ -1,7 +1,7 @@
 import { learningLanguages, nativeLanguages } from "../../../core/languages";
 import { pairsOfPack } from "../../../core/packs/pairs";
 import { combinedState } from "../../../core/packs/state";
-import { downloadTranslationModels } from "../../../content/translate/translator";
+import { translatorBackend } from "../../../content/translate/backend";
 import { languageOption, languagePair } from "../../../i18n/languages";
 import { t, type MessageKey } from "../../../i18n/t";
 import type { PackStatus } from "../../../messaging/protocol";
@@ -188,7 +188,7 @@ export function LanguagesSection(
           }
         : { nativeLang: value };
     const next = { ...s, ...change };
-    void downloadTranslationModels(next.learningLang, next.nativeLang);
+    void translatorBackend().downloadModels(next.learningLang, next.nativeLang);
     props.change(change);
   }
 

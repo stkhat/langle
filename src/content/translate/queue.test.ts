@@ -102,6 +102,180 @@ describe("createTranslationQueue", () => {
     ]);
   });
 
+  it("takes cards about to play after the hover card and before the lists", async () => {
+    const t = heldTranslator();
+    const queue = createTranslationQueue(() => t.provider);
+    const first = queue.translate("first", "hover", EN_JA);
+    await flush();
+    const all = [
+      first,
+      queue.translate("list 1", "list", EN_JA),
+      queue.translate("ahead 1", "ahead", EN_JA),
+      queue.translate("window 1", "window", EN_JA),
+      queue.translate("hover 1", "hover", EN_JA),
+      queue.translate("ahead 2", "ahead", EN_JA),
+      queue.translate("subtitle 1", "subtitle", EN_JA),
+    ];
+    await flush();
+    await t.releaseAll();
+    await Promise.all(all);
+    expect(t.started).toEqual([
+      "first",
+      "subtitle 1",
+      "window 1",
+      "hover 1",
+      "ahead 1",
+      "ahead 2",
+      "list 1",
+    ]);
+  });
+
+  it("moves a card about to play up to the subtitle line when it starts playing", async () => {
+    const t = heldTranslator();
+    const queue = createTranslationQueue(() => t.provider);
+    const first = queue.translate("first", "hover", EN_JA);
+    await flush();
+    const all = [
+      first,
+      queue.translate("a", "ahead", EN_JA),
+      queue.translate("b", "ahead", EN_JA),
+      queue.translate("b", "subtitle", EN_JA),
+    ];
+    await flush();
+    await t.releaseAll();
+    await Promise.all(all);
+    expect(t.started).toEqual(["first", "b", "a"]);
+  });
+
+  it("gives an aborted request nothing at once and never starts a job nobody waits for", async () => {
+    const t = heldTranslator();
+    const queue = createTranslationQueue(() => t.provider);
+    const first = queue.translate("first", "hover", EN_JA);
+    await flush();
+    const controller = new AbortController();
+    const dropped = queue.translate("dropped", "ahead", EN_JA, {
+      signal: controller.signal,
+    });
+    await flush();
+    controller.abort();
+    expect(await dropped).toBeUndefined();
+    await t.releaseAll();
+    expect(await first).toBe("ja(first)");
+    expect(t.started).toEqual(["first"]);
+  });
+
+  it("gives nothing to a request whose signal is already aborted, and starts nothing", async () => {
+    const t = heldTranslator();
+    const queue = createTranslationQueue(() => t.provider);
+    const late = queue.translate("late", "ahead", EN_JA, {
+      signal: AbortSignal.abort(),
+    });
+    expect(await late).toBeUndefined();
+    await flush();
+    expect(t.started).toEqual([]);
+  });
+
+  it("keeps a job that another request still waits for", async () => {
+    const t = heldTranslator();
+    const queue = createTranslationQueue(() => t.provider);
+    const first = queue.translate("first", "hover", EN_JA);
+    await flush();
+    const controller = new AbortController();
+    const aborted = queue.translate("shared", "ahead", EN_JA, {
+      signal: controller.signal,
+    });
+    const waiting = queue.translate("shared", "subtitle", EN_JA);
+    await flush();
+    controller.abort();
+    expect(await aborted).toBeUndefined();
+    await t.releaseAll();
+    expect(await first).toBe("ja(first)");
+    expect(await waiting).toBe("ja(shared)");
+    expect(t.started).toEqual(["first", "shared"]);
+  });
+
+  it("finishes and keeps a job that started before its request was aborted", async () => {
+    const t = heldTranslator();
+    const queue = createTranslationQueue(() => t.provider);
+    const controller = new AbortController();
+    const aborted = queue.translate("started", "ahead", EN_JA, {
+      signal: controller.signal,
+    });
+    await flush();
+    expect(t.started).toEqual(["started"]);
+    controller.abort();
+    expect(await aborted).toBeUndefined();
+    // Not dropped: asked for again meanwhile, it shares the started job.
+    const again = queue.translate("started", "hover", EN_JA);
+    await flush();
+    expect(t.started).toEqual(["started"]);
+    await t.releaseAll();
+    expect(await again).toBe("ja(started)");
+    // Kept: asked for again, it is not translated again.
+    expect(await queue.translate("started", "hover", EN_JA)).toBe(
+      "ja(started)",
+    );
+    expect(t.started).toEqual(["started"]);
+  });
+
+  it("ignores an abort that arrives after its request was answered, leaving a newer job for the same text alone", async () => {
+    const queue = createTranslationQueue(() => ({
+      // Cannot open the first time: that job ends with no translation.
+      open: vi
+        .fn<() => Promise<boolean>>()
+        .mockResolvedValueOnce(false)
+        .mockResolvedValue(true),
+      translate: async (text) => `ja(${text})`,
+    }));
+    const controller = new AbortController();
+    // The old request is answered first, so its abort listener is already gone.
+    const old = queue.translate("text", "ahead", EN_JA, {
+      signal: controller.signal,
+    });
+    expect(await old).toBeUndefined();
+    const fresh = queue.translate("text", "hover", EN_JA);
+    controller.abort();
+    expect(await fresh).toBe("ja(text)");
+  });
+
+  it("never starts a job whose request was aborted while its translator was opening", async () => {
+    let opened!: (ready: boolean) => void;
+    const translate = vi.fn(async (text: string) => `ja(${text})`);
+    const queue = createTranslationQueue(() => ({
+      open: () => new Promise<boolean>((resolve) => (opened = resolve)),
+      translate,
+    }));
+    const controller = new AbortController();
+    const aborted = queue.translate("opening", "ahead", EN_JA, {
+      signal: controller.signal,
+    });
+    await flush();
+    controller.abort();
+    expect(await aborted).toBeUndefined();
+    opened(true);
+    await flush();
+    expect(translate).not.toHaveBeenCalled();
+  });
+
+  it("translates a text again after its job was dropped", async () => {
+    const t = heldTranslator();
+    const queue = createTranslationQueue(() => t.provider);
+    const first = queue.translate("first", "hover", EN_JA);
+    await flush();
+    const controller = new AbortController();
+    const dropped = queue.translate("again", "ahead", EN_JA, {
+      signal: controller.signal,
+    });
+    await flush();
+    controller.abort();
+    expect(await dropped).toBeUndefined();
+    const fresh = queue.translate("again", "hover", EN_JA);
+    await flush();
+    await t.releaseAll();
+    expect(await first).toBe("ja(first)");
+    expect(await fresh).toBe("ja(again)");
+  });
+
   it("tells its listeners about every new translation, whoever asked", async () => {
     const queue = createTranslationQueue(() => ({
       translate: async (text) => (text === "none" ? undefined : `ja(${text})`),

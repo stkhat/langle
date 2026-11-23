@@ -46,7 +46,7 @@ import { sendStatus } from "../lookup/status";
 import { warn } from "../lookup/warn";
 import { createStore } from "../store";
 import type { TranslationPair } from "../translate/queue";
-import { builtInTranslatorAvailable } from "../translate/translator";
+import { translatorBackend } from "../translate/backend";
 import { cardRuns, splitRun } from "../../core/subtitles/runs";
 import { captionCards, type TimedTranslation } from "./captions";
 import { createCards } from "./cards";
@@ -68,9 +68,24 @@ import { createSummaries } from "../words/summaries";
 /** Cues classified per `analyze` request. */
 const BATCH = 50;
 
+/** How far ahead, in video time, the built-in translator translates cards (mobile-translation.md). */
+const AHEAD_MS = 10_000;
+
+/** The first index of `cues` (sorted by start) that starts at or after `ms`. */
+function firstStartingAt(cues: readonly { startMs: number }[], ms: number) {
+  let low = 0;
+  let high = cues.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (cues[middle]!.startMs < ms) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
 export interface VideoDeps extends LookupDeps {
   adapter: PlatformAdapter;
-  /** Default: asks the built-in translator. */
+  /** Default: asks this platform's translator (`translatorBackend`). */
   translatorAvailable?(from: string, to: string): Promise<boolean>;
 }
 
@@ -84,6 +99,10 @@ interface Watch {
   marks: ReturnType<typeof createMarkAll>;
   /** Built-in translations of the cards, asked for as they play. */
   translations: Map<number, Promise<string | undefined>>;
+  /** Cards about to play, asked for ahead and not answered yet, each with its abort. */
+  ahead: Map<number, AbortController>;
+  /** The window and playing card `translateAhead` last worked on. */
+  aheadKey: string;
   /** The video played to its end once (unsaved new words were handled). */
   endReached: boolean;
 }
@@ -309,9 +328,20 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
         },
       }),
       translations: new Map(),
+      ahead: new Map(),
+      aheadKey: "",
       endReached: false,
     };
     watch = w;
+    // Moving on to another video aborts what was asked for ahead.
+    w.controller.signal.addEventListener(
+      "abort",
+      () => {
+        for (const controller of w.ahead.values()) controller.abort();
+        w.ahead.clear();
+      },
+      { once: true },
+    );
     load(w).catch((error: unknown) => {
       warn(error);
       if (watch === w) store.set({ status: "unavailable" });
@@ -321,7 +351,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
   async function load(w: Watch) {
     const { signal } = w.controller;
     const translatorAvailable = await (
-      deps.translatorAvailable ?? builtInTranslatorAvailable
+      deps.translatorAvailable ?? translatorBackend().available
     )(lang(), settings.nativeLang);
     const captions = await adapter.loadCaptions({
       learningLang: lang(),
@@ -379,6 +409,8 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     }
     if (now.current >= 0 && w.recorder.play(now.current))
       void played(w, now.current).catch(warn);
+    if (state.translationSource === "builtIn")
+      translateAhead(w, following ? video.currentTime * 1000 : undefined);
   }
 
   /**
@@ -397,28 +429,85 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     let pending = w.translations.get(index);
     if (!pending) {
       const cue = store.get().cues[index];
-      pending =
+      // Moving on to another video drops the request, also while the model downloads.
+      const asked =
         cue && subtitlePair
           ? lookup.translator.translate(
               flat(cue.text),
               "subtitle",
               subtitlePair,
+              { signal: w.controller.signal },
             )
           : Promise.resolve(undefined);
-      w.translations.set(index, pending);
-      void pending.then((text) => {
-        if (watch !== w || !text) return;
-        const translations = [...store.get().translations];
-        translations[index] = text;
-        const state = store.get();
-        store.set({
-          translations,
-          subtitleTranslation:
-            state.current === index ? text : state.subtitleTranslation,
-        });
+      pending = asked;
+      w.translations.set(index, asked);
+      void asked.then((text) => {
+        // No translation (the translator was not ready): `translateAhead` asks again.
+        if (!text && w.translations.get(index) === asked)
+          w.translations.delete(index);
+        showTranslation(w, index, text);
       });
     }
     return pending;
+  }
+
+  /** Shows a card's built-in translation in the transcript, and under the subtitle while it plays. */
+  function showTranslation(w: Watch, index: number, text: string | undefined) {
+    if (watch !== w || !text) return;
+    const state = store.get();
+    const translations = [...state.translations];
+    translations[index] = text;
+    store.set({
+      translations,
+      subtitleTranslation:
+        state.current === index ? text : state.subtitleTranslation,
+    });
+  }
+
+  /**
+   * Translate-ahead (mobile-translation.md: "Requests and priorities"). At `timeMs`
+   * (undefined while Langle does not follow the video), asks at `ahead` for the cards
+   * that start in the next AHEAD_MS and have no translation or request yet, asks again
+   * for the playing card if it got none, and aborts the requests for cards that left
+   * the window. Works only when the window or the playing card changed, so a card that
+   * got no translation is asked again then, never on every frame. New requests go out
+   * before old ones are aborted, so a text in both keeps its job.
+   */
+  function translateAhead(w: Watch, timeMs: number | undefined) {
+    const pair = subtitlePair;
+    if (!pair) return;
+    const { cues, translations, current } = store.get();
+    const from = timeMs === undefined ? 0 : firstStartingAt(cues, timeMs);
+    const to =
+      timeMs === undefined ? 0 : firstStartingAt(cues, timeMs + AHEAD_MS + 1);
+    const key = `${from}:${to}:${current}`;
+    if (key === w.aheadKey) return;
+    w.aheadKey = key;
+    if (current >= 0 && !translations[current] && !w.translations.has(current))
+      void translateCard(w, current);
+    for (let index = from; index < to; index++) {
+      if (
+        translations[index] ||
+        w.translations.has(index) ||
+        w.ahead.has(index)
+      )
+        continue;
+      const controller = new AbortController();
+      w.ahead.set(index, controller);
+      void lookup.translator
+        .translate(flat(cues[index]!.text), "ahead", pair, {
+          signal: controller.signal,
+        })
+        .then((text) => {
+          if (w.ahead.get(index) === controller) w.ahead.delete(index);
+          showTranslation(w, index, text);
+        });
+    }
+    for (const [index, controller] of w.ahead)
+      if (index < from || index >= to || w.translations.has(index)) {
+        w.ahead.delete(index);
+        controller.abort();
+      }
   }
 
   /**
