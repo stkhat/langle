@@ -1,0 +1,5 @@
+build/
+build-output/
+xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/

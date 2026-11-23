@@ -25,6 +25,7 @@ public struct Manifest: Equatable, Sendable {
   /// Why a build is refused.
   public struct Refusal: Error, Equatable, CustomStringConvertible {
     public let unsupported: [String]
+    public init(unsupported: [String]) { self.unsupported = unsupported }
     public var description: String {
       "The app does not support this build: \(unsupported.joined(separator: "; "))"
     }
