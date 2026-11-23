@@ -4,7 +4,7 @@ import { expect, sendToBackground } from "./fixtures";
 
 /**
  * For a wait on the first analysis or the first dictionary use after the extension is
- * installed or its service worker starts: the new install downloads its pair's packs
+ * installed or its service worker starts: setting it up downloads its pair's packs
  * (English → Japanese, about 35 MB, from data/packs/ through pack-mirrors.ts: about
  * 1.5 s locally), then reads them (about 0.4 s locally). Loading has gone past
  * Playwright's 5 s default on CI's runners, where four browsers do it at once. Only

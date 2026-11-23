@@ -1,4 +1,7 @@
 import { startContentCheck } from "../check/start";
+import { runWhenSetUp } from "../content/setup";
+import { tellPage } from "../content/video/page-channel";
+import { CHANNEL } from "../content/video/youtube/messages";
 import { runVideoSite } from "../content/video/run";
 import { createYouTubeAdapter } from "../content/video/youtube/adapter";
 import { runYouTubeComments } from "../content/video/youtube/comments";
@@ -8,13 +11,19 @@ export default defineContentScript({
   matches: ["*://www.youtube.com/*"],
   // Early, to see the player's first caption request.
   runAt: "document_start",
-  async main(ctx) {
+  main(ctx) {
     // `npm run build:check` only: the error log and the settings channel (src/check/).
     if (import.meta.env.MODE === "check") startContentCheck("youtube");
-    const adapter = createYouTubeAdapter();
-    await startYouTubeParts(
-      (hooks) => runYouTubeComments(ctx, adapter, hooks),
-      (hooks) => runVideoSite(ctx, adapter, hooks),
+    runWhenSetUp(
+      ctx,
+      () => {
+        const adapter = createYouTubeAdapter();
+        return startYouTubeParts(
+          (hooks) => runYouTubeComments(ctx, adapter, hooks),
+          (hooks) => runVideoSite(ctx, adapter, hooks),
+        );
+      },
+      { needsPageLoad: true, waiting: () => tellPage(CHANNEL, "wait") },
     );
   },
 });

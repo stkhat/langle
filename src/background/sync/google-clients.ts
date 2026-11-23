@@ -3,7 +3,8 @@
  * Cloud project and the manifest `key` whose id its redirect URI names (architecture
  * "Sync to the user's own cloud storage" → "Parts", "Extension ids"). Client ids are
  * public; no client secret is used. Read by wxt.config.ts for the manifest `key` and by
- * the background for the provider, so plain constants only.
+ * the background for the provider, so no imports, and `import.meta.env` only
+ * inside `googleClients`.
  */
 
 /** The only scope: the app's own hidden folder in the user's Drive. */
@@ -20,7 +21,7 @@ export interface GoogleClients {
 }
 
 /** Development and check builds: redirect to `DEVELOPMENT_EXTENSION_KEY`'s id. */
-export const DEVELOPMENT_GOOGLE_CLIENTS: GoogleClients = {
+const DEVELOPMENT_GOOGLE_CLIENTS: GoogleClients = {
   web: "191564468385-i9mvko6iu5qpq1o8pkhtufudvu72nc36.apps.googleusercontent.com",
 };
 
@@ -30,7 +31,16 @@ export const DEVELOPMENT_GOOGLE_CLIENTS: GoogleClients = {
  * same Cloud project, which sees the same `appDataFolder`; docs/status.md "Before
  * publishing"). Until then production builds have no cloud provider.
  */
-export const PRODUCTION_GOOGLE_CLIENTS: GoogleClients | undefined = undefined;
+const PRODUCTION_GOOGLE_CLIENTS: GoogleClients | undefined = undefined;
+
+/**
+ * This build's clients. The mode is a constant at build time, so production builds
+ * leave the development clients out.
+ */
+export const googleClients = (): GoogleClients | undefined =>
+  import.meta.env.MODE === "production"
+    ? PRODUCTION_GOOGLE_CLIENTS
+    : DEVELOPMENT_GOOGLE_CLIENTS;
 
 /**
  * The manifest `key` (a public key, base64 DER) of development and check builds, so

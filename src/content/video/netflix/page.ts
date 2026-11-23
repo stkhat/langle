@@ -3,10 +3,10 @@
  * the player reads (each lists the title's subtitle tracks and their download URLs) and
  * answers the adapter's calls to Netflix's player API. `JSON.parse` returns exactly what
  * it would without Langle, and nothing is stored outside this page's memory: the URLs
- * carry tokens.
+ * carry tokens. Nothing parsed is read until the gate is on (`PageGate`).
  */
 import { createRecent } from "../recent";
-import { installPageScript } from "../page-channel";
+import { installPageScript, type PageGate } from "../page-channel";
 import { readManifest, type NetflixTextTrack } from "./manifest";
 import { CHANNEL, isCall, type PageCall, type TracksMessage } from "./messages";
 import { KEEP_TITLES, netflixPlayer, netflixTitle } from "./site";
@@ -14,7 +14,7 @@ import { KEEP_TITLES, netflixPlayer, netflixTitle } from "./site";
 export const installNetflixHooks = () =>
   installPageScript<PageCall>(CHANNEL, isCall, install);
 
-function install() {
+function install(gate: PageGate) {
   const originalParse = JSON.parse;
   const originalFetch = window.fetch;
   const titles = createRecent<NetflixTextTrack[]>(KEEP_TITLES);
@@ -30,17 +30,21 @@ function install() {
     window.postMessage(message, location.origin);
   }
 
-  const parse = function parse(
-    this: unknown,
-    ...args: Parameters<JSON["parse"]>
-  ) {
-    const value: unknown = originalParse.apply(this, args);
+  function inspect(value: unknown) {
     try {
       const manifest = readManifest(value);
       if (manifest) seen(manifest.movieId, manifest.tracks);
     } catch {
       // Never disturb the page.
     }
+  }
+
+  const parse = function parse(
+    this: unknown,
+    ...args: Parameters<JSON["parse"]>
+  ) {
+    const value: unknown = originalParse.apply(this, args);
+    if (!gate.off) gate.whenOn(() => inspect(value));
     return value;
   };
   JSON.parse = parse as JSON["parse"];

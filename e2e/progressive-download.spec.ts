@@ -120,7 +120,6 @@ const MBIT = Number(process.env["LANGLE_FIRST_USE_MBIT"] ?? 0);
 test.describe("first use", () => {
   test.skip(!MBIT, "Set LANGLE_FIRST_USE_MBIT to measure");
   test.use({
-    startPair: null,
     mirrorsHeld: true,
     mirrorBitsPerSecond: MBIT * 1_000_000,
   });
@@ -131,30 +130,6 @@ test.describe("first use", () => {
   }) => {
     test.setTimeout(300_000);
     const slow = { timeout: 240_000 };
-    const worker =
-      context.serviceWorkers()[0] ??
-      (await context.waitForEvent("serviceworker"));
-    // The pair the new install chose from the browser's UI language.
-    const stored = () =>
-      worker.evaluate(async () => {
-        const { chrome: api } = globalThis as unknown as {
-          chrome: {
-            storage: {
-              sync: {
-                get(
-                  key: string,
-                ): Promise<{ settings?: { nativeLang?: string } }>;
-              };
-            };
-          };
-        };
-        return (await api.storage.sync.get("settings")).settings;
-      });
-    await expect.poll(stored).toBeDefined();
-    test.skip(
-      (await stored())?.nativeLang !== "ja",
-      "The new install chose another pair (the browser's UI language is not Japanese)",
-    );
     await showNewWords(context, extensionId);
     const page = await context.newPage();
     await page.goto("/article-en.html");

@@ -26,6 +26,7 @@
 
 ## E2E
 E2E covers only what needs the built extension in a real Chromium: the MAIN-world hooks, messaging between content scripts, the popup and the service worker, real CSP, closed shadow roots, `createShadowRootUi` styles, downloads from the mirror, and Chrome's Errors page. Everything else is a unit or browser test. What stays:
+- `first-run.spec.ts`: a new install through the real setup: nothing before consent and Start, the return, which pages it reloads (opened before the install, YouTube and Netflix loaded before the consent) and which not. The other specs start set up.
 - `extension-errors.spec.ts`: every flow on the check build, the web-page flows on production too, failing on anything the Errors page would show (notes below). Its service-worker restart test also records the time to the first highlights, cold and after a restart (annotations `analyze-*-ms`).
 - `content.spec.ts`: a word saved from the dictionary stays Learning after a reload.
 - `popup.spec.ts`: the header icons open the extension pages; the page's unsaved words with Mark all, Undo and On this site.

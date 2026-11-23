@@ -11,6 +11,24 @@ export interface PageChannel {
   toPage: string;
 }
 
+/**
+ * What the content script tells the hooks about the first run (ui.md "First-run
+ * consent"): it waits for the setup, or Langle runs. A page that forges one only
+ * changes what of its own data comes back to it.
+ */
+type Word = "on" | "wait";
+
+interface WordMessage {
+  source: string;
+  word: Word;
+}
+
+/** Tells the page script `word`. */
+export function tellPage(channel: PageChannel, word: Word): void {
+  const message: WordMessage = { source: channel.toPage, word };
+  window.postMessage(message, location.origin);
+}
+
 interface CallMessage {
   source: string;
   id: string;
@@ -94,6 +112,8 @@ export function createPageBridge<
     }
   }
   window.addEventListener("message", onMessage);
+  // A bridge is made only once Langle runs, and it hears what the hooks then post.
+  tellPage(channel, "on");
 
   return {
     call(call, wait = timeoutMs) {
@@ -161,6 +181,55 @@ export async function retryNetworkCall<T>(
 
 const installed = new Map<string, () => void>();
 
+/** How long the hooks hold what they see without a word from the content script. */
+const WORD_WAIT_MS = 5000;
+
+/**
+ * The hooks' gate. They are in from document_start, before the stored consent can be
+ * read: until told, they hold what they see without reading it.
+ */
+export interface PageGate {
+  /** Waiting for the setup, or never told: hooks only pass through. */
+  readonly off: boolean;
+  /** Runs `take` once on: now, or held until then. Never, when off. */
+  whenOn(take: () => void): void;
+}
+
+function createGate() {
+  let state: "undecided" | "off" | "on" = "undecided";
+  let held: (() => void)[] = [];
+  const turnOff = () => {
+    state = "off";
+    held = [];
+  };
+  const timer = setTimeout(turnOff, WORD_WAIT_MS);
+  const gate: PageGate = {
+    get off() {
+      return state === "off";
+    },
+    whenOn(take) {
+      if (state === "on") take();
+      else if (state === "undecided") held.push(take);
+    },
+  };
+  return {
+    gate,
+    hear(word: Word) {
+      clearTimeout(timer);
+      if (state === "on") return;
+      if (word === "wait") return turnOff();
+      state = "on";
+      const waiting = held;
+      held = [];
+      for (const take of waiting) take();
+    },
+    stop() {
+      clearTimeout(timer);
+      held = [];
+    },
+  };
+}
+
 /**
  * The page script's side: runs `install` once per page and answers the content
  * script's calls that `isCall` accepts. Returns a function that removes it all (for tests).
@@ -168,26 +237,23 @@ const installed = new Map<string, () => void>();
 export function installPageScript<Call>(
   channel: PageChannel,
   isCall: (call: Record<string, unknown>) => boolean,
-  install: () => {
+  install: (gate: PageGate) => {
     answer(call: Call): Promise<unknown>;
     uninstall(): void;
   },
 ): () => void {
   const current = installed.get(channel.toPage);
   if (current) return current;
-  const { answer, uninstall } = install();
+  const { gate, hear, stop } = createGate();
+  const { answer, uninstall } = install(gate);
   const origin = location.origin;
 
   function onMessage(event: MessageEvent) {
     if (event.source !== window || event.origin !== origin) return;
     const data: unknown = event.data;
-    if (
-      !isObject(data) ||
-      data.source !== channel.toPage ||
-      !isString(data.id) ||
-      !isObject(data.call) ||
-      !isCall(data.call)
-    )
+    if (!isObject(data) || data.source !== channel.toPage) return;
+    if (data.word === "on" || data.word === "wait") return hear(data.word);
+    if (!isString(data.id) || !isObject(data.call) || !isCall(data.call))
       return;
     const reply = (fields: Partial<ReplyMessage>) =>
       window.postMessage(
@@ -202,6 +268,7 @@ export function installPageScript<Call>(
   window.addEventListener("message", onMessage);
 
   const remove = () => {
+    stop();
     uninstall();
     window.removeEventListener("message", onMessage);
     installed.delete(channel.toPage);

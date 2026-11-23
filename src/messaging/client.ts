@@ -24,6 +24,12 @@ const RETRY_DELAYS_MS = [100, 500];
  * run in one transaction each, so a stopped worker leaves them done or not done.
  */
 const REPEATABLE: Record<RequestType, boolean> = {
+  setupStatus: true,
+  // The setup that is open is shown again.
+  openSetup: true,
+  agreeSetup: true,
+  // A second start would leave the tab it went back to.
+  startLangle: false,
   getSettings: true,
   setSettings: true,
   analyze: true,

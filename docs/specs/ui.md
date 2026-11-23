@@ -142,6 +142,33 @@ The [UI mock](https://claude.ai/artifact/SMxhVni5DdE6cK8UazvqGS) is canonical: w
 - When: once per page view / video, when the video plays to its end (not during an ad) or the end of the article comes into view
 - Settings → Highlighting → "New words you didn't save": **Keep as New** (default; nothing happens, they show as New next time) or **Mark as Known** (they are saved as Known at once, silently, as `bulk` terms)
 
+## First-run consent (mock `First run — your data and consent`, `— before agreeing (toolbar popup)`, `— your languages`, `— back on the page (toolbar popup)`, 2026-11-22, languages 2026-11-23; built 2026-11-23)
+- A page inside the extension ("Set up Langle"). It opens in a new tab on install, and for an existing install that has not agreed
+- One card (520 px). Under its title, "How Langle uses your data": "**Langle has no servers.** It saves your data only on your device and in your own cloud services, nowhere else. The developer receives none of it." and the privacy policy link (hidden while `PRIVACY_POLICY_URL` is empty, until the policy is public)
+- Then three rows, each an icon, a verb and at most two lines (Sends has a second part for Drive); the mock has the copy:
+  - Reads: pages and subtitles, to explain and translate
+  - Keeps: words and the history (sentences, web addresses, titles) on this device, to show where a word was met
+  - Sends: words and settings with the site choices to Chrome sync (the name follows the browser); a looked-up or played word to that service; on a second line of its own, what Google Drive gets if connected (those and the history) and that the account's email is kept
+- Under the rows: "Not now" and "Agree and continue" (primary, wide). Nothing is pre-selected. The whole card fits 1280×600 without scrolling
+- The screen holds only what the store requires to be prominent (the types of data, their use, the consent) and who else gets it in brief. The details go in the privacy policy, which must exist before this ships
+- Only Agree and continue is consent. Not now closes the tab; closing the tab is not consent either
+- Consent is kept per device, with the version of the disclosure: synced settings never count as consent, and a change in how data is handled asks again
+- **Before agreeing**: the toolbar icon is gray. Nothing shows on pages, nothing is read or recorded, browser sync is neither read nor written, nothing is downloaded. The popup shows only the header (gray mark and name, no pair, buttons or switch), "Langle hasn't started", "It needs your agreement on how it handles your data." and "Review and agree". Settings and the word list open the consent page instead
+- **Your languages** (decided 2026-11-23; right after Agree and continue, in the same tab): one card with "Your languages", two selects and Start (primary, full width)
+  - "I speak": every native language of an offered pair, by its English name in alphabetical order. "I’m learning": the learning languages offered with it, in the usual order. Options are labeled as in Settings
+  - Filled in with the stored or synced pair (one that arrives late fills in until the user changes a select). Else "I speak" is the browser's language where offered, and "I’m learning" is English if offered with it, else the only choice. There is no guess otherwise: "Choose a language" shows (an English browser chooses what to learn; with an unsupported language both are chosen), and Start is disabled until both are set
+  - Changing "I speak" keeps the learning language where it is offered with the new one; else the same rule picks it
+  - **Until Start** Langle is as before agreeing (gray icon, nothing on pages, no downloads), except that the synced settings may be read. The popup is the same card with "Choose your languages to start." and "Choose languages"; Settings and the word list open this screen. Closing the tab keeps the consent
+  - Start stores the pair, starts its download and, in the same click, the browser's translation model. When the disclosure asks again, a device that has been through this screen skips it
+- **After Start** (decided 2026-11-23; there is no "Langle is on" page): the setup tab closes and the page that was open before it comes back (the tab active when the setup tab opened). The icon gets its color and the toolbar popup opens there by itself, showing the pair and the language data's line ("Downloading English data · 45%", Retry on failure) until the data can be used
+  - Where the popup cannot be opened by itself (Chrome before 127, a browser that refuses), the same line shows on a click on the icon
+  - If that tab is gone, the browser picks the tab; when the setup tab is the window's only one, a new tab opens in its place
+  - Usually the page is the store, where extensions don't run: the popup then has no "On this site" or "This page", as on other such pages
+  - **Automatic reload** (decided 2026-11-23): if Langle isn't running on the page it returns to (in Chrome, a tab opened before the install), that tab reloads without asking, then the popup opens. A page that already has Langle is not reloaded, and neither is any other tab: older ones work once they are next loaded
+  - The reload can lose typed text or the place in a video, and the page may ask before it is left; if the user stays, Langle works there from the next load. A page where extensions can't run may reload once too
+  - A device that skips Your languages (the disclosure asked again) goes back the same way on Agree and continue
+- Google Drive is in the first release (decided 2026-11-23), so the screen names it. A build that can connect to no provider leaves that part out
+
 ## Toolbar popup (click the extension icon)
 - Toolbar icon: Langle's mark (2026-11-18): a teal rounded square (a gradient from light teal at the top to deep teal) holding two speech bubbles, a pale mint one in front whose cut-out corner makes an "L" and a green one behind with a bookmark cut from its top. 16/32/48/128 px, drawn from `src/ui/brand/icon.svg` by `scripts/make-icons.ts`; grayscale while Langle is off. The same mark stands beside the name in every Langle header (popup, settings, word list, the video panel, the Langle menu, the dictionary window, Words on this page), sized as the old "L" badge was, and is the player bar's L button
 - Header: Langle with the language pair (English → Japanese) under it, then at the right a word list button (a list icon, "Word list"), a gear for settings (the same gear as in the player menu) and a switch for Langle as a whole ("Use Langle", on by default)
@@ -175,7 +202,7 @@ The [UI mock](https://claude.ai/artifact/SMxhVni5DdE6cK8UazvqGS) is canonical: w
     - **Language data** (mock `LanguageData`): "Words and dictionaries Langle keeps on this device." Nested under it:
       - the chosen pair ("Spanish → English"): its size ("6.4 MB") and "Downloaded" with a check, "Downloading · 45%" with a bar, or "Couldn't download" (red) with Retry
       - downloaded data the chosen pair does not use, grouped by the pair it belongs to ("English → Korean", "Not used by your languages now · 9.1 MB") with Remove, which deletes that data and its cached translations
-    - The row always shows: no language data comes with the extension (2026-11-18). A new install downloads its first pair's data at once ([architecture](architecture.md) "Distribution"); the popup, the video column and this row show that download with the same states as any other. This row shows "Downloading" until every pack of the pair is there, the fallback included (the mock has no state for "usable, the rest still downloading")
+    - The row always shows: no language data comes with the extension (2026-11-18). A new install downloads the chosen pair's data on Start ([architecture](architecture.md) "Distribution"); the popup, the video column and this row show that download with the same states as any other. This row shows "Downloading" until every pack of the pair is there, the fallback included (the mock has no state for "usable, the rest still downloading")
   - **Appearance**: Theme — System (default) / Light / Dark, a three-option segmented choice (see "Shared: theme")
   - **New-word level**: slider "Treat the N most common words as known" (1,000–20,000, default 3,000)
   - **Highlighting**: on/off per category, "New words you didn't save": Keep as New (default) / Mark as Known, a two-option segmented choice
@@ -217,7 +244,7 @@ The [UI mock](https://claude.ai/artifact/SMxhVni5DdE6cK8UazvqGS) is canonical: w
 - **Sponsor spot** (mock `Word list page`, `sponsor`, approved 2026-11-21): one card pinned to the bottom of the details panel, outside its scroll area, under a 1 px line (soft), 12 × 20 px padding. Its data ships with the release (`src/core/sponsors.ts`, logos under `public/sponsors/`): nothing is fetched, nothing is tracked, no ad network. It opens its link only when clicked, in a new tab, `rel="sponsored noopener noreferrer"`. States:
   - **Sponsor**: "SPONSORED" (11 px uppercase 600 muted), then the logo (40 px, 8 px corners), the name (14 px 600) and one line (13 px muted, up to 80 characters). Its link carries `utm_source=langle`
   - **Affiliate** (a language-learning service through an affiliate program): "AD" with "Become a sponsor" (12 px link) at the right, the same logo, name and line, then "Langle may earn a commission if you sign up." (12 px muted). Its link is left as the program gave it. Amazon Associates is out (its terms forbid browser extensions)
-  - **Open** (nothing bundled, the state at launch): "Your product here, in front of people learning English. Sponsor this spot" (13 px muted; the language is the learning language), the link to the sponsor page. Without a sponsor page yet the spot is left out
+  - **Open** (nothing bundled, not shown at launch: no sponsor page, decided 2026-11-23): "Your product here, in front of people learning English. Sponsor this spot" (13 px muted; the language is the learning language), the link to the sponsor page. Without a sponsor page yet the spot is left out
   - No setting turns it off (see Settings → Support Langle)
 
 ## Words, fullscreen and past occurrences (mock, approved 2026-11-10)
