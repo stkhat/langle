@@ -429,12 +429,14 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     let pending = w.translations.get(index);
     if (!pending) {
       const cue = store.get().cues[index];
+      // Moving on to another video drops the request, also while the model downloads.
       const asked =
         cue && subtitlePair
           ? lookup.translator.translate(
               flat(cue.text),
               "subtitle",
               subtitlePair,
+              { signal: w.controller.signal },
             )
           : Promise.resolve(undefined);
       pending = asked;

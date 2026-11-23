@@ -889,6 +889,34 @@ describe("translating ahead", () => {
     expect(started).not.toContain("Add the water.");
   });
 
+  it("drops the playing card's request when the site moves on while the model downloads", async () => {
+    const started: string[] = [];
+    let opened!: (ready: boolean) => void;
+    const opening = new Promise<boolean>((resolve) => (opened = resolve));
+    const translator: TranslationProvider = {
+      open: () => opening,
+      translate: async (text) => {
+        started.push(text);
+        return `ja(${text})`;
+      },
+    };
+    const NEXT: Cue[] = [{ startMs: 0, endMs: 1000, text: "Serve it." }];
+    const { state, site, session } = await start(
+      { vid1: builtIn(SPREAD).vid1, vid2: builtIn(NEXT).vid1 },
+      { translatorAvailable: true, translator },
+    );
+    await ready(state);
+    site.navigate("vid2");
+    await expect.poll(() => state().videoId).toBe("vid2");
+    await ready(state);
+    // The download ends: only the new video's card is translated.
+    opened(true);
+    // The paused video sends no playback event: setEnabled runs the session's update.
+    session.app.setEnabled(true);
+    await expect.poll(() => state().translations[0]).toBe("ja(Serve it.)");
+    expect(started).toEqual(["Serve it."]);
+  });
+
   it("asks for nothing ahead while an ad shows", async () => {
     const { asked, translator } = recording();
     const { state, video, site } = await start(builtIn(SPREAD), {
