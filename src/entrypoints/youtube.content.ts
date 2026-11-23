@@ -9,6 +9,8 @@ import { startYouTubeParts } from "../content/video/youtube/parts";
 
 export default defineContentScript({
   matches: ["*://www.youtube.com/*"],
+  // The phone app gets m.youtube.com scripts of its own (mobile-app.md "Build order").
+  exclude: ["langle-app"],
   // Early, to see the player's first caption request.
   runAt: "document_start",
   main(ctx) {

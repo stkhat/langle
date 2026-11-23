@@ -114,7 +114,7 @@ export default defineConfig({
         test: {
           name: "manifest",
           environment: "node",
-          include: ["tests/manifest.test.ts"],
+          include: ["tests/manifest.test.ts", "tests/app-manifest.test.ts"],
         },
       },
     ],
