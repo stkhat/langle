@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Langle</string>
+    <string name="address_hint">Search or type a web address</string>
+    <string name="back">Back</string>
+    <string name="forward">Forward</string>
+    <string name="langle">Langle</string>
+    <string name="update_webview">Update Android System WebView to use Langle on pages.</string>
+    <string name="build_refused">Langle cannot run: %1$s</string>
+</resources>
