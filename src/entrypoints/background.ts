@@ -18,6 +18,8 @@ import {
   setSettings,
 } from "../background/settings-store";
 import { watchBuild } from "../background/self-reload";
+import { createSetup } from "../background/setup";
+import { createSetupTab } from "../background/setup-tab";
 import { isCheckLogMessage, startWorkerErrorLog } from "../check/start";
 import { createBrowserSyncBackend } from "../background/sync/browser-sync-backend";
 import {
@@ -26,10 +28,7 @@ import {
   createCloudSyncBackend,
 } from "../background/sync/cloud-sync-backend";
 import { createGoogleAuth } from "../background/sync/google-auth";
-import {
-  DEVELOPMENT_GOOGLE_CLIENTS,
-  PRODUCTION_GOOGLE_CLIENTS,
-} from "../background/sync/google-clients";
+import { googleClients } from "../background/sync/google-clients";
 import { createDriveFiles } from "../core/cloud/google-drive";
 import type { CloudProvider, CloudProviderId } from "../core/cloud/provider";
 import { createTermStore } from "../background/term-store";
@@ -39,14 +38,16 @@ import { createExplanationCache } from "../background/explanation-cache";
 import { createPackLoader } from "../core/packs/load";
 import { readLock } from "../core/packs/lock";
 import { PACK_STATE_KEY } from "../core/packs/state";
+import { getSetupStage, watchSetupStage, whenSetUp } from "../messaging/setup";
 import { watchSettings } from "../messaging/storage";
 
 /**
  * Runs each time the service worker starts. Everything is created again on a restart:
  * the database opens on first use, packs load on the first request that needs them,
  * the chosen pair's packs are brought to their lock version (a download the worker
- * stopped carries on; a new install first chooses its pair from the browser's UI
- * language), and sync pulls what other devices wrote while the worker was stopped.
+ * stopped carries on), and sync pulls what other devices wrote while the worker was
+ * stopped. Until this device is set up (ui.md "First-run consent") none of that
+ * happens: only the setup's own requests are answered.
  */
 export default defineBackground(() => {
   // `npm run build:check` only: the error log a check reads (src/check/error-log.ts),
@@ -91,8 +92,27 @@ export default defineBackground(() => {
   // Registers its listeners synchronously, so an event that wakes the worker is heard.
   const { retry: retryPacks } = startPackDownloads(
     createPackDownloads({ store: packStore, getSettings }),
-    () => browser.i18n.getUILanguage(),
   );
+
+  const setupUrl = browser.runtime.getURL("/welcome.html");
+  const setup = createSetup({
+    pageUrl: setupUrl,
+    tab: createSetupTab({
+      pageUrl: setupUrl,
+      tabs: browser.tabs,
+      focusWindow: (id) => browser.windows.update(id, { focused: true }),
+      session: {
+        get: async () =>
+          (await browser.storage.session.get(SETUP_TAB_KEY))[SETUP_TAB_KEY],
+        set: (value) => browser.storage.session.set({ [SETUP_TAB_KEY]: value }),
+      },
+      ...(browser.action.openPopup && {
+        openPopup: (options) => browser.action.openPopup(options),
+      }),
+    }),
+    ranBefore: async () => (await db.packVersions.count()) > 0,
+  });
+  setup.openOnInstall();
 
   const handle = createHandlers({
     store,
@@ -107,29 +127,36 @@ export default defineBackground(() => {
     openOptionsPage: () => browser.runtime.openOptionsPage(),
   });
 
+  const answer = setup.guard(handle);
+
   // Registered synchronously so a message that wakes the worker is not missed.
   // Answering through sendResponse (and returning true) works in every browser;
   // returning a Promise does not in all Chromium versions.
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (import.meta.env.MODE === "check" && isCheckLogMessage(message)) return;
-    void handle(message, sender).then(sendResponse);
+    void answer(message, sender).then(sendResponse);
     return true;
   });
 
   // Registered synchronously too, so a change that wakes the worker is heard.
   forgetNeverRunOnHosts(history);
 
-  // Gray while Langle is switched off (the popup header's switch).
+  // Gray while Langle is switched off (the popup header's switch) or not set up.
   followToolbarIcon({
     setIcon: (path) => browser.action.setIcon({ path }),
     getSettings,
+    getSetupStage,
+    watchSetupStage,
     watchSettings,
     onStartup: browser.runtime.onStartup,
   });
 
-  sync.start().catch((error: unknown) => console.error(error));
-  // Registers its alarm listener synchronously, so the alarm that woke the worker is heard.
-  cloud.start().catch((error: unknown) => console.error(error));
+  // Both read what changed while they did not run when they start, so an event that
+  // came before they listen is not lost; the worker is woken by the listeners above.
+  whenSetUp(() => {
+    sync.start().catch((error: unknown) => console.error(error));
+    cloud.start().catch((error: unknown) => console.error(error));
+  });
 
   // `npm run build:check` only: reload when a new build is copied in. The mode is a
   // constant at build time, so other builds leave this (and self-reload.ts) out.
@@ -137,17 +164,16 @@ export default defineBackground(() => {
     watchBuild().catch((error: unknown) => console.error(error));
 });
 
+/** `storage.session`: the setup's tab and the one to go back to. */
+const SETUP_TAB_KEY = "setupTab";
+
 /**
  * The cloud providers this build can connect to. Google Drive needs the build's Google
  * clients: production has none until the store item's client is registered, so nothing
- * can connect there yet. The mode is a constant at build time, so production builds
- * leave the development clients out.
+ * can connect there yet.
  */
 function cloudProviders(): Partial<Record<CloudProviderId, CloudProvider>> {
-  const google =
-    import.meta.env.MODE === "production"
-      ? PRODUCTION_GOOGLE_CLIENTS
-      : DEVELOPMENT_GOOGLE_CLIENTS;
+  const google = googleClients();
   if (!google) return {};
   return {
     googleDrive: {

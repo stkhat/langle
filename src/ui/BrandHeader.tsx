@@ -20,6 +20,8 @@ export function BrandHeader(props: {
   /** The title is the page's `<h1>`. */
   heading?: boolean;
   stacked?: boolean;
+  /** The mark as the toolbar's off icon is (the popup before the setup ends). */
+  gray?: boolean;
 }) {
   const size = SIZES[props.size];
   const Title = props.heading ? "h1" : "span";
@@ -36,7 +38,7 @@ export function BrandHeader(props: {
     );
   return (
     <>
-      <LangleMark size={size.mark} />
+      <LangleMark size={size.mark} gray={props.gray} />
       {props.stacked ? (
         <span
           style={{

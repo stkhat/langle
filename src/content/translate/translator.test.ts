@@ -4,6 +4,7 @@ import {
   createBuiltInTranslator,
   downloadModelsOnFirstActivation,
   downloadTranslationModels,
+  startTranslationModels,
   type ModelDownload,
   type TranslatorGlobal,
 } from "./translator";
@@ -190,6 +191,22 @@ describe("downloadTranslationModels", () => {
     const { g, created } = recording(() => "downloadable");
     await downloadTranslationModels("es", "ja", g);
     expect(created).toEqual(["en>ja", "es>ja"]);
+  });
+
+  it("says when the downloads were asked for, without waiting for them", async () => {
+    const { g, created } = recording(() => "downloadable");
+    let finish = () => {};
+    const downloading = new Promise<void>((resolve) => (finish = resolve));
+    const create = g.Translator!.create;
+    g.Translator!.create = async (options) => {
+      const translator = create(options);
+      await downloading;
+      return translator;
+    };
+    const { downloaded } = await startTranslationModels("es", "ja", g);
+    expect(created).toEqual(["en>ja", "es>ja"]);
+    finish();
+    await downloaded;
   });
 
   it("starts one download when the learning language is English", async () => {

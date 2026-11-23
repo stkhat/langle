@@ -1,8 +1,16 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import en from "../../../core/subtitles/fixtures/youtube/en.json3?raw";
 import enTlangJa from "../../../core/subtitles/fixtures/youtube/en-tlang-ja.json3?raw";
 import { installYouTubeHooks } from "./page";
-import { isReplyMessage } from "../page-channel";
+import { isReplyMessage, tellPage } from "../page-channel";
 import {
   CHANNEL,
   isTimedtextMessage,
@@ -20,6 +28,7 @@ const TRACK = `/api/timedtext?v=${VIDEO_ID}&lang=en&pot=TOKEN&fmt=json3`;
 let uninstall: () => void;
 beforeAll(() => {
   uninstall = installYouTubeHooks();
+  tellPage(CHANNEL, "on");
 });
 afterAll(() => uninstall());
 
@@ -95,6 +104,44 @@ describe("observing /api/timedtext", () => {
   it("ignores other requests", async () => {
     await xhr("/api/other?lang=en");
     await fetch("/api/timedtextual?lang=en");
+    await flush();
+    expect(posted).toEqual([]);
+  });
+});
+
+describe("before Langle is set up", () => {
+  const reinstall = () => {
+    uninstall();
+    uninstall = installYouTubeHooks();
+  };
+  afterEach(async () => {
+    tellPage(CHANNEL, "on");
+    await flush();
+  });
+
+  it("holds the responses unread until it is on", async () => {
+    await flush();
+    reinstall();
+    await xhr(TRACK);
+    const read = vi.spyOn(Response.prototype, "text");
+    const response = await fetch(TRACK);
+    await flush();
+    expect(read).not.toHaveBeenCalled();
+    expect(posted).toEqual([]);
+    tellPage(CHANNEL, "on");
+    await expect.poll(() => posted.map((m) => m.body)).toEqual([en, en]);
+    read.mockRestore();
+    expect(await response.text()).toBe(en);
+  });
+
+  it("posts nothing of what came while the setup was waited for", async () => {
+    await flush();
+    reinstall();
+    tellPage(CHANNEL, "wait");
+    await flush();
+    await xhr(TRACK);
+    await (await fetch(TRACK)).text();
+    tellPage(CHANNEL, "on");
     await flush();
     expect(posted).toEqual([]);
   });

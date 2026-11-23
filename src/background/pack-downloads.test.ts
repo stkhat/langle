@@ -17,6 +17,7 @@ import {
   startPackDownloads,
   type PackDownloads,
 } from "./pack-downloads";
+import { agreed, chosen, SETUP_KEY } from "../core/setup";
 import type { EnsureResult, PackStore } from "./pack-store";
 import { getSettings, setSettings } from "./settings-store";
 
@@ -130,12 +131,14 @@ describe("pack downloads", () => {
 });
 
 describe("startPackDownloads", () => {
-  /** Starts with a Japanese browser UI. */
-  const start = (d: PackDownloads) => startPackDownloads(d, () => "ja");
+  const start = (d: PackDownloads) => startPackDownloads(d);
+  const setUp = () =>
+    browser.storage.local.set({ [SETUP_KEY]: chosen(agreed(undefined)) });
 
-  // Settings are stored: every start but that of a new install ("on a new install").
+  // The device is set up: every start but that of a first run ("until it is set up").
   beforeEach(async () => {
     await setSettings({});
+    await setUp();
   });
 
   const alarm = (name: string) => ({
@@ -159,7 +162,7 @@ describe("startPackDownloads", () => {
     await vi.waitFor(() => expect(ensurePair).toHaveBeenCalledTimes(2));
 
     await fakeBrowser.alarms.onAlarm.trigger(alarm(PACKS_RETRY_ALARM));
-    expect(ensurePair).toHaveBeenCalledTimes(3);
+    await vi.waitFor(() => expect(ensurePair).toHaveBeenCalledTimes(3));
     await fakeBrowser.alarms.onAlarm.trigger(alarm("something-else"));
     expect(ensurePair).toHaveBeenCalledTimes(3);
 
@@ -192,7 +195,7 @@ describe("startPackDownloads", () => {
     expect(fake.retryPending).toHaveBeenCalledTimes(1);
 
     await fakeBrowser.alarms.onAlarm.trigger(alarm(PACKS_RETRY_ALARM));
-    expect(ensurePair).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(ensurePair).toHaveBeenCalledTimes(1));
     retry();
     expect(ensurePair).toHaveBeenCalledTimes(2);
     await fakeBrowser.runtime.onInstalled.trigger({
@@ -221,12 +224,14 @@ describe("startPackDownloads", () => {
 
     fakeBrowser.reset();
     await setSettings({});
+    await setUp();
     await browser.storage.local.set({ [PACKS_RETRY_FAILURES_KEY]: 3 });
     await start(fake).started;
     expect(ensurePair).toHaveBeenCalledTimes(2);
 
     fakeBrowser.reset();
     await setSettings({});
+    await setUp();
     await retryScheduled(0);
     await start(fake).started;
     expect(ensurePair).toHaveBeenCalledTimes(3);
@@ -239,68 +244,44 @@ describe("startPackDownloads", () => {
     await vi.waitFor(() => expect(error).toHaveBeenCalledTimes(1));
   });
 
-  describe("on a new install", () => {
+  describe("until it is set up", () => {
     beforeEach(async () => {
+      await browser.storage.local.clear();
       await browser.storage.sync.clear();
     });
 
-    const install = () =>
-      fakeBrowser.runtime.onInstalled.trigger({ reason: "install" });
+    /** Lets a trigger that should do nothing have its time. */
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 10));
 
-    it("downloads nothing at start, then stores the UI language's pair and downloads only its packs", async () => {
-      const { started } = startPackDownloads(downloads, () => "es-419");
-      await started;
+    it("downloads nothing on a new install, whatever its language", async () => {
+      await start(downloads).started;
+      await fakeBrowser.runtime.onInstalled.trigger({ reason: "install" });
+      await settle();
       expect(ensure).not.toHaveBeenCalled();
+      expect(await browser.storage.sync.get()).toEqual({});
+    });
 
-      await install();
+    it("downloads nothing on an update, the retry alarm or a synced pair", async () => {
+      await browser.storage.local.set({ [SETUP_KEY]: agreed(undefined) });
+      await start(downloads).started;
+      await fakeBrowser.runtime.onInstalled.trigger({
+        reason: "update",
+        previousVersion: "0.0.9",
+      });
+      await fakeBrowser.alarms.onAlarm.trigger(alarm(PACKS_RETRY_ALARM));
+      await setSettings({ learningLang: "es", nativeLang: "en" });
+      await settle();
+      expect(ensure).not.toHaveBeenCalled();
+    });
+
+    it("downloads the chosen pair, and only it, once the setup ends", async () => {
+      await start(downloads).started;
+      await setSettings({ learningLang: "en", nativeLang: "es" });
+      await setUp();
       await vi.waitFor(() =>
         expect(ensure).toHaveBeenCalledWith(["en", "en-es", "en-defs"]),
       );
-      const { learningLang, nativeLang } = await getSettings();
-      expect([learningLang, nativeLang]).toEqual(["en", "es"]);
       expect(ensure.mock.calls.flat(2)).not.toContain("en-ja");
-    });
-
-    it("downloads English → Japanese for a Japanese UI, Spanish → English for an English one", async () => {
-      startPackDownloads(downloads, () => "ja");
-      await install();
-      await vi.waitFor(() =>
-        expect(ensure).toHaveBeenCalledWith(["en", "en-ja", "en-defs"]),
-      );
-
-      fakeBrowser.reset();
-      ensure.mockClear();
-      startPackDownloads(downloads, () => "en-US");
-      await install();
-      await vi.waitFor(() =>
-        expect(ensure).toHaveBeenCalledWith(["es", "es-en"]),
-      );
-      expect(ensure.mock.calls.flat(2)).not.toContain("en-ja");
-    });
-
-    it("keeps settings browser sync brought from another device", async () => {
-      await browser.storage.sync.set({
-        settings: { learningLang: "en", nativeLang: "pt" },
-      });
-      startPackDownloads(downloads, () => "ja");
-      await install();
-      await vi.waitFor(() =>
-        expect(ensure).toHaveBeenCalledWith(["en", "en-pt", "en-defs"]),
-      );
-      expect(ensure.mock.calls.flat(2)).not.toContain("en-ja");
-    });
-
-    it("downloads the pair even when it cannot be stored", async () => {
-      const error = vi.spyOn(console, "error").mockImplementation(() => {});
-      vi.spyOn(browser.storage.sync, "set").mockRejectedValue(
-        new Error("quota"),
-      );
-      startPackDownloads(downloads, () => "es");
-      await install();
-      await vi.waitFor(() =>
-        expect(ensure).toHaveBeenCalledWith(["en", "en-ja", "en-defs"]),
-      );
-      expect(error).toHaveBeenCalledTimes(1);
     });
   });
 });

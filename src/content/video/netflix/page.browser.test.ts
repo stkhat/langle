@@ -9,7 +9,7 @@ import {
 } from "vitest";
 import enImsc from "../../../core/subtitles/fixtures/netflix/en.imsc.ttml?raw";
 import { readManifest } from "./manifest";
-import { isReplyMessage } from "../page-channel";
+import { isReplyMessage, tellPage } from "../page-channel";
 import {
   CHANNEL,
   isTracksMessage,
@@ -42,8 +42,45 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 50));
 let uninstall: () => void;
 beforeEach(() => {
   uninstall = installNetflixHooks();
+  tellPage(CHANNEL, "on");
 });
 afterEach(() => uninstall());
+
+describe("before Langle is set up", () => {
+  beforeEach(async () => {
+    uninstall();
+    await flush();
+    uninstall = installNetflixHooks();
+  });
+
+  it("neither reads nor posts what the page parsed, until it is on", async () => {
+    const text = testManifest();
+    let reads = 0;
+    const watched = new Proxy(JSON.parse(text) as object, {
+      get(target, key) {
+        reads++;
+        return Reflect.get(target, key) as unknown;
+      },
+    });
+    JSON.parse("{}", () => watched);
+    await flush();
+    expect(reads).toBe(0);
+    expect(posted).toEqual([]);
+    tellPage(CHANNEL, "on");
+    await expect.poll(() => posted.length).toBeGreaterThan(0);
+    expect(reads).toBeGreaterThan(0);
+  });
+
+  it("drops it while the setup is waited for", async () => {
+    JSON.parse(testManifest());
+    tellPage(CHANNEL, "wait");
+    await flush();
+    JSON.parse(testManifest());
+    tellPage(CHANNEL, "on");
+    await flush();
+    expect(posted).toEqual([]);
+  });
+});
 
 describe("reading manifests from JSON.parse", () => {
   it("posts the tracks of a parsed manifest and returns the result unchanged", async () => {
@@ -83,6 +120,7 @@ describe("reading manifests from JSON.parse", () => {
     expect(JSON.parse).not.toBe(wrapped);
     JSON.parse(testManifest());
     uninstall = installNetflixHooks();
+    tellPage(CHANNEL, "on");
   });
 });
 

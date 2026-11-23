@@ -3,7 +3,7 @@ import { packsFor, translationPair } from "../core/packs/pairs";
 import { promiseCache } from "../core/util";
 import type { Settings } from "../core/settings";
 import type { EnsureResult, PackStore } from "./pack-store";
-import { settingsStored, storeStartingPair } from "./settings-store";
+import { getSetupStage, watchSetupStage } from "../messaging/setup";
 import { watchSettings } from "../messaging/storage";
 
 /** The alarm that tries the chosen pair's downloads again after a failure. */
@@ -122,21 +122,18 @@ export interface PackDownloadTriggers {
 
 /**
  * Brings the chosen pair's packs to their lock version when the service worker starts
- * (a download it stopped carries on), unless no settings are stored or a retry is
- * scheduled after failures. With no settings stored the extension was just installed:
- * `onInstalled` first stores the pair to start with (`storeStartingPair`, from
- * `uiLanguage()` on a new install), then downloads it, so a new install fetches only
- * the packs of its own pair. With a retry scheduled the alarm tries again, so that
- * waking the worker does not undo the backoff, and the packs not there yet show as
- * failed meanwhile (`retryPending`). Then on each trigger, at once: the extension was
- * installed or updated (the lock may have changed), the retry alarm fired, the synced
- * settings name another pair (chosen here or on another device), or `retry`
- * (`retryPacks`). Listeners are registered synchronously so an event that wakes the
- * worker is heard.
+ * (a download it stopped carries on), unless a retry is scheduled after failures. With
+ * a retry scheduled the alarm tries again, so that waking the worker does not undo the
+ * backoff, and the packs not there yet show as failed meanwhile (`retryPending`). Then
+ * on each trigger, at once: the setup ended, the extension was installed or updated
+ * (the lock may have changed), the retry alarm fired, the synced settings name another
+ * pair (chosen here or on another device), or `retry` (`retryPacks`). Nothing is
+ * downloaded until this device is set up, so a new install fetches only the packs of
+ * the pair chosen then. Listeners are registered synchronously so an event that wakes
+ * the worker is heard.
  */
 export function startPackDownloads(
   downloads: PackDownloads,
-  uiLanguage: () => string,
 ): PackDownloadTriggers {
   const trigger = () => {
     downloads
@@ -145,34 +142,42 @@ export function startPackDownloads(
         console.error("Langle: could not download the language data", error),
       );
   };
+  const isSetUp = () =>
+    getSetupStage().then(
+      (stage) => stage === "ready",
+      (error: unknown) => {
+        console.error("Langle: could not read the setup", error);
+        return false;
+      },
+    );
+  const triggerIfSetUp = () => {
+    void isSetUp().then((ready) => {
+      if (ready) trigger();
+    });
+  };
   browser.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === PACKS_RETRY_ALARM) trigger();
+    if (alarm.name === PACKS_RETRY_ALARM) triggerIfSetUp();
   });
-  browser.runtime.onInstalled.addListener(({ reason }) => {
-    void storeStartingPair(reason, uiLanguage())
-      .catch((error: unknown) =>
-        console.error("Langle: could not store the language pair", error),
-      )
-      .then(trigger);
+  browser.runtime.onInstalled.addListener(triggerIfSetUp);
+  watchSetupStage((stage) => {
+    if (stage === "ready") trigger();
   });
   watchSettings((settings, previous) => {
     if (
       settings.learningLang !== previous.learningLang ||
       settings.nativeLang !== previous.nativeLang
     )
-      trigger();
+      triggerIfSetUp();
   });
-  const started = Promise.all([settingsStored(), retryScheduled()])
+  const started = isSetUp().then(async (ready) => {
+    if (!ready) return;
     // Not knowing, try now.
-    .catch((): [boolean, boolean] => [true, false])
-    .then(async ([stored, scheduled]) => {
-      if (!stored) return;
-      if (!scheduled) return trigger();
-      try {
-        await downloads.retryPending();
-      } catch (error) {
-        console.error("Langle: could not write the language data state", error);
-      }
-    });
+    if (!(await retryScheduled().catch(() => false))) return trigger();
+    try {
+      await downloads.retryPending();
+    } catch (error) {
+      console.error("Langle: could not write the language data state", error);
+    }
+  });
   return { retry: trigger, started };
 }

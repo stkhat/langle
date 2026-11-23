@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  firstPair,
+  learnableFrom,
+  learningFor,
   learningLanguages,
   nativeLanguages,
   speechLang,
+  spokenLanguages,
+  suggestedPair,
 } from "./languages";
 
 describe("learningLanguages", () => {
@@ -43,50 +46,73 @@ describe("speechLang", () => {
   });
 });
 
-describe("firstPair", () => {
-  const pair = (learningLang: string, nativeLang: string) => ({
-    learningLang,
-    nativeLang,
+describe("the languages screen's choices", () => {
+  const offered = {
+    en: ["ja", "fr"],
+    es: ["en"],
+    fr: ["en"],
+    de: ["en", "fr"],
+    it: ["nl"],
+  };
+
+  it("offers every native language of a pair once", () => {
+    expect([...spokenLanguages(offered)].sort()).toEqual([
+      "en",
+      "fr",
+      "ja",
+      "nl",
+    ]);
   });
 
-  it("takes the UI language for the native language of an offered pair, learning English first", () => {
-    expect(firstPair("ja")).toEqual(pair("en", "ja"));
-    expect(firstPair("es-419")).toEqual(pair("en", "es"));
-    expect(firstPair("pt-BR")).toEqual(pair("en", "pt"));
-    expect(firstPair("pt_PT")).toEqual(pair("en", "pt"));
-    // Chinese is offered in simplified characters, to every Chinese UI.
-    expect(firstPair("zh-CN")).toEqual(pair("en", "zh"));
-    expect(firstPair("zh-TW")).toEqual(pair("en", "zh"));
-    expect(firstPair("pl")).toEqual(pair("en", "pl"));
-    expect(firstPair("th-TH")).toEqual(pair("en", "th"));
-    expect(firstPair("hi-IN")).toEqual(pair("en", "hi"));
-    expect(firstPair("ar-EG")).toEqual(pair("en", "ar"));
-    expect(firstPair("id-ID")).toEqual(pair("en", "id"));
-    expect(firstPair("tr-TR")).toEqual(pair("en", "tr"));
-    expect(firstPair("ko-KR")).toEqual(pair("en", "ko"));
-    // English is the default learning language, before French → English.
-    expect(firstPair("fr-FR")).toEqual(pair("en", "fr"));
-    // …and before German → English.
-    expect(firstPair("de-DE")).toEqual(pair("en", "de"));
+  it("offers only what can be learned from that language, in the usual order", () => {
+    expect(learnableFrom("en", offered)).toEqual(["es", "fr", "de"]);
+    expect(learnableFrom("fr", offered)).toEqual(["en", "de"]);
+    expect(learnableFrom("", offered)).toEqual([]);
   });
 
-  it("gives an English UI another learning language that has English as its native one, the first in the packs' order", () => {
-    expect(firstPair("en-US")).toEqual(pair("es", "en"));
-    expect(firstPair("en-GB")).toEqual(pair("es", "en"));
+  it.each([
+    ["ja", "en", "ja"],
+    ["ja-JP", "en", "ja"],
+    ["fr-CA", "en", "fr"],
+    ["nl", "it", "nl"],
+  ])("fills in a %s browser with %s → %s", (ui, learning, native) => {
+    expect(suggestedPair(ui, undefined, offered)).toEqual({
+      learningLang: learning,
+      nativeLang: native,
+    });
   });
 
-  it("gives the default pair to a UI language no offered pair has", () => {
-    for (const ui of ["nl", "sv", "", "constructor"])
-      expect(firstPair(ui)).toEqual(pair("en", "ja"));
+  it("leaves the language to learn open for an English browser", () => {
+    expect(suggestedPair("en-US", undefined, offered)).toEqual({
+      learningLang: "",
+      nativeLang: "en",
+    });
   });
 
-  it("is a rule over the offered pairs, not a list of languages", () => {
-    const offered = { de: ["fr", "en"], en: ["fr"], it: ["en"] };
-    // The default learning language (English) comes before the others, which keep
-    // their order.
-    expect(firstPair("fr-CA", offered)).toEqual(pair("en", "fr"));
-    expect(firstPair("en", offered)).toEqual(pair("de", "en"));
-    expect(firstPair("ja", offered)).toEqual(pair("en", "ja"));
-    expect(firstPair("ja", { es: ["ja"] })).toEqual(pair("es", "ja"));
+  it("guesses nothing for a language that is not offered", () => {
+    expect(suggestedPair("sw", undefined, offered)).toEqual({
+      learningLang: "",
+      nativeLang: "",
+    });
+  });
+
+  it("puts a stored pair before the browser's language", () => {
+    const stored = { learningLang: "de", nativeLang: "fr" };
+    expect(suggestedPair("ja", stored, offered)).toEqual(stored);
+  });
+
+  it("falls back to the browser's language for a pair no longer offered", () => {
+    const stored = { learningLang: "ko", nativeLang: "ja" };
+    expect(suggestedPair("fr", stored, offered)).toEqual({
+      learningLang: "en",
+      nativeLang: "fr",
+    });
+  });
+
+  it("keeps the learning language when the new native language has it", () => {
+    expect(learningFor("fr", "de", offered)).toBe("de");
+    expect(learningFor("ja", "de", offered)).toBe("en");
+    expect(learningFor("en", "en", offered)).toBe("");
+    expect(learningFor("nl", "", offered)).toBe("it");
   });
 });
