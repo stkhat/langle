@@ -12,7 +12,7 @@ import type { SupportLinks } from "../../core/links";
 import { mergeSettings, type Settings } from "../../core/settings";
 import type { PageRequest, PageSummary } from "../../messaging/page-protocol";
 import { Popup, type PopupDeps } from "./Popup";
-import { listeners, settingsListeners } from "../../testing/stubs";
+import { heldWrites, listeners, settingsListeners } from "../../testing/stubs";
 
 const NOW = Date.UTC(2026, 10, 10, 12, 0, 0);
 const MINUTE = 60_000;
@@ -207,6 +207,26 @@ describe("Popup", () => {
     await expect
       .element(screen.getByRole("button", { name: "New" }))
       .toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("keeps the last change while the one before it is stored", async () => {
+    const f = fake();
+    const writes = heldWrites(f.deps.send);
+    const screen = await render(
+      <Popup deps={{ ...f.deps, send: writes.send }} />,
+    );
+    const chip = screen.getByRole("button", { name: "New" });
+    await expect.element(chip).toHaveAttribute("aria-pressed", "false");
+    await chip.click();
+    await expect.element(chip).toHaveAttribute("aria-pressed", "true");
+    await chip.click();
+    await expect.element(chip).toHaveAttribute("aria-pressed", "false");
+
+    await writes.storeNext();
+    expect(chip.element().getAttribute("aria-pressed")).toBe("false");
+    await writes.storeNext();
+    expect(chip.element().getAttribute("aria-pressed")).toBe("false");
+    expect(f.settings().highlight.new).toBe(false);
   });
 
   it("shows the language pair and counts the words of the learning language", async () => {
