@@ -109,7 +109,7 @@ Page
 
 - The router, the key-value store, the extension host, tab bookkeeping and the app's screens depend only on this interface.
 - `run_at: document_idle` scripts are injected at document end.
-- **Losing the renderer** (Android: every WebView in the process shares it): the app creates the extension host again first, then reloads the pages, as a browser restores a crashed tab. Calls that were waiting fail with "Receiving end does not exist", and the client sends the repeatable ones again.
+- **Losing the renderer**: the app creates the extension host again first, then reloads the pages, as a browser restores a crashed tab. Calls that were waiting fail with "Receiving end does not exist", and the client sends the repeatable ones again. On Android renderers are per profile, not per process ([notes/mobile.md](../notes/mobile.md) "Android extension host spike (S2)"): when the "langle" profile's renderer is lost, the app creates the host again first, then the app pages; when a browsing page's renderer is lost, only that page is created again and reloaded.
 - **iOS**: the hidden extension host is kept in the view hierarchy (invisible, zero size), so WebKit does not suspend it while the app is on screen. Whether that is needed is spike S1 below.
 
 ## Failures
