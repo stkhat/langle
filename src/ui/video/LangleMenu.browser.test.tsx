@@ -132,6 +132,27 @@ describe("LangleMenu", () => {
     await expect.element(sw).toHaveAttribute("aria-checked", "false");
   });
 
+  test("the pause after each sentence switch, none over a Short", async () => {
+    const onTogglePauseEach = vi.fn();
+    const screen = await mountInShadowRoot(
+      <LangleMenu
+        {...base}
+        pauseEachSentence={false}
+        onTogglePauseEach={onTogglePauseEach}
+      />,
+    );
+    const sw = screen.getByRole("switch", {
+      name: "Pause after each sentence",
+    });
+    await expect.element(sw).toHaveAttribute("aria-checked", "false");
+    await sw.click();
+    expect(onTogglePauseEach).toHaveBeenCalledTimes(1);
+    await screen.rerender(
+      <LangleMenu {...base} pauseEachSentence={undefined} />,
+    );
+    expect(screen.container.textContent).not.toContain("Pause after");
+  });
+
   test("over a Short: no transcript switch", async () => {
     const screen = await mountInShadowRoot(
       <LangleMenu

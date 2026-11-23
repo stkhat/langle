@@ -1,6 +1,7 @@
 import { t } from "../../../i18n/t";
 import { color } from "../../../ui/styles";
 import { Section, SwitchRow, type SectionProps } from "../rows";
+import { StepKeysRow } from "./StepKeysRow";
 
 const POSITIONS = [
   {
@@ -123,6 +124,10 @@ export function VideoSection(props: SectionProps) {
         onToggle={() =>
           props.change({ transcriptTranslation: !s.transcriptTranslation })
         }
+      />
+      <StepKeysRow
+        keys={s.stepKeys}
+        onChange={(stepKeys) => props.change({ stepKeys })}
       />
     </Section>
   );

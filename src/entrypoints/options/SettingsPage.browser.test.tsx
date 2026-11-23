@@ -711,6 +711,49 @@ describe("SettingsPage", () => {
       .toBeVisible();
   });
 
+  it("changes a step key to the next key pressed, swapping with the action that had it", async () => {
+    const f = await open();
+    const replay = f.screen.getByRole("button", {
+      name: "Replay sentence key: S",
+    });
+    await replay.click();
+    await expect.element(replay).toHaveTextContent("Press a key");
+    await userEvent.keyboard("r");
+    await expect
+      .element(f.screen.getByRole("button", { name: "Replay sentence key: R" }))
+      .toBeVisible();
+    expect(f.settings().stepKeys).toMatchObject({ replay: "r" });
+    const next = f.screen.getByRole("button", { name: "Next sentence key: D" });
+    await next.click();
+    await userEvent.keyboard("a");
+    await expect
+      .element(
+        f.screen.getByRole("button", { name: "Previous sentence key: D" }),
+      )
+      .toBeVisible();
+    expect(f.settings().stepKeys).toEqual({
+      on: true,
+      previous: "d",
+      replay: "r",
+      next: "a",
+    });
+  });
+
+  it("keeps a step key on Escape, and turns the keys off", async () => {
+    const f = await open();
+    const previous = f.screen.getByRole("button", {
+      name: "Previous sentence key: A",
+    });
+    await previous.click();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(previous).toHaveTextContent("A");
+    const keys = f.screen.getByRole("switch", { name: "Keyboard shortcuts" });
+    await keys.click();
+    await expect.element(keys).toHaveAttribute("aria-checked", "false");
+    await expect.element(previous).toBeDisabled();
+    expect(f.settings().stepKeys.on).toBe(false);
+  });
+
   it("turns dictionaries off and on", async () => {
     const f = await open();
     const reverso = f.screen.getByRole("checkbox", { name: "Reverso Context" });
