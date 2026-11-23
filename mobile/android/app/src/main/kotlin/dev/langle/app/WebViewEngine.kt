@@ -246,6 +246,10 @@ private class WebViewPage(
   }
 
   private inner class Chrome : WebChromeClient() {
+    override fun onCloseWindow(window: WebView) {
+      if (window === web) delegate.onClose(this@WebViewPage)
+    }
+
     override fun onConsoleMessage(message: ConsoleMessage): Boolean {
       val text = message.message()
       if (text.startsWith(EVAL_PREFIX)) {

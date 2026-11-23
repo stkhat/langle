@@ -82,6 +82,9 @@ interface PageDelegate {
   /** An app page followed a link off the app origin. */
   fun onLeaveApp(page: Page, url: String)
 
+  /** The page's script closed it (`window.close()`, as the popup does after opening a page). */
+  fun onClose(page: Page)
+
   /** The page's renderer is gone (memory pressure, a crash); the page waits for [Page.recreate]. */
   fun onProcessGone(page: Page)
 }

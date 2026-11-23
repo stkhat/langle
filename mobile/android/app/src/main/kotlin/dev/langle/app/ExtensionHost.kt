@@ -29,6 +29,7 @@ class ContextPage(
   var onDocument: ((url: String) -> Unit)? = null
   var onNavigate: ((url: String) -> Unit)? = null
   var onLeaveApp: ((url: String) -> Unit)? = null
+  var onClose: (() -> Unit)? = null
   var onProcessGone: (() -> Unit)? = null
 
   /** The renderer is gone, and the page waits to be created again. */
@@ -73,6 +74,10 @@ class ContextPage(
 
   override fun onLeaveApp(page: Page, url: String) {
     onLeaveApp?.invoke(url)
+  }
+
+  override fun onClose(page: Page) {
+    onClose?.invoke()
   }
 
   override fun onProcessGone(page: Page) {
