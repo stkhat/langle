@@ -85,6 +85,8 @@ Only what Langle calls (counted 2026-11-24). Anything else is left `undefined`, 
 | `storage.local`, `storage.sync`, `storage.session`, `onChanged` | native key-value store. `sync` is stored but never synced, which is what signed-out Chrome does: the UI already says "Saved". `session` lives in memory and is cleared when the process starts |
 | `tabs.query`, `get`, `sendMessage`, `create`, `update`, `remove`, `reload` | tabs are the app's pages. `active` is the page on screen. `create` with an app-origin URL opens the matching screen (welcome → first run, wordlist → Words) |
 | `windows.update` | does nothing (one window) |
+| `i18n.getUILanguage` | the web view's language (`navigator.language`, the phone's); the first run reads it |
+| `i18n.detectLanguage` | always unsure (`isReliable: false`): the web views have no detector. Articles then run only where `<html lang>` names the learning language, and every block counts as that language |
 | `action.setIcon` | does nothing. `action.openPopup` opens the Langle sheet |
 | `alarms` | native timers while the app runs. They are not kept across restarts: pack downloads resume at start anyway |
 | `identity` | left out until own-cloud sync is built for the app (its own design: Google needs the app's OAuth clients and the system sign-in sheet). Until then the app offers no cloud provider |

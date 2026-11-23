@@ -12,3 +12,6 @@ data/publish
 
 # macOS Finder metadata
 .DS_Store
+
+# A crash dump (Firefox OOM in verify) at the root only; mobile/android/core is source.
+/core

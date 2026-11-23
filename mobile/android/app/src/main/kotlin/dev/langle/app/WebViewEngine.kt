@@ -110,6 +110,14 @@ private class WebViewPage(
     if (langle && profile == PageProfile.APP) WebViewCompat.setProfile(web, WebViewEngine.APP_PROFILE)
     web.settings.javaScriptEnabled = true
     web.settings.domStorageEnabled = true
+    if (profile == PageProfile.BROWSING) {
+      // As a phone browser does: a page without a viewport meta is laid out at desktop
+      // width and shown zoomed out to fit; pinch zoom works without the zoom buttons.
+      web.settings.useWideViewPort = true
+      web.settings.loadWithOverviewMode = true
+      web.settings.builtInZoomControls = true
+      web.settings.displayZoomControls = false
+    }
     web.webViewClient = Client()
     web.webChromeClient = Chrome()
     if (langle) {

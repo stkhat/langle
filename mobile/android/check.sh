@@ -7,7 +7,7 @@
 #   check.sh launch [url]           restarts the app (clears logcat), opening <url>
 #   check.sh reset                  clears the app's data: the next launch is a first run
 #   check.sh cmd <name>             errors | clear-errors | state, and prints the result
-#   check.sh eval <target> <js>     runs <js> (an async function body) in host | page | langle |
+#   check.sh js <target> <js>       runs <js> (an async function body) in host | page | langle |
 #                                   sheet, and prints what it returns
 #   check.sh log                    the app's log lines so far (check results, console errors and
 #                                   warnings, bridge errors, the shell's own lines)
@@ -15,8 +15,9 @@
 #   check.sh screenshot <file.png>  saves a screenshot of the emulator
 #
 # Commands reach the debug build as launch intents (CheckCommands.kt); results are logcat lines
-# with the tag LangleCheck. The E2E server (`node e2e/serve.ts`) is http://10.0.2.2:4719 from the
-# emulator, e.g. `check.sh launch http://10.0.2.2:4719/article-en.html`.
+# with the tag LangleCheck. `launch` forwards the E2E server's port (`node e2e/serve.ts`) to the
+# emulator, e.g. `check.sh launch http://localhost:4719/article-en.html` (10.0.2.2 does not reach
+# it). A cold start shows the article's highlights after about 20 s on the emulator.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -45,6 +46,10 @@ install)
   ;;
 launch)
   adb shell am force-stop "$pkg"
+  # A start while the old process is still dying is cancelled by the system.
+  sleep 1
+  while adb shell ps -A -o NAME | grep -q "^$pkg\$"; do sleep 1; done
+  adb reverse tcp:4719 tcp:4719 >/dev/null
   adb logcat -c
   if [ -n "${2:-}" ]; then
     adb shell am start -n "$activity" --es url "'$2'" >/dev/null
@@ -61,9 +66,9 @@ cmd)
   adb shell am start -n "$activity" --es check "$name" >/dev/null
   result "$name"
   ;;
-eval)
-  target="${2:?usage: check.sh eval <target> <js>}"
-  source=$(printf %s "${3:?usage: check.sh eval <target> <js>}" | base64 | tr -d '\n')
+js)
+  target="${2:?usage: check.sh js <target> <js>}"
+  source=$(printf %s "${3:?usage: check.sh js <target> <js>}" | base64 | tr -d '\n')
   adb logcat -c
   adb shell am start -n "$activity" --es check eval --es target "$target" --es source64 "$source" >/dev/null
   result eval
