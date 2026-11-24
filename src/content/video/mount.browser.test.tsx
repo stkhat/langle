@@ -15,6 +15,7 @@ import {
 } from "../../testing/youtube-page";
 import type { PlatformAdapter } from "./platform";
 import { enterFullscreen } from "../../testing/fullscreen";
+import { fixedTouchMode } from "../../testing/touch";
 
 const CUES: Cue[] = [
   { startMs: 0, endMs: 1000, text: "The yeast smells tangy." },
@@ -296,6 +297,28 @@ describe("mountVideoUi", () => {
       .poll(() => text("langle-video-player"))
       .toContain("The yeast smells tangy.");
     expect(text("langle-video-below")).not.toContain("The yeast");
+  });
+
+  it("in touch mode, under a player fixed at the top, the subtitle sticks under the player", async () => {
+    const fake = fakeApp(readyState());
+    page.player.style.cssText +=
+      "position: fixed; top: 48px; left: 0; width: 390px; height: 219px;";
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: fixedTouchMode(true),
+    });
+    await expect
+      .poll(() => text("langle-video-below"))
+      .toContain("The yeast smells tangy.");
+    const below = host("langle-video-below");
+    await expect.poll(() => below.style.position).toBe("sticky");
+    expect(below.style.top).toBe("267px");
+    // Not fixed: the box scrolls with the page.
+    page.player.style.position = "relative";
+    page.player.style.top = "";
+    window.dispatchEvent(new Event("resize"));
+    await expect.poll(() => below.style.position).toBe("");
   });
 
   it("off: only the player buttons stay", async () => {

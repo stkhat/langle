@@ -16,9 +16,18 @@ export interface SubtitleOverlayProps extends TextSelectionProps {
   /**
    * Over the video (mock Main: dark boxes), in a large light box under it, or over the
    * video in fullscreen (mock Fullscreen: larger dark boxes), or over a vertical video
-   * (mock `YouTube Shorts — subtitles`: smaller dark boxes).
+   * (mock `YouTube Shorts — subtitles`: smaller dark boxes). On a phone (mock
+   * MobileYouTube, MobileYouTubeLandscape): a light band under the video, or over the
+   * video in fullscreen, smaller beside the transcript column (`phoneFullscreenNarrow`).
    */
-  variant: "inVideo" | "belowVideo" | "fullscreen" | "vertical";
+  variant:
+    | "inVideo"
+    | "belowVideo"
+    | "fullscreen"
+    | "vertical"
+    | "phoneBelow"
+    | "phoneFullscreen"
+    | "phoneFullscreenNarrow";
   text: string;
   /** The cue's spans; null until it is classified. */
   spans: readonly Span[] | null;
@@ -173,6 +182,99 @@ const LOOK = {
     },
     colors: "ui",
     outline: color.green,
+  },
+  phoneBelow: {
+    box: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "6px",
+      width: "100%",
+      minHeight: "110px",
+      padding: "14px 16px",
+      background: color.surface,
+      borderBottom: `1px solid ${color.line}`,
+      textAlign: "left",
+    },
+    line: {
+      margin: 0,
+      fontSize: "20px",
+      lineHeight: 1.45,
+      fontWeight: 500,
+    },
+    translation: {
+      margin: 0,
+      fontSize: "15px",
+      lineHeight: 1.5,
+      color: color.ink3,
+    },
+    colors: "ui",
+    outline: color.green,
+  },
+  phoneFullscreen: {
+    box: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "4px",
+      textAlign: "center",
+      pointerEvents: "none",
+    },
+    line: {
+      pointerEvents: "auto",
+      margin: 0,
+      padding: "4px 10px",
+      borderRadius: "6px",
+      background: "rgba(0,0,0,0.8)",
+      color: color.white,
+      fontSize: "22px",
+      lineHeight: 1.4,
+      fontWeight: 500,
+    },
+    translation: {
+      pointerEvents: "auto",
+      margin: 0,
+      padding: "2px 10px",
+      borderRadius: "6px",
+      background: "rgba(0,0,0,0.72)",
+      color: "#E8E9ED",
+      fontSize: "16px",
+      lineHeight: 1.5,
+    },
+    colors: "onVideo",
+    outline: "#6FE3C3",
+  },
+  phoneFullscreenNarrow: {
+    box: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "3px",
+      textAlign: "center",
+      pointerEvents: "none",
+    },
+    line: {
+      pointerEvents: "auto",
+      margin: 0,
+      padding: "4px 10px",
+      borderRadius: "6px",
+      background: "rgba(0,0,0,0.8)",
+      color: color.white,
+      fontSize: "18px",
+      lineHeight: 1.4,
+      fontWeight: 500,
+    },
+    translation: {
+      pointerEvents: "auto",
+      margin: 0,
+      padding: "2px 10px",
+      borderRadius: "6px",
+      background: "rgba(0,0,0,0.72)",
+      color: "#E8E9ED",
+      fontSize: "14px",
+      lineHeight: 1.5,
+    },
+    colors: "onVideo",
+    outline: "#6FE3C3",
   },
 } as const satisfies Record<
   SubtitleOverlayProps["variant"],
