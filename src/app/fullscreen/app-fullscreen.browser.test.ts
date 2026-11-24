@@ -159,6 +159,17 @@ describe("installAppFullscreen", () => {
     await document.exitFullscreen();
   });
 
+  it("leaves when the video shown is asked for again, as a page's own button does", async () => {
+    withoutElementFullscreen();
+    install();
+    document.body.innerHTML = `<video style="width: 320px; height: 180px"></video>`;
+    const video = document.querySelector("video")!;
+    await video.requestFullscreen();
+    await video.requestFullscreen();
+    expect(document.fullscreenElement).toBeNull();
+    expect(posted).toEqual(["on", "off"]);
+  });
+
   it("moves to another element without telling the shell again", async () => {
     withoutElementFullscreen();
     install();

@@ -33,7 +33,9 @@ export const APP_FULLSCREEN_NAMES: AppFullscreenNames = {
  * (m.youtube.com on an iPhone) then shows its player with its controls, as it does in
  * element fullscreen elsewhere. The box's ancestors lose their transforms, filters and
  * containment (which would make `position: fixed` relative to them) and stack on top,
- * as the browser's top layer would put it; the page does not scroll meanwhile.
+ * as the browser's top layer would put it; the page does not scroll meanwhile. A page that
+ * asks for its video expects the system's video player, which has its own exit; asking
+ * for the shown video again (its fullscreen button, which stays in view here) leaves.
  *
  * Installs nothing where the browser has element fullscreen, or where the shell has no
  * handler; returns whether it installed. Self-contained (it uses only `names` and the
@@ -147,7 +149,13 @@ export function installAppFullscreen(names: AppFullscreenNames): boolean {
         if (!this.isConnected) {
           return Promise.reject(new TypeError("Element is not connected"));
         }
-        if (current === this) return Promise.resolve();
+        // A video asked for again: the page's own fullscreen button, from a page that
+        // expects the system's video player and its exit (m.youtube.com on an iPhone).
+        if (current === this) {
+          return replaced.includes(this.tagName)
+            ? document.exitFullscreen()
+            : Promise.resolve();
+        }
         const was = leave();
         show(this);
         // eslint-disable-next-line @typescript-eslint/no-this-alias -- the element in fullscreen
