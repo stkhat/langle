@@ -122,6 +122,19 @@ Two throwaway apps in `mobile/prototypes/` (setup: [development.md](../developme
   - renderers ended with `terminate()`, not a real crash or a low-memory kill;
   - not checked: iframes (`setOf("*")` with frames), a real phone, memory pressure, the real `langle-app` build.
 
+## Fullscreen in the shells (M3c, 2026-11-24)
+The Langle app's shells (`mobile/android`, `mobile/ios`, check builds), signed out, on `https://m.youtube.com/watch?v=iG9CE55wbtY` (muted). `check.sh fullscreen` (`mobile/check/fullscreen.js`) was run before and after tapping YouTube's fullscreen button (`button.fullscreen-icon`, "Enter full screen"). On its first call it puts a red 48 px test element, created from Langle's world, next to the largest video (`div.html5-video-container`).
+
+| | Android (emulator `Medium_Phone_API_37.0`, WebView Dev 160.0.8171.0) | iOS (Simulator iPhone 17, iOS 27.2) |
+|---|---|---|
+| What YouTube used | **Element fullscreen**: `document.fullscreenElement` is `div#player-container-id.player-container` (914 × 411 CSS px); `onShowCustomView` fired | **Only the video's own fullscreen** (`webkitDisplayingFullscreen` true, `fullscreenElement` null), drawn by the system's player. `isElementFullscreenEnabled = true` was set, but the page still has no `Element.prototype.requestFullscreen`, `webkitRequestFullscreen` or `document.fullscreenEnabled`: on the iPhone WebKit does not expose element fullscreen |
+| Test element in Langle's world | Inside the fullscreen element, on screen at the top left, visible in the screenshot | Not shown: the system's player covers the page. Its own captions showed |
+| Screen | Landscape: screen 915 × 412, window 2400 × 1080 px, system bars hidden (Android shows its "Viewing full screen, swipe down to exit" hint the first time) | Portrait at first. Turning the device rotated the system's player to landscape, although the app is portrait-only then |
+| Leaving fullscreen | System back, and `document.exitFullscreen()`: the page came back in portrait at the same URL, `fullscreen=false`, the error log empty | `webkitExitFullscreen()`: the page came back in portrait at the same URL, the error log empty |
+
+- On Android, the test element is on screen but not on top at its centre (`elementFromPoint` returns YouTube's overlay over the video, also outside fullscreen). Langle's real overlay must be placed above YouTube's layers, not only inside the player (M3d).
+- **iOS needs the fallback** from the spec (the app's own fullscreen: landscape, bars hidden, the player filling the page). It goes back to the user before it is built. The shell's landscape-in-element-fullscreen code stays in place for when WebKit exposes element fullscreen on the iPhone. Not checked: an iPad, where WebKit does expose it.
+
 ## iOS prototype (2026-11-22)
 `mobile/prototypes/ios-wkwebview` (SwiftUI shell, a hand-written Xcode project with a synchronized folder; no generator), on the Simulator (iPhone 17, iOS 27.2), logged out, the same video and the same `probe.js`. Driven from the shell by `check.sh` (`simctl launch` arguments, Darwin notifications for commands, results in the unified log).
 - **Script**: two `WKUserScript`s at document start in every frame, in `WKContentWorld.page` (the probe must patch the page's own `JSON.parse` and `fetch`); messages back through `WKScriptMessageHandler`. Commands run with `callAsyncJavaScript` from native code, so YouTube's CSP does not apply. Isolated worlds exist (`.defaultClient` or named worlds) for the extension's own content scripts.

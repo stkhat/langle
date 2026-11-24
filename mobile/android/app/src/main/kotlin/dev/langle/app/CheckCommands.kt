@@ -1,6 +1,7 @@
 package dev.langle.app
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.util.Base64
 import android.util.Log
 import dev.langle.core.KeyValueStore
@@ -15,7 +16,8 @@ import dev.langle.core.toJsonText
  * - `clear-errors`: clears it through the extension host's `browser.storage`, so its listeners hear;
  * - `eval`: runs `source64` (base64 of an async function body) in `target`: host | page | langle |
  *   sheet, and logs what it returns;
- * - `state`: the tabs, the sheet, the page and whether the host said hello.
+ * - `state`: the tabs, the sheet, the page and whether the host said hello, and
+ *   whether the page is in fullscreen, the orientation and the window size.
  */
 object CheckCommands {
   const val TAG = "LangleCheck"
@@ -62,9 +64,13 @@ object CheckCommands {
       }
       "state" -> {
         val tabs = activity.router.tabs.all.joinToString(", ") { "${it.id}${if (it.active) "*" else ""} ${it.url}" }
+        val landscape = activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val window = activity.window.decorView
         say(
           "state host=${activity.host?.isReady ?: false} tabs=[$tabs] sheet=${activity.sheet?.context?.page?.url ?: "none"} " +
-            "page=${activity.browsing.page.url ?: "none"}",
+            "page=${activity.browsing.page.url ?: "none"} fullscreen=${activity.isFullscreen} " +
+            "orientation=${if (landscape) "landscape" else "portrait"} " +
+            "window=${window.width}x${window.height}",
         )
       }
       else -> say("unknown command $command")

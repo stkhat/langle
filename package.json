@@ -111,7 +111,8 @@
     ],
     "ignore": [
       ".claude/skills/**",
-      "mobile/prototypes/**"
+      "mobile/prototypes/**",
+      "mobile/check/**"
     ],
     "ignoreDependencies": [
       "opencc"
