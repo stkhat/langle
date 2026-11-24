@@ -615,6 +615,12 @@ describe("SubtitleOverlay", () => {
         expect(selectedOffsets(line(screen))).toEqual(whole("today", "bread"));
         expect(onWordClick).not.toHaveBeenCalled();
         expect(pageClick).not.toHaveBeenCalled();
+        // Selectable while Langle's selection is in it, and not once it went.
+        expect(getComputedStyle(line(screen)).userSelect).toBe("text");
+        getSelection()?.removeAllRanges();
+        await expect
+          .poll(() => getComputedStyle(line(screen)).userSelect)
+          .toBe("none");
       });
 
       test("a long-press that does not move selects the word under the finger", async () => {
@@ -648,6 +654,8 @@ describe("SubtitleOverlay", () => {
             onWordClick={onWordClick}
           />,
         );
+        // Not selectable at rest: WebKit's long-press would select it and keep the touch.
+        expect(getComputedStyle(line(screen)).userSelect).toBe("none");
         await tap(middleOf(word(screen, "bread")));
         await expect.poll(() => onWordClick.mock.calls.length).toBe(1);
         expect(onWordClick).toHaveBeenCalledWith(2);
