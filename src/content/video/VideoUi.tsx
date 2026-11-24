@@ -1,6 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useReducer } from "preact/hooks";
 import { FEEDBACK_URL } from "../../core/links";
+import type { Settings } from "../../core/settings";
 import { DictionaryWindow } from "../../ui/lookup/DictionaryWindow";
 import { keptOpen } from "../../ui/keep-open";
 import { usePressAway } from "../../ui/press-away";
@@ -60,7 +61,19 @@ export interface VideoLayout {
    * screen (Netflix; YouTube in fullscreen), the player narrowed for it.
    */
   sidebar: boolean;
+  /**
+   * The page is in touch mode (spec mobile-app.md "Touch in place of hover"): the
+   * phone's own subtitle settings apply.
+   */
+  touch: boolean;
 }
+
+/** Where the subtitle goes: the phone's own setting in touch mode, the desktop's otherwise. */
+export const subtitlePosition = (
+  settings: Settings,
+  touch: boolean,
+): Settings["subtitlePosition"] =>
+  touch ? settings.phoneSubtitlePosition : settings.subtitlePosition;
 
 /** Mock Main: the in-video subtitle sits 64px above the player's bottom. */
 export const SUBTITLE_BOTTOM = 64;
@@ -87,11 +100,15 @@ const showing = (state: VideoState) =>
   state.enabled && state.status === "ready";
 
 /** Langle's subtitle is over the video (not in the box below it). */
-export const subtitleOverVideo = (state: VideoState, vertical: boolean) =>
+export const subtitleOverVideo = (
+  state: VideoState,
+  vertical: boolean,
+  touch = false,
+) =>
   showing(state) &&
   (state.fullscreen ||
     vertical ||
-    state.settings.subtitlePosition === "inVideo");
+    subtitlePosition(state.settings, touch) === "inVideo");
 
 /**
  * The playing line: its part of the card's text, and the card's spans in it (cut to the
@@ -243,9 +260,9 @@ export function InPlayerUi(props: {
 }) {
   const { app } = props;
   const state = useStore(app.store);
-  const { subtitleBottom, vertical } = useStore(props.layout);
+  const { subtitleBottom, vertical, touch } = useStore(props.layout);
   const { fullscreen } = state;
-  const inVideo = subtitleOverVideo(state, vertical) && state.line >= 0;
+  const inVideo = subtitleOverVideo(state, vertical, touch) && state.line >= 0;
   const inset = fullscreen
     ? FULLSCREEN_SUBTITLE_INSET
     : vertical
@@ -295,7 +312,7 @@ export function MenuUi(props: {
   const { app, geometry } = props;
   const state = useStore(app.store);
   // The site's control bar showing or hiding (the buttons go with it) moves the subtitle.
-  const { vertical } = useStore(props.layout);
+  const { vertical, touch } = useStore(props.layout);
   const { settings, fullscreen } = state;
   const [, rerender] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
@@ -333,7 +350,7 @@ export function MenuUi(props: {
     >
       <LangleMenu
         enabled={state.enabled}
-        position={settings.subtitlePosition}
+        position={subtitlePosition(settings, touch)}
         showPositions={!fullscreen && !vertical}
         showTranslation={settings.subtitleTranslation}
         // No transcript over a Short.
@@ -350,8 +367,12 @@ export function MenuUi(props: {
         }
         size={settings.subtitleSize}
         opacity={settings.subtitleOpacity}
-        onPosition={(subtitlePosition) =>
-          app.changeSettings({ subtitlePosition })
+        onPosition={(position) =>
+          app.changeSettings(
+            touch
+              ? { phoneSubtitlePosition: position }
+              : { subtitlePosition: position },
+          )
         }
         onPreview={({ size, opacity }) =>
           app.previewSettings({
@@ -377,12 +398,17 @@ export function MenuUi(props: {
 }
 
 /** Under the video: the large subtitle box (subtitle position "Below video"). */
-export function BelowVideoUi({ app }: { app: VideoApp }) {
+export function BelowVideoUi(props: {
+  app: VideoApp;
+  layout: Store<VideoLayout>;
+}) {
+  const { app } = props;
   const state = useStore(app.store);
+  const { touch } = useStore(props.layout);
   if (
     !showing(state) ||
     state.fullscreen ||
-    state.settings.subtitlePosition !== "belowVideo"
+    subtitlePosition(state.settings, touch) !== "belowVideo"
   )
     return null;
   return (
@@ -578,13 +604,13 @@ export function PageUi(props: {
 }) {
   const { app, geometry } = props;
   const state = useStore(app.store);
-  const { vertical, sidebar } = useStore(props.layout);
+  const { vertical, sidebar, touch } = useStore(props.layout);
   const { hover, panel, phrase, settings, fullscreen, explain } = state;
   const position = sidebar
     ? "sidebar"
     : fullscreen
       ? "fullscreen"
-      : settings.subtitlePosition;
+      : subtitlePosition(settings, touch);
   // Placed when the window opens or the screen changes; it stays where the user drags it.
   const frame = useMemo(() => {
     const player = geometry.player();
