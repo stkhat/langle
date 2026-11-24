@@ -240,14 +240,14 @@ test("m.youtube.com: a long-press across words on the subtitle opens the phrase'
   );
   const word = (text: string) =>
     subtitle.getByText(text, { exact: true }).boundingBox();
-  const from = (await word("evidence"))!;
-  const to = (await word("human"))!;
+  const from = (await word("fossil"))!;
+  const to = (await word("pure"))!;
   const cdp = await context.newCDPSession(page);
   const touch = (
     type: "touchStart" | "touchMove" | "touchEnd",
     points: { x: number; y: number }[],
   ) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: points });
-  // "human" may wrap onto the next line: the finger goes where it is.
+  // "pure" may wrap onto the next line: the finger goes where it is.
   await touch("touchStart", [{ x: from.x + 4, y: from.y + from.height / 2 }]);
   await page.waitForTimeout(800);
   await touch("touchMove", [
@@ -255,7 +255,7 @@ test("m.youtube.com: a long-press across words on the subtitle opens the phrase'
   ]);
   await touch("touchEnd", []);
   await expect(
-    sheet(page).getByRole("heading", { name: "evidence of human" }),
+    sheet(page).getByRole("heading", { name: "fossil of pure" }),
   ).toBeVisible(COLD_LOAD);
   await expect(
     sheet(page).getByText(en["lookup.status.selected"]),

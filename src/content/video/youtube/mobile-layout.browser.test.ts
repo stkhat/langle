@@ -5,7 +5,7 @@ import type { PlatformAdapter } from "../platform";
 import { createYouTubeAdapter } from "./adapter";
 import { mobileLayout } from "./mobile-layout";
 
-const VIDEO_ID = "iG9CE55wbtY";
+const VIDEO_ID = "sampleVid01";
 const TITLE = "A lantern for the lighthouse | Sample Channel";
 
 let root: HTMLElement;
