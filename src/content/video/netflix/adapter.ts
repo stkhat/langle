@@ -1,4 +1,5 @@
 import { parseTtml } from "../../../core/subtitles/ttml";
+import { fullscreenElement } from "../../fullscreen";
 import type { Cue } from "../../../core/subtitles/types";
 import { parseWebVtt } from "../../../core/subtitles/webvtt";
 import {
@@ -227,7 +228,7 @@ export function createNetflixAdapter(
   /** The player view while it fills the window, not the screen. */
   const windowedPlayer = () => {
     const view = player();
-    return view && view !== document.fullscreenElement ? view : null;
+    return view && view !== fullscreenElement() ? view : null;
   };
 
   /**

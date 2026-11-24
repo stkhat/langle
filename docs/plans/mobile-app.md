@@ -24,7 +24,8 @@
 - [x] M3c: fullscreen in the shells (branch `claude/mobile-m3c`)
   - Android uses element fullscreen and Langle's content is inside it; on the iPhone WebKit offers only the video's own fullscreen, so Langle cannot draw over it there (whether to build the app's own fullscreen is open, with the user).
 - [x] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`): the iPhone 17 Simulator (portrait) and the Android emulator (WebView Dev 160), notes/mobile.md "Device checks (M3d)"
-- [ ] M3e: the app's own fullscreen on the iPhone (branch claude/mobile-m3e; decided with the user 2026-11-24)
+- [x] M3e designed (2026-11-24, with the user): the page's element fullscreen stood in for on the iPhone ("M3e" below)
+- [x] M3e: the app's own fullscreen on the iPhone (branch `claude/mobile-m3e`), notes/mobile.md "The app's own fullscreen (M3e)"
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
@@ -553,3 +554,22 @@ Branch `claude/mobile-m3d` from `main` with M3a and M3b merged (and M3c, if merg
   - notes/mobile.md: what the devices showed;
   - tick M3d.
 - [ ] `npm run verify -- --skip-firefox`, push, draft PR "Mobile app M3d: the video UI on a phone", `gh pr ready`.
+
+### M3e: the app's own fullscreen on the iPhone (designed with the user 2026-11-24)
+Branch `claude/mobile-m3e` from `main`. One agent (the work is one chain through the shell and the page). No Firefox tests (the user, 2026-11-24): `npm run verify -- --skip-firefox`.
+
+**Why**: WebKit on the iPhone has no element fullscreen (no `requestFullscreen`, `fullscreenEnabled` false), so YouTube falls back to the video's own fullscreen, drawn by the system's player, and Langle cannot draw over it (notes/mobile.md "Fullscreen in the shells").
+
+**Design**
+- **A stand-in for element fullscreen in the page's world** (`src/app/fullscreen/`, built as the unlisted script `langle-fullscreen.js` of `langle-app`). The iOS shell injects it at document start on every browsing page, whatever its site. It installs itself only where the page has no element fullscreen (`requestFullscreen` and `webkitRequestFullscreen` both missing on `Element.prototype`) and the shell's handler `langleFullscreen` exists: feature detection, so Android, desktop and an iPad (which has element fullscreen) are unchanged. It defines `Element.prototype.requestFullscreen`, `document.exitFullscreen`, `document.fullscreenElement`, `document.fullscreenEnabled` and `document.fullscreen`; it marks the box shown with `data-langle-app-fullscreen` (the element, or for a video its frame: the ancestors that wrap it edge to edge and fit in the window turned either way; on m.youtube.com `#player-container-id`) and its ancestors with `-ancestor`, stretches the box over the window with a stylesheet (`position: fixed; inset: 0`, the top z-index, the page's scrolling off), fires `fullscreenchange` at the element (it bubbles to `document`) and posts `on` / `off` to the handler. The page keeps seeing the element it asked for as `document.fullscreenElement`. YouTube then takes its element-fullscreen path, as on Android: `ytp-fullscreen` and the video laid out for the window.
+- **Langle reads it through one function** (`fullscreenElement()`, `src/content/fullscreen.ts`): `document.fullscreenElement`, else the marked element. Langle's world does not see the page world's getters, but it sees the attribute and the event (DOM events cross worlds). Every `document.fullscreenElement` read under `src/content/` uses it, so `layout.fillsWindow` / `fullscreenBox()` and the fullscreen UI are fed unchanged.
+- **The shell** (`WebKitEngine`, `AppModel`, `LangleApp`): `on` goes the existing way (`page(_:fullscreen:)` → `Orientation.fullscreen`: landscape); the shell also hides the status bar, the home indicator and its own address row, and the page fills the window.
+- **Leaving**: YouTube's button calls `exitFullscreen` (posts `off`); on an iPhone it asks for the video again instead, so asking again for the video shown leaves. The shell calls `document.exitFullscreen()` in the page's world when the device is turned back to portrait (after it was seen in landscape), on a swipe from the left edge (the back gesture is off in fullscreen; a pan on the web view's superview, as WebKit fails gestures on the web view once the page takes the touch), and resets itself when the page loads a new document.
+
+**Tasks**
+- [x] The stand-in and its browser test (Chromium, `requestFullscreen` hidden, a stand-in handler). Commit.
+- [x] `fullscreenElement()` in every read under `src/content/`; unit tests unchanged. Commit.
+- [x] The iOS shell: inject the script, the handler, bars and address row hidden, leaving by rotation, edge swipe and navigation. `check.sh build` passes. Commit.
+- [x] Phone E2E: the fake m.youtube.com with element fullscreen hidden and the stand-in injected, YouTube's button → landscape UI with and without the column. Commit.
+- [x] The iPhone 17 Simulator, check build, the real m.youtube.com (TED `iG9CE55wbtY`, muted): fullscreen with and without the transcript column, compared with `MobileYouTubeLandscape` and its `TranscriptRight` / `TranscriptLeft`; leaving by the button, rotating back and the edge swipe; the error log read and cleared.
+- [x] Docs: notes/mobile.md, development.md if `check.sh` changes, ui.md if anything differs from the mock, status.md one line; tick M3e. `npm run verify -- --skip-firefox`, draft PR "Mobile app M3e: the app's own fullscreen on the iPhone", `gh pr ready`, merge.

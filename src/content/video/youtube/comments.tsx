@@ -1,4 +1,5 @@
 import { render } from "preact";
+import { fullscreenElement } from "../../fullscreen";
 import type { ContentScriptContext } from "wxt/utils/content-script-context";
 import { hostBlocked, type Settings } from "../../../core/settings";
 import {
@@ -191,7 +192,7 @@ export function startYouTubeComments(
 
   // Nothing of the comments shows in the player's fullscreen.
   const onFullscreen = () => {
-    if (document.fullscreenElement) runner?.closePanel();
+    if (fullscreenElement()) runner?.closePanel();
   };
   document.addEventListener("fullscreenchange", onFullscreen);
 
