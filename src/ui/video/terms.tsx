@@ -36,9 +36,15 @@ export function visibleSpans(spans: readonly Span[]): [Span, number][] {
 /** A cue's text as Langle shows it: line breaks become spaces. */
 export const lineBreaksAsSpaces = (text: string) => text.replaceAll("\n", " ");
 
+/** Punctuation that closes onto the word before it, and that opens onto the word after it. */
+const CLOSING = /^[\p{Pe}\p{Pf}\p{Po}]+/u;
+const OPENING = /[\p{Ps}\p{Pi}]+$/u;
+
 /**
  * The text of a cue with its terms rendered by `term` and the text between them as
- * is. Line breaks inside the cue become spaces.
+ * is. Line breaks inside the cue become spaces. Punctuation touching a term goes on its
+ * line (`white-space: nowrap` around both): WebKit breaks a line between an inline-block
+ * term and the period after it.
  */
 export function renderTerms(
   text: string,
@@ -49,11 +55,29 @@ export function renderTerms(
   if (!spans) return [flat(text)];
   const out: (string | JSX.Element)[] = [];
   let at = 0;
-  for (const [span, index] of visibleSpans(spans)) {
-    if (span.start > at) out.push(flat(text.slice(at, span.start)));
-    out.push(term(span, index, flat(text.slice(span.start, span.end))));
-    at = span.end;
-  }
+  const visible = visibleSpans(spans);
+  visible.forEach(([span, index], i) => {
+    const gap = flat(text.slice(at, span.start));
+    const opening = OPENING.exec(gap)?.[0] ?? "";
+    if (gap.length > opening.length)
+      out.push(gap.slice(0, gap.length - opening.length));
+    const nextStart = visible[i + 1]?.[0].start ?? text.length;
+    const closing =
+      CLOSING.exec(flat(text.slice(span.end, nextStart)))?.[0] ?? "";
+    const element = term(span, index, flat(text.slice(span.start, span.end)));
+    out.push(
+      opening || closing ? (
+        <span key={`glued ${span.start}`} style={{ whiteSpace: "nowrap" }}>
+          {opening}
+          {element}
+          {closing}
+        </span>
+      ) : (
+        element
+      ),
+    );
+    at = span.end + closing.length;
+  });
   if (at < text.length) out.push(flat(text.slice(at)));
   return out;
 }
