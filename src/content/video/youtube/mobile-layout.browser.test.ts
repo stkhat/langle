@@ -134,5 +134,38 @@ describe("m.youtube.com's watch page", () => {
       adapter.narrowPlayer?.(0);
       expect(box.style.getPropertyValue("width")).toBe("");
     });
+
+    it("narrowed at the left, the box moves right by its width", async () => {
+      await enterFullscreen(byId("player-container-id"));
+      const box = byId("player");
+      const left = box.getBoundingClientRect().left;
+      adapter.narrowPlayer?.(356, "left");
+      expect(box.getBoundingClientRect().left).toBeCloseTo(left + 356, 0);
+      adapter.narrowPlayer?.(0);
+      expect(box.style.getPropertyValue("margin-left")).toBe("");
+    });
+
+    it("fits the video into the narrowed box, which the player does not do (measured)", async () => {
+      await enterFullscreen(byId("player-container-id"));
+      const box = byId("player");
+      const video = document.querySelector<HTMLVideoElement>("video")!;
+      // As YouTube lays it out: absolute, sized by inline style, not again on resize.
+      const { width, height } = box.getBoundingClientRect();
+      video.style.cssText = `position: absolute; left: 0px; top: 0px; width: ${width}px; height: ${height}px;`;
+      adapter.narrowPlayer?.(356);
+      const inside = () => {
+        const v = video.getBoundingClientRect();
+        const b = box.getBoundingClientRect();
+        return v.left >= b.left - 1 && v.right <= b.right + 1;
+      };
+      await expect.poll(inside).toBe(true);
+      expect(getComputedStyle(video).objectFit).toBe("contain");
+      // The site writing its own size again is fitted again.
+      video.style.width = `${width}px`;
+      await expect.poll(inside).toBe(true);
+      adapter.narrowPlayer?.(0);
+      expect(video.style.width).toBe(`${width}px`);
+      expect(video.style.objectFit).toBe("");
+    });
   });
 });

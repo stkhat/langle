@@ -24,6 +24,8 @@ import { VideoPanel } from "../../ui/video/VideoPanel";
 import { PhoneTranscript } from "../../ui/video/PhoneTranscript";
 import type { TranscriptProps } from "../../ui/video/Transcript";
 import { ThemeScope } from "../../ui/ThemeScope";
+import { LangleMark } from "../../ui/LangleMark";
+import { t } from "../../i18n/t";
 import { explainSection, shownAnswer } from "../explain/panel";
 import { hoverView, windowView } from "../lookup/describe";
 import { boxOf, type Box } from "../lookup/geometry";
@@ -68,6 +70,14 @@ export interface VideoLayout {
    * screen (Netflix; YouTube in fullscreen), the player narrowed for it.
    */
   sidebar: boolean;
+  /** The side the sidebar is at: the right, or on a phone the one the user picked. */
+  sidebarSide: "left" | "right";
+  /**
+   * The player fills the window or the screen (Netflix; YouTube in fullscreen): from
+   * the adapter's `fillsWindow`, the one signal the phone's fullscreen UI follows (so
+   * an app's own fullscreen, without the Fullscreen API, can give it too).
+   */
+  fillsWindow: boolean;
   /**
    * The page is in touch mode (spec mobile-app.md "Touch in place of hover"): the
    * phone's own subtitle settings apply.
@@ -286,9 +296,15 @@ export function InPlayerUi(props: {
 }) {
   const { app } = props;
   const state = useStore(app.store);
-  const { subtitleBottom, vertical, touch } = useStore(props.layout);
+  const { subtitleBottom, vertical, touch, fillsWindow } = useStore(
+    props.layout,
+  );
   const { fullscreen } = state;
-  const inVideo = subtitleOverVideo(state, vertical, touch) && state.line >= 0;
+  // A phone's fullscreen subtitle is over the page instead (`PhoneFullscreenUi`).
+  const inVideo =
+    subtitleOverVideo(state, vertical, touch) &&
+    state.line >= 0 &&
+    !(touch && fillsWindow);
   const inset = fullscreen
     ? FULLSCREEN_SUBTITLE_INSET
     : vertical
@@ -431,10 +447,11 @@ export function BelowVideoUi(props: {
 }) {
   const { app } = props;
   const state = useStore(app.store);
-  const { touch } = useStore(props.layout);
+  const { touch, fillsWindow } = useStore(props.layout);
   if (
     !showing(state) ||
     state.fullscreen ||
+    (touch && fillsWindow) ||
     subtitlePosition(state.settings, touch) !== "belowVideo"
   )
     return null;
@@ -462,12 +479,16 @@ export function TranscriptUi(props: {
 }) {
   const { app } = props;
   const state = useStore(app.store);
-  const { frameHeight, sidebar, touch, pinnedBottom } = useStore(props.layout);
+  const { frameHeight, sidebar, touch, pinnedBottom, fillsWindow } = useStore(
+    props.layout,
+  );
   const { cues, lines, spans, summaries, settings } = state;
+  // A phone has its own fold, and its own setting for the column in fullscreen.
   const shown =
     showing(state) &&
-    settings.transcriptShown &&
-    !(state.fullscreen && !sidebar);
+    (touch
+      ? !fillsWindow || sidebar
+      : settings.transcriptShown && !(state.fullscreen && !sidebar));
   // Only the Words tab shows the words.
   const listed = shown && state.panelTab === "words";
   const words = useMemo(
@@ -549,12 +570,22 @@ export function TranscriptUi(props: {
     nativeLang: settings.nativeLang,
   };
   // A phone (mock MobileYouTube): the cards under the subtitle, down to the window's
-  // bottom, or in the column beside the video in fullscreen.
+  // bottom, or in the dark column beside the video in fullscreen.
+  if (touch && sidebar)
+    return (
+      <ThemeScope theme="dark">
+        <PhoneTranscript
+          {...transcript}
+          column
+          height={Math.round(frameHeight)}
+        />
+      </ThemeScope>
+    );
   if (touch)
     return (
       <PhoneTranscript
         {...transcript}
-        column={sidebar}
+        column={false}
         height={Math.max(
           MIN_PHONE_TRANSCRIPT_HEIGHT,
           Math.round(innerHeight - (pinnedBottom ?? innerHeight / 2)) -
@@ -642,8 +673,102 @@ const useSelectionDroppedByPressAway = (app: VideoApp, selecting: boolean) =>
   );
 
 /**
+ * Mock MobileYouTubeLandscape: the column beside a video in fullscreen on a phone, 300px
+ * wide, 16px from the top and bottom and 44px from its side (clear of the camera's
+ * notch); the video gets the rest, less 356px.
+ */
+export const PHONE_COLUMN = { width: 300, inset: 16, side: 44, room: 356 };
+/** Mock MobileYouTubeLandscape: the dictionary panel beside the video, left of the L. */
+const PHONE_PANEL_FRAME = { top: 12, bottom: 12, right: 56, width: 300 };
+/** Mock MobileYouTubeLandscape: the subtitle's insets and bottom, beside the column or not. */
+const PHONE_SUBTITLE = {
+  full: { inset: "clamp(12px, 14vw, 120px)", bottom: 28 },
+  narrow: { inset: "12px", bottom: 14 },
+};
+/** Over the video and the site's own layers; under Langle's cards and windows. */
+const OVER_VIDEO_LAYER = TOP_LAYER - 47;
+
+/** The dictionary in the column, in the transcript's place. */
+const columnFrame = (side: "left" | "right") => {
+  const frame = {
+    top: PHONE_COLUMN.inset,
+    bottom: PHONE_COLUMN.inset,
+    width: PHONE_COLUMN.width,
+  };
+  return side === "left"
+    ? { ...frame, left: PHONE_COLUMN.side }
+    : { ...frame, right: PHONE_COLUMN.side };
+};
+
+/**
+ * A video in fullscreen on a phone (mock MobileYouTubeLandscape): over the page, above
+ * the site's own layers over the video (m.youtube.com's covers the player's centre), the
+ * subtitle near the bottom of the video's room and the L at its top right, which opens
+ * the Langle sheet (the toolbar popup). The room is the window less the column's.
+ */
+function PhoneFullscreenUi(props: {
+  app: VideoApp;
+  state: VideoState;
+  column: "left" | "right" | null;
+}) {
+  const { app, state, column } = props;
+  const room = (side: "left" | "right") =>
+    column === side ? PHONE_COLUMN.room : 0;
+  const { inset, bottom } = column
+    ? PHONE_SUBTITLE.narrow
+    : PHONE_SUBTITLE.full;
+  return (
+    <>
+      {state.line >= 0 && (
+        <div
+          style={{
+            position: "fixed",
+            zIndex: OVER_VIDEO_LAYER,
+            left: `calc(${room("left")}px + ${inset})`,
+            right: `calc(${room("right")}px + ${inset})`,
+            bottom: `${bottom}px`,
+          }}
+        >
+          <Subtitle
+            app={app}
+            state={state}
+            variant={column ? "phoneFullscreenNarrow" : "phoneFullscreen"}
+            touch
+          />
+        </div>
+      )}
+      <button
+        type="button"
+        aria-label={t("video.openLangle")}
+        onClick={app.openPopup}
+        style={{
+          position: "fixed",
+          zIndex: OVER_VIDEO_LAYER,
+          top: "12px",
+          right: `${room("right") + 8}px`,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "44px",
+          height: "44px",
+          padding: 0,
+          border: "1px solid rgba(255,255,255,0.35)",
+          borderRadius: "22px",
+          background: "rgba(255,255,255,0.08)",
+          cursor: "pointer",
+        }}
+      >
+        <LangleMark size={26} />
+      </button>
+    </>
+  );
+}
+
+/**
  * Over the page: the hover card, the selection's card and the dictionary window (in
- * fullscreen too: the host is then inside the fullscreen element).
+ * fullscreen too: the host is then inside the fullscreen element). On a phone the
+ * sheet, and in fullscreen the parts over the video (`PhoneFullscreenUi`) with the
+ * dictionary beside the video or in the column.
  */
 export function PageUi(props: {
   app: VideoApp;
@@ -652,8 +777,11 @@ export function PageUi(props: {
 }) {
   const { app, geometry } = props;
   const state = useStore(app.store);
-  const { vertical, sidebar, touch } = useStore(props.layout);
+  const { vertical, sidebar, sidebarSide, touch, fillsWindow } = useStore(
+    props.layout,
+  );
   const { hover, panel, phrase, settings, fullscreen, explain } = state;
+  const phoneFullscreen = touch && fillsWindow;
   const position = sidebar
     ? "sidebar"
     : fullscreen
@@ -679,42 +807,59 @@ export function PageUi(props: {
   useSelectionDroppedByPressAway(app, state.selecting);
   if (!showing(state)) return null;
   const selected = panel?.ref.selected !== undefined;
+  // In the column it takes the transcript's place (in the column's dark theme).
+  const inColumn = phoneFullscreen && sidebar;
+  const window = panel && (
+    <DictionaryWindow
+      key={`${panel.opened} ${fullscreen} ${sidebar}`}
+      {...(phoneFullscreen
+        ? {
+            variant: "side" as const,
+            frame: inColumn ? columnFrame(sidebarSide) : PHONE_PANEL_FRAME,
+            selected,
+            back: inColumn,
+          }
+        : touch && !fullscreen
+          ? { variant: "sheet" as const, frame: { top: sheetTop }, selected }
+          : {
+              variant: "window" as const,
+              frame,
+              // Over a video that fills the window or the screen: the darker shadow.
+              fullscreen: fullscreen || sidebar,
+            })}
+      entry={windowView(panel.card, shownAnswer(explain))}
+      nativeLang={settings.nativeLang}
+      learningLang={settings.learningLang}
+      status={panel.card.status}
+      onStatus={app.setPanelStatus}
+      onUse={app.useMeaning}
+      onSpeak={app.speak}
+      explain={explainSection(panel.card, explain, app)}
+      dictionaries={panel.dictionaries}
+      here={{
+        source: "video",
+        items: panel.here.map((line) => ({
+          time: formatTime(line.timeMs),
+          text: line.text,
+          marks: line.marks,
+          onClick: () => app.seekTo(line.timeMs),
+        })),
+      }}
+      elsewhere={elsewhereItems(panel.card.elsewhere, Date.now())}
+      onClose={app.closePanel}
+    />
+  );
 
   return (
     <>
-      {panel && (
-        <DictionaryWindow
-          key={`${panel.opened} ${fullscreen} ${sidebar}`}
-          {...(touch && !fullscreen
-            ? { variant: "sheet" as const, frame: { top: sheetTop }, selected }
-            : {
-                variant: "window" as const,
-                frame,
-                // Over a video that fills the window or the screen: the darker shadow.
-                fullscreen: fullscreen || sidebar,
-              })}
-          entry={windowView(panel.card, shownAnswer(explain))}
-          nativeLang={settings.nativeLang}
-          learningLang={settings.learningLang}
-          status={panel.card.status}
-          onStatus={app.setPanelStatus}
-          onUse={app.useMeaning}
-          onSpeak={app.speak}
-          explain={explainSection(panel.card, explain, app)}
-          dictionaries={panel.dictionaries}
-          here={{
-            source: "video",
-            items: panel.here.map((line) => ({
-              time: formatTime(line.timeMs),
-              text: line.text,
-              marks: line.marks,
-              onClick: () => app.seekTo(line.timeMs),
-            })),
-          }}
-          elsewhere={elsewhereItems(panel.card.elsewhere, Date.now())}
-          onClose={app.closePanel}
+      {phoneFullscreen && (
+        <PhoneFullscreenUi
+          app={app}
+          state={state}
+          column={sidebar ? sidebarSide : null}
         />
       )}
+      {inColumn ? <ThemeScope theme="dark">{window}</ThemeScope> : window}
       {hover && (
         <Floating
           anchor={hover.anchor}

@@ -8,6 +8,7 @@ import {
   aiTag,
   color,
   iconButton,
+  phoneColumnPanel,
   root,
   sectionHeading,
   termMark,
@@ -257,9 +258,9 @@ export function DictionaryWindow(props: DictionaryWindowProps) {
           width: `${frame.width}px`,
           boxSizing: "border-box",
           overflow: "hidden",
-          // In the column: the column's own frame; beside the video: a lifted panel.
+          // In the column: the column's own panel; beside the video: a lifted panel.
           ...(back
-            ? { borderRadius: "14px" }
+            ? phoneColumnPanel
             : {
                 border: "none",
                 borderRadius: "16px",
@@ -283,6 +284,7 @@ export function DictionaryWindow(props: DictionaryWindowProps) {
               onClick={props.onClose}
               style={{
                 ...iconButton,
+                width: "auto",
                 height: "44px",
                 minWidth: "44px",
                 padding: "0 8px 0 4px",

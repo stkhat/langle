@@ -66,6 +66,7 @@ beforeEach(() => {
       disconnect: () => Promise.reject(new Error("not used")),
     },
     openOptionsPage: async () => {},
+    openPopup: async () => {},
   });
 });
 

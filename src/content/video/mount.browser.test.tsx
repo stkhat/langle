@@ -1008,6 +1008,99 @@ describe("mountVideoUi", () => {
       expect(sidebar()).toBeNull();
     });
 
+    describe("on a phone (touch), in landscape", () => {
+      function mountTouch(side: "off" | "left" | "right") {
+        const state = readyState();
+        const fake = fakeApp({
+          ...state,
+          settings: mergeSettings(
+            { phoneFullscreenTranscript: side, transcriptShown: true },
+            state.settings,
+          ),
+        });
+        unmount = mountVideoUi({
+          adapter,
+          app: fake.app,
+          touchMode: fixedTouchMode(true),
+        });
+        return fake;
+      }
+      const win = () =>
+        inside("langle-video")
+          ?.querySelector("aside[aria-label='Dictionary']")
+          ?.getBoundingClientRect() ?? null;
+      const panel = {
+        ref: { cue: 0, span: 1 },
+        card: TANGY,
+        here: [],
+        dictionaries: [],
+        opened: 1,
+      };
+
+      it("shows the subtitle over the video and L, never the desktop sidebar; a word's panel at the right", async () => {
+        await browserPage.viewport(844, 390);
+        const { store, spy } = mountTouch("off");
+        await fullscreen();
+        await expect
+          .poll(() => text("langle-video"))
+          .toContain("The yeast smells tangy.");
+        expect(text("langle-video-player")).not.toContain("The yeast");
+        expect(sidebar()).toBeNull();
+        expect(page.player.getBoundingClientRect().width).toBe(innerWidth);
+        // Mock MobileYouTubeLandscape: 120px in from each side, 28px up from the bottom.
+        const region = inside("langle-video")!
+          .querySelector("[role=region]")!
+          .getBoundingClientRect();
+        expect(innerHeight - region.bottom).toBe(28);
+        expect(region.left).toBeCloseTo(Math.min(120, innerWidth * 0.14), 0);
+        await userEvent.click(await button("langle-video", "Langle"));
+        expect(spy("openPopup")).toHaveBeenCalledOnce();
+
+        store.set({ panel });
+        await expect.poll(win).not.toBeNull();
+        expect([win()!.top, innerWidth - win()!.right, win()!.width]).toEqual([
+          12, 56, 300,
+        ]);
+        expect(innerHeight - win()!.bottom).toBe(12);
+      });
+
+      it("with the transcript at a side: a 300px column 44px from that edge, the video beside it, the dictionary inside", async () => {
+        await browserPage.viewport(844, 390);
+        const { store } = mountTouch("left");
+        await fullscreen();
+        await expect.poll(sidebar).not.toBeNull();
+        const box = sidebar()!.getBoundingClientRect();
+        expect([
+          box.left,
+          box.top,
+          innerHeight - box.bottom,
+          box.width,
+        ]).toEqual([44, 16, 16, 300]);
+        await expect
+          .poll(() => page.player.getBoundingClientRect().left)
+          .toBe(356);
+        expect(text("langle-transcript")).toContain("Knead the dough.");
+
+        store.set({ panel });
+        await expect.poll(win).not.toBeNull();
+        expect([win()!.left, win()!.top, win()!.width]).toEqual([44, 16, 300]);
+        await button("langle-video", "Back to transcript");
+
+        store.set({
+          settings: mergeSettings(
+            { phoneFullscreenTranscript: "right" },
+            store.get().settings,
+          ),
+        });
+        await expect
+          .poll(() => innerWidth - sidebar()!.getBoundingClientRect().right)
+          .toBe(44);
+        await expect
+          .poll(() => page.player.getBoundingClientRect().right)
+          .toBe(innerWidth - 356);
+      });
+    });
+
     it("opens the dictionary window just left of the sidebar; with the column closed, at the top right", async () => {
       await browserPage.viewport(1200, 800);
       const { store } = mount();

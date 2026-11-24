@@ -1,7 +1,12 @@
 import { parseTtml } from "../../../core/subtitles/ttml";
 import type { Cue } from "../../../core/subtitles/types";
 import { parseWebVtt } from "../../../core/subtitles/webvtt";
-import { firstTranslation, playerNarrower, styleSwitch } from "../adapter-kit";
+import {
+  firstTranslation,
+  NARROW_BY_WIDTH,
+  playerNarrower,
+  styleSwitch,
+} from "../adapter-kit";
 import {
   createPageBridge,
   NETWORK_CALL_TIMEOUT_MS,
@@ -256,11 +261,7 @@ export function createNetflixAdapter(
 
   // The player view holds the control bar, the back arrow and the video; inside
   // `.watch-video`, which is the element in fullscreen (docs/notes/netflix.md).
-  const narrowPlayer = playerNarrower(
-    windowedPlayer,
-    "width",
-    (width) => `calc(100% - ${width}px)`,
-  );
+  const narrowPlayer = playerNarrower(windowedPlayer, NARROW_BY_WIDTH);
   cleanups.push(() => narrowPlayer(0));
 
   const floating = own(

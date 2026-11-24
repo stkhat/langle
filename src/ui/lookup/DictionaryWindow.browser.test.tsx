@@ -1391,9 +1391,14 @@ describe("DictionaryWindow at the side (touch fullscreen)", () => {
     await expect
       .element(screen.getByRole("button", { name: "Close dictionary" }))
       .not.toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Back to transcript" }),
-    );
+    const backButton = screen.getByRole("button", {
+      name: "Back to transcript",
+    });
+    // Wide enough for its word: it does not run under the status line.
+    const element = backButton.element() as HTMLElement;
+    expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth);
+    expect(element.textContent).toBe("Transcript");
+    await userEvent.click(backButton);
     expect(onClose).toHaveBeenCalledOnce();
   });
 });

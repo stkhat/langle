@@ -80,6 +80,18 @@ export function root(style: Style): Style {
   } as Style;
 }
 
+/**
+ * Mock MobileYouTubeLandscape: the panel of the column beside a video in fullscreen on
+ * a phone (the transcript, and the dictionary opened from it), dark whatever the theme.
+ */
+export const phoneColumnPanel: Style = {
+  background: "#17191F",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "14px",
+  overflow: "hidden",
+  boxSizing: "border-box",
+};
+
 /** Mock `.ib`. */
 export const iconButton: Style = {
   display: "inline-flex",

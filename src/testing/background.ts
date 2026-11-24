@@ -328,6 +328,7 @@ export function testBackground(
       connect: async () => {},
       disconnect: async () => {},
     },
+    openPopup: async () => {},
     openOptionsPage: async () => {
       optionsOpened++;
     },
