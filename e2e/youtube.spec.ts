@@ -20,7 +20,7 @@ const cues = (file: string) =>
 const EN = cues("en.json3");
 const JA = cues("ja.json3");
 /** "extraordinary" and "creativity" are New words. */
-const LINE = "One is the extraordinary evidence of human creativity";
+const LINE = "Mara found an extraordinary fossil of pure creativity";
 const LINE_CUE = EN.find((c) => c.text.replaceAll("\n", " ") === LINE)!;
 const LINE_JA = cueAt(JA, LINE_CUE.startMs)!.text.replaceAll("\n", "");
 
@@ -119,12 +119,12 @@ test("words selected in the transcript are saved as a phrase from their card", a
     document.querySelector<HTMLVideoElement>("#movie_player video")!.pause(),
   );
   const phrase = card.locator("[data-span]", {
-    hasText: /^extraordinary evidence$/,
+    hasText: /^extraordinary fossil$/,
   });
   await expect(phrase).toHaveCount(0);
   await card
     .getByText("extraordinary", { exact: true })
-    .dragTo(card.getByText("evidence", { exact: true }));
+    .dragTo(card.getByText("fossil", { exact: true }));
 
   const selection = page.locator("langle-video");
   // A selection's card waits for the English definitions (the fallback of words the
@@ -164,7 +164,7 @@ test("a drag in the transcript while the video plays holds the list and the vide
   const from = (await card
     .getByText("extraordinary", { exact: true })
     .boundingBox())!;
-  const to = (await card.getByText("evidence", { exact: true }).boundingBox())!;
+  const to = (await card.getByText("fossil", { exact: true }).boundingBox())!;
   const player = (await page.locator("#movie_player").boundingBox())!;
   // The pointer on the list: it holds still while the video plays on.
   await page.mouse.move(from.x + 4, from.y + from.height / 2);

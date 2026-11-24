@@ -47,7 +47,7 @@ describe("cueIndexAt / cueAt", () => {
 
   it("finds cues in a real track", () => {
     expect(cueAt(asr, 29000)?.text).toBe(
-      "how are you it's been great hasn't it",
+      "how are you it's been ember hasn't it",
     );
   });
 });

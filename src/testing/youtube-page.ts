@@ -9,8 +9,8 @@ import {
 import captionTracks from "../core/subtitles/fixtures/youtube/captionTracks.json";
 import videoUrl from "../../tests/fixtures/video.webm?url";
 
-export const VIDEO_ID = "iG9CE55wbtY";
-export const TITLE = "Do schools kill creativity? | Sir Ken Robinson | TED";
+export const VIDEO_ID = "sampleVid01";
+export const TITLE = "A lantern for the lighthouse | Sample Channel";
 const PLAYER_RESPONSE: unknown = captionTracks;
 
 export interface TestPage {
