@@ -1,4 +1,5 @@
 import { NARROW_BY_MARGIN } from "../adapter-kit";
+import { fullscreenElement } from "../../fullscreen";
 import type { YouTubeLayout } from "./layout";
 
 /** A Short's path and its video id. */
@@ -77,14 +78,15 @@ export function desktopLayout(
      * elsewhere (docs/notes/youtube-captions.md).
      */
     fullscreenBox() {
-      if (onShorts() || !document.fullscreenElement) return null;
+      const element = fullscreenElement();
+      if (onShorts() || !element) return null;
       const box = document.getElementById("player-full-bleed-container");
       const view = player();
       return box &&
         view &&
         box.contains(view) &&
-        !view.contains(document.fullscreenElement) &&
-        document.fullscreenElement.contains(box)
+        !view.contains(element) &&
+        element.contains(box)
         ? box
         : null;
     },

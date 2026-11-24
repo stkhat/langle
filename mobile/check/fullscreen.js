@@ -4,9 +4,10 @@
  * - The first call puts a test element next to the page's largest video, inside the player, where
  *   Langle's overlay goes. It is created from Langle's world, as Langle's own elements are, and
  *   stays, so a call after the fullscreen button shows where it went.
- * - It reports the page's fullscreen element (and whether the video is in the system's own video
- *   fullscreen), the screen's orientation and size, and whether the test element is inside the
- *   fullscreen element, on screen, and on top at its centre.
+ * - It reports the page's fullscreen element (the browser's, or the box the app's own fullscreen
+ *   shows, M3e) and whether the video is in the system's own video fullscreen, the screen's
+ *   orientation and size, and whether the test element is inside the fullscreen element, on
+ *   screen, and on top at its centre.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- called by the script check.sh builds
 function fullscreenProbe() {
@@ -45,8 +46,12 @@ function fullscreenProbe() {
     video.parentElement.append(probe);
   }
 
+  // The browser's own fullscreen, else the app's (the box its stand-in shows, M3e).
   const fullscreen =
-    document.fullscreenElement ?? document.webkitFullscreenElement ?? null;
+    document.fullscreenElement ??
+    document.webkitFullscreenElement ??
+    document.querySelector("[data-langle-app-fullscreen]") ??
+    null;
   let probeReport = null;
   if (probe) {
     const r = box(probe);

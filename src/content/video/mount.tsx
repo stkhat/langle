@@ -1,4 +1,5 @@
 import { render, type JSX } from "preact";
+import { fullscreenElement } from "../fullscreen";
 import { boxOf } from "../lookup/geometry";
 import { createShadowHost } from "../shadow-host";
 import { inUse } from "./hold";
@@ -66,7 +67,7 @@ const NO_CHILDREN = new Set([
  * the whole page is in fullscreen.
  */
 function fullscreenHost(): Element | null {
-  const element = document.fullscreenElement;
+  const element = fullscreenElement();
   if (!element || element.contains(document.body)) return null;
   return NO_CHILDREN.has(element.tagName) ? element.parentElement : element;
 }
@@ -414,7 +415,7 @@ export function mountVideoUi({
   place();
 
   const onFullscreen = () => {
-    app.setFullscreen(document.fullscreenElement !== null);
+    app.setFullscreen(fullscreenElement() !== null);
     schedule();
   };
   document.addEventListener("fullscreenchange", onFullscreen);
