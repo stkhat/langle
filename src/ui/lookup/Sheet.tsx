@@ -1,4 +1,4 @@
-import type { ComponentChildren, JSX } from "preact";
+import type { ComponentChildren } from "preact";
 import { useRef, useState } from "preact/hooks";
 import { fromUser } from "../from-user";
 import { keepOpen } from "../keep-open";
@@ -38,7 +38,7 @@ export function Sheet(props: {
   const [dy, setDy] = useState(0);
   const swipe = useRef<Swipe | null>(null);
 
-  function onPointerDown(event: JSX.TargetedPointerEvent<HTMLElement>) {
+  function onPointerDown(event: PointerEvent) {
     if (!fromUser(event) || event.button !== 0) return;
     // A press on × or another control in the row is its own.
     const target = event.composedPath()[0];
@@ -48,17 +48,17 @@ export function Sheet(props: {
       startY: event.clientY,
       dy: 0,
     };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
 
-  function onPointerMove(event: JSX.TargetedPointerEvent<HTMLElement>) {
+  function onPointerMove(event: PointerEvent) {
     const now = swipe.current;
     if (!now || now.pointerId !== event.pointerId || !fromUser(event)) return;
     now.dy = event.clientY - now.startY;
     setDy(now.dy);
   }
 
-  function onPointerUp(event: JSX.TargetedPointerEvent<HTMLElement>) {
+  function onPointerUp(event: PointerEvent) {
     const now = swipe.current;
     if (!now || now.pointerId !== event.pointerId) return;
     swipe.current = null;
