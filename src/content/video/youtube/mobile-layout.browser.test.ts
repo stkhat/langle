@@ -135,6 +135,29 @@ describe("m.youtube.com's watch page", () => {
       expect(box.style.getPropertyValue("width")).toBe("");
     });
 
+    it("narrows the site's layers that cover the screen beside the box (its controls), not Langle's", async () => {
+      const screen = byId("player-container-id");
+      await enterFullscreen(screen);
+      const controls = byId("player-control-container");
+      // As measured on the Android WebView: a fixed layer over the whole screen.
+      controls.style.cssText = "position: fixed; inset: 0;";
+      const langle = document.createElement("langle-video");
+      langle.style.cssText = "position: absolute; inset: 0;";
+      screen.append(langle);
+      adapter.narrowPlayer?.(356, "left");
+      expect(controls.getBoundingClientRect().left).toBeCloseTo(356, 0);
+      expect(controls.getBoundingClientRect().right).toBeCloseTo(
+        screen.getBoundingClientRect().right,
+        0,
+      );
+      expect(langle.style.getPropertyValue("width")).toBe("");
+      adapter.narrowPlayer?.(0);
+      expect(controls.style.getPropertyValue("width")).toBe("");
+      expect(controls.style.getPropertyValue("margin-left")).toBe("");
+      expect(controls.style.position).toBe("fixed");
+      langle.remove();
+    });
+
     it("narrowed at the left, the box moves right by its width", async () => {
       await enterFullscreen(byId("player-container-id"));
       const box = byId("player");

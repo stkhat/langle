@@ -89,6 +89,8 @@ export function desktopLayout(
         : null;
     },
     narrow: NARROW_BY_MARGIN,
+    // The player's controls are inside it.
+    fullscreenLayers: () => [],
     onNavigate(listener) {
       const handler = () => listener();
       document.addEventListener("yt-navigate-finish", handler);

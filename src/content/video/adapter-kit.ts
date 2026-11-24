@@ -126,28 +126,47 @@ const RELAYOUT_WAIT = 400;
  * fitted into the box (`fitVideo`). Width 0 gives the element its own values back.
  * Asked again with the same element, width and side it does nothing, so it can run on
  * every change to the page; an element the site rendered again gets the values, the
- * old one its own back.
+ * old one its own back. `alongside` finds the site's layers over the box that are not in
+ * it (m.youtube.com's controls in fullscreen): they get the same values.
  */
 export function playerNarrower(
   target: () => HTMLElement | null,
   narrowing: Narrowing,
+  alongside: (box: HTMLElement) => HTMLElement[] = () => [],
 ): (width: number, side?: NarrowSide) => void {
+  type Own = Record<string, { value: string; priority: string }>;
   let narrowed: {
     element: HTMLElement;
     width: number;
     side: NarrowSide;
-    own: Record<string, { value: string; priority: string }>;
+    styled: { element: HTMLElement; own: Own }[];
     unfit: () => void;
   } | null = null;
 
   function restore() {
     if (!narrowed) return;
-    const { element, own, unfit } = narrowed;
+    const { styled, unfit } = narrowed;
     unfit();
-    for (const [property, { value, priority }] of Object.entries(own))
-      if (value) element.style.setProperty(property, value, priority);
-      else element.style.removeProperty(property);
+    for (const { element, own } of styled)
+      for (const [property, { value, priority }] of Object.entries(own))
+        if (value) element.style.setProperty(property, value, priority);
+        else element.style.removeProperty(property);
     narrowed = null;
+  }
+
+  function style(element: HTMLElement, styles: Record<string, string>) {
+    const own: Own = Object.fromEntries(
+      Object.keys(styles).map((property) => [
+        property,
+        {
+          value: element.style.getPropertyValue(property),
+          priority: element.style.getPropertyPriority(property),
+        },
+      ]),
+    );
+    for (const [property, value] of Object.entries(styles))
+      element.style.setProperty(property, value, "important");
+    return { element, own };
   }
 
   return (width, side = "right") => {
@@ -162,18 +181,10 @@ export function playerNarrower(
     restore();
     if (element) {
       const styles = narrowing(width, side);
-      const own = Object.fromEntries(
-        Object.keys(styles).map((property) => [
-          property,
-          {
-            value: element.style.getPropertyValue(property),
-            priority: element.style.getPropertyPriority(property),
-          },
-        ]),
+      const styled = [element, ...alongside(element)].map((each) =>
+        style(each, styles),
       );
-      for (const [property, value] of Object.entries(styles))
-        element.style.setProperty(property, value, "important");
-      narrowed = { element, width, side, own, unfit: fitVideo(element) };
+      narrowed = { element, width, side, styled, unfit: fitVideo(element) };
     }
     if (changed) window.dispatchEvent(new Event("resize"));
   };
