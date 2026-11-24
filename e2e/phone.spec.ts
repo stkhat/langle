@@ -3,6 +3,8 @@
 // On the fake m.youtube.com, the MAIN-world hook catches the player's caption request and
 // Langle's parts go where the mobile layout puts them, in touch mode: the subtitle in a
 // band pinned under the player, the transcript under it, the sheet for a tapped word.
+// Turned to landscape in fullscreen: the subtitle over the video, a word's panel at the
+// right, or the transcript's column beside the narrowed video.
 import type { BrowserContext, Page } from "@playwright/test";
 import en from "../src/i18n/locales/en.json" with { type: "json" };
 import { test, expect } from "./fixtures";
@@ -13,6 +15,7 @@ import {
   openArticle,
   showNewWords,
 } from "./page";
+import { checkSettings } from "./check-settings";
 import { routeMobileYouTube, YOUTUBE_MOBILE_WATCH } from "./sites";
 
 /** A point a little in from the left edge of `text` in the article, scrolled into view. */
@@ -242,4 +245,77 @@ test("m.youtube.com: a long-press across words on the subtitle opens the phrase'
   await expect.poll(paused).toBe(true);
   await closeSheet(page);
   await expect.poll(paused).toBe(false);
+});
+
+/** The phone turned to landscape and the player's container put in fullscreen, as m.youtube.com does. */
+async function landscapeFullscreen(page: Page) {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page
+    .locator("#player-container-id")
+    .evaluate((el) => el.requestFullscreen());
+  const subtitle = page.locator("langle-video").getByRole("region", {
+    name: en["video.subtitle"],
+  });
+  await expect(subtitle).toContainText(LINE);
+  return subtitle;
+}
+
+test("m.youtube.com in fullscreen: the subtitle over the video, L, and a tapped word's panel at the right", async ({
+  context,
+  extensionId,
+}) => {
+  const { page, paused } = await openMobileWatch(context, extensionId);
+  const subtitle = await landscapeFullscreen(page);
+  const band = (await subtitle.boundingBox())!;
+  expect(390 - (band.y + band.height)).toBeCloseTo(28, 0);
+  await expect(
+    page.locator("langle-video").getByRole("button", {
+      name: en["video.openLangle"],
+    }),
+  ).toBeVisible();
+  await expect(page.locator("langle-video-sidebar")).toHaveCount(0);
+  await subtitle.getByText("creativity", { exact: true }).tap();
+  const panel = sheet(page);
+  await expect(panel.getByRole("heading", { name: "creativity" })).toBeVisible(
+    COLD_LOAD,
+  );
+  await expect.poll(paused).toBe(true);
+  const box = (await panel.boundingBox())!;
+  expect([box.y, 844 - (box.x + box.width), box.width]).toEqual([12, 56, 300]);
+  // The subtitle keeps its width under the panel.
+  expect((await subtitle.boundingBox())!.width).toBe(band.width);
+});
+
+test("m.youtube.com in fullscreen with the transcript at the right: the column, the video beside it, the dictionary inside", async ({
+  context,
+  extensionId,
+}) => {
+  const { page } = await openMobileWatch(context, extensionId);
+  expect(
+    await checkSettings(page, "set", { phoneFullscreenTranscript: "right" }),
+  ).toMatchObject({ ok: true });
+  const subtitle = await landscapeFullscreen(page);
+  const column = page.locator("langle-video-sidebar");
+  await expect(column).toHaveCount(1);
+  const box = (await column.boundingBox())!;
+  expect([844 - (box.x + box.width), box.y, box.width]).toEqual([44, 16, 300]);
+  // The video narrowed beside it, and inside its box.
+  await expect
+    .poll(async () => {
+      const v = (await page.locator("video").boundingBox())!;
+      return v.x + v.width <= 844 - 356 + 1;
+    })
+    .toBe(true);
+  await expect(
+    page.locator("langle-transcript").getByRole("button", { name: LINE }),
+  ).toHaveAttribute("aria-current", "true");
+  await subtitle.getByText("creativity", { exact: true }).tap();
+  const panel = sheet(page);
+  await expect(panel.getByRole("heading", { name: "creativity" })).toBeVisible(
+    COLD_LOAD,
+  );
+  const inside = (await panel.boundingBox())!;
+  expect([inside.x, inside.width]).toEqual([box.x, 300]);
+  await panel.getByRole("button", { name: en["video.backToTranscript"] }).tap();
+  await expect(panel).toHaveCount(0);
 });
