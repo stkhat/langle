@@ -138,6 +138,13 @@ async function openMobileWatch(context: BrowserContext, extensionId: string) {
   return { page, transcript, subtitle, paused };
 }
 
+/** Langle's "Paused" over the video while it holds the video paused. */
+const pausedPill = (page: Page) =>
+  page
+    .locator("langle-video-player, langle-video")
+    .getByRole("status")
+    .filter({ hasText: en["video.paused"] });
+
 const closeSheet = (page: Page) =>
   sheet(page).getByRole("button", { name: en["dict.close"] }).tap();
 
@@ -197,6 +204,7 @@ test("m.youtube.com: a tap on a word opens its sheet under the subtitle and paus
     sheet(page).getByRole("heading", { name: "creativity" }),
   ).toBeVisible(COLD_LOAD);
   await expect.poll(paused).toBe(true);
+  await expect(pausedPill(page)).toBeVisible();
   const band = (await subtitle.boundingBox())!;
   const box = (await sheet(page).boundingBox())!;
   expect(box.y).toBeCloseTo(band.y + band.height, 0);
@@ -210,6 +218,7 @@ test("m.youtube.com: a tap on a word opens its sheet under the subtitle and paus
   await closeSheet(page);
   await expect(sheet(page)).toHaveCount(0);
   await expect.poll(paused).toBe(false);
+  await expect(pausedPill(page)).toHaveCount(0);
 });
 
 test("m.youtube.com: a long-press across words on the subtitle opens the phrase's sheet", async ({
@@ -282,6 +291,8 @@ test("m.youtube.com in fullscreen: the subtitle over the video, L, and a tapped 
   await expect.poll(paused).toBe(true);
   const box = (await panel.boundingBox())!;
   expect([box.y, 844 - (box.x + box.width), box.width]).toEqual([12, 56, 300]);
+  const pill = (await pausedPill(page).boundingBox())!;
+  expect([pill.x, pill.y]).toEqual([56, 16]);
   // The subtitle keeps its width under the panel.
   expect((await subtitle.boundingBox())!.width).toBe(band.width);
 });
@@ -316,6 +327,8 @@ test("m.youtube.com in fullscreen with the transcript at the right: the column, 
   );
   const inside = (await panel.boundingBox())!;
   expect([inside.x, inside.width]).toEqual([box.x, 300]);
+  const pill = (await pausedPill(page).boundingBox())!;
+  expect([pill.x, pill.y]).toEqual([12, 12]);
   await panel.getByRole("button", { name: en["video.backToTranscript"] }).tap();
   await expect(panel).toHaveCount(0);
 });

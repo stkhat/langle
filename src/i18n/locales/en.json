@@ -323,6 +323,7 @@
   "video.showTranscript": "Show transcript",
   "video.backToTranscript": "Back to transcript",
   "video.openLangle": "Langle",
+  "video.paused": "Paused",
   "video.tabs": "Langle panel",
   "words.filter": "Show words",
   "words.times": "{count}×",

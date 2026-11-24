@@ -67,6 +67,7 @@ function readyState(patch: Partial<VideoState> = {}): VideoState {
     phrase: null,
     selecting: false,
     subtitleHover: false,
+    heldPaused: false,
     menuOpen: false,
     fullscreen: false,
     panelTab: "transcript",
@@ -97,6 +98,12 @@ function fakeApp(state: VideoState) {
   const spy = (name: keyof VideoApp) => app[name] as ReturnType<typeof vi.fn>;
   return { app, store, spy };
 }
+
+/** The "Paused" pill in a host, null when none. */
+const pausedPill = (id: string) =>
+  [...(inside(id)?.querySelectorAll<HTMLElement>("[role=status]") ?? [])].find(
+    (el) => el.textContent?.includes("Paused"),
+  ) ?? null;
 
 let page: TestPage;
 let adapter: PlatformAdapter;
@@ -319,6 +326,42 @@ describe("mountVideoUi", () => {
     page.player.style.top = "";
     window.dispatchEvent(new Event("resize"));
     await expect.poll(() => below.style.position).toBe("");
+  });
+
+  it("in touch mode, shows Paused at the video's top left while Langle holds it paused; never on a desktop", async () => {
+    let touch = true;
+    let changed: ((on: boolean) => void) | undefined;
+    const fake = fakeApp(readyState());
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: {
+        on: () => touch,
+        watch: (listener) => {
+          changed = listener;
+          return () => {};
+        },
+      },
+    });
+    await expect
+      .poll(() => text("langle-video-below"))
+      .toContain("The yeast smells tangy.");
+    expect(text("langle-video-player")).not.toContain("Paused");
+    fake.store.set({ heldPaused: true });
+    await expect.poll(() => text("langle-video-player")).toContain("Paused");
+    // Mock MobileYouTube: 12px in from the video's top left.
+    const pill = pausedPill("langle-video-player")!.getBoundingClientRect();
+    const player = page.player.getBoundingClientRect();
+    expect([
+      pill.left - player.left,
+      pill.top - player.top,
+      pill.height,
+    ]).toEqual([12, 12, 28]);
+    touch = false;
+    changed?.(false);
+    await expect
+      .poll(() => text("langle-video-player"))
+      .not.toContain("Paused");
   });
 
   it("off: only the player buttons stay", async () => {
@@ -1062,6 +1105,33 @@ describe("mountVideoUi", () => {
           12, 56, 300,
         ]);
         expect(innerHeight - win()!.bottom).toBe(12);
+      });
+
+      it("shows Paused at the video's top left while Langle holds it paused, beside the column too", async () => {
+        await browserPage.viewport(844, 390);
+        const { store } = mountTouch("off");
+        await fullscreen();
+        await expect
+          .poll(() => text("langle-video"))
+          .toContain("The yeast smells tangy.");
+        expect(pausedPill("langle-video")).toBeNull();
+        store.set({ heldPaused: true });
+        await expect.poll(() => pausedPill("langle-video")).not.toBeNull();
+        // Mock MobileYouTubeLandscape: 56px in and 16px down; 12 and 12 beside the column.
+        const at = () => {
+          const box = pausedPill("langle-video")!.getBoundingClientRect();
+          return [box.left, box.top, box.height];
+        };
+        expect(at()).toEqual([56, 16, 28]);
+        store.set({
+          settings: mergeSettings(
+            { phoneFullscreenTranscript: "left" },
+            store.get().settings,
+          ),
+        });
+        await expect.poll(at).toEqual([356 + 12, 12, 28]);
+        store.set({ heldPaused: false });
+        await expect.poll(() => pausedPill("langle-video")).toBeNull();
       });
 
       it("with the transcript at a side: a 300px column 44px from that edge, the video beside it, the dictionary inside", async () => {

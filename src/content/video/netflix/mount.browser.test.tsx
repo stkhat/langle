@@ -34,6 +34,7 @@ const STATE: VideoState = {
   phrase: null,
   selecting: false,
   subtitleHover: false,
+  heldPaused: false,
   menuOpen: false,
   fullscreen: false,
   panelTab: "transcript",

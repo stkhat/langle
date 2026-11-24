@@ -134,6 +134,8 @@ export interface VideoState {
   selecting: boolean;
   /** The pointer is on the subtitle (over the video or in the box below it). */
   subtitleHover: boolean;
+  /** Langle paused the video (`holdPlayback`) and it has not played since. */
+  heldPaused: boolean;
   /** The Langle menu above the ^ button. */
   menuOpen: boolean;
   /** The player is in fullscreen: no transcript, the subtitle always in the video. */
@@ -281,6 +283,7 @@ export function freshState(
     phrase: null,
     selecting: false,
     subtitleHover: false,
+    heldPaused: false,
     menuOpen: false,
     fullscreen,
     panelTab: "transcript",

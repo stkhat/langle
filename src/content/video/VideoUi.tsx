@@ -1,4 +1,4 @@
-import type { ComponentChildren } from "preact";
+import type { ComponentChildren, CSSProperties } from "preact";
 import { useEffect, useMemo, useReducer } from "preact/hooks";
 import { FEEDBACK_URL } from "../../core/links";
 import type { Settings } from "../../core/settings";
@@ -25,6 +25,7 @@ import { PhoneTranscript } from "../../ui/video/PhoneTranscript";
 import type { TranscriptProps } from "../../ui/video/Transcript";
 import { ThemeScope } from "../../ui/ThemeScope";
 import { LangleMark } from "../../ui/LangleMark";
+import { PauseIcon } from "../../ui/icons";
 import { t } from "../../i18n/t";
 import { explainSection, shownAnswer } from "../explain/panel";
 import { hoverView, windowView } from "../lookup/describe";
@@ -317,6 +318,11 @@ export function InPlayerUi(props: {
       : subtitleBottom;
   return (
     <>
+      {touch && !fillsWindow && state.heldPaused && (
+        <PausedPill
+          style={{ position: "absolute", left: "12px", top: "12px" }}
+        />
+      )}
       {inVideo && (
         <div
           style={{
@@ -339,6 +345,37 @@ export function InPlayerUi(props: {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * On a phone, while Langle holds the video paused (a word's sheet is open): "Paused" at
+ * the video's top left (mock MobileYouTube, MobileYouTubeLandscape).
+ */
+function PausedPill(props: { style: CSSProperties }) {
+  return (
+    <span
+      role="status"
+      style={{
+        ...props.style,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        height: "28px",
+        padding: "0 10px",
+        boxSizing: "border-box",
+        borderRadius: "14px",
+        background: "rgba(0,0,0,0.6)",
+        color: "#FFFFFF",
+        fontSize: "12px",
+        fontWeight: 600,
+        lineHeight: 1,
+        pointerEvents: "none",
+      }}
+    >
+      <PauseIcon />
+      {t("video.paused")}
+    </span>
   );
 }
 
@@ -719,6 +756,16 @@ function PhoneFullscreenUi(props: {
     : PHONE_SUBTITLE.full;
   return (
     <>
+      {state.heldPaused && (
+        <PausedPill
+          style={{
+            position: "fixed",
+            zIndex: OVER_VIDEO_LAYER,
+            left: `${room("left") + (column ? 12 : 56)}px`,
+            top: column ? "12px" : "16px",
+          }}
+        />
+      )}
       {state.line >= 0 && (
         <div
           style={{

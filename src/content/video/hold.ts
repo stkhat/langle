@@ -48,8 +48,10 @@ export function holdPlayback(o: {
   function forget() {
     clearTimeout(timer);
     timer = undefined;
-    paused?.removeEventListener("play", forget);
+    if (!paused) return;
+    paused.removeEventListener("play", forget);
     paused = null;
+    store.set({ heldPaused: false });
   }
 
   function hold() {
@@ -63,6 +65,7 @@ export function holdPlayback(o: {
     if (adapter.adShowing()) return;
     paused = video;
     video.addEventListener("play", forget);
+    store.set({ heldPaused: true });
     adapter.pause().catch((error: unknown) => {
       warn(error);
       if (paused === video) forget();
