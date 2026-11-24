@@ -45,7 +45,7 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 - [ ] C7 Fill `KOFI_URL` in `src/core/links.ts`, and the feedback form if wanted (U makes the pages). `SPONSOR_PAGE_URL` stays empty and `SPONSOR_CARD` null, which hides the spot and both sponsor links
 - [ ] C8 Link the privacy policy from the consent screen and Settings
 - [ ] C9 Go through status "Known issues" and mark what blocks a launch. First candidates: PR 238 (draft, a settings change overwritten by an older echo), the first download (about 24 s for English → Japanese, one file at a time), no hover while a dictionary is missing
-- [ ] C10 **Blocker**: correct the sync copy in Settings. It says only each word and its status are synced, but settings sync too (the hosts of Never run on and of switched-off sites among them), also with word sync off
+- [x] C10 **Blocker**: correct the sync copy in Settings. It says only each word and its status are synced, but settings sync too (the hosts of Never run on and of switched-off sites among them), also with word sync off. Done 2026-11-24: the section's lead says settings, site lists included, are always saved to browser sync; the switch says it adds each word and its status
 - [x] C11 Language choice right after install (decided and built 2026-11-23): "Your languages" follows consent; Start downloads, returns to the page that was open before, reloads that tab if Langle isn't running in it, and opens the toolbar popup. Tested on headless Chromium. Left for G3, in Chrome itself: the popup opening by itself and across the reload, a page that asks before it is left, a page where extensions can't run, the translation model's download after the setup tab closes
 
 ## D. Public site (C writes, U publishes)
