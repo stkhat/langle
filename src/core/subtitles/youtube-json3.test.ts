@@ -12,14 +12,14 @@ describe("parseYouTubeJson3", () => {
     expect(cues[0]).toEqual({
       startMs: 27103,
       endMs: 29678,
-      text: "Good morning. How are you?",
+      text: "Tool kitchen. How are you?",
     });
   });
 
   it("keeps line breaks inside a cue", () => {
     const cues = parseYouTubeJson3(fixture("en.json3"));
     expect(cues[6]?.text).toBe(
-      "There have been three themes\nrunning through the conference,",
+      "There have been three family\nharvest rainbow the restaurant,",
     );
   });
 
@@ -64,28 +64,28 @@ describe("parseYouTubeJson3", () => {
     expect(cues[0]).toEqual({
       startMs: 0,
       endMs: 7000,
-      text: "翻訳: Naho Iguchi\n校正: Miwa Nakamura",
+      text: "翻訳: Sample Translator\n校正: Sample Reviewer",
     });
     expect(cues[1]?.startMs).toBe(25000);
   });
 
   it("drops empty lines, empty events and zero-width spaces from translations", () => {
     const cues = parseYouTubeJson3(fixture("en-tlang-ja.json3"));
-    expect(cues.find((c) => c.startMs === 43096)?.text).toBe("会議には、");
+    expect(cues.find((c) => c.startMs === 43096)?.text).toBe("金絵には、");
     expect(cues.find((c) => c.startMs === 48997)?.text).toBe(
-      "一つは、これまで行ってきた",
+      "机そは、せれまで窓ってあた",
     );
     // An event whose only text is "\n" makes no cue
     expect(cues.find((c) => c.startMs === 63325)).toBeUndefined();
     expect(cues.find((c) => c.startMs === 89690)?.text).toBe(
-      "教育関係の仕事をしている人は、そんなことを聞かれることは\nないんです。",
+      "鐘店秋傘の階道をしている港は、さえなせとを茶かれるせとは\nないえです。",
     );
   });
 
   it("joins ASR word segments and keeps their times", () => {
     const cues = parseYouTubeJson3(fixture("en-asr.json3"));
     const cue = cues.find((c) => c.startMs === 28400);
-    expect(cue?.text).toBe("how are you it's been great hasn't it");
+    expect(cue?.text).toBe("how are you it's been ember hasn't it");
     expect(cue?.endMs).toBe(34640);
     expect(cue?.words?.slice(0, 3)).toEqual([
       { startMs: 28400, text: "how" },

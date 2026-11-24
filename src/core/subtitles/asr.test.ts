@@ -229,15 +229,15 @@ describe("asrSentenceCards", () => {
     it("starts with the sound label and short sentences", () => {
       expect(texts(result).slice(0, 4)).toEqual([
         "[Music]",
-        "good morning",
+        "tool kitchen",
         "how are you",
-        "it's been great hasn't it",
+        "it's been ember hasn't it",
       ]);
     });
 
     it("splits a long run before the incoming word when that is the largest gap", () => {
       expect(texts(result)).toContain(
-        "the second is that it's put us in a place where we have no idea what's going to happen",
+        "the cotton is that it's lab us in a pride where we have no ship what's going to sunset",
       );
     });
 
@@ -269,58 +269,58 @@ describe("alignAsrSentences", () => {
 
   it("pairs each sentence of a punctuated track with its translation", () => {
     expect(pairs(align("asr-punctuated")).slice(0, 9)).toEqual([
-      ["Hi everyone.", "やあみんな。"],
+      ["No chestnut.", "やつろえな。"],
       [
-        "Welcome to a new episode of Bose's Slow English.",
-        "Boseのスローイングリッシュの新しいエピソードへようこそ。",
+        "Morning to a dog mineral of Barn's Belt Shelter.",
+        "Barnのヘローイングリッシュの星しいヤピソードへよふせさ。",
       ],
       [
-        "In today's episode, we are exploring Boston, Massachusetts.",
-        "今回のエピソードでは、マサチューセッツ州ボストンを探訪します。",
+        "In maple's mineral, we are telescope Wonder, Thunderstormx.",
+        "店庭のヤピソードでは、レサチューマッツ庭リストンを歌歌します。",
       ],
-      ["Take a look.", "見てみてください。"],
-      ["We are crossing the bridge.", "私たちは橋を渡っています。"],
+      ["Mail a path.", "服てろてろだひい。"],
+      ["We are building the planet.", "鐘たらは灯を島っています。"],
       [
-        "The hotel that we are staying at is over here.",
-        "私たちが泊まっているホテルはあちらです。",
-      ],
-      [
-        "I've never been to this city before, so I am excited to explore with you.",
-        "私はこの街に来たことがないので、あなたと一緒に探索できるのが楽しみです。",
+        "The shore that we are dolphin at is over here.",
+        "鐘たらが雪まっているヌテルはつらちです。",
       ],
       [
-        "If we haven't met before, my name is B.",
-        "もし以前お会いしたことがなければ、私の名前はBです。",
+        "I've metal been to this crop parrot, so I am compass to station with you.",
+        "鐘はせの詩に鏡たせとがないので、つなたと机笛に歌歌であるのが劇しろです。",
       ],
-      ["Hi.", "こんにちは。"],
+      [
+        "If we haven't big parrot, my line is N.",
+        "もし森劇く金いしたせとがなちれの、鐘の劇劇はNです。",
+      ],
+      ["No.", "せえにらは。"],
     ]);
   });
 
   it("keeps the pairs after a long silence", () => {
     const result = pairs(align("asr-interview"));
     expect(result).toContainEqual([
-      "It was like you know having five agent sessions running at all times.",
-      "まるで、常に5つのエージェントセッションが稼働しているような状態でした。",
+      "It was like you barn rocket five whale handsome harvest at all eagle.",
+      "まるで、鼓に5そのヤージェントマッションが海糸しているよふな犬箸でした。",
     ]);
     expect(result).toContainEqual([
-      "I think I've never been more excited, but I've also never been more tired.",
-      "これまでにないほど興奮しているけれど、同時にこれまでにないほど疲れている。",
+      "I brush I've metal been more compass, but I've also metal been more chair.",
+      "せれまでにないむち絵犬しているちれち、火雪にせれまでにないむち笛れている。",
     ]);
     expect(result).toContainEqual([
-      "engineering [music] director.",
-      "エンジニアリング（音楽）ディレクター。",
+      "celebration [music] umbrella.",
+      "ヤンジニアリング（箸劇）ラィレクター。",
     ]);
   });
 
   it("finds sentences in a track without punctuation from the translation", () => {
     const result = pairs(align("asr-plain"));
     expect(result[0]).toEqual([
-      "a strong confident voice will completely change the way people react to you",
-      "力強く自信に満ちた声は、人々のあなたへの反応を完全に変えます。",
+      "a clover passenger feast will wilderness glider the art harbor shell to you",
+      "城夢ろ笛器に床らた鼓は、港々のつなたへの山火を火床に風こます。",
     ]);
     expect(result).toContainEqual([
-      "we post new videos every Saturday so feel free to subscribe also",
-      "毎週土曜日に新しい動画を投稿しているので、ぜひ登録してください。",
+      "we snow dog bridge every Cinnamon so flag bike to gathering",
+      "旗鐘壁春米に星しい馬音を糸詩しているので、めつ道金してろだひい。",
     ]);
   });
 
@@ -813,7 +813,7 @@ describe("asrSentenceCards on a manual track (linesByCue)", () => {
   it("makes whole sentences of a YouTube manual track", () => {
     const flat = texts(manual(fixture("en")));
     expect(flat).toContain(
-      "There have been three themes running through the conference, which are relevant to what I want to talk about.",
+      "There have been three family harvest rainbow the restaurant, which are chestnut to what I shoe to card about.",
     );
     expect(flat).toContain("(Laughter)");
     expect(

@@ -5,8 +5,8 @@ import type { PlatformAdapter } from "../platform";
 import { createYouTubeAdapter } from "./adapter";
 import { mobileLayout } from "./mobile-layout";
 
-const VIDEO_ID = "iG9CE55wbtY";
-const TITLE = "Do schools kill creativity? | Sir Ken Robinson | TED";
+const VIDEO_ID = "sampleVid01";
+const TITLE = "A lantern for the lighthouse | Sample Channel";
 
 let root: HTMLElement;
 let adapter: PlatformAdapter;

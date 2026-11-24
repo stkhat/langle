@@ -3,7 +3,7 @@
     "playerCaptionsTracklistRenderer": {
       "captionTracks": [
         {
-          "baseUrl": "https://www.youtube.com/api/timedtext?v=iG9CE55wbtY&ei=REDACTED&caps=asr&opi=112496729&exp=xpe&xoaf=5&xowf=1&hl=en&ip=0.0.0.0&ipbits=0&expire=1794265678&sparams=ip%2Cipbits%2Cexpire%2Cv%2Cei%2Ccaps%2Copi%2Cexp%2Cxoaf&signature=REDACTED&key=yt8&lang=en",
+          "baseUrl": "https://www.youtube.com/api/timedtext?v=sampleVid01&ei=REDACTED&caps=asr&opi=0&exp=xpe&xoaf=5&xowf=1&hl=en&ip=0.0.0.0&ipbits=0&expire=0&sparams=ip%2Cipbits%2Cexpire%2Cv%2Cei%2Ccaps%2Copi%2Cexp%2Cxoaf&signature=REDACTED&key=yt8&lang=en",
           "name": {
             "simpleText": "English"
           },
@@ -13,7 +13,7 @@
           "trackName": ""
         },
         {
-          "baseUrl": "https://www.youtube.com/api/timedtext?v=iG9CE55wbtY&ei=REDACTED&caps=asr&opi=112496729&exp=xpe&xoaf=5&xowf=1&hl=en&ip=0.0.0.0&ipbits=0&expire=1794265678&sparams=ip%2Cipbits%2Cexpire%2Cv%2Cei%2Ccaps%2Copi%2Cexp%2Cxoaf&signature=REDACTED&key=yt8&kind=asr&lang=en",
+          "baseUrl": "https://www.youtube.com/api/timedtext?v=sampleVid01&ei=REDACTED&caps=asr&opi=0&exp=xpe&xoaf=5&xowf=1&hl=en&ip=0.0.0.0&ipbits=0&expire=0&sparams=ip%2Cipbits%2Cexpire%2Cv%2Cei%2Ccaps%2Copi%2Cexp%2Cxoaf&signature=REDACTED&key=yt8&kind=asr&lang=en",
           "name": {
             "simpleText": "English (auto-generated)"
           },
@@ -24,7 +24,7 @@
           "trackName": ""
         },
         {
-          "baseUrl": "https://www.youtube.com/api/timedtext?v=iG9CE55wbtY&ei=REDACTED&caps=asr&opi=112496729&exp=xpe&xoaf=5&xowf=1&hl=en&ip=0.0.0.0&ipbits=0&expire=1794265678&sparams=ip%2Cipbits%2Cexpire%2Cv%2Cei%2Ccaps%2Copi%2Cexp%2Cxoaf&signature=REDACTED&key=yt8&lang=ja",
+          "baseUrl": "https://www.youtube.com/api/timedtext?v=sampleVid01&ei=REDACTED&caps=asr&opi=0&exp=xpe&xoaf=5&xowf=1&hl=en&ip=0.0.0.0&ipbits=0&expire=0&sparams=ip%2Cipbits%2Cexpire%2Cv%2Cei%2Ccaps%2Copi%2Cexp%2Cxoaf&signature=REDACTED&key=yt8&lang=ja",
           "name": {
             "simpleText": "Japanese"
           },
@@ -34,7 +34,7 @@
           "trackName": ""
         },
         {
-          "baseUrl": "https://www.youtube.com/api/timedtext?v=iG9CE55wbtY&ei=REDACTED&caps=asr&opi=112496729&exp=xpe&xoaf=5&xowf=1&hl=en&ip=0.0.0.0&ipbits=0&expire=1794265678&sparams=ip%2Cipbits%2Cexpire%2Cv%2Cei%2Ccaps%2Copi%2Cexp%2Cxoaf&signature=REDACTED&key=yt8&lang=es",
+          "baseUrl": "https://www.youtube.com/api/timedtext?v=sampleVid01&ei=REDACTED&caps=asr&opi=0&exp=xpe&xoaf=5&xowf=1&hl=en&ip=0.0.0.0&ipbits=0&expire=0&sparams=ip%2Cipbits%2Cexpire%2Cv%2Cei%2Ccaps%2Copi%2Cexp%2Cxoaf&signature=REDACTED&key=yt8&lang=es",
           "name": {
             "simpleText": "Spanish"
           },
