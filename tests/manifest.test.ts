@@ -22,15 +22,16 @@ type Manifest = {
 function readManifest(dir: string): Manifest {
   const path = `.output/${dir}/manifest.json`;
   if (!existsSync(path)) {
-    throw new Error(
-      `${path} not found. Build first: npm run build && npm run build:firefox`,
-    );
+    throw new Error(`${path} not found. Build first: npm run build`);
   }
   return JSON.parse(readFileSync(path, "utf8")) as Manifest;
 }
 
+/** The production builds: Chrome's only, while Firefox is paused (docs/notes/firefox-paused.md). */
+const BUILDS = ["chrome-mv3"];
+
 // Exact equality on purpose: adding a permission or host must be a deliberate edit of this test.
-describe.each(["chrome-mv3", "firefox-mv3"])("%s manifest", (dir) => {
+describe.each(BUILDS)("%s manifest", (dir) => {
   const manifest = () => readManifest(dir);
 
   test("is Manifest V3", () => {
@@ -134,14 +135,6 @@ describe("chrome-mv3 manifest specifics", () => {
   });
 });
 
-describe("firefox-mv3 manifest specifics", () => {
-  test("has the Gecko id and background scripts", () => {
-    const m = readManifest("firefox-mv3");
-    expect(m.browser_specific_settings?.gecko?.id).toBe("langle@stkhat");
-    expect(m.background?.scripts).toBeDefined();
-  });
-});
-
 /** Every script of the build, joined. */
 const scriptsOf = (dir: string) =>
   readdirSync(`.output/${dir}`, { recursive: true, withFileTypes: true })
@@ -181,7 +174,7 @@ describe("Google sign-in", () => {
   });
 
   // Until the store item's client is registered, production has no Google client.
-  test.each(["chrome-mv3", "firefox-mv3"])(
+  test.each(BUILDS)(
     "%s (production) has no key, no oauth2 and no development client",
     (dir) => {
       const m = readManifest(dir);
@@ -198,7 +191,7 @@ describe("check build", () => {
   const backgroundOf = (dir: string) =>
     readFileSync(`.output/${dir}/background.js`, "utf8");
 
-  test.each(["chrome-mv3", "firefox-mv3"])(
+  test.each(BUILDS)(
     "%s (production) has no self-reload and no build id",
     (dir) => {
       expect(backgroundOf(dir)).not.toContain("build-id");
@@ -206,24 +199,18 @@ describe("check build", () => {
     },
   );
 
-  test.each(["chrome-mv3", "firefox-mv3"])(
-    "%s (production) has no error log",
-    (dir) => {
-      const scripts = scriptsOf(dir);
-      expect(scripts).not.toContain("langle:check-errors");
-      expect(scripts).not.toContain("checkErrorLog");
-    },
-  );
+  test.each(BUILDS)("%s (production) has no error log", (dir) => {
+    const scripts = scriptsOf(dir);
+    expect(scripts).not.toContain("langle:check-errors");
+    expect(scripts).not.toContain("checkErrorLog");
+  });
 
-  test.each(["chrome-mv3", "firefox-mv3"])(
-    "%s (production) has no settings channel",
-    (dir) => {
-      const scripts = scriptsOf(dir);
-      expect(scripts).not.toContain("langle:check-settings");
-      // Its refusal text, so a renamed message type cannot slip through.
-      expect(scripts).not.toContain("is not an offered pair");
-    },
-  );
+  test.each(BUILDS)("%s (production) has no settings channel", (dir) => {
+    const scripts = scriptsOf(dir);
+    expect(scripts).not.toContain("langle:check-settings");
+    // Its refusal text, so a renamed message type cannot slip through.
+    expect(scripts).not.toContain("is not an offered pair");
+  });
 
   test("the check build answers settings requests in every content script", () => {
     for (const file of [

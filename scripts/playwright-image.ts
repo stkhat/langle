@@ -1,6 +1,5 @@
 // The Playwright Docker image for the installed @playwright/test: its browsers are the
-// builds that version drives. CI runs in it (.github/workflows/ci.yml), and so does
-// the local Firefox run (scripts/test-firefox.ts).
+// builds that version drives. CI runs in it (.github/workflows/ci.yml).
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);

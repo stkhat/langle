@@ -6,7 +6,7 @@
 
 **Architecture:** The content scripts' one translation queue (`src/content/translate/queue.ts`) gets a fifth priority, `ahead`, between `hover` and `list`, and an optional `AbortSignal` per request. The video session (`src/content/video/session.ts`) asks, at `ahead`, for the cards that start in the next 10 seconds of video time and aborts the requests a seek leaves behind. A new `TranslatorBackend` (`src/content/translate/backend.ts`) wraps today's Translator API functions; every caller goes through `translatorBackend()`, which step 3 (the app, not in this plan) will make choose the app's bridge when it exists.
 
-**Tech stack:** TypeScript, WXT + Preact, Vitest (unit project in Node, browser project on real Chromium and Firefox).
+**Tech stack:** TypeScript, WXT + Preact, Vitest (unit project in Node, browser project on real Chromium).
 
 **Step 3 is not planned here.** The app's translation hosts and bridge provider wait for the app's skeleton, the extension API shim and the engine boundary ([docs/notes/mobile.md](../notes/mobile.md) "Next steps" 3). The spec's test that a recorded 429 answer makes a video choose on-device translation goes with step 3 too.
 
@@ -18,8 +18,7 @@
 - Commit after each task, as the plan says (no Claude attribution in messages). Run `npm run verify` before pushing; the pre-push hook refuses a tree it has not passed on. Open a **draft** PR.
 - While iterating, run only the touched test files:
   - Unit: `npx vitest run --project unit <file>`
-  - Browser on Chromium: `VITEST_BROWSERS=chromium npx vitest run --project browser <file>`
-  - Browser on Firefox, sandbox off: `npm run test:browser:firefox -- <file>`
+  - Browser on Chromium: `npx vitest run --project browser <file>`
 
 ## Files
 | File | Change |
@@ -483,7 +482,7 @@ describe("translating ahead", () => {
 });
 ```
 
-- [ ] **Step 2: Run them and see them fail.** `VITEST_BROWSERS=chromium npx vitest run --project browser src/content/video/session.browser.test.ts -t "translating ahead"`. Expected: they time out or fail on the counts, because nothing is asked for ahead yet ("asks for nothing ahead while Langle is off" times out on its last line).
+- [ ] **Step 2: Run them and see them fail.** `npx vitest run --project browser src/content/video/session.browser.test.ts -t "translating ahead"`. Expected: they time out or fail on the counts, because nothing is asked for ahead yet ("asks for nothing ahead while Langle is off" times out on its last line).
 
 - [ ] **Step 3: Implement it.** In `session.ts`:
 
@@ -641,9 +640,8 @@ await expect
   ]);
 ```
 
-- [ ] **Step 6: Run the whole file on both browsers.**
-  - `VITEST_BROWSERS=chromium npx vitest run --project browser src/content/video/session.browser.test.ts`
-  - With the sandbox off: `npm run test:browser:firefox -- src/content/video/session.browser.test.ts`
+- [ ] **Step 6: Run the whole file.**
+  - `npx vitest run --project browser src/content/video/session.browser.test.ts`
 
   Expected: all pass (the review traced no other test that uses the built-in source). If another one fails, debug it (superpowers:systematic-debugging); change an expectation only when the failure is the extra ahead texts, with the reason in a comment.
 
@@ -757,7 +755,7 @@ export const translatorBackend = (): TranslatorBackend => builtInBackend();
   - `src/check/start.ts`: import `translatorBackend` from `../content/translate/backend`; `pairChosen: (learning, native) => void translatorBackend().downloadModels(learning, native),`.
   - `src/entrypoints/wordlist/main.tsx`: import `translatorBackend` from `../../content/translate/backend`; `createTranslator: translatorBackend().create,`.
 
-- [ ] **Step 6: Check and test.** Run `npm run check` (types, lint, format, knip), then `npm test` and the browser files that use these entry points: `VITEST_BROWSERS=chromium npx vitest run --project browser src/content src/entrypoints`. Expected: all pass; knip reports no unused export.
+- [ ] **Step 6: Check and test.** Run `npm run check` (types, lint, format, knip), then `npm test` and the browser files that use these entry points: `npx vitest run --project browser src/content src/entrypoints`. Expected: all pass; knip reports no unused export.
 
 - [ ] **Step 7: Commit.**
 
