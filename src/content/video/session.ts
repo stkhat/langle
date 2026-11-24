@@ -65,6 +65,7 @@ import {
   type WordRef,
 } from "./state";
 import { createSummaries } from "../words/summaries";
+import { NEVER_TOUCH, type TouchMode } from "../touch/touch-mode";
 
 /** Cues classified per `analyze` request. */
 const BATCH = 50;
@@ -86,6 +87,12 @@ function firstStartingAt(cues: readonly { startMs: number }[], ms: number) {
 
 export interface VideoDeps extends LookupDeps {
   adapter: PlatformAdapter;
+  /**
+   * Whether the page is in touch mode: words selected by a long-press open their
+   * phrase's sheet straight away (spec mobile-app.md "Long-press selection"). Default:
+   * never.
+   */
+  touchMode?: TouchMode;
   /** Default: asks this platform's translator (`translatorBackend`). */
   translatorAvailable?(from: string, to: string): Promise<boolean>;
 }
@@ -123,6 +130,7 @@ const sameNote = (a: DataNote | null, b: DataNote | null) =>
 export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
   const { adapter } = deps;
   const { platform } = adapter;
+  const touchMode = deps.touchMode ?? NEVER_TOUCH;
   let settings = await deps.send({ type: "getSettings" });
   const store = createStore<VideoState>(freshState(settings, null, false));
   let watch: Watch | undefined;
@@ -232,6 +240,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     termInput,
     dismissHover: () => cards.dismissHover(),
     openWord: (ref) => cards.clickWord(ref),
+    touch: () => touchMode.on(),
     async saved(key, cue, status) {
       const w = watch;
       if (!w) return;
@@ -789,7 +798,12 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     cancelCorrectPhrase: explain.cancelPhrase,
     saveCorrectPhrase: (text) => run(() => explain.savePhrase(text)),
     speak: () => lookup.speak(store.get().panel?.card.head),
-    closePanel: cards.closePanel,
+    closePanel() {
+      const selected = store.get().panel?.ref.selected;
+      cards.closePanel();
+      // A phrase's sheet (touch mode) leaves its words selected while it shows.
+      if (selected && touchMode.on()) getSelection()?.removeAllRanges();
+    },
     seekTo(ms) {
       adapter.seek(ms).catch(warn);
     },

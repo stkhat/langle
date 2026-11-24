@@ -16,6 +16,7 @@ import {
   cleanUpMounts,
   mountInShadowRoot,
 } from "../../testing/shadow-root";
+import { canTouch, longPress, tap } from "../../testing/touch";
 import { selectedOffsets } from "../selection-in-root";
 import { SubtitleOverlay, type SubtitleOverlayProps } from "./SubtitleOverlay";
 import type { SelectedText } from "./text-selection";
@@ -547,6 +548,93 @@ describe("SubtitleOverlay", () => {
       expect(onSelectStart).not.toHaveBeenCalled();
       expect(onWordClick).toHaveBeenCalledWith(2);
       expect(selectedOffsets(line(screen))).toBeUndefined();
+    });
+
+    describe.runIf(canTouch)("with a finger (touch mode)", () => {
+      const keep = () =>
+        vi.fn(
+          (selected?: { from: number; to: number }) =>
+            selected && { from: selected.from, to: selected.to },
+        );
+
+      test("a long-press selects the word, a drag after it grows the selection by whole words", async () => {
+        addPageStyle("body { user-select: none; -webkit-user-select: none }");
+        const onSelectStart = vi.fn();
+        const onSelect = keep();
+        const onWordClick = vi.fn();
+        const pageClick = vi.fn();
+        document.addEventListener("click", pageClick);
+        onTestFinished(() => document.removeEventListener("click", pageClick));
+        const screen = await mountInShadowRoot(
+          <SubtitleOverlay
+            {...base}
+            touch
+            onSelectStart={onSelectStart}
+            onSnap={wholeWords(TEXT)}
+            onSelect={onSelect}
+            onWordClick={onWordClick}
+          />,
+        );
+        await longPress([
+          middleOf(word(screen, "today")),
+          pointIn(word(screen, "figure out"), 0.85),
+          middleOf(word(screen, "bread")),
+        ]);
+        await expect.poll(() => onSelect.mock.calls.length).toBe(1);
+        expect(onSelectStart).toHaveBeenCalledOnce();
+        expect(onSelect.mock.calls[0]![0]).toMatchObject({
+          ...whole("today", "bread"),
+          anchor: "start",
+        });
+        expect(selectedOffsets(line(screen))).toEqual(whole("today", "bread"));
+        expect(onWordClick).not.toHaveBeenCalled();
+        expect(pageClick).not.toHaveBeenCalled();
+      });
+
+      test("a long-press that does not move selects the word under the finger", async () => {
+        const onSelect = keep();
+        const screen = await mountInShadowRoot(
+          <SubtitleOverlay
+            {...base}
+            touch
+            onSnap={wholeWords(TEXT)}
+            onSelect={onSelect}
+          />,
+        );
+        await longPress([middleOf(word(screen, "bread"))]);
+        await expect.poll(() => onSelect.mock.calls.length).toBe(1);
+        expect(onSelect.mock.calls[0]![0]).toMatchObject(
+          whole("bread", "bread"),
+        );
+      });
+
+      test("a tap opens the word and selects nothing; the system's menu never opens", async () => {
+        const onSelect = keep();
+        const onSelectStart = vi.fn();
+        const onWordClick = vi.fn();
+        const screen = await mountInShadowRoot(
+          <SubtitleOverlay
+            {...base}
+            touch
+            onSnap={wholeWords(TEXT)}
+            onSelectStart={onSelectStart}
+            onSelect={onSelect}
+            onWordClick={onWordClick}
+          />,
+        );
+        await tap(middleOf(word(screen, "bread")));
+        await expect.poll(() => onWordClick.mock.calls.length).toBe(1);
+        expect(onWordClick).toHaveBeenCalledWith(2);
+        expect(onSelectStart).not.toHaveBeenCalled();
+        expect(onSelect).not.toHaveBeenCalled();
+        expect(selectedOffsets(line(screen))).toBeUndefined();
+        const menu = new MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+        });
+        word(screen, "bread").dispatchEvent(menu);
+        expect(menu.defaultPrevented).toBe(true);
+      });
     });
   });
 });

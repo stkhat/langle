@@ -13,6 +13,7 @@ import { renderTerms, termStyle } from "./terms";
 import { TermSpan } from "./TermSpan";
 import type { SelectedOffsets } from "../selection-in-root";
 import {
+  TOUCH_TEXT,
   useTextSelection,
   type Anchor,
   type SelectedText,
@@ -66,6 +67,8 @@ export interface TranscriptProps {
   holdScroll?: boolean;
   learningLang: string;
   nativeLang: string;
+  /** Touch mode: words are selected by a long-press (see `TextSelectionProps.touch`). */
+  touch?: boolean;
   /** How long auto-scrolling waits after the user scrolls the list (ms). */
   userScrollPauseMs?: number;
 }
@@ -278,6 +281,7 @@ export function Transcript(props: TranscriptProps) {
           learningLang={props.learningLang}
           nativeLang={props.nativeLang}
           selectable={props.onSelect !== undefined}
+          touch={props.touch === true}
           handlers={handlers}
         />
       ))}
@@ -297,6 +301,7 @@ interface CardProps {
   nativeLang: string;
   /** Words can be selected in the card's original. */
   selectable: boolean;
+  touch: boolean;
   handlers: CardHandlers;
 }
 
@@ -314,6 +319,7 @@ const sameCard = (a: CardProps, b: CardProps) =>
   a.learningLang === b.learningLang &&
   a.nativeLang === b.nativeLang &&
   a.selectable === b.selectable &&
+  a.touch === b.touch &&
   a.handlers === b.handlers;
 
 /**
@@ -339,6 +345,7 @@ function CardBody(props: CardProps) {
     onSelect: props.selectable
       ? (selected) => handlers.onSelect(index, selected)
       : undefined,
+    touch: props.touch,
   });
   const words = renderTerms(cue.text, props.spans, (span, i, text) => {
     const style = termStyle(span.category, props.highlight, "ui");
@@ -409,7 +416,12 @@ function CardBody(props: CardProps) {
         ref={selection.ref}
         {...langAttrs(props.learningLang)}
         onPointerDown={selection.onPointerDown}
-        style={{ fontSize: "14px", lineHeight: 1.5, userSelect: "text" }}
+        style={{
+          fontSize: "14px",
+          lineHeight: 1.5,
+          userSelect: "text",
+          ...(props.touch && TOUCH_TEXT),
+        }}
       >
         {words}
       </span>

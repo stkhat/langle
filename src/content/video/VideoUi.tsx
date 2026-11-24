@@ -147,8 +147,10 @@ function Subtitle(props: {
   app: VideoApp;
   state: VideoState;
   variant: "inVideo" | "belowVideo" | "fullscreen" | "vertical";
+  /** Touch mode: no hover (a tap would hover first), words selected by a long-press. */
+  touch: boolean;
 }) {
-  const { app, state } = props;
+  const { app, state, touch } = props;
   const line = playingLine(state);
   const { panel, settings } = state;
   const ref = (span: number) => ({
@@ -175,12 +177,17 @@ function Subtitle(props: {
       learningLang={settings.learningLang}
       nativeLang={settings.nativeLang}
       selected={selected >= 0 ? selected : null}
-      onWordEnter={(span, element) =>
-        app.enterWord(ref(span), boxOf(element), "subtitle")
-      }
+      onWordEnter={(span, element) => {
+        if (!touch) app.enterWord(ref(span), boxOf(element), "subtitle");
+      }}
       onWordLeave={app.leaveWord}
       onWordClick={(span) => app.clickWord(ref(span))}
-      onHover={(on) => (on ? app.enterSubtitle() : app.leaveSubtitle())}
+      onHover={(on) => {
+        if (touch) return;
+        if (on) app.enterSubtitle();
+        else app.leaveSubtitle();
+      }}
+      touch={touch}
       onSelectStart={() => app.selectStart("subtitle")}
       onSnap={(from, to, anchor) =>
         line &&
@@ -292,6 +299,7 @@ export function InPlayerUi(props: {
             variant={
               fullscreen ? "fullscreen" : vertical ? "vertical" : "inVideo"
             }
+            touch={touch}
           />
         </div>
       )}
@@ -413,7 +421,7 @@ export function BelowVideoUi(props: {
     return null;
   return (
     <div style={{ margin: "12px 0" }}>
-      <Subtitle app={app} state={state} variant="belowVideo" />
+      <Subtitle app={app} state={state} variant="belowVideo" touch={touch} />
     </div>
   );
 }
@@ -429,7 +437,7 @@ export function TranscriptUi(props: {
 }) {
   const { app } = props;
   const state = useStore(app.store);
-  const { frameHeight, sidebar } = useStore(props.layout);
+  const { frameHeight, sidebar, touch } = useStore(props.layout);
   const { cues, lines, spans, summaries, settings } = state;
   const shown =
     showing(state) &&
@@ -505,11 +513,12 @@ export function TranscriptUi(props: {
       onToggleHighlight={app.toggleHighlight}
       current={state.card}
       onSeek={app.seekToCue}
-      onWordEnter={(cue, span, element) =>
-        app.enterWord({ cue, span }, boxOf(element), "transcript")
-      }
+      onWordEnter={(cue, span, element) => {
+        if (!touch) app.enterWord({ cue, span }, boxOf(element), "transcript");
+      }}
       onWordLeave={app.leaveWord}
       onWordClick={(cue, span) => app.clickWord({ cue, span })}
+      touch={touch}
       onSelectStart={() => app.selectStart("transcript")}
       onSnap={(cue, from, to, anchor) =>
         snapIn(app, cue, 0, "transcript", { from, to, anchor })
@@ -531,9 +540,9 @@ export function TranscriptUi(props: {
       wordsSort={state.wordsSort}
       onWordsSort={app.setWordsSort}
       onJumpWord={(row, place) => app.jumpToWord(row.id, row.at[place]!)}
-      onListWordEnter={(row, element) =>
-        app.enterWord(row.first, boxOf(element), "words")
-      }
+      onListWordEnter={(row, element) => {
+        if (!touch) app.enterWord(row.first, boxOf(element), "words");
+      }}
       onListWordLeave={app.leaveWord}
       onOpenWord={(row) => app.clickWord(row.first)}
       onWordsScroll={() => {

@@ -21,6 +21,7 @@ import type {
 import { startVideo, type VideoDeps } from "./session";
 import type { VideoSession, VideoState } from "./state";
 import { videoWords } from "./words";
+import { fixedTouchMode } from "../../testing/touch";
 
 const cleanups: (() => unknown)[] = [];
 afterEach(async () => {
@@ -162,6 +163,7 @@ async function start(
     missingPacks?: PackName[];
     hooks?: Pick<VideoDeps, "onPanelOpen" | "onTermsChanged">;
     explainProvider?: VideoDeps["explainProvider"];
+    touchMode?: VideoDeps["touchMode"];
   } = {},
 ) {
   const video = await createVideo();
@@ -183,6 +185,7 @@ async function start(
     createTranslator: () => options.translator ?? noTranslation,
     translatorAvailable: async () => options.translatorAvailable ?? false,
     ...options.hooks,
+    ...(options.touchMode && { touchMode: options.touchMode }),
     ...(options.explainProvider && {
       explainProvider: options.explainProvider,
     }),
@@ -1773,6 +1776,32 @@ describe("selecting words", () => {
     await expect.poll(() => video.paused).toBe(false);
     await expect.poll(() => state().phrase).toBeNull();
     expect(state().selecting).toBe(false);
+  });
+
+  it("in touch mode, opens the phrase's sheet with no card above the words; closing it drops them", async () => {
+    const { state, app, bg } = await start(
+      { vid1: captionsOf(MIND) },
+      { touchMode: fixedTouchMode(true) },
+    );
+    await ready(state);
+    await classified(state);
+    const range = document.createRange();
+    range.selectNodeContents(document.body);
+    getSelection()?.addRange(range);
+    app.selectStart("subtitle");
+    app.selectWords(madeUpHerMind("subtitle"), boxOf);
+    await expect.poll(() => state().panel?.card.key).toBe("make up one's mind");
+    expect(state()).toMatchObject({ phrase: null, selecting: false });
+    expect(state().panel?.ref.selected).toMatchObject({
+      key: "make up one's mind",
+    });
+    // The words stay selected while the sheet shows.
+    expect(getSelection()?.rangeCount).toBe(1);
+    app.setPanelStatus("learning");
+    await expect.poll(() => bg.sent("saveTerm")).toHaveLength(1);
+    app.closePanel();
+    expect(state().panel).toBeNull();
+    expect(getSelection()?.rangeCount).toBe(0);
   });
 
   it("Details opens the phrase's window, which saves it", async () => {

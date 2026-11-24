@@ -50,8 +50,16 @@ export function createSelection(o: {
   ): Omit<SaveTermInput, "status" | "key" | "kind"> | undefined;
   /** Words began to be selected: the hover card goes. */
   dismissHover(): void;
-  /** One word was selected: its window opens, as a click on it does. */
+  /**
+   * Opens the window of `ref`, as a click on it does: one word that was selected, or
+   * in touch mode the phrase the words stand for.
+   */
   openWord(ref: WordRef): void;
+  /**
+   * The page is in touch mode: the phrase opens in its sheet once looked up, with no
+   * card above the words (spec mobile-app.md "Long-press selection").
+   */
+  touch(): boolean;
   /** The phrase `key` was saved from the cue. */
   saved(key: string, cue: number, status: TermStatus): Promise<void>;
 }) {
@@ -116,6 +124,13 @@ export function createSelection(o: {
       span: -1,
       selected: { start, end, key },
     };
+    if (o.touch()) {
+      // The words stay selected under the sheet; closing it drops them.
+      const { ref } = selected;
+      drop();
+      o.openWord(ref);
+      return;
+    }
     store.set({
       phrase: {
         ref: selected.ref,

@@ -20,15 +20,16 @@ import {
 import type { InsertionPoint, PlatformAdapter } from "./platform";
 import { transcriptPlace } from "./placement";
 import type { VideoApp } from "./state";
+import { NEVER_TOUCH, type TouchMode } from "../touch/touch-mode";
 
 export interface MountOptions {
   adapter: PlatformAdapter;
   app: VideoApp;
   /**
-   * The page is in touch mode (spec mobile-app.md "Touch in place of hover"), read on
-   * every placing. Default: never (the desktop).
+   * Whether the page is in touch mode (spec mobile-app.md "Touch in place of hover").
+   * Default: never (the desktop).
    */
-  touchMode?: () => boolean;
+  touchMode?: TouchMode;
 }
 
 interface Part {
@@ -92,14 +93,14 @@ const MAX_MOVES_PER_SECOND = 10;
 export function mountVideoUi({
   adapter,
   app,
-  touchMode = () => false,
+  touchMode = NEVER_TOUCH,
 }: MountOptions): () => void {
   const layout = createStore<VideoLayout>({
     frameHeight: 0,
     subtitleBottom: SUBTITLE_BOTTOM,
     vertical: adapter.vertical?.() ?? false,
     sidebar: false,
-    touch: touchMode(),
+    touch: touchMode.on(),
   });
   const sidebar = document.createElement("langle-video-sidebar");
   sidebar.style.cssText = `position: fixed; z-index: ${SIDEBAR_LAYER};
@@ -261,7 +262,7 @@ export function mountVideoUi({
   function place() {
     const vertical = adapter.vertical?.() ?? false;
     if (vertical !== layout.get().vertical) layout.set({ vertical });
-    const touch = touchMode();
+    const touch = touchMode.on();
     if (touch !== layout.get().touch) layout.set({ touch });
     arrangeSidebar();
     // Not before: narrowing the player tells the site, which may render it again.
@@ -313,9 +314,11 @@ export function mountVideoUi({
   document.addEventListener("fullscreenchange", onFullscreen);
   // Langle on or off, the video's subtitles, the menu's switch and the column's ×.
   const offStore = app.store.subscribe(schedule);
+  const offTouch = touchMode.watch(schedule);
 
   return () => {
     offStore();
+    offTouch();
     observer.disconnect();
     resize.disconnect();
     if (frame !== undefined) cancelAnimationFrame(frame);
