@@ -129,7 +129,7 @@ Then put each open trade-off to the user, with the measured options.
 
 CI notes:
 - Merge only through `~/.claude/scripts/merge-when-green.sh`.
-- Known flakes get one rerun; anything else is fixed. As of 2026-11: Firefox VideoPanel drag/selection, Firefox fullscreen-sidebar layout, Netflix "Fullscreen request denied". Check the latest step PRs for changes to this list.
+- Known flakes get one rerun; anything else is fixed. As of 2026-11: Netflix "Fullscreen request denied" (the Firefox flakes went with Firefox, docs/notes/firefox-paused.md). Check the latest step PRs for changes to this list.
 - When packs grow, E2E waits on the first cold dictionary load overrun 5 s on the CI runner. Those waits use `COLD_LOAD` (`e2e/page.ts`); give any new first-load wait the same.
 
 ## Phase 7 — Check on the real sites
