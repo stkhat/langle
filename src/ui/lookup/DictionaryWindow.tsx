@@ -18,6 +18,7 @@ import { ElsewhereRow, type ElsewhereItem } from "./ElsewhereRow";
 import { EntryHeader } from "./EntryHeader";
 import { InThisSentence, type InThisSentenceProps } from "./InThisSentence";
 import { MachineTranslationMark } from "./MachineTranslationMark";
+import { Sheet } from "./Sheet";
 import { StatusButtons } from "./StatusButtons";
 import { langAttrs } from "../text-direction";
 
@@ -130,7 +131,21 @@ export type DictionaryWindowProps = CommonProps &
         variant: "panel";
         frame: { top: number; right: number; bottom: number };
       }
+    | {
+        /** Touch mode (mock Mobile*'s dictionary sheet): a bottom sheet from `frame.top`. */
+        variant: "sheet";
+        frame: { top: number };
+        /** The entry is the page's selected words, not saved yet: "Selected · not saved". */
+        selected?: boolean;
+      }
   );
+
+/** The sheet's status line: Learning, Known, or the entry's unsaved state. */
+function statusLine(status: WordStatus, selected: boolean): string {
+  if (status === "learning") return t("status.learning");
+  if (status === "known") return t("status.known");
+  return t(selected ? "lookup.status.selected" : "lookup.status.new");
+}
 
 type Style = CSSProperties;
 
@@ -173,6 +188,44 @@ export function DictionaryWindow(props: DictionaryWindowProps) {
     </button>
   );
   const content = <Content {...props} icon={icon} />;
+
+  if (props.variant === "sheet") {
+    return (
+      <Sheet
+        label={t("dict.title")}
+        top={props.frame.top}
+        onClose={props.onClose}
+        onKeyDown={onKeyDown}
+        header={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "8px",
+              padding: "0 8px 0 20px",
+            }}
+          >
+            <span
+              style={{ fontSize: "13px", fontWeight: 600, color: color.muted }}
+            >
+              {statusLine(props.status, props.selected === true)}
+            </span>
+            <button
+              type="button"
+              aria-label={t("dict.close")}
+              onClick={props.onClose}
+              style={{ ...icon, width: "44px", height: "44px" }}
+            >
+              <CloseIcon size={20} stroke={2} />
+            </button>
+          </div>
+        }
+      >
+        {content}
+      </Sheet>
+    );
+  }
 
   if (props.variant === "window") {
     return (
