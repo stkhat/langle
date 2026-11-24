@@ -26,8 +26,10 @@ final class AppModel: ObservableObject {
   @Published private(set) var started = false
   /// Why Langle does not run (no build, or one the app refuses); browsing still works.
   @Published var refusal: String?
-  /// The browsing page has an element in fullscreen (WebKit shows it in its own window).
+  /// The browsing page has an element in fullscreen: WebKit's own (in its own window, where
+  /// WebKit has element fullscreen) or the app's (the page fills the window, the bars hidden).
   @Published private(set) var fullscreen = false
+  private var rotation: RotationWatch?
 
   private(set) var engine: WebKitEngine!
   private(set) var router: Router!
@@ -101,8 +103,11 @@ final class AppModel: ObservableObject {
     }
     browsing.onProcessGone = { [weak self] in self?.browsing.page.reload() }
     browsing.onFullscreen = { [weak self] on in
-      self?.fullscreen = on
+      guard let self else { return }
+      fullscreen = on
       Orientation.fullscreen(on)
+      // Turning the phone back to portrait leaves fullscreen.
+      rotation = on ? RotationWatch { [weak self] in self?.browsing.page.exitFullscreen() } : nil
     }
     if let url = URL(string: start) { browsing.load(url) }
     started = true

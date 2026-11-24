@@ -48,6 +48,8 @@ protocol Page: AnyObject {
   func postMessage(world: ScriptWorld, frameId: Int, json: String)
   /// Runs a function body in a world and returns its result as text (named commands only).
   func evaluate(world: ScriptWorld, source: String) async -> String
+  /// Leaves the page's fullscreen (the app's own, or the browser's).
+  func exitFullscreen()
 }
 
 @MainActor
