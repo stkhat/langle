@@ -147,7 +147,18 @@ The Langle app's shells (`mobile/android`, `mobile/ios`, check builds), signed o
 | Leaving fullscreen | System back, and `document.exitFullscreen()`: the page came back in portrait at the same URL, `fullscreen=false`, the error log empty | `webkitExitFullscreen()`: the page came back in portrait at the same URL, the error log empty |
 
 - On Android, the test element is on screen but not on top at its centre (`elementFromPoint` returns YouTube's overlay over the video, also outside fullscreen). Langle's real overlay must be placed above YouTube's layers, not only inside the player (M3d).
-- **iOS needs the fallback** from the spec (the app's own fullscreen: landscape, bars hidden, the player filling the page). It goes back to the user before it is built. The shell's landscape-in-element-fullscreen code stays in place for when WebKit exposes element fullscreen on the iPhone. Not checked: an iPad, where WebKit does expose it.
+- **iOS needs the fallback** from the spec (the app's own fullscreen: landscape, bars hidden, the player filling the page), built in M3e ("The app's own fullscreen (M3e)"). The shell's landscape-in-element-fullscreen code stays in place for when WebKit exposes element fullscreen on the iPhone. Not checked: an iPad, where WebKit does expose it.
+
+## The app's own fullscreen (M3e, 2026-11-24)
+WebKit on the iPhone has no element fullscreen ("Fullscreen in the shells"), so the iOS shell injects a stand-in into the page's world at document start (`src/app/fullscreen/app-fullscreen.ts`, `langle-fullscreen.js`; plan "M3e"). It installs only where `requestFullscreen` and `webkitRequestFullscreen` are both missing and the shell's handler `langleFullscreen` exists, so Android, desktop and an iPad are unchanged.
+
+- **What YouTube asks for**: on an iPhone (its user agent; the player's controls type "3") m.youtube.com's fullscreen button asks for the **video** (`requestFullscreen` on `<video>`), not `#player-container-id` as elsewhere, because it expects the system's video player. It also turns on the video's own `<track>` captions (ja) for that player; Langle hides them with `::-webkit-media-text-track-container` next to the caption window.
+- **The box shown is the video's frame**: the outermost ancestors that contain the video, wrap it edge to edge on one axis (the letterbox), and whose larger side is at most the window's longer side (or the video's) + 1 px, short of the body: "fits in the window turned either way", as the shell turns it to landscape. On m.youtube.com that is `#player-container-id`, as in element fullscreen on Android, so `#movie_player` gets `ytp-fullscreen`, its controls show and Langle's mobile layout finds the same box. The page keeps seeing the video as `document.fullscreenElement`; Langle's world reads the marks (`data-langle-app-fullscreen` on the box, `-ancestor` on every ancestor) through `fullscreenElement()`. The box's ancestors lose their transforms, filters and containment and the page stops scrolling.
+- **Leaving from YouTube's button**: on iOS ytm's toggle always requests fullscreen on the video, never an exit (the system player's Done button is the expected exit). So asking again for the video already shown leaves.
+- **The edge swipe**: a `UIScreenEdgePanGestureRecognizer` was never called on the Simulator, and a recognizer on the web view fails once the page takes the touch (YouTube's player does). The shell uses a pan on the web view's superview, recognized together with the page's gestures, that starts within 24 pt of the left edge and moves at least 80 pt right, more across than down.
+- **The Dynamic Island** sits on the left in landscape; m.youtube.com uses `viewport-fit=cover`, so `env(safe-area-inset-left/right)` is 62 px. Langle's column follows the mock's 44 px side, so with the column at the left its border sits about 6 px under the island (open item).
+
+**Checked** on the iPhone 17 Simulator (iOS 27.2), the check build, TED `iG9CE55wbtY` muted: YouTube's button turns the app to landscape (874 × 402) with the status bar, home indicator and address row hidden; `fullscreenElement` is `#player-container-id`. Langle's subtitle and L show, YouTube's own track is hidden, a word opens its panel at the right. The transcript column at the right and at the left, the dictionary inside the column. Leaving by YouTube's button, the edge swipe and turning back to portrait. Error log empty, cleared.
 
 ## Device checks (M3d, 2026-11-24)
 
@@ -161,7 +172,7 @@ The check build (`bundle-build.sh check`, `check.sh build check`), logged out, v
 ### iPhone 17 Simulator (iOS 27.2)
 
 - **Video, portrait**: the real captions load, with highlights; the subtitle band stays pinned under the player while the page scrolls, and the transcript marks the playing card. A tap opens the sheet under the subtitle, the video pauses and the Paused pill shows; closing plays again. A still long-press opens the word; a long-press and drag selects a phrase ("Selected · not saved"). Learning survives a kill and relaunch.
-- **Fullscreen**: not checked, it is M3e (WebKit on the iPhone offers only the video's own fullscreen, "Fullscreen in the shells").
+- **Fullscreen**: not checked here; built and checked in M3e ("The app's own fullscreen (M3e)").
 - **Articles**: a tap opens the sheet; a long-press is the phone's selection, read once it has rested 500 ms (word or phrase sheet); dragging a handle re-snaps to whole words when it rests ("rush the process"). A long-press on a word in a link opens it, with no link menu and the link not followed. iOS shows its own Copy / Look Up menu over the article's selection.
 - **Error log**: 32 entries, all info (pack files served by the mirror), 0 findings; cleared.
 - **Found and fixed on the device**:
