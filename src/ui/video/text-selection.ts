@@ -240,6 +240,7 @@ function selectByTouch(
         last: { x, y },
       };
       handlers.current.onSelectStart?.();
+      selectable(el, true);
       follow(x, y);
     },
     drag({ x, y }) {
@@ -260,6 +261,11 @@ function selectByTouch(
     if (press) event.preventDefault();
   };
   const noSystem = (event: Event) => event.preventDefault();
+  // Langle's selection went (or none came): the text is not selectable again.
+  const rest = () => {
+    if (!press && !selectedOffsets(el)) selectable(el, false);
+  };
+  document.addEventListener("selectionchange", rest);
   el.addEventListener("pointercancel", onCancel, true);
   el.addEventListener("touchmove", holdPage, { passive: false });
   el.addEventListener("contextmenu", noSystem);
@@ -268,6 +274,7 @@ function selectByTouch(
     if (frame !== undefined) cancelAnimationFrame(frame);
     press = undefined;
     stopTouches();
+    document.removeEventListener("selectionchange", rest);
     el.removeEventListener("pointercancel", onCancel, true);
     el.removeEventListener("touchmove", holdPage);
     el.removeEventListener("contextmenu", noSystem);
@@ -275,11 +282,25 @@ function selectByTouch(
   };
 }
 
-/** Touch mode's look of a text words are selected in: no system callout on a long-press. */
+/**
+ * Touch mode's look of a text words are selected in: no system callout on a long-press,
+ * and not selectable at rest. WebKit on iOS fires no `contextmenu` on a long-press: on
+ * selectable text its own selection takes the touch over (the page hears no end of the
+ * press), so only Langle's selection makes the text selectable (`selectable`).
+ */
 export const TOUCH_TEXT = {
   WebkitTouchCallout: "none",
   WebkitTapHighlightColor: "transparent",
+  userSelect: "none",
+  WebkitUserSelect: "none",
 } as const;
+
+/** Touch mode: the text selectable while Langle's own selection is in it (`TOUCH_TEXT`). */
+function selectable(el: HTMLElement, on: boolean) {
+  const value = on ? "text" : "none";
+  el.style.setProperty("-webkit-user-select", value);
+  el.style.setProperty("user-select", value);
+}
 
 /**
  * Selecting words in a text of Langle's UI (a shadow root), as Langle draws it
@@ -318,8 +339,12 @@ export function useTextSelection<E extends HTMLElement>(
     // A press inside selected words would drag them (the browser's text drag): the
     // press selects anew.
     if (selectedOffsets(el)) getSelection()?.removeAllRanges();
-    // A finger selects by a long-press (`selectByTouch`); a tap is a click.
-    if (touch && event.pointerType === "touch") return;
+    // A finger selects by a long-press (`selectByTouch`); a tap is a click. The press
+    // selects anew: the text is not selectable before its long-press.
+    if (touch && event.pointerType === "touch") {
+      selectable(el, false);
+      return;
+    }
     const text = el.textContent ?? "";
     const words = wordRuns(text);
     const pressed = wordNear(el, words, event.clientX, event.clientY);
