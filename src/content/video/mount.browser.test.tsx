@@ -15,6 +15,7 @@ import {
 } from "../../testing/youtube-page";
 import type { PlatformAdapter } from "./platform";
 import { enterFullscreen } from "../../testing/fullscreen";
+import { fixedTouchMode } from "../../testing/touch";
 
 const CUES: Cue[] = [
   { startMs: 0, endMs: 1000, text: "The yeast smells tangy." },
@@ -66,6 +67,7 @@ function readyState(patch: Partial<VideoState> = {}): VideoState {
     phrase: null,
     selecting: false,
     subtitleHover: false,
+    heldPaused: false,
     menuOpen: false,
     fullscreen: false,
     panelTab: "transcript",
@@ -96,6 +98,12 @@ function fakeApp(state: VideoState) {
   const spy = (name: keyof VideoApp) => app[name] as ReturnType<typeof vi.fn>;
   return { app, store, spy };
 }
+
+/** The "Paused" pill in a host, null when none. */
+const pausedPill = (id: string) =>
+  [...(inside(id)?.querySelectorAll<HTMLElement>("[role=status]") ?? [])].find(
+    (el) => el.textContent?.includes("Paused"),
+  ) ?? null;
 
 let page: TestPage;
 let adapter: PlatformAdapter;
@@ -272,19 +280,115 @@ describe("mountVideoUi", () => {
 
   it("in touch mode, places the subtitle by the phone's setting, not the desktop's", async () => {
     let touch = true;
+    let changed: ((on: boolean) => void) | undefined;
     const fake = fakeApp(readyState());
-    unmount = mountVideoUi({ adapter, app: fake.app, touchMode: () => touch });
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: {
+        on: () => touch,
+        watch: (listener) => {
+          changed = listener;
+          return () => {};
+        },
+      },
+    });
     await expect
       .poll(() => text("langle-video-below"))
       .toContain("The yeast smells tangy.");
     expect(text("langle-video-player")).not.toContain("The yeast");
     // Leaving touch mode goes back to the desktop's setting (in the video).
     touch = false;
-    fake.store.set({ settings: { ...fake.store.get().settings } });
+    changed?.(false);
     await expect
       .poll(() => text("langle-video-player"))
       .toContain("The yeast smells tangy.");
     expect(text("langle-video-below")).not.toContain("The yeast");
+  });
+
+  it("in touch mode, under a player fixed at the top, the subtitle is pinned under the player and keeps its room", async () => {
+    const fake = fakeApp(readyState());
+    page.player.style.cssText +=
+      "position: fixed; top: 48px; left: 0; width: 390px; height: 219px;";
+    // As m.youtube.com on the iPhone: an ancestor that clips without scrolling (a sticky
+    // box would stick inside it, and scroll away with the page), and a long page.
+    const below = adapter.belowVideoElement()!;
+    const clipping = below.parentElement!;
+    clipping.style.cssText += "overflow-x: hidden; padding-top: 48px;";
+    const tail = document.createElement("div");
+    tail.style.height = "3000px";
+    clipping.append(tail);
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: fixedTouchMode(true),
+    });
+    await expect
+      .poll(() => text("langle-video-below"))
+      .toContain("The yeast smells tangy.");
+    const band = () =>
+      inside("langle-video-below")!
+        .querySelector("[role=region]")!
+        .getBoundingClientRect();
+    await expect.poll(() => band().top).toBe(267);
+    // The host keeps the band's room in the page.
+    const room = host("langle-video-below").getBoundingClientRect();
+    expect(room.height).toBeGreaterThan(0);
+    expect(room.height).toBeCloseTo(band().height, 0);
+    scrollTo(0, 400);
+    await expect.poll(() => band().top).toBe(267);
+    scrollTo(0, 0);
+    // Not fixed: the box scrolls with the page.
+    page.player.style.position = "relative";
+    page.player.style.top = "";
+    // The site renders again (Langle places its parts on the page's mutations).
+    const rendered = document.body.appendChild(document.createElement("hr"));
+    await expect.poll(() => host("langle-video-below").style.height).toBe("");
+    scrollTo(0, 100);
+    await expect
+      .poll(() => band().top)
+      .toBeCloseTo(page.player.getBoundingClientRect().bottom, 0);
+    scrollTo(0, 0);
+    rendered.remove();
+    tail.remove();
+    clipping.style.overflowX = "";
+    clipping.style.paddingTop = "";
+  });
+
+  it("in touch mode, shows Paused at the video's top left while Langle holds it paused; never on a desktop", async () => {
+    let touch = true;
+    let changed: ((on: boolean) => void) | undefined;
+    const fake = fakeApp(readyState());
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: {
+        on: () => touch,
+        watch: (listener) => {
+          changed = listener;
+          return () => {};
+        },
+      },
+    });
+    await expect
+      .poll(() => text("langle-video-below"))
+      .toContain("The yeast smells tangy.");
+    expect(text("langle-video-player")).not.toContain("Paused");
+    fake.store.set({ heldPaused: true });
+    await expect.poll(() => text("langle-video-player")).toContain("Paused");
+    // Mock MobileYouTube: 12px in from the video's top left.
+    const pill = pausedPill("langle-video-player")!.getBoundingClientRect();
+    const player = page.player.getBoundingClientRect();
+    expect([
+      pill.left - player.left,
+      pill.top - player.top,
+      pill.height,
+    ]).toEqual([12, 12, 28]);
+    touch = false;
+    changed?.(false);
+    await expect
+      .poll(() => text("langle-video-player"))
+      .not.toContain("Paused");
   });
 
   it("off: only the player buttons stay", async () => {
@@ -972,6 +1076,126 @@ describe("mountVideoUi", () => {
         .poll(() => host("langle-transcript").parentElement?.id)
         .toBe("secondary-inner");
       expect(sidebar()).toBeNull();
+    });
+
+    describe("on a phone (touch), in landscape", () => {
+      function mountTouch(side: "off" | "left" | "right") {
+        const state = readyState();
+        const fake = fakeApp({
+          ...state,
+          settings: mergeSettings(
+            { phoneFullscreenTranscript: side, transcriptShown: true },
+            state.settings,
+          ),
+        });
+        unmount = mountVideoUi({
+          adapter,
+          app: fake.app,
+          touchMode: fixedTouchMode(true),
+        });
+        return fake;
+      }
+      const win = () =>
+        inside("langle-video")
+          ?.querySelector("aside[aria-label='Dictionary']")
+          ?.getBoundingClientRect() ?? null;
+      const panel = {
+        ref: { cue: 0, span: 1 },
+        card: TANGY,
+        here: [],
+        dictionaries: [],
+        opened: 1,
+      };
+
+      it("shows the subtitle over the video and L, never the desktop sidebar; a word's panel at the right", async () => {
+        await browserPage.viewport(844, 390);
+        const { store, spy } = mountTouch("off");
+        await fullscreen();
+        await expect
+          .poll(() => text("langle-video"))
+          .toContain("The yeast smells tangy.");
+        expect(text("langle-video-player")).not.toContain("The yeast");
+        expect(sidebar()).toBeNull();
+        expect(page.player.getBoundingClientRect().width).toBe(innerWidth);
+        // Mock MobileYouTubeLandscape: 120px in from each side, 28px up from the bottom.
+        const region = inside("langle-video")!
+          .querySelector("[role=region]")!
+          .getBoundingClientRect();
+        expect(innerHeight - region.bottom).toBe(28);
+        expect(region.left).toBeCloseTo(Math.min(120, innerWidth * 0.14), 0);
+        await userEvent.click(await button("langle-video", "Langle"));
+        expect(spy("openPopup")).toHaveBeenCalledOnce();
+
+        store.set({ panel });
+        await expect.poll(win).not.toBeNull();
+        expect([win()!.top, innerWidth - win()!.right, win()!.width]).toEqual([
+          12, 56, 300,
+        ]);
+        expect(innerHeight - win()!.bottom).toBe(12);
+      });
+
+      it("shows Paused at the video's top left while Langle holds it paused, beside the column too", async () => {
+        await browserPage.viewport(844, 390);
+        const { store } = mountTouch("off");
+        await fullscreen();
+        await expect
+          .poll(() => text("langle-video"))
+          .toContain("The yeast smells tangy.");
+        expect(pausedPill("langle-video")).toBeNull();
+        store.set({ heldPaused: true });
+        await expect.poll(() => pausedPill("langle-video")).not.toBeNull();
+        // Mock MobileYouTubeLandscape: 56px in and 16px down; 12 and 12 beside the column.
+        const at = () => {
+          const box = pausedPill("langle-video")!.getBoundingClientRect();
+          return [box.left, box.top, box.height];
+        };
+        expect(at()).toEqual([56, 16, 28]);
+        store.set({
+          settings: mergeSettings(
+            { phoneFullscreenTranscript: "left" },
+            store.get().settings,
+          ),
+        });
+        await expect.poll(at).toEqual([356 + 12, 12, 28]);
+        store.set({ heldPaused: false });
+        await expect.poll(() => pausedPill("langle-video")).toBeNull();
+      });
+
+      it("with the transcript at a side: a 300px column 44px from that edge, the video beside it, the dictionary inside", async () => {
+        await browserPage.viewport(844, 390);
+        const { store } = mountTouch("left");
+        await fullscreen();
+        await expect.poll(sidebar).not.toBeNull();
+        const box = sidebar()!.getBoundingClientRect();
+        expect([
+          box.left,
+          box.top,
+          innerHeight - box.bottom,
+          box.width,
+        ]).toEqual([44, 16, 16, 300]);
+        await expect
+          .poll(() => page.player.getBoundingClientRect().left)
+          .toBe(356);
+        expect(text("langle-transcript")).toContain("Knead the dough.");
+
+        store.set({ panel });
+        await expect.poll(win).not.toBeNull();
+        expect([win()!.left, win()!.top, win()!.width]).toEqual([44, 16, 300]);
+        await button("langle-video", "Back to transcript");
+
+        store.set({
+          settings: mergeSettings(
+            { phoneFullscreenTranscript: "right" },
+            store.get().settings,
+          ),
+        });
+        await expect
+          .poll(() => innerWidth - sidebar()!.getBoundingClientRect().right)
+          .toBe(44);
+        await expect
+          .poll(() => page.player.getBoundingClientRect().right)
+          .toBe(innerWidth - 356);
+      });
     });
 
     it("opens the dictionary window just left of the sidebar; with the column closed, at the top right", async () => {

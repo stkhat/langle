@@ -2,7 +2,8 @@ import { fromUser } from "../../ui/from-user";
 import { isLangleHost } from "../../ui/langle-host";
 import type { Box } from "../lookup/geometry";
 import { createHoverIntent } from "../lookup/hover-intent";
-import { listenTouches } from "../touch/listen";
+import { listenTouches } from "../../ui/touch/listen";
+import { TOUCH_QUERY } from "../touch/touch-mode";
 import type { SpanRef } from "./locate";
 
 export interface InteractionCallbacks {
@@ -67,6 +68,15 @@ const TOUCH_SELECTION_DELAY_MS = 500;
 
 /** A link: a tap on its words follows it, a long-press opens the word. */
 const LINK = "a[href], [role=link]";
+
+/**
+ * Touch mode: a long-pressed link is Langle's alone. WebKit on iOS fires no
+ * `contextmenu` there; its link menu (and preview) takes the touch over, and only
+ * `-webkit-touch-callout: none` keeps it away. Without the menu its long-press selects
+ * text instead, in the sheet that opened under the finger, so the link's text is not
+ * selectable either. Desktops are never in touch mode.
+ */
+const LINK_TOUCH_CSS = `@media ${TOUCH_QUERY} { ${LINK} { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; } }`;
 
 const elements = (path: readonly EventTarget[]) =>
   path.filter((target): target is Element => target instanceof Element);
@@ -167,8 +177,10 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
   }
 
   function onSelectionChange() {
-    if (!pressed)
-      readSelection(cb.touch() ? TOUCH_SELECTION_DELAY_MS : SELECTION_DELAY_MS);
+    // In touch mode the rest alone settles it: WebKit on iOS takes a long-press or a
+    // handle's drag over without a `pointerup` or `pointercancel` to the page.
+    if (cb.touch()) readSelection(TOUCH_SELECTION_DELAY_MS);
+    else if (!pressed) readSelection(SELECTION_DELAY_MS);
   }
 
   /** Opens the word at a point in a link, pressed long; true when there is one. */
@@ -249,6 +261,9 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
   window.addEventListener("scroll", onScroll, passive);
   window.addEventListener("resize", onScroll, passive);
   document.addEventListener("contextmenu", onContextMenu, true);
+  const callout = new CSSStyleSheet();
+  callout.replaceSync(LINK_TOUCH_CSS);
+  document.adoptedStyleSheets = [...document.adoptedStyleSheets, callout];
   const stopTouches = listenTouches(document, {
     tap({ x, y, path }) {
       if (!cb.touch() || path.some(isLangleHost)) return;
@@ -296,6 +311,9 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
       window.removeEventListener("scroll", onScroll, passive);
       window.removeEventListener("resize", onScroll, passive);
       document.removeEventListener("contextmenu", onContextMenu, true);
+      document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+        (sheet) => sheet !== callout,
+      );
       stopTouches();
     },
   };

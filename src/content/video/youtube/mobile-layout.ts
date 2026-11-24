@@ -1,3 +1,4 @@
+import { NARROW_BY_WIDTH } from "../adapter-kit";
 import type { YouTubeLayout } from "./layout";
 
 /**
@@ -5,7 +6,9 @@ import type { YouTubeLayout } from "./layout";
  * pinned under the header, YouTube's metadata under it, no side column, no Shorts (not in
  * M3: a `/shorts/` URL shows nothing), no L or ^ on the player (spec mobile-app.md "The
  * watch page on a phone"). In fullscreen YouTube puts the player's container in
- * fullscreen; the player's own box in it is what is narrowed.
+ * fullscreen; the player's own box in it is what is narrowed, with the layers beside it
+ * that cover the whole screen (the controls, the thumbnail, the ambient glow: measured on
+ * the Android WebView, notes "Device checks (M3d)").
  */
 export function mobileLayout(): YouTubeLayout {
   const player = () => document.getElementById("movie_player");
@@ -31,8 +34,19 @@ export function mobileLayout(): YouTubeLayout {
         ? box
         : null;
     },
-    // The box is as wide as its container: a width narrows it.
-    narrow: { property: "width", value: (width) => `calc(100% - ${width}px)` },
+    narrow: NARROW_BY_WIDTH,
+    fullscreenLayers(box) {
+      const screen = box.parentElement?.getBoundingClientRect();
+      if (!screen) return [];
+      return [...(box.parentElement?.children ?? [])].filter(
+        (each): each is HTMLElement => {
+          if (each === box || !(each instanceof HTMLElement)) return false;
+          if (each.tagName.startsWith("LANGLE-")) return false;
+          const rect = each.getBoundingClientRect();
+          return rect.width >= screen.width && rect.height >= screen.height;
+        },
+      );
+    },
     onNavigate(listener) {
       // Fired once after the URL changed (yt-navigate-finish is not fired here).
       const handler = () => listener();

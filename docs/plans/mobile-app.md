@@ -23,7 +23,8 @@
 - [x] M3b: touch mode, gestures, the dictionary sheet, articles (branch `claude/mobile-m3b`): trusted touches in browser tests come from CDP `Input.dispatchTouchEvent` (the Vitest command `touch`, Chromium only); desktop Chromium has no touch text selection, so the phone E2E makes the selection a long-press leaves
 - [x] M3c: fullscreen in the shells (branch `claude/mobile-m3c`)
   - Android uses element fullscreen and Langle's content is inside it; on the iPhone WebKit offers only the video's own fullscreen, so Langle cannot draw over it there (whether to build the app's own fullscreen is open, with the user).
-- [ ] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`)
+- [x] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`): the iPhone 17 Simulator (portrait) and the Android emulator (WebView Dev 160), notes/mobile.md "Device checks (M3d)"
+- [ ] M3e: the app's own fullscreen on the iPhone (branch claude/mobile-m3e; decided with the user 2026-11-24)
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
@@ -435,14 +436,14 @@ Branch `claude/mobile-m3b`.
 | Path | Responsibility |
 | --- | --- |
 | `src/content/touch/touch-mode.ts` | `createTouchMode(match = matchMedia)`: `{ on(): boolean; watch(listener): () => void }` from `(hover: none) and (pointer: coarse)` |
-| `src/content/touch/gestures.ts` (+ `gestures.test.ts`) | the pure recognizer (below) |
-| `src/content/touch/listen.ts` | feeds trusted `pointerType === "touch"` pointer events on a root to the recognizer and calls `tap`, `longPress`, `drag`, `release` callbacks with the event's point |
+| `src/ui/touch/gestures.ts` (+ `gestures.test.ts`) | the pure recognizer (below) |
+| `src/ui/touch/listen.ts` | feeds trusted `pointerType === "touch"` pointer events on a root to the recognizer and calls `tap`, `longPress`, `drag`, `release` callbacks with the event's point |
 | `src/ui/lookup/Sheet.tsx` (+ browser test) | the sheet frame: grab handle, half and full height, swipe down or × closes, `top` given by the caller |
 | `src/content/article/interactions.ts`, `ArticleUi.tsx`, `selection.ts` | touch mode on articles: no hover, tap → the word's sheet, the phone's selection snapped on settle (1–8 words → the phrase's sheet), long-press on a link word |
 | `src/content/article/scroll.ts` | keeps the tapped word above the sheet |
 
 ```ts
-// src/content/touch/gestures.ts
+// src/ui/touch/gestures.ts
 export const TAP_MAX_MS = 500;
 export const LONG_PRESS_MS = 500;
 export const SLOP_PX = 10;

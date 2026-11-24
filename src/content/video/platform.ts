@@ -84,11 +84,11 @@ export interface PlatformAdapter {
    */
   fillsWindow?(): boolean;
   /**
-   * Narrows the player by `width` px at its right for the sidebar, its video
-   * letterboxed in it; 0 gives it its whole width back. Called on every change to the
-   * page: does nothing when nothing changed.
+   * Narrows the player by `width` px at `side` (default the right) for the sidebar, its
+   * video letterboxed in it; 0 gives it its whole width back. Called on every change to
+   * the page: does nothing when nothing changed.
    */
-  narrowPlayer?(width: number): void;
+  narrowPlayer?(width: number, side?: "left" | "right"): void;
   /**
    * The viewport top of the site's control bar while it shows over the bottom of the
    * video (Netflix), so the subtitle can keep clear of it; null while it is hidden.

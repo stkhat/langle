@@ -1346,4 +1346,59 @@ describe("DictionaryWindow as a sheet (touch mode)", () => {
     await userEvent.click(close);
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  test("as in the mock: 44px status buttons; Meanings, here, elsewhere, then Dictionaries", async () => {
+    const screen = await mountInShadowRoot(<DictionaryWindow {...sheet} />);
+    const learning = screen.getByRole("button", { name: "Learning" });
+    expect(learning.element().getBoundingClientRect().height).toBe(44);
+    const order = ["Meanings", "On this page", "Seen elsewhere", "Dictionaries"]
+      .map((name) => screen.getByText(name, { exact: false }).first().element())
+      .map((el) => el.getBoundingClientRect().top);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+});
+
+describe("DictionaryWindow at the side (touch fullscreen)", () => {
+  const side: DictionaryWindowProps = {
+    ...panel,
+    variant: "side",
+    frame: { top: 12, bottom: 12, right: 56, width: 300 },
+    status: "new",
+  };
+
+  test("is a panel at its frame, with ×", async () => {
+    const onClose = vi.fn();
+    const screen = await mountInShadowRoot(
+      <DictionaryWindow {...side} onClose={onClose} />,
+    );
+    const aside = screen.getByRole("complementary", { name: "Dictionary" });
+    await expect.element(aside).toBeVisible();
+    const box = aside.element().getBoundingClientRect();
+    expect(box.width).toBe(300);
+    expect(Math.round(box.top)).toBe(12);
+    expect(Math.round(window.innerWidth - box.right)).toBe(56);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Close dictionary" }),
+    );
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  test("in the transcript's column, ‹ Transcript goes back instead of ×", async () => {
+    const onClose = vi.fn();
+    const screen = await mountInShadowRoot(
+      <DictionaryWindow {...side} back onClose={onClose} />,
+    );
+    await expect
+      .element(screen.getByRole("button", { name: "Close dictionary" }))
+      .not.toBeInTheDocument();
+    const backButton = screen.getByRole("button", {
+      name: "Back to transcript",
+    });
+    // Wide enough for its word: it does not run under the status line.
+    const element = backButton.element() as HTMLElement;
+    expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth);
+    expect(element.textContent).toBe("Transcript");
+    await userEvent.click(backButton);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

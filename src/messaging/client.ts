@@ -65,6 +65,7 @@ const REPEATABLE: Record<RequestType, boolean> = {
   exportDetails: true,
   // Would open a second tab.
   openOptions: false,
+  openPopup: false,
   // Sentences already kept for the page are skipped.
   recordHistory: true,
   historyStatus: true,
