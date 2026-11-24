@@ -1,7 +1,7 @@
 import type { CSSProperties, JSX } from "preact";
 import type { TermKind, WordStatus } from "../../core/classify";
 import { t } from "../../i18n/t";
-import { BookmarkIcon, CloseIcon, GripIcon } from "../icons";
+import { BackIcon, BookmarkIcon, CloseIcon, GripIcon } from "../icons";
 import { keepOpen } from "../keep-open";
 import {
   SERIF_FONT,
@@ -138,6 +138,19 @@ export type DictionaryWindowProps = CommonProps &
         /** The entry is the page's selected words, not saved yet: "Selected · not saved". */
         selected?: boolean;
       }
+    | {
+        /**
+         * Touch mode over a video in fullscreen (mock MobileYouTubeLandscape): a panel
+         * at one side of the screen, or in the transcript column, where "‹ Transcript"
+         * takes the place of × (`back`).
+         */
+        variant: "side";
+        frame: { top: number; bottom: number; width: number } & (
+          { left: number } | { right: number }
+        );
+        selected?: boolean;
+        back?: boolean;
+      }
   );
 
 /** The sheet's status line: Learning, Known, or the entry's unsaved state. */
@@ -224,6 +237,102 @@ export function DictionaryWindow(props: DictionaryWindowProps) {
       >
         {content}
       </Sheet>
+    );
+  }
+
+  if (props.variant === "side") {
+    const { frame, back } = props;
+    return (
+      <aside
+        aria-label={t("dict.title")}
+        onKeyDown={onKeyDown}
+        onPointerDown={keepOpen}
+        style={root({
+          ...BOX,
+          top: `${frame.top}px`,
+          bottom: `${frame.bottom}px`,
+          ...("left" in frame
+            ? { left: `${frame.left}px` }
+            : { right: `${frame.right}px` }),
+          width: `${frame.width}px`,
+          boxSizing: "border-box",
+          overflow: "hidden",
+          // In the column: the column's own frame; beside the video: a lifted panel.
+          ...(back
+            ? { borderRadius: "14px" }
+            : {
+                border: "none",
+                borderRadius: "16px",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+              }),
+        })}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "6px 4px 0",
+            flex: "none",
+          }}
+        >
+          {back && (
+            <button
+              type="button"
+              aria-label={t("video.backToTranscript")}
+              onClick={props.onClose}
+              style={{
+                ...iconButton,
+                height: "44px",
+                minWidth: "44px",
+                padding: "0 8px 0 4px",
+                borderRadius: "22px",
+                gap: "2px",
+                color: color.greenText,
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              <BackIcon />
+              {t("video.transcript")}
+            </button>
+          )}
+          <span
+            style={{
+              flex: 1,
+              paddingLeft: back ? "4px" : "12px",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: color.muted,
+            }}
+          >
+            {statusLine(props.status, props.selected === true)}
+          </span>
+          {!back && (
+            <button
+              type="button"
+              aria-label={t("dict.close")}
+              onClick={props.onClose}
+              style={{ ...icon, width: "44px", height: "44px" }}
+            >
+              <CloseIcon size={18} stroke={2} />
+            </button>
+          )}
+        </div>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            padding: "0 16px 14px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+          }}
+        >
+          {content}
+        </div>
+      </aside>
     );
   }
 
@@ -330,6 +439,12 @@ export function DictionaryWindow(props: DictionaryWindowProps) {
 
 function Content(props: DictionaryWindowProps & { icon: Style }) {
   const { entry, status } = props;
+  // Touch mode (mock Mobile*): a finger's buttons, and where the entry was met before
+  // the links that leave the page.
+  const touch = props.variant === "sheet" || props.variant === "side";
+  const dictionaries = props.dictionaries.length > 0 && (
+    <DictionaryLinks dictionaries={props.dictionaries} />
+  );
 
   return (
     <>
@@ -349,8 +464,9 @@ function Content(props: DictionaryWindowProps & { icon: Style }) {
         status={status}
         onStatus={props.onStatus}
         removeBorder={
-          props.variant === "window" ? color.chipLine : color.knownLine
+          props.variant === "panel" ? color.knownLine : color.chipLine
         }
+        touch={touch}
       />
 
       {props.explain && (
@@ -365,9 +481,7 @@ function Content(props: DictionaryWindowProps & { icon: Style }) {
         />
       )}
 
-      {props.dictionaries.length > 0 && (
-        <DictionaryLinks dictionaries={props.dictionaries} />
-      )}
+      {!touch && dictionaries}
 
       {props.here.items.length > 0 && (
         <HereSection here={props.here} learningLang={props.learningLang} />
@@ -378,6 +492,8 @@ function Content(props: DictionaryWindowProps & { icon: Style }) {
         status={status}
         learningLang={props.learningLang}
       />
+
+      {touch && dictionaries}
     </>
   );
 }

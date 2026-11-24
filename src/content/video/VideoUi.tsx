@@ -16,8 +16,13 @@ import { elsewhereItems } from "../../ui/lookup/elsewhere";
 import { HoverCard } from "../../ui/lookup/HoverCard";
 import { LangleMenu } from "../../ui/video/LangleMenu";
 import { PlayerButtons } from "../../ui/video/PlayerButtons";
-import { SubtitleOverlay } from "../../ui/video/SubtitleOverlay";
+import {
+  SubtitleOverlay,
+  type SubtitleOverlayProps,
+} from "../../ui/video/SubtitleOverlay";
 import { VideoPanel } from "../../ui/video/VideoPanel";
+import { PhoneTranscript } from "../../ui/video/PhoneTranscript";
+import type { TranscriptProps } from "../../ui/video/Transcript";
 import { ThemeScope } from "../../ui/ThemeScope";
 import { explainSection, shownAnswer } from "../explain/panel";
 import { hoverView, windowView } from "../lookup/describe";
@@ -43,6 +48,8 @@ export interface VideoGeometry {
   transcript(): Box | null;
   /** What the dictionary window goes to the right of beside a vertical video. */
   beside(): Box | null;
+  /** The subtitle box under the video, while it shows. */
+  subtitle(): Box | null;
 }
 
 /** Sizes the UI follows. */
@@ -66,6 +73,12 @@ export interface VideoLayout {
    * phone's own subtitle settings apply.
    */
   touch: boolean;
+  /**
+   * The bottom of the subtitle box under the video while it is pinned under a player
+   * that stays at the window's top (m.youtube.com's portrait page), in px from the
+   * window's top; null while it scrolls with the page.
+   */
+  pinnedBottom: number | null;
 }
 
 /** Where the subtitle goes: the phone's own setting in touch mode, the desktop's otherwise. */
@@ -95,6 +108,12 @@ const NO_WORDS: readonly VideoWord[] = [];
 
 /** The transcript is never shorter than this (px). */
 const MIN_TRANSCRIPT_HEIGHT = 320;
+/** A phone's sheet starts no lower than this share of the window's height. */
+const SHEET_TOP_MAX = 0.6;
+/** On a phone the cards under the subtitle are never shorter than this (px). */
+const MIN_PHONE_TRANSCRIPT_HEIGHT = 200;
+/** Mock MobileYouTube: the transcript's heading row. */
+const PHONE_TRANSCRIPT_HEADER = 48;
 /** Langle shows its subtitles and transcript for this video. */
 const showing = (state: VideoState) =>
   state.enabled && state.status === "ready";
@@ -146,7 +165,7 @@ function playingLine(state: VideoState) {
 function Subtitle(props: {
   app: VideoApp;
   state: VideoState;
-  variant: "inVideo" | "belowVideo" | "fullscreen" | "vertical";
+  variant: SubtitleOverlayProps["variant"];
   /** Touch mode: no hover (a tap would hover first), words selected by a long-press. */
   touch: boolean;
 }) {
@@ -420,8 +439,14 @@ export function BelowVideoUi(props: {
   )
     return null;
   return (
-    <div style={{ margin: "12px 0" }}>
-      <Subtitle app={app} state={state} variant="belowVideo" touch={touch} />
+    // A phone (mock MobileYouTube): a band from edge to edge under the video.
+    <div style={{ margin: touch ? 0 : "12px 0" }}>
+      <Subtitle
+        app={app}
+        state={state}
+        variant={touch ? "phoneBelow" : "belowVideo"}
+        touch={touch}
+      />
     </div>
   );
 }
@@ -437,7 +462,7 @@ export function TranscriptUi(props: {
 }) {
   const { app } = props;
   const state = useStore(app.store);
-  const { frameHeight, sidebar, touch } = useStore(props.layout);
+  const { frameHeight, sidebar, touch, pinnedBottom } = useStore(props.layout);
   const { cues, lines, spans, summaries, settings } = state;
   const shown =
     showing(state) &&
@@ -495,44 +520,60 @@ export function TranscriptUi(props: {
   if (!shown) return null;
   const fromTranscript = state.hover?.from === "transcript";
   const selectedInTranscript = state.phrase?.from === "transcript";
+  const transcript: TranscriptProps = {
+    cues,
+    spans,
+    translations: state.translations,
+    showTranslation: settings.transcriptTranslation,
+    highlight: settings.highlight,
+    current: state.card,
+    onSeek: app.seekToCue,
+    onWordEnter: (cue, span, element) => {
+      if (!touch) app.enterWord({ cue, span }, boxOf(element), "transcript");
+    },
+    onWordLeave: app.leaveWord,
+    onWordClick: (cue, span) => app.clickWord({ cue, span }),
+    touch,
+    onSelectStart: () => app.selectStart("transcript"),
+    onSnap: (cue, from, to, anchor) =>
+      snapIn(app, cue, 0, "transcript", { from, to, anchor }),
+    onSelect: (cue, selected) => selectIn(app, cue, 0, "transcript", selected),
+    // The list holds still while a word's card shows or words are selected.
+    holdScroll: fromTranscript || state.selecting,
+    onListScroll: () => {
+      // The card would stay where the word was.
+      if (fromTranscript) app.dismissHover();
+      if (selectedInTranscript) app.clearSelection();
+    },
+    learningLang: settings.learningLang,
+    nativeLang: settings.nativeLang,
+  };
+  // A phone (mock MobileYouTube): the cards under the subtitle, down to the window's
+  // bottom, or in the column beside the video in fullscreen.
+  if (touch)
+    return (
+      <PhoneTranscript
+        {...transcript}
+        column={sidebar}
+        height={Math.max(
+          MIN_PHONE_TRANSCRIPT_HEIGHT,
+          Math.round(innerHeight - (pinnedBottom ?? innerHeight / 2)) -
+            PHONE_TRANSCRIPT_HEADER,
+        )}
+      />
+    );
   return (
     <VideoPanel
+      {...transcript}
       feedbackUrl={FEEDBACK_URL}
       tab={state.panelTab}
       onTab={app.setPanelTab}
-      cues={cues}
-      spans={spans}
-      translations={state.translations}
-      showTranslation={settings.transcriptTranslation}
       onToggleTranslation={() =>
         app.changeSettings({
           transcriptTranslation: !settings.transcriptTranslation,
         })
       }
-      highlight={settings.highlight}
       onToggleHighlight={app.toggleHighlight}
-      current={state.card}
-      onSeek={app.seekToCue}
-      onWordEnter={(cue, span, element) => {
-        if (!touch) app.enterWord({ cue, span }, boxOf(element), "transcript");
-      }}
-      onWordLeave={app.leaveWord}
-      onWordClick={(cue, span) => app.clickWord({ cue, span })}
-      touch={touch}
-      onSelectStart={() => app.selectStart("transcript")}
-      onSnap={(cue, from, to, anchor) =>
-        snapIn(app, cue, 0, "transcript", { from, to, anchor })
-      }
-      onSelect={(cue, selected) =>
-        selectIn(app, cue, 0, "transcript", selected)
-      }
-      // The list holds still while a word's card shows or words are selected.
-      holdScroll={fromTranscript || state.selecting}
-      onListScroll={() => {
-        // The card would stay where the word was.
-        if (fromTranscript) app.dismissHover();
-        if (selectedInTranscript) app.clearSelection();
-      }}
       words={rows}
       wordsFilter={state.wordsFilter}
       wordsCounts={counts}
@@ -552,8 +593,6 @@ export function TranscriptUi(props: {
       onWordsShown={(shown) =>
         app.wordsShown(shown.map(({ key, head }) => ({ key, head })))
       }
-      learningLang={settings.learningLang}
-      nativeLang={settings.nativeLang}
       height={Math.max(MIN_TRANSCRIPT_HEIGHT, Math.round(frameHeight))}
       dataNote={state.dataNote}
       onRetryData={app.retryPacks}
@@ -629,19 +668,31 @@ export function PageUi(props: {
       ? verticalDictionaryFrame(player, geometry.beside(), viewport)
       : dictionaryFrame(player, position, viewport, geometry.transcript());
   }, [panel?.opened, fullscreen, sidebar]);
+  // A phone (mock MobileYouTubeDictionary): the sheet opens under the subtitle, so the
+  // sentence stays in view; it never starts below the middle of the window.
+  const sheetTop = useMemo(() => {
+    const above = geometry.subtitle() ?? geometry.player();
+    const top = above ? above.bottom : innerHeight * SHEET_TOP_MAX;
+    return Math.round(Math.min(Math.max(top, 0), innerHeight * SHEET_TOP_MAX));
+  }, [panel?.opened]);
   useClosedByPressAway(app, !!panel);
   useSelectionDroppedByPressAway(app, state.selecting);
   if (!showing(state)) return null;
+  const selected = panel?.ref.selected !== undefined;
 
   return (
     <>
       {panel && (
         <DictionaryWindow
           key={`${panel.opened} ${fullscreen} ${sidebar}`}
-          variant="window"
-          frame={frame}
-          // Over a video that fills the window or the screen: the darker shadow.
-          fullscreen={fullscreen || sidebar}
+          {...(touch && !fullscreen
+            ? { variant: "sheet" as const, frame: { top: sheetTop }, selected }
+            : {
+                variant: "window" as const,
+                frame,
+                // Over a video that fills the window or the screen: the darker shadow.
+                fullscreen: fullscreen || sidebar,
+              })}
           entry={windowView(panel.card, shownAnswer(explain))}
           nativeLang={settings.nativeLang}
           learningLang={settings.learningLang}

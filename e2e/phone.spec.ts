@@ -1,9 +1,9 @@
 // The `phone` project (playwright.config.ts): a 390 × 844 touch screen with an Android
 // user agent, as the mobile app's web view. Articles: touch mode, the dictionary sheet.
 // On the fake m.youtube.com, the MAIN-world hook catches the player's caption request and
-// Langle's parts go where the mobile layout puts them. (The video UI's touch mode is not
-// wired yet, mobile-app.md M3d: the subtitle follows the desktop's setting.)
-import type { Page } from "@playwright/test";
+// Langle's parts go where the mobile layout puts them, in touch mode: the subtitle in a
+// band pinned under the player, the transcript under it, the sheet for a tapped word.
+import type { BrowserContext, Page } from "@playwright/test";
 import en from "../src/i18n/locales/en.json" with { type: "json" };
 import { test, expect } from "./fixtures";
 import {
@@ -114,40 +114,132 @@ test("a long-press across two words opens their phrase's sheet", async ({
 /** "extraordinary" and "creativity" are New words. */
 const LINE = "Mara found an extraordinary fossil of pure creativity";
 
-test("m.youtube.com: the subtitle shows with its highlights, the transcript below the video", async ({
-  context,
-  extensionId,
-}) => {
+/** The fake m.youtube.com, played from LINE's card in the transcript. */
+async function openMobileWatch(context: BrowserContext, extensionId: string) {
   await showNewWords(context, extensionId);
   await routeMobileYouTube(context);
   const page = await context.newPage();
   await page.goto(YOUTUBE_MOBILE_WATCH);
-
-  // No side column on the phone: the transcript opens the area under the player.
-  const transcript = page.getByRole("complementary", {
-    name: en["app.name"],
-  });
-  await expect(transcript).toBeVisible();
-  expect(
-    await page
-      .locator(".watch-below-the-player")
-      .evaluate((below) => below.querySelector("langle-transcript") !== null),
-  ).toBe(true);
-  const player = (await page.locator("#movie_player").boundingBox())!;
-  const column = (await transcript.boundingBox())!;
-  expect(column.y).toBeGreaterThanOrEqual(player.y + player.height);
-  expect(column.width).toBeLessThanOrEqual(390);
-
+  const transcript = page
+    .locator("langle-transcript")
+    .getByRole("region", { name: en["video.transcript"] });
   await transcript
     .getByRole("button", { name: LINE })
-    .click({ position: ON_TIME });
-  const subtitle = page.locator("langle-video-player").getByRole("region", {
+    .click({ position: ON_TIME, timeout: COLD_LOAD.timeout });
+  const subtitle = page.locator("langle-video-below").getByRole("region", {
     name: en["video.subtitle"],
   });
   await expect(subtitle).toContainText(LINE);
+  const paused = () =>
+    page.locator("video").evaluate((v: HTMLVideoElement) => v.paused);
+  return { page, transcript, subtitle, paused };
+}
+
+const closeSheet = (page: Page) =>
+  sheet(page).getByRole("button", { name: en["dict.close"] }).tap();
+
+test("m.youtube.com: the subtitle pinned under the player, the transcript under it", async ({
+  context,
+  extensionId,
+}) => {
+  const { page, transcript, subtitle } = await openMobileWatch(
+    context,
+    extensionId,
+  );
+  // Held on the line while the layout is measured.
+  await page.locator("video").evaluate((v: HTMLVideoElement) => v.pause());
+  // Touch mode: the subtitle leaves the video for the band under it, pinned there.
+  const player = (await page.locator("#movie_player").boundingBox())!;
+  const band = (await subtitle.boundingBox())!;
+  expect(band.y).toBeCloseTo(player.y + player.height, 0);
+  expect(band.width).toBe(390);
+  await expect(page.locator("langle-video-below")).toHaveCSS(
+    "position",
+    "sticky",
+  );
+  // The light band's highlight colors, not the ones over the video.
   await expect(subtitle.getByText("creativity", { exact: true })).toHaveCSS(
     "box-shadow",
-    /rgb\(141, 180, 255\)/,
+    /rgb\(47, 111, 228\)/,
   );
+  await expect(
+    page.locator("langle-video-player").getByRole("region", {
+      name: en["video.subtitle"],
+    }),
+  ).toHaveCount(0);
   await expect(page.locator("#ytp-caption-window-container")).toBeHidden();
+  // The transcript under the subtitle, its playing card marked; it folds.
+  const list = (await transcript.boundingBox())!;
+  expect(list.y).toBeGreaterThanOrEqual(band.y + band.height - 1);
+  await expect(transcript.getByRole("button", { name: LINE })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  await transcript
+    .getByRole("button", { name: en["video.hideTranscript"] })
+    .tap();
+  await expect(transcript.getByRole("button", { name: LINE })).toHaveCount(0);
+});
+
+test("m.youtube.com: a tap on a word opens its sheet under the subtitle and pauses", async ({
+  context,
+  extensionId,
+}) => {
+  const { page, subtitle, paused } = await openMobileWatch(
+    context,
+    extensionId,
+  );
+  await subtitle.getByText("creativity", { exact: true }).tap();
+  await expect(
+    sheet(page).getByRole("heading", { name: "creativity" }),
+  ).toBeVisible(COLD_LOAD);
+  await expect.poll(paused).toBe(true);
+  const band = (await subtitle.boundingBox())!;
+  const box = (await sheet(page).boundingBox())!;
+  expect(box.y).toBeCloseTo(band.y + band.height, 0);
+  const learning = sheet(page).getByRole("button", {
+    name: en["status.learning"],
+    exact: true,
+  });
+  expect((await learning.boundingBox())!.height).toBe(44);
+  await learning.tap();
+  await expect(learning).toHaveAttribute("aria-pressed", "true");
+  await closeSheet(page);
+  await expect(sheet(page)).toHaveCount(0);
+  await expect.poll(paused).toBe(false);
+});
+
+test("m.youtube.com: a long-press across words on the subtitle opens the phrase's sheet", async ({
+  context,
+  extensionId,
+}) => {
+  const { page, subtitle, paused } = await openMobileWatch(
+    context,
+    extensionId,
+  );
+  const word = (text: string) =>
+    subtitle.getByText(text, { exact: true }).boundingBox();
+  const from = (await word("evidence"))!;
+  const to = (await word("human"))!;
+  const cdp = await context.newCDPSession(page);
+  const touch = (
+    type: "touchStart" | "touchMove" | "touchEnd",
+    points: { x: number; y: number }[],
+  ) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: points });
+  // "human" may wrap onto the next line: the finger goes where it is.
+  await touch("touchStart", [{ x: from.x + 4, y: from.y + from.height / 2 }]);
+  await page.waitForTimeout(800);
+  await touch("touchMove", [
+    { x: to.x + to.width - 4, y: to.y + to.height / 2 },
+  ]);
+  await touch("touchEnd", []);
+  await expect(
+    sheet(page).getByRole("heading", { name: "evidence of human" }),
+  ).toBeVisible(COLD_LOAD);
+  await expect(
+    sheet(page).getByText(en["lookup.status.selected"]),
+  ).toBeVisible();
+  await expect.poll(paused).toBe(true);
+  await closeSheet(page);
+  await expect.poll(paused).toBe(false);
 });

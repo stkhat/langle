@@ -105,6 +105,30 @@ export function ChevronUpIcon() {
   );
 }
 
+/** Mock MobileYouTube's transcript fold button (turned over while folded). */
+export function FoldIcon(props: { folded: boolean }) {
+  return (
+    <Outline
+      size={20}
+      stroke={2}
+      cap
+      join
+      style={props.folded ? { transform: "rotate(180deg)" } : undefined}
+    >
+      <path d="M6 15l6-6 6 6"></path>
+    </Outline>
+  );
+}
+
+/** Mock MobileYouTubeLandscape's "‹ Transcript". */
+export function BackIcon() {
+  return (
+    <Outline size={18} stroke={2} cap join>
+      <path d="M15 6l-6 6 6 6"></path>
+    </Outline>
+  );
+}
+
 export function ChevronDownIcon() {
   return (
     <Outline size={14} stroke={2} cap join>

@@ -15,6 +15,8 @@ const SEGMENT: Style = {
   cursor: "pointer",
 };
 
+const TOUCH_SEGMENT: Style = { ...SEGMENT, height: "44px", fontSize: "14px" };
+
 /**
  * Learning / Known / Remove (or "Not saved" while not saved): the dictionary window's
  * and the word list's status group. The pressed one is filled.
@@ -26,8 +28,11 @@ export function StatusButtons(props: {
   removeBorder: string;
   /** Learning and Known cannot be pressed (an unsaved term with nowhere to save it from). */
   saveDisabled?: boolean;
+  /** Touch mode (mock Mobile*'s sheet): 44px tall, a finger's size, 8px apart. */
+  touch?: boolean;
 }) {
   const { status } = props;
+  const size: Style = props.touch ? TOUCH_SEGMENT : SEGMENT;
 
   function segment(
     value: WordStatus,
@@ -43,7 +48,7 @@ export function StatusButtons(props: {
         disabled={disabled}
         onClick={onlyFromUser(() => props.onStatus(value))}
         style={{
-          ...SEGMENT,
+          ...size,
           ...(pressed ? on : statusButton.known(false)),
           ...(disabled && { cursor: "default", opacity: 0.5 }),
         }}
@@ -61,7 +66,7 @@ export function StatusButtons(props: {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: "6px",
+        gap: props.touch ? "8px" : "6px",
       }}
     >
       {segment(

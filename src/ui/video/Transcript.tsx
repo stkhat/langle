@@ -69,11 +69,93 @@ export interface TranscriptProps {
   nativeLang: string;
   /** Touch mode: words are selected by a long-press (see `TextSelectionProps.touch`). */
   touch?: boolean;
+  /**
+   * The cards' look: beside the video on the desktop (mock Main), under it on a phone
+   * (mock MobileYouTube), or in the dark column beside the video in a phone's
+   * fullscreen (mock MobileYouTubeLandscape). Default: the desktop's.
+   */
+  look?: TranscriptLook;
   /** How long auto-scrolling waits after the user scrolls the list (ms). */
   userScrollPauseMs?: number;
 }
 
 type Style = CSSProperties;
+
+type TranscriptLook = "desktop" | "phone" | "phoneColumn";
+
+/** Mock MobileYouTube's card: the time in a column of its own, then the text. */
+const PHONE_CARD: Style = {
+  display: "grid",
+  gridTemplateColumns: "44px minmax(0, 1fr)",
+  gap: "6px",
+  alignItems: "start",
+  padding: "8px 10px 8px 4px",
+  borderRadius: "10px",
+  color: color.ink,
+  cursor: "pointer",
+};
+
+/** Mock MobileYouTubeLandscape's card in the dark column. */
+const COLUMN_CARD: Style = {
+  display: "flex",
+  gap: "10px",
+  padding: "10px 10px 10px 12px",
+  borderRadius: "10px",
+  color: color.ink,
+  cursor: "pointer",
+};
+
+/** Each look's card, playing or not, and its time. */
+const LOOKS: Record<
+  Exclude<TranscriptLook, "desktop">,
+  {
+    card: Style;
+    now: Style;
+    time: (now: boolean) => Style;
+    text: Style;
+    translation: Style;
+    colors: "ui" | "onVideo";
+  }
+> = {
+  phone: {
+    card: PHONE_CARD,
+    now: { ...PHONE_CARD, background: color.surfaceGray },
+    time: (now) => ({
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "32px",
+      fontSize: "12px",
+      fontWeight: 600,
+      fontVariantNumeric: "tabular-nums",
+      color: now ? color.greenText : color.muted,
+    }),
+    text: { fontSize: "15px", lineHeight: 1.45 },
+    translation: { fontSize: "13px", lineHeight: 1.5, color: color.ink3 },
+    colors: "ui",
+  },
+  phoneColumn: {
+    card: COLUMN_CARD,
+    now: {
+      ...COLUMN_CARD,
+      paddingLeft: "9px",
+      background: "rgba(15,159,126,0.16)",
+      borderLeft: "3px solid #6FE3C3",
+    },
+    time: () => ({
+      flex: "none",
+      width: "34px",
+      paddingTop: "2px",
+      fontSize: "12px",
+      fontWeight: 600,
+      fontVariantNumeric: "tabular-nums",
+      color: color.greenDark,
+    }),
+    text: { fontSize: "15px", lineHeight: 1.45 },
+    translation: { fontSize: "13px", lineHeight: 1.5, color: color.ink3 },
+    colors: "onVideo",
+  },
+};
 
 const CARD: Style = {
   display: "flex",
@@ -239,6 +321,7 @@ export function Transcript(props: TranscriptProps) {
     addEventListener("pointercancel", onUp, true);
   }
 
+  const phone = (props.look ?? "desktop") !== "desktop";
   return (
     <div
       ref={list}
@@ -262,10 +345,10 @@ export function Transcript(props: TranscriptProps) {
         flex: 1,
         minHeight: 0,
         overflowY: "auto",
-        padding: "12px",
+        padding: phone ? "8px" : "12px",
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: phone ? "4px" : "8px",
       }}
     >
       {props.cues.map((cue, i) => (
@@ -282,6 +365,7 @@ export function Transcript(props: TranscriptProps) {
           nativeLang={props.nativeLang}
           selectable={props.onSelect !== undefined}
           touch={props.touch === true}
+          look={props.look ?? "desktop"}
           handlers={handlers}
         />
       ))}
@@ -302,6 +386,7 @@ interface CardProps {
   /** Words can be selected in the card's original. */
   selectable: boolean;
   touch: boolean;
+  look: TranscriptLook;
   handlers: CardHandlers;
 }
 
@@ -320,6 +405,7 @@ const sameCard = (a: CardProps, b: CardProps) =>
   a.nativeLang === b.nativeLang &&
   a.selectable === b.selectable &&
   a.touch === b.touch &&
+  a.look === b.look &&
   a.handlers === b.handlers;
 
 /**
@@ -347,8 +433,13 @@ function CardBody(props: CardProps) {
       : undefined,
     touch: props.touch,
   });
+  const look = props.look === "desktop" ? undefined : LOOKS[props.look];
   const words = renderTerms(cue.text, props.spans, (span, i, text) => {
-    const style = termStyle(span.category, props.highlight, "ui");
+    const style = termStyle(
+      span.category,
+      props.highlight,
+      look?.colors ?? "ui",
+    );
     return (
       <TermSpan
         key={`${span.start}`}
@@ -367,25 +458,70 @@ function CardBody(props: CardProps) {
       </TermSpan>
     );
   });
+  const original = (
+    <span
+      ref={selection.ref}
+      {...langAttrs(props.learningLang)}
+      onPointerDown={selection.onPointerDown}
+      style={{
+        ...(look?.text ?? { fontSize: "14px", lineHeight: 1.5 }),
+        userSelect: "text",
+        ...(props.touch && TOUCH_TEXT),
+      }}
+    >
+      {words}
+    </span>
+  );
+  const translated = props.showTranslation && translation !== "" && (
+    <span
+      {...langAttrs(props.nativeLang)}
+      style={
+        look?.translation ?? {
+          fontSize: "13px",
+          lineHeight: 1.5,
+          color: now ? color.ink3 : color.faint,
+        }
+      }
+    >
+      {translation}
+    </span>
+  );
+  const button = {
+    role: "button" as const,
+    tabIndex: 0,
+    "data-cue": index,
+    "aria-current": now ? ("true" as const) : undefined,
+    onClick: () => {
+      // A drag over the text selects words: no seek.
+      if (!selection.selected()) handlers.onSeek(index);
+    },
+    onKeyDown: (event: KeyboardEvent) => {
+      if (event.target !== event.currentTarget) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      handlers.onSeek(index);
+    },
+  };
+  if (look)
+    return (
+      <div {...button} style={now ? look.now : look.card}>
+        <span style={look.time(now)}>{time}</span>
+        <span
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "2px",
+            minWidth: 0,
+          }}
+        >
+          {original}
+          {translated}
+        </span>
+      </div>
+    );
   // A div acting as a button, not a <button>: Firefox selects no text inside a button.
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      data-cue={index}
-      aria-current={now ? "true" : undefined}
-      onClick={() => {
-        // A drag over the text selects words: no seek.
-        if (!selection.selected()) handlers.onSeek(index);
-      }}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        handlers.onSeek(index);
-      }}
-      style={now ? CARD_NOW : CARD}
-    >
+    <div {...button} style={now ? CARD_NOW : CARD}>
       {now ? (
         <span
           style={{
@@ -412,31 +548,8 @@ function CardBody(props: CardProps) {
           {time}
         </span>
       )}
-      <span
-        ref={selection.ref}
-        {...langAttrs(props.learningLang)}
-        onPointerDown={selection.onPointerDown}
-        style={{
-          fontSize: "14px",
-          lineHeight: 1.5,
-          userSelect: "text",
-          ...(props.touch && TOUCH_TEXT),
-        }}
-      >
-        {words}
-      </span>
-      {props.showTranslation && translation !== "" && (
-        <span
-          {...langAttrs(props.nativeLang)}
-          style={{
-            fontSize: "13px",
-            lineHeight: 1.5,
-            color: now ? color.ink3 : color.faint,
-          }}
-        >
-          {translation}
-        </span>
-      )}
+      {original}
+      {translated}
     </div>
   );
 }

@@ -77,6 +77,18 @@ const SIDEBAR_ROOM = SIDEBAR.width + 2 * SIDEBAR.inset;
 /** Above the site's player, below Langle's menu, hover card and dictionary window. */
 const SIDEBAR_LAYER = 2147483600;
 
+/** The pinned subtitle box over the page that scrolls under it. */
+const PINNED_LAYER = 10;
+
+/** `element` stays where it is while the page scrolls: it or an ancestor is fixed or sticky. */
+function staysInWindow(element: Element): boolean {
+  for (let at: Element | null = element; at; at = at.parentElement) {
+    const { position } = getComputedStyle(at);
+    if (position === "fixed" || position === "sticky") return true;
+  }
+  return false;
+}
+
 /** The most a part is moved back into the same parent in one second. */
 const MAX_MOVES_PER_SECOND = 10;
 
@@ -101,6 +113,7 @@ export function mountVideoUi({
     vertical: adapter.vertical?.() ?? false,
     sidebar: false,
     touch: touchMode.on(),
+    pinnedBottom: null,
   });
   const sidebar = document.createElement("langle-video-sidebar");
   sidebar.style.cssText = `position: fixed; z-index: ${SIDEBAR_LAYER};
@@ -123,7 +136,11 @@ export function mountVideoUi({
   }
 
   /** The hosts the geometry measures, once made. */
-  const made: { buttons?: HTMLElement; transcript?: HTMLElement } = {};
+  const made: {
+    buttons?: HTMLElement;
+    transcript?: HTMLElement;
+    below?: HTMLElement;
+  } = {};
   const geometry: VideoGeometry = {
     player: () => boxOf(adapter.playerElement()),
     buttons: () => boxOf(made.buttons?.isConnected ? made.buttons : null),
@@ -132,6 +149,10 @@ export function mountVideoUi({
       return box && box.bottom > box.top ? box : null;
     },
     beside: () => boxOf(adapter.besidePlayer?.() ?? null),
+    subtitle: () => {
+      const box = boxOf(made.below?.isConnected ? made.below : null);
+      return box && box.bottom > box.top ? box : null;
+    },
   };
 
   part(
@@ -149,6 +170,7 @@ export function mountVideoUi({
     },
     <BelowVideoUi app={app} layout={layout} />,
   );
+  made.below = belowHost;
   made.transcript = part(
     "langle-transcript",
     // Clickable inside a frame that lets clicks through to the video (Netflix).
@@ -258,6 +280,47 @@ export function mountVideoUi({
     if (on !== layout.get().sidebar) layout.set({ sidebar: on });
   }
 
+  /** The sticky style the subtitle box under the video has now ("" for none). */
+  let pinnedStyle = "";
+  const belowResize = new ResizeObserver(() => schedule());
+  belowResize.observe(belowHost);
+
+  /**
+   * In touch mode, under a player that stays at the window's top while the page
+   * scrolls (it or an ancestor is fixed or sticky: m.youtube.com's portrait page), the
+   * subtitle box sticks under the player, so the line stays in view over the page.
+   */
+  function pinBelow(player: HTMLElement | null) {
+    const box =
+      layout.get().touch &&
+      belowHost.isConnected &&
+      player &&
+      !player.contains(belowHost) &&
+      staysInWindow(player)
+        ? boxOf(player)
+        : null;
+    const top = box ? Math.round(box.bottom) : null;
+    const style =
+      top === null
+        ? ""
+        : `position: sticky; top: ${top}px; z-index: ${PINNED_LAYER};`;
+    if (style !== pinnedStyle) {
+      belowHost.style.position = "";
+      belowHost.style.top = "";
+      belowHost.style.zIndex = "";
+      if (top !== null)
+        Object.assign(belowHost.style, {
+          position: "sticky",
+          top: `${top}px`,
+          zIndex: `${PINNED_LAYER}`,
+        });
+      pinnedStyle = style;
+    }
+    const pinnedBottom = top === null ? null : top + belowHost.offsetHeight;
+    if (pinnedBottom !== layout.get().pinnedBottom)
+      layout.set({ pinnedBottom });
+  }
+
   /** Puts every part where it belongs (only those that moved: no mutation otherwise). */
   function place() {
     const vertical = adapter.vertical?.() ?? false;
@@ -285,6 +348,7 @@ export function mountVideoUi({
     }
     holdBackControlBar();
     liftSubtitle(player);
+    pinBelow(player);
     const frame = layout.get().sidebar ? sidebar : player;
     if (frame !== observed) {
       if (observed) resize.unobserve(observed);
@@ -321,6 +385,7 @@ export function mountVideoUi({
     offTouch();
     observer.disconnect();
     resize.disconnect();
+    belowResize.disconnect();
     if (frame !== undefined) cancelAnimationFrame(frame);
     document.removeEventListener("fullscreenchange", onFullscreen);
     for (const root of roots) render(null, root);
