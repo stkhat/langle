@@ -29,7 +29,6 @@ jobs:
             exit 1
           fi
       - run: npm run zip
-      - run: npm run zip:firefox
       - uses: actions/upload-artifact@v7
         with:
           name: langle-zips

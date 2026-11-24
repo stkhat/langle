@@ -9,25 +9,21 @@ export default defineConfig({
   manifestVersion: 3,
   // The data sources and licenses page's data (`virtual:langle-notices`).
   vite: () => ({ plugins: [preact(), noticesPlugin()] }),
-  manifest: ({ browser, mode }) => {
+  manifest: ({ mode }) => {
     return {
       name: "Langle",
       version: pkg.version,
       description:
         "Learn languages on the videos and articles you already read.",
       // alarms: retries of language data downloads (src/background/pack-downloads.ts);
-      // it shows no warning at install in Chrome or Firefox. identity: signing in to
-      // the user's own cloud storage (src/background/sync/google-auth.ts); no warning in
-      // Chrome either.
+      // it shows no warning at install in Chrome. identity: signing in to the user's
+      // own cloud storage (src/background/sync/google-auth.ts); no warning either.
       permissions: ["storage", "alarms", "identity"],
-      ...(browser === "firefox" && {
-        browser_specific_settings: { gecko: { id: "langle@stkhat" } },
-      }),
-      // Chromium only: development and check builds keep one id, so the sign-in
-      // redirect (https://<id>.chromiumapp.org/) Google's Web client lists stays theirs
-      // (src/background/sync/google-clients.ts).
-      ...(browser !== "firefox" &&
-        mode !== "production" && { key: DEVELOPMENT_EXTENSION_KEY }),
+      // Development and check builds keep one id, so the sign-in redirect
+      // (https://<id>.chromiumapp.org/) Google's Web client lists stays theirs
+      // (src/background/sync/google-clients.ts). Builds target Chromium only: Firefox
+      // is paused (docs/notes/firefox-paused.md).
+      ...(mode !== "production" && { key: DEVELOPMENT_EXTENSION_KEY }),
     };
   },
   hooks: {
