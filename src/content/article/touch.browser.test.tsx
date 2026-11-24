@@ -137,6 +137,15 @@ describe.runIf(canTouch)("articles in touch mode", () => {
       event.preventDefault();
     });
 
+    // On a touch screen the link's text is Langle's to long-press: no system menu, no
+    // selection (WebKit on iOS takes such a press over).
+    const rules = document.adoptedStyleSheets.flatMap((sheet) =>
+      [...sheet.cssRules].map((rule) => rule.cssText),
+    );
+    expect(rules).toContainEqual(
+      expect.stringMatching(/hover: none.*a\[href\].*user-select: none/s),
+    );
+
     await longPress([on(root, "tedious", 2)]);
     await expect.element(heading("tedious")).toBeVisible();
     await quiet(200);
