@@ -3,7 +3,7 @@
 What each collected number means, when it is a lead, and known false positives.
 
 ## Machine load
-- `uptime` load average above the core count (`sysctl -n hw.ncpu`) or another session's `verify` / Docker / Playwright running (`ps -Ao pcpu,command | sort -rn | head`) → the machine is busy. `sysctl` and `ps` need the sandbox off; `uptime` works inside it. `verify` and the Firefox tests take a machine-wide lock (`scripts/test-lock.ts`) and a second run just waits, but a busy machine slows everyone's runs: do light steps first.
+- `uptime` load average above the core count (`sysctl -n hw.ncpu`) or another session's `verify` / Playwright running (`ps -Ao pcpu,command | sort -rn | head`) → the machine is busy. `sysctl` and `ps` need the sandbox off; `uptime` works inside it. `verify` takes a machine-wide lock (`scripts/test-lock.ts`) and a second run just waits, but a busy machine slows everyone's runs: do light steps first.
 - Test durations measured on a busy machine are not comparable; note the load next to them.
 
 ## Sessions (`token-usage.py friction`)
