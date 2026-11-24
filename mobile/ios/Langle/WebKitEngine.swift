@@ -45,6 +45,8 @@ private final class WeakHandler: NSObject, WKScriptMessageHandler {
 final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate {
   static let bridgeName = "langleBridge"
   static let logName = "langleLog"
+  /// The app's own fullscreen in the page's world (`src/app/fullscreen/`): `on` and `off`.
+  static let fullscreenName = "langleFullscreen"
 
   let profile: PageProfile
   weak var delegate: PageDelegate?
@@ -81,6 +83,9 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate {
     #if DEBUG
       config.userContentController.add(handler, contentWorld: world, name: Self.logName)
     #endif
+    if profile == .browsing {
+      config.userContentController.add(handler, contentWorld: .page, name: Self.fullscreenName)
+    }
     webView.isInspectable = true
     webView.navigationDelegate = self
     webView.uiDelegate = self
@@ -97,6 +102,38 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate {
         MainActor.assumeIsolated { self?.fullscreenChanged(view.fullscreenState) }
       },
     ]
+  }
+
+  /// The app's own fullscreen (WebKit has no element fullscreen on the iPhone): the page's
+  /// stand-in said `on`. The back swipe is off meanwhile; a swipe from the left edge leaves.
+  private var appFullscreen = false
+  private lazy var edgeSwipe: UIScreenEdgePanGestureRecognizer = {
+    let swipe = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(swipedFromEdge))
+    swipe.edges = .left
+    return swipe
+  }()
+
+  private func setAppFullscreen(_ on: Bool) {
+    guard on != appFullscreen else { return }
+    appFullscreen = on
+    webView.allowsBackForwardNavigationGestures = !on
+    if on { webView.addGestureRecognizer(edgeSwipe) } else { webView.removeGestureRecognizer(edgeSwipe) }
+    Log.app.info("app fullscreen \(on ? "on" : "off", privacy: .public)")
+    delegate?.page(self, fullscreen: on)
+  }
+
+  @objc private func swipedFromEdge(_ swipe: UIScreenEdgePanGestureRecognizer) {
+    if swipe.state == .recognized || swipe.state == .ended { exitFullscreen() }
+  }
+
+  func exitFullscreen() {
+    guard appFullscreen || inFullscreen else { return }
+    webView.evaluateJavaScript(
+      "document.exitFullscreen().catch(() => {}); undefined", in: nil, in: .page
+    ) { [weak self] result in
+      // A page whose stand-in is gone (or never answers): the shell leaves on its own.
+      if case .failure = result { self?.setAppFullscreen(false) }
+    }
   }
 
   /// Entering counts from its start (so the window can turn), leaving from its end.
@@ -172,6 +209,10 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate {
 
   fileprivate func received(_ message: WKScriptMessage) {
     guard message.frameInfo.isMainFrame, let body = message.body as? String else { return }
+    if message.name == Self.fullscreenName {
+      setAppFullscreen(body == "on")
+      return
+    }
     let world: ScriptWorld = message.world.name == "langle" ? .langle : .page
     if message.name == Self.logName {
       Log.console.info("\(self.profile == .browsing ? "page" : "app", privacy: .public) \(body, privacy: .public)")
@@ -206,6 +247,8 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate {
   }
 
   func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+    // A new document: the old one's fullscreen went with it.
+    setAppFullscreen(false)
     if let url = webView.url { delegate?.page(self, didCommit: url) }
   }
 

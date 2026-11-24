@@ -24,6 +24,29 @@ struct ShellView: View {
 
   var body: some View {
     VStack(spacing: 0) {
+      if !model.fullscreen { addressRow }
+      if model.started {
+        PageContainer(page: model.browsing.page.view, host: model.hostView)
+          .ignoresSafeArea(edges: model.fullscreen ? .all : [])
+      } else {
+        Spacer()
+      }
+    }
+    // The app's own fullscreen: the page alone, no status bar or home indicator.
+    .statusBarHidden(model.fullscreen)
+    .persistentSystemOverlays(model.fullscreen ? .hidden : .automatic)
+    .onChange(of: model.address) { _, address in
+      if !editing { typed = address }
+    }
+    .sheet(item: $model.sheet, onDismiss: model.sheetDismissed) { sheet in
+      PageContainer(page: sheet.context.page.view, host: nil)
+        .ignoresSafeArea(edges: .bottom)
+        .presentationDragIndicator(.visible)
+    }
+  }
+
+  private var addressRow: some View {
+    VStack(spacing: 0) {
       HStack(spacing: 12) {
         Button(action: model.goBack) { Image(systemName: "chevron.backward") }
           .disabled(!model.canGoBack)
@@ -47,19 +70,6 @@ struct ShellView: View {
       if let refusal = model.refusal {
         Text(refusal).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)
       }
-      if model.started {
-        PageContainer(page: model.browsing.page.view, host: model.hostView)
-      } else {
-        Spacer()
-      }
-    }
-    .onChange(of: model.address) { _, address in
-      if !editing { typed = address }
-    }
-    .sheet(item: $model.sheet, onDismiss: model.sheetDismissed) { sheet in
-      PageContainer(page: sheet.context.page.view, host: nil)
-        .ignoresSafeArea(edges: .bottom)
-        .presentationDragIndicator(.visible)
     }
   }
 }
@@ -131,5 +141,37 @@ enum Orientation {
     let landscape = scene.effectiveGeometry.interfaceOrientation.isLandscape
     let size = scene.effectiveGeometry.coordinateSpace.bounds.size
     return "orientation=\(landscape ? "landscape" : "portrait") window=\(Int(size.width))x\(Int(size.height))"
+  }
+}
+
+/// Calls `back` when the device is turned to portrait after it was seen in landscape: in
+/// fullscreen the window is turned to landscape whatever way the phone is held, so only a turn
+/// back after a turn to landscape means "leave".
+@MainActor
+final class RotationWatch {
+  private var sawLandscape = false
+  private var observer: NSObjectProtocol?
+
+  init(back: @escaping @MainActor () -> Void) {
+    UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+    observer = NotificationCenter.default.addObserver(
+      forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated {
+        guard let self else { return }
+        let now = UIDevice.current.orientation
+        if now.isLandscape {
+          self.sawLandscape = true
+        } else if now == .portrait, self.sawLandscape {
+          self.sawLandscape = false
+          back()
+        }
+      }
+    }
+  }
+
+  deinit {
+    if let observer { NotificationCenter.default.removeObserver(observer) }
+    MainActor.assumeIsolated { UIDevice.current.endGeneratingDeviceOrientationNotifications() }
   }
 }
