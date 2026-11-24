@@ -127,6 +127,44 @@ export async function routeYouTube(
   });
 }
 
+export const YOUTUBE_MOBILE_WATCH = `https://m.youtube.com/watch?v=${FIXTURE_VIDEO_ID}`;
+
+/**
+ * Serves m.youtube.com from fixtures: the measured watch-page skeleton
+ * (tests/fixtures/m-youtube-watch.html) with Trusted Types enforced, the local clip,
+ * the recorded /api/timedtext answers, and the fake player API on `#movie_player`.
+ */
+export async function routeMobileYouTube(context: BrowserContext) {
+  await context.route("https://m.youtube.com/**", (route) =>
+    route.fulfill({ status: 404, body: "" }),
+  );
+  await context.route("https://m.youtube.com/watch*", (route) => {
+    const html = readFileSync(
+      path.join(here, "../tests/fixtures/m-youtube-watch.html"),
+      "utf8",
+    ).replace("<video", '<video src="/langle-test/talk.webm" muted');
+    return route.fulfill({
+      contentType: "text/html; charset=utf-8",
+      headers: {
+        "content-security-policy": "require-trusted-types-for 'script'",
+      },
+      body: html,
+    });
+  });
+  await routeTalkVideo(context, "https://m.youtube.com/langle-test/talk.webm");
+  await context.route("https://m.youtube.com/api/timedtext*", (route) =>
+    route.fulfill({
+      contentType: "application/json; charset=UTF-8",
+      body: timedtextBody(new URL(route.request().url())),
+    }),
+  );
+  await context.addInitScript(installFakeYouTubePlayer, {
+    videoId: FIXTURE_VIDEO_ID,
+    title: "Do schools kill creativity?",
+    playerResponse: fixturePlayerResponse(),
+  });
+}
+
 /**
  * Serves netflix.com from the synthetic fixtures: the watch-page skeleton, the local
  * 140-second clip, the subtitle files on a CDN host (cross-origin, with CORS like

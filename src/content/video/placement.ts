@@ -107,6 +107,26 @@ export function dictionaryFrame(
   return { left: Math.round(left), top: Math.round(top), height };
 }
 
+/**
+ * Where the transcript goes (spec "Video UI", mobile-app.md "The watch page on a phone"):
+ * in the sidebar beside a player that fills the window or the screen; else in the side
+ * column; else, on a page with none (m.youtube.com), below the video after the subtitle,
+ * when the area under the player is part of the page (not a box over the video, as on
+ * Netflix). A vertical video has no transcript.
+ */
+export function transcriptPlace(page: {
+  sidebar: boolean;
+  sideColumn: boolean;
+  vertical: boolean;
+  /** The area under the player is outside the player. */
+  belowInPage: boolean;
+}): "sidebar" | "sideColumn" | "belowVideo" | null {
+  if (page.sidebar) return "sidebar";
+  if (page.sideColumn) return "sideColumn";
+  if (page.vertical || !page.belowInPage) return null;
+  return "belowVideo";
+}
+
 /** Mock `YouTube Shorts — subtitles`: the window 18px right of the Short's buttons, 560px tall. */
 const VERTICAL = { gap: 18, height: 560 };
 

@@ -36,10 +36,14 @@ import {
   sameResponse,
   trackUrl,
 } from "./timedtext";
+import { desktopLayout, SHORTS_PATH } from "./desktop-layout";
+import type { YouTubeLayout } from "./layout";
 
 export interface YouTubeAdapterOptions {
   /** Default: `location.href`. */
   href?: () => string;
+  /** The page's structure. Default: `desktopLayout(href)` (www.youtube.com). */
+  layout?: YouTubeLayout;
   /** How long to wait for the player's own caption request before asking for one. */
   playerRequestWaitMs?: number;
   /** How long to wait for the player's request after asking for a track. */
@@ -55,8 +59,6 @@ const PLAYER_RESPONSE_TIMEOUT_MS = 30_000;
 const KEEP_CAPTURES = 4;
 /** A try of `loadCaptions` to make again (see `loadFrom`). */
 const AGAIN = Symbol("again");
-/** A Short's path and its video id. */
-const SHORTS_PATH = /^\/shorts\/([^/]+)/;
 
 /** The YouTube track `chooseTranslation` picked (it hands back one of `info.tracks`). */
 function siteTrack(info: YouTubeCaptionInfo, track: Track): YouTubeTrack {
@@ -65,15 +67,12 @@ function siteTrack(info: YouTubeCaptionInfo, track: Track): YouTubeTrack {
   return found;
 }
 
-/** The URL shows a Short (`/shorts/<id>`; docs/notes/youtube-shorts.md). */
-export const isShortsUrl = (href: string) =>
-  SHORTS_PATH.test(new URL(href).pathname);
-
 /**
- * YouTube's watch page and Shorts. Captions come from the player's own /api/timedtext request,
- * observed by the page script (`page.ts`): its URL carries the PO token the server
- * requires, so the other tracks are fetched by editing that URL. Caption bodies and
- * URLs live in memory only.
+ * YouTube's watch page and Shorts, on the page structure `options.layout` reads
+ * (www.youtube.com or m.youtube.com). Captions come from the player's own /api/timedtext
+ * request, observed by the page script (`page.ts`): its URL carries the PO token the
+ * server requires, so the other tracks are fetched by editing that URL. Caption bodies
+ * and URLs live in memory only.
  */
 export function createYouTubeAdapter(
   options: YouTubeAdapterOptions = {},
@@ -83,6 +82,7 @@ export function createYouTubeAdapter(
   const playerRequestWaitMs = options.playerRequestWaitMs ?? 1500;
   const captureTimeoutMs = options.captureTimeoutMs ?? 10_000;
   const fetchTimeoutMs = options.fetchTimeoutMs ?? NETWORK_CALL_TIMEOUT_MS;
+  const layout = options.layout ?? desktopLayout(href);
   const bridge = createPageBridge<PageCall, PageCallResults, TimedtextMessage>({
     channel: CHANNEL,
     isEvent: isTimedtextMessage,
@@ -93,40 +93,20 @@ export function createYouTubeAdapter(
   );
   const cleanups: (() => void)[] = [];
 
-  const onShorts = () => isShortsUrl(href());
+  const onShorts = () => layout.vertical();
 
   function videoId(): string | undefined {
     const url = new URL(href());
     if (url.pathname === "/watch")
       return url.searchParams.get("v") || undefined;
-    return SHORTS_PATH.exec(url.pathname)?.[1];
+    return onShorts() ? SHORTS_PATH.exec(url.pathname)?.[1] : undefined;
   }
 
-  // The watch page's player can stay in the DOM while a Short shows: go by the URL.
-  const player = () =>
-    document.getElementById(onShorts() ? "shorts-player" : "movie_player");
-  /**
-   * The player's box in the full-bleed row while the page is in fullscreen (YouTube
-   * puts `<html>` in fullscreen; theater mode uses the same row without it). Null
-   * elsewhere (docs/notes/youtube-captions.md).
-   */
-  const fullBleed = () => {
-    if (onShorts() || !document.fullscreenElement) return null;
-    const box = document.getElementById("player-full-bleed-container");
-    const view = player();
-    return box &&
-      view &&
-      box.contains(view) &&
-      !view.contains(document.fullscreenElement) &&
-      document.fullscreenElement.contains(box)
-      ? box
-      : null;
-  };
-  // A width on the growing flex item has no effect: a margin narrows it.
+  const player = () => layout.player();
   const narrowPlayer = playerNarrower(
-    fullBleed,
-    "margin-right",
-    (width) => `${width}px`,
+    () => layout.fullscreenBox(),
+    layout.narrow.property,
+    layout.narrow.value,
   );
   cleanups.push(() => narrowPlayer(0));
 
@@ -278,16 +258,8 @@ export function createYouTubeAdapter(
   return {
     platform: "youtube",
     videoId,
-    title() {
-      const heading = document
-        .querySelector(
-          onShorts()
-            ? "ytd-shorts yt-shorts-video-title-view-model h1"
-            : "ytd-watch-metadata h1",
-        )
-        ?.textContent?.trim();
-      return heading || document.title.replace(/ - YouTube$/, "").trim();
-    },
+    title: () =>
+      layout.heading() || document.title.replace(/ - YouTube$/, "").trim(),
     url() {
       const id = videoId();
       return id ? `https://www.youtube.com/watch?v=${id}` : href();
@@ -296,50 +268,11 @@ export function createYouTubeAdapter(
       player()?.querySelector<HTMLVideoElement>("video.html5-main-video") ??
       null,
     playerElement: player,
-    controlsPoint() {
-      if (onShorts()) {
-        // The Short's own buttons at the top of the video, before its captions button.
-        const right = document.querySelector(
-          "ytd-shorts ytd-shorts-player-controls #right-controls",
-        );
-        if (!right) return null;
-        return {
-          parent: right,
-          before:
-            right.querySelector(
-              ":scope > #closed-captioning-button-container",
-            ) ?? right.firstElementChild,
-        };
-      }
-      const controls = document.querySelector(
-        "#movie_player .ytp-right-controls",
-      );
-      if (!controls) return null;
-      // Next to the site's gear, as in mock Main.
-      const settings = controls.querySelector(".ytp-settings-button");
-      return settings?.parentElement
-        ? { parent: settings.parentElement, before: settings }
-        : { parent: controls, before: controls.firstElementChild };
-    },
-    belowVideoElement: () =>
-      onShorts() ? null : document.getElementById("below"),
-    sideColumn() {
-      if (onShorts()) return null;
-      const parent = document.getElementById("secondary-inner");
-      if (!parent) return null;
-      const related = document.getElementById("related");
-      return {
-        parent,
-        before: related?.parentElement === parent ? related : null,
-      };
-    },
+    controlsPoint: () => layout.controlsPoint(),
+    belowVideoElement: () => layout.belowVideoElement(),
+    sideColumn: () => layout.sideColumn(),
     vertical: onShorts,
-    besidePlayer: () =>
-      onShorts()
-        ? document.querySelector<HTMLElement>(
-            "ytd-shorts reel-action-bar-view-model",
-          )
-        : null,
+    besidePlayer: () => layout.besidePlayer(),
     adShowing,
     async tracks() {
       const id = videoId();
@@ -355,12 +288,8 @@ export function createYouTubeAdapter(
     async play() {
       await call({ type: "play" });
     },
-    onNavigate(listener) {
-      const handler = () => listener();
-      document.addEventListener("yt-navigate-finish", handler);
-      return () => document.removeEventListener("yt-navigate-finish", handler);
-    },
-    fillsWindow: () => fullBleed() !== null,
+    onNavigate: (listener) => layout.onNavigate(() => listener()),
+    fillsWindow: () => layout.fullscreenBox() !== null,
     narrowPlayer,
     hideSiteCaptions: hideCaptions,
     dispose() {

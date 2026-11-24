@@ -37,6 +37,14 @@ export interface Settings {
     wordreference: boolean;
   };
   subtitlePosition: "inVideo" | "belowVideo";
+  /**
+   * The phone's own subtitle position (spec mobile-app.md "Decisions"), read in place of
+   * `subtitlePosition` in touch mode: a desktop change does not move the phone, nor
+   * the other way round.
+   */
+  phoneSubtitlePosition: "inVideo" | "belowVideo";
+  /** On the phone in fullscreen landscape: no transcript column, or one at the left or right. */
+  phoneFullscreenTranscript: "off" | "left" | "right";
   subtitleTranslation: boolean;
   /** The subtitle and its translation's text size, in percent (the L menu's Size). */
   subtitleSize: number;
@@ -164,6 +172,8 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
     wordreference: true,
   },
   subtitlePosition: "inVideo",
+  phoneSubtitlePosition: "belowVideo",
+  phoneFullscreenTranscript: "off",
   subtitleTranslation: true,
   subtitleSize: 100,
   subtitleOpacity: 80,
@@ -288,6 +298,16 @@ export function mergeSettings(
       "inVideo",
       "belowVideo",
     ]),
+    phoneSubtitlePosition: oneOf(
+      v.phoneSubtitlePosition,
+      base.phoneSubtitlePosition,
+      ["inVideo", "belowVideo"],
+    ),
+    phoneFullscreenTranscript: oneOf(
+      v.phoneFullscreenTranscript,
+      base.phoneFullscreenTranscript,
+      ["off", "left", "right"],
+    ),
     subtitleTranslation: bool(v.subtitleTranslation, base.subtitleTranslation),
     subtitleSize: stepped(v.subtitleSize, base.subtitleSize, SUBTITLE_SIZE),
     subtitleOpacity: stepped(

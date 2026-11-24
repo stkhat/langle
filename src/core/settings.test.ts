@@ -25,6 +25,8 @@ describe("DEFAULT_SETTINGS", () => {
         wordreference: true,
       },
       subtitlePosition: "inVideo",
+      phoneSubtitlePosition: "belowVideo",
+      phoneFullscreenTranscript: "off",
       subtitleTranslation: true,
       subtitleSize: 100,
       subtitleOpacity: 80,
@@ -188,6 +190,34 @@ describe("mergeSettings", () => {
   it("keeps a valid theme", () => {
     expect(mergeSettings({ theme: "dark" }).theme).toBe("dark");
     expect(mergeSettings({ theme: "light" }).theme).toBe("light");
+  });
+
+  it("keeps the phone's subtitle settings apart from the desktop's", () => {
+    const merged = mergeSettings({
+      subtitlePosition: "belowVideo",
+      phoneSubtitlePosition: "inVideo",
+      phoneFullscreenTranscript: "left",
+    });
+    expect(merged.subtitlePosition).toBe("belowVideo");
+    expect(merged.phoneSubtitlePosition).toBe("inVideo");
+    expect(merged.phoneFullscreenTranscript).toBe("left");
+    expect(mergeSettings({ subtitlePosition: "inVideo" })).toMatchObject({
+      phoneSubtitlePosition: "belowVideo",
+      phoneFullscreenTranscript: "off",
+    });
+    expect(
+      mergeSettings({ phoneFullscreenTranscript: "right" })
+        .phoneFullscreenTranscript,
+    ).toBe("right");
+  });
+
+  it("replaces unknown phone subtitle settings with the base value", () => {
+    const merged = mergeSettings({
+      phoneSubtitlePosition: "aboveVideo",
+      phoneFullscreenTranscript: true,
+    } as unknown);
+    expect(merged.phoneSubtitlePosition).toBe("belowVideo");
+    expect(merged.phoneFullscreenTranscript).toBe("off");
   });
 
   it("replaces values of the wrong type with the base value", () => {
