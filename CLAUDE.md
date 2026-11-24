@@ -1,6 +1,6 @@
 # Langle — language-learning browser extension (Chrome first)
 
-A browser extension (MV3) for learning a language right on top of the videos (YouTube / Netflix) and web articles you like. Only the Chrome version is published first; Firefox, Edge and others come later.
+A browser extension (MV3) for learning a language right on top of the videos (YouTube / Netflix) and web articles you like. Chrome only for now; Firefox is paused ([notes](docs/notes/firefox-paused.md)), Edge and others come later.
 Core features: highlights by category (New / Learning / Known), meaning on hover, dictionary window on click, saving phrases, recording sources and re-occurrences.
 
 ## Read first
@@ -16,12 +16,12 @@ Core features: highlights by category (New / Learning / Known), meaning on hover
 ## Commands
 - `npm run dev`: dev build with reload
 - `npm run check`: typecheck, lint, format, dead code (knip), CLAUDE.md line limit (150)
-- `npm test`: unit tests; `npm run test:browser`: real-browser tests (`VITEST_BROWSERS=chromium` locally); `npm run test:browser:firefox`: the same on Firefox, in CI's Docker image (Colima)
+- `npm test`: unit tests; `npm run test:browser`: real-browser tests (Chromium)
 - `npm run build`: production build; `npm run test:e2e:build`: build + Playwright E2E
-- `npm run verify`: everything above, Firefox included, terse (~75 s). While iterating, run only the touched test files (on Firefox too when the change touches the DOM); run `verify` before every push (the pre-push hook refuses a tree it has not passed on). Run it and `test:browser:firefox` bare, no pipe or redirect, so they run outside the sandbox (Docker); one run at a time per machine, a second waits
+- `npm run verify`: everything above, terse (~110 s). While iterating, run only the touched test files; run `verify` before every push (the pre-push hook refuses a tree it has not passed on). Run it bare, no pipe or redirect, so it runs outside the sandbox (Chromium does not launch inside it); one run at a time per machine, a second waits
 
 ## Constraints
-- **The developer runs no servers** (the extension will be public). Data lives only on the device (IndexedDB) and in the user's own browser sync (`storage.sync`: a Google account in Chrome, a Mozilla account in Firefox)
+- **The developer runs no servers** (the extension will be public). Data lives only on the device (IndexedDB) and in the user's own browser sync (`storage.sync`: a Google account in Chrome)
 - **Browser-neutral code**: call extension APIs through WXT's `browser` (never `chrome.*` directly). Features that differ between browsers sit behind a part and are detected by whether the feature exists, not by browser name. Strings containing a browser name come from `BrowserEnv` (architecture: "Browser differences")
 - Browser sync just stores locally when signed out, and the extension cannot tell the difference. The UI says "Saved", never "Synced"
 - Development pair: learning = English, native = Japanese, sites = YouTube and Netflix. Language pairs and sites grow by adding parts (`LanguagePack` / `DictionaryProvider` / `PlatformAdapter` …)

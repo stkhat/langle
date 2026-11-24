@@ -24,6 +24,6 @@ Mock approved by the user 2026-11-21 (`Toolbar`, `Settings`, `WordList` with its
 - Create the Ko-fi page; put its URL in `KOFI_URL`
 - Create the feedback Google Form (short); put its URL in `FEEDBACK_URL`
 - Publish a sponsor page (audience: people learning a language on videos and articles; the slot's format: name, one line up to 80 characters, logo, link; contact); put its URL in `SPONSOR_PAGE_URL`
-- After the first store upload, fill `REVIEW_URLS` (Chrome Web Store reviews page; AMO for Firefox)
+- After the first store upload, fill `REVIEW_URLS` (Chrome Web Store reviews page)
 - Store listing text: disclose the sponsor/affiliate card on the word list page and that Langle may earn a commission, before install
 - Pick an affiliate program whose terms allow browser extensions (Amazon Associates does not)

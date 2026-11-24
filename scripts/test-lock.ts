@@ -1,7 +1,6 @@
 // One heavy test run at a time on this machine, across every worktree of the repository.
-// `verify` and the Firefox runs share the host's CPUs and one 4-CPU Docker VM: two at
-// once (parallel sessions) time tests out, and the run that ends first stops Colima under
-// the other. A run waits for the one before it instead.
+// Two `verify` runs at once (parallel sessions) share the host's CPUs and time tests out,
+// and their E2E runs want the same port. A run waits for the one before it instead.
 import { spawnSync } from "node:child_process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -60,7 +59,7 @@ export async function takeTestLock(): Promise<void> {
     const text = read(file);
     if (text === undefined) continue;
     if (!held(text)) {
-      // A holder that died without letting go (killed, or a stopped Firefox run).
+      // A holder that died without letting go (killed or stopped).
       if (read(file) === text) rmSync(file, { force: true });
       continue;
     }
