@@ -9,6 +9,8 @@
 #   check.sh cmd <name>             errors | clear-errors | state, and prints the result
 #   check.sh js <target> <js>       runs <js> (an async function body) in host | page | langle |
 #                                   sheet, and prints what it returns
+#   check.sh fullscreen             the page's fullscreen, the screen and a test element in the
+#                                   player (mobile/check/fullscreen.js), then the shell's state
 #   check.sh log                    the app's log lines so far (check results, console errors and
 #                                   warnings, bridge errors, the shell's own lines)
 #   check.sh kill                   stops the app
@@ -73,6 +75,15 @@ js)
   adb shell am start -n "$activity" --es check eval --es target "$target" --es source64 "$source" >/dev/null
   result eval
   ;;
+fullscreen)
+  # The probe is a function; the script calls it.
+  source=$( { cat "$here/../check/fullscreen.js"; printf "\nreturn fullscreenProbe();\n"; } | base64 | tr -d "\n")
+  adb logcat -c
+  adb shell am start -n "$activity" --es check eval --es target langle --es source64 "$source" >/dev/null
+  result eval
+  adb shell am start -n "$activity" --es check state >/dev/null
+  result state
+  ;;
 log)
   adb logcat -d -s Langle:V LangleCheck:V LangleConsole:V LangleBridge:V
   ;;
@@ -83,7 +94,7 @@ screenshot)
   adb exec-out screencap -p >"${2:?usage: check.sh screenshot <file.png>}"
   ;;
 *)
-  sed -n '2,20p' "$0"
+  sed -n '2,22p' "$0"
   exit 2
   ;;
 esac

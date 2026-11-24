@@ -3,6 +3,8 @@ package dev.langle.app
 import android.app.Activity
 import android.app.Dialog
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -22,7 +24,9 @@ import android.widget.TextView
 import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import dev.langle.core.ContextSpec
 import dev.langle.core.FilePersistence
 import dev.langle.core.Manifest
@@ -60,6 +64,14 @@ class MainActivity : Activity() {
   private lateinit var forward: Button
   private var backCallback: Any? = null
   private var recovering = false
+  /** The window's content: the shell, and the page's fullscreen view over it while there is one. */
+  private lateinit var frame: FrameLayout
+
+  /** The page's fullscreen element, and the orientation to go back to. */
+  private class Fullscreen(val view: View, val exit: () -> Unit, val orientation: Int)
+  private var fullscreen: Fullscreen? = null
+  val isFullscreen: Boolean
+    get() = fullscreen != null
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -112,7 +124,12 @@ class MainActivity : Activity() {
       updateButtons()
     }
     // Spike S2: renderers are per profile, so only this page needs to come back.
-    browsing.onProcessGone = { browsing.recreate() }
+    browsing.onProcessGone = {
+      leaveFullscreen()
+      browsing.recreate()
+    }
+    browsing.onEnterFullscreen = ::enterFullscreen
+    browsing.onExitFullscreen = ::leaveFullscreen
 
     setContentView(layout(notice, hostSlot))
     browsing.load(start)
@@ -162,8 +179,49 @@ class MainActivity : Activity() {
       WindowInsetsCompat.CONSUMED
     }
     updateButtons()
-    return root
+    frame = FrameLayout(this)
+    frame.addView(root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+    return frame
   }
+
+  // fullscreen
+
+  /**
+   * The page's element fullscreen (YouTube's fullscreen button): its view over the whole window,
+   * in landscape, with the system bars hidden (a swipe from the edge shows them for a moment).
+   * The view is the page's own fullscreen element, so Langle's overlay inside it stays on screen.
+   */
+  private fun enterFullscreen(view: View, exit: () -> Unit) {
+    fullscreen?.let { leaveFullscreen() }
+    fullscreen = Fullscreen(view, exit, requestedOrientation)
+    view.setBackgroundColor(Color.BLACK)
+    frame.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+    bars().apply {
+      systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+      hide(WindowInsetsCompat.Type.systemBars())
+    }
+    updateBack()
+  }
+
+  /** The page left fullscreen: the page, the system bars and the orientation come back. */
+  private fun leaveFullscreen() {
+    val current = fullscreen ?: return
+    fullscreen = null
+    frame.removeView(current.view)
+    bars().show(WindowInsetsCompat.Type.systemBars())
+    requestedOrientation = current.orientation
+    updateBack()
+  }
+
+  /** The system back gesture in fullscreen: the page leaves it (and says so, or not). */
+  private fun exitFullscreen() {
+    val current = fullscreen ?: return
+    leaveFullscreen()
+    current.exit()
+  }
+
+  private fun bars() = WindowCompat.getInsetsController(window, window.decorView)
 
   private fun button(label: String, description: Int, click: () -> Unit) =
     Button(this).apply {
@@ -181,12 +239,15 @@ class MainActivity : Activity() {
     updateBack()
   }
 
-  /** The system back gesture goes back in the page while it can, and leaves the app after. */
+  /**
+   * The system back gesture leaves fullscreen first, then goes back in the page while it can,
+   * and leaves the app after.
+   */
   private fun updateBack() {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-    val wanted = browsing.page.canGoBack
+    val wanted = fullscreen != null || browsing.page.canGoBack
     if (wanted && backCallback == null) {
-      val callback = OnBackInvokedCallback { browsing.page.goBack() }
+      val callback = OnBackInvokedCallback { handleBack() }
       onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
       backCallback = callback
     } else if (!wanted && backCallback != null) {
@@ -197,7 +258,11 @@ class MainActivity : Activity() {
 
   @Deprecated("Android 12 and earlier")
   override fun onBackPressed() {
-    if (browsing.page.canGoBack) browsing.page.goBack() else super.onBackPressed()
+    if (fullscreen != null || browsing.page.canGoBack) handleBack() else super.onBackPressed()
+  }
+
+  private fun handleBack() {
+    if (fullscreen != null) exitFullscreen() else browsing.page.goBack()
   }
 
   override fun onNewIntent(intent: Intent) {
