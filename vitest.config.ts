@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config";
 import preact from "@preact/preset-vite";
 import { defineBrowserCommand, playwright } from "@vitest/browser-playwright";
+import type { CDPSession } from "playwright";
 import type { Plugin } from "vite";
 import { netflixSubtitleBody } from "./tests/netflix-subtitles.ts";
 import { timedtextBody } from "./tests/youtube-timedtext.ts";
@@ -77,6 +78,42 @@ const mouse = defineBrowserCommand<[MouseStep[]]>(async (context, steps) => {
   }
 });
 
+/** A touch step for `touch` (src/testing/touch.ts): fingers in the test page's viewport. */
+interface TouchStep {
+  type: "touchStart" | "touchMove" | "touchEnd" | "touchCancel";
+  points: { x: number; y: number; id?: number }[];
+}
+
+const touchSessions = new WeakMap<object, Promise<CDPSession>>();
+
+/**
+ * Real touches on the test page through CDP's `Input.dispatchTouchEvent` (Chromium
+ * only): Chromium makes trusted `pointerType: "touch"` pointer events of them, and a
+ * click for a tap, as a finger on a touch screen does (src/testing/touch.ts).
+ */
+const touch = defineBrowserCommand<[TouchStep[]]>(async (context, steps) => {
+  if (context.provider.name !== "playwright")
+    throw new Error("touch needs Playwright");
+  const page = context.page;
+  let session = touchSessions.get(page);
+  if (!session) {
+    session = page.context().newCDPSession(page);
+    touchSessions.set(page, session);
+  }
+  const cdp = await session;
+  const frame = await context.iframe.owner().boundingBox();
+  if (!frame) throw new Error("The test page has no box");
+  for (const step of steps)
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: step.type,
+      touchPoints: step.points.map(({ x, y, id }) => ({
+        x: frame.x + x,
+        y: frame.y + y,
+        ...(id !== undefined && { id }),
+      })),
+    });
+});
+
 export default defineConfig({
   test: {
     projects: [
@@ -106,7 +143,7 @@ export default defineConfig({
               browser,
               fileParallelism: browser !== "firefox",
             })),
-            commands: { emulateMedia, mouse },
+            commands: { emulateMedia, mouse, touch },
           },
         },
       },
