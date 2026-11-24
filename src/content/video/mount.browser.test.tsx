@@ -270,6 +270,23 @@ describe("mountVideoUi", () => {
     expect(text("langle-transcript")).toContain("イースト");
   });
 
+  it("in touch mode, places the subtitle by the phone's setting, not the desktop's", async () => {
+    let touch = true;
+    const fake = fakeApp(readyState());
+    unmount = mountVideoUi({ adapter, app: fake.app, touchMode: () => touch });
+    await expect
+      .poll(() => text("langle-video-below"))
+      .toContain("The yeast smells tangy.");
+    expect(text("langle-video-player")).not.toContain("The yeast");
+    // Leaving touch mode goes back to the desktop's setting (in the video).
+    touch = false;
+    fake.store.set({ settings: { ...fake.store.get().settings } });
+    await expect
+      .poll(() => text("langle-video-player"))
+      .toContain("The yeast smells tangy.");
+    expect(text("langle-video-below")).not.toContain("The yeast");
+  });
+
   it("off: only the player buttons stay", async () => {
     const { store } = mount();
     store.set({ enabled: false, current: -1, card: -1 });

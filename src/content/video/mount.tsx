@@ -24,6 +24,11 @@ import type { VideoApp } from "./state";
 export interface MountOptions {
   adapter: PlatformAdapter;
   app: VideoApp;
+  /**
+   * The page is in touch mode (spec mobile-app.md "Touch in place of hover"), read on
+   * every placing. Default: never (the desktop).
+   */
+  touchMode?: () => boolean;
 }
 
 interface Part {
@@ -84,12 +89,17 @@ const MAX_MOVES_PER_SECOND = 10;
  * The site re-renders its page (YouTube is a single-page app): a MutationObserver puts
  * the parts back. Returns an unmount.
  */
-export function mountVideoUi({ adapter, app }: MountOptions): () => void {
+export function mountVideoUi({
+  adapter,
+  app,
+  touchMode = () => false,
+}: MountOptions): () => void {
   const layout = createStore<VideoLayout>({
     frameHeight: 0,
     subtitleBottom: SUBTITLE_BOTTOM,
     vertical: adapter.vertical?.() ?? false,
     sidebar: false,
+    touch: touchMode(),
   });
   const sidebar = document.createElement("langle-video-sidebar");
   sidebar.style.cssText = `position: fixed; z-index: ${SIDEBAR_LAYER};
@@ -136,7 +146,7 @@ export function mountVideoUi({ adapter, app }: MountOptions): () => void {
       const below = adapter.belowVideoElement();
       return below ? { parent: below, before: below.firstElementChild } : null;
     },
-    <BelowVideoUi app={app} />,
+    <BelowVideoUi app={app} layout={layout} />,
   );
   made.transcript = part(
     "langle-transcript",
@@ -219,7 +229,7 @@ export function mountVideoUi({ adapter, app }: MountOptions): () => void {
   function holdBackControlBar() {
     const state = app.store.get();
     adapter.holdBackControlBar?.(
-      !subtitleOverVideo(state, layout.get().vertical)
+      !subtitleOverVideo(state, layout.get().vertical, layout.get().touch)
         ? "free"
         : inUse(state)
           ? "hidden"
@@ -251,6 +261,8 @@ export function mountVideoUi({ adapter, app }: MountOptions): () => void {
   function place() {
     const vertical = adapter.vertical?.() ?? false;
     if (vertical !== layout.get().vertical) layout.set({ vertical });
+    const touch = touchMode();
+    if (touch !== layout.get().touch) layout.set({ touch });
     arrangeSidebar();
     // Not before: narrowing the player tells the site, which may render it again.
     const player = adapter.playerElement();
