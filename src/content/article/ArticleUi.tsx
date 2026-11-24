@@ -16,6 +16,7 @@ import {
 import { Floating, keepSelection, TOP_LAYER } from "../lookup/Floating";
 import { useStore } from "../store";
 import { filterCounts, listWords, toWordRows } from "../words/words";
+import { sheetTop } from "./scroll";
 import { sentenceAt } from "./sentence";
 
 /** Mock Article: the dictionary panel sits 16px in from the top right. */
@@ -71,7 +72,8 @@ export function ArticleUi({
   panelFrame?: () => PanelFrame | null;
 }) {
   const state = useStore(app.store);
-  const { settings, hover, panel, phrase, words, flash, explain } = state;
+  const { settings, hover, panel, phrase, words, flash, explain, touch } =
+    state;
 
   return (
     <ThemeScope theme={settings.theme}>
@@ -85,8 +87,17 @@ export function ArticleUi({
             <Outline key={i} box={box} />
           ))}
           <DictionaryWindow
-            variant="panel"
-            frame={panelFrame?.() ?? (words ? BESIDE_WORDS : DEFAULT_FRAME)}
+            {...(touch
+              ? {
+                  variant: "sheet" as const,
+                  frame: { top: sheetTop() },
+                  selected: panel.selected === true,
+                }
+              : {
+                  variant: "panel" as const,
+                  frame:
+                    panelFrame?.() ?? (words ? BESIDE_WORDS : DEFAULT_FRAME),
+                })}
             entry={windowView(panel.card, shownAnswer(explain))}
             nativeLang={settings.nativeLang}
             learningLang={settings.learningLang}
@@ -108,7 +119,7 @@ export function ArticleUi({
           />
         </>
       )}
-      {hover && (
+      {hover && !touch && (
         <Floating
           anchor={hover.anchor}
           onPointerEnter={app.keepHover}
@@ -124,7 +135,7 @@ export function ArticleUi({
           />
         </Floating>
       )}
-      {phrase && (
+      {phrase && !touch && (
         // Pressing the card's buttons must not clear the page's selection.
         <Floating anchor={phrase.anchor} onMouseDown={keepSelection}>
           <HoverCard
