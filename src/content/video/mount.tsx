@@ -85,9 +85,6 @@ const sidebarStyle = (
 /** Above the site's player, below Langle's menu, hover card and dictionary window. */
 const SIDEBAR_LAYER = 2147483600;
 
-/** The pinned subtitle box over the page that scrolls under it. */
-const PINNED_LAYER = 10;
-
 /** `element` stays where it is while the page scrolls: it or an ancestor is fixed or sticky. */
 function staysInWindow(element: Element): boolean {
   for (let at: Element | null = element; at; at = at.parentElement) {
@@ -123,6 +120,7 @@ export function mountVideoUi({
     sidebarSide: "right",
     fillsWindow: false,
     touch: touchMode.on(),
+    pinned: null,
     pinnedBottom: null,
   });
   const sidebar = document.createElement("langle-video-sidebar");
@@ -160,6 +158,10 @@ export function mountVideoUi({
     beside: () => boxOf(adapter.besidePlayer?.() ?? null),
     subtitle: () => {
       const box = boxOf(made.below?.isConnected ? made.below : null);
+      // Pinned: where the box shows, not where its room has scrolled to.
+      const { pinned, pinnedBottom } = layout.get();
+      if (box && pinned && pinnedBottom !== null)
+        return { ...box, top: pinned.top, bottom: pinnedBottom };
       return box && box.bottom > box.top ? box : null;
     },
   };
@@ -177,7 +179,15 @@ export function mountVideoUi({
       const below = adapter.belowVideoElement();
       return below ? { parent: below, before: below.firstElementChild } : null;
     },
-    <BelowVideoUi app={app} layout={layout} />,
+    <BelowVideoUi
+      app={app}
+      layout={layout}
+      onPinnedHeight={(height) => {
+        pinnedHeight = height;
+        belowHost.style.height = height === null ? "" : `${height}px`;
+        tellPinnedBottom();
+      }}
+    />,
   );
   made.below = belowHost;
   made.transcript = part(
@@ -306,15 +316,24 @@ export function mountVideoUi({
       layout.set({ sidebar: on, sidebarSide: side, fillsWindow });
   }
 
-  /** The top the subtitle box under the video sticks at now (null: it does not). */
-  let pinnedTop: number | null = null;
+  /** The pinned subtitle box's height, null while it is not pinned or not shown. */
+  let pinnedHeight: number | null = null;
   const belowResize = new ResizeObserver(() => schedule());
   belowResize.observe(belowHost);
+
+  function tellPinnedBottom() {
+    const { pinned } = layout.get();
+    const pinnedBottom =
+      pinned === null ? null : pinned.top + (pinnedHeight ?? 0);
+    if (pinnedBottom !== layout.get().pinnedBottom)
+      layout.set({ pinnedBottom });
+  }
 
   /**
    * In touch mode, under a player that stays at the window's top while the page
    * scrolls (it or an ancestor is fixed or sticky: m.youtube.com's portrait page), the
-   * subtitle box sticks under the player, so the line stays in view over the page.
+   * subtitle box is pinned under the player (`BelowVideoUi`), so the line stays in view
+   * over the page; its host keeps its room in the page.
    */
   function pinBelow(player: HTMLElement | null) {
     const box =
@@ -325,18 +344,23 @@ export function mountVideoUi({
       staysInWindow(player)
         ? boxOf(player)
         : null;
-    const top = box ? Math.round(box.bottom) : null;
-    if (top !== pinnedTop) {
-      Object.assign(belowHost.style, {
-        position: top === null ? "" : "sticky",
-        top: top === null ? "" : `${top}px`,
-        zIndex: top === null ? "" : `${PINNED_LAYER}`,
-      });
-      pinnedTop = top;
-    }
-    const pinnedBottom = top === null ? null : top + belowHost.offsetHeight;
-    if (pinnedBottom !== layout.get().pinnedBottom)
-      layout.set({ pinnedBottom });
+    const room = box && boxOf(belowHost);
+    const pinned =
+      box && room
+        ? {
+            top: Math.round(box.bottom),
+            left: Math.round(room.left),
+            width: Math.round(room.right - room.left),
+          }
+        : null;
+    const now = layout.get().pinned;
+    if (
+      pinned?.top !== now?.top ||
+      pinned?.left !== now?.left ||
+      pinned?.width !== now?.width
+    )
+      layout.set({ pinned });
+    tellPinnedBottom();
   }
 
   /** Puts every part where it belongs (only those that moved: no mutation otherwise). */

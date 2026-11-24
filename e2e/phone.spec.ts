@@ -163,10 +163,12 @@ test("m.youtube.com: the subtitle pinned under the player, the transcript under 
   const band = (await subtitle.boundingBox())!;
   expect(band.y).toBeCloseTo(player.y + player.height, 0);
   expect(band.width).toBe(390);
-  await expect(page.locator("langle-video-below")).toHaveCSS(
-    "position",
-    "sticky",
-  );
+  // Pinned: it stays under the player while the page scrolls under it.
+  expect(await page.evaluate(() => (scrollTo(0, 400), scrollY))).toBe(400);
+  await expect
+    .poll(async () => (await subtitle.boundingBox())!.y)
+    .toBeCloseTo(player.y + player.height, 0);
+  await page.evaluate(() => scrollTo(0, 0));
   // The light band's highlight colors, not the ones over the video.
   await expect(subtitle.getByText("creativity", { exact: true })).toHaveCSS(
     "box-shadow",
