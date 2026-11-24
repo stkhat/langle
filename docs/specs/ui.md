@@ -217,8 +217,8 @@ The [UI mock](https://claude.ai/artifact/SMxhVni5DdE6cK8UazvqGS) is canonical: w
   - **Sites**: on/off for YouTube / YouTube comments / Netflix / other articles, and a "Never run on" list
   - **Sentence history**: see "Past occurrences of unsaved words"
   - **Sync and backup**
-    - Lead: "Langle has no server. Your words are kept in this browser and, if you like, synced through Chrome sync or your own Google Drive." (without "or your own …" in a build that can connect to no provider)
-    - Browser sync switch ("Sync word status with Chrome sync"; the name follows the browser). The description explains that data reaches other devices when the user is signed in to the browser with sync on
+    - Lead: "Langle has no server. Everything is kept in this browser and, if you like, your own Google Drive; your settings, including the sites Langle is off for, are also saved to Chrome sync." (without "and, if you like, your own …" in a build that can connect to no provider). Settings, the hosts of Never run on and of switched-off sites among them, always go to browser sync, with the switch below off and while connected to the user's own cloud storage too
+    - Browser sync switch ("Sync word status with Chrome sync"; the name follows the browser): "Adds each word and its status, not sources or sentences. Reaches your other devices when you are signed in to Chrome with sync on." Never say that only words go to browser sync
     - Usage and last saved time ("Last saved …", never "Last synced")
     - JSON Export / Import. The description shows **when the last export happened** ("Last export: …", "Never exported."). Export downloads `langle-backup-YYYY-MM-DD.json`; Import reads a chosen file and says "Imported N words" (or why it failed)
     - **Your own cloud storage** (mock `CloudSync` and `Settings`, approved 2026-11-21):

@@ -1146,7 +1146,7 @@ describe("SettingsPage", () => {
       await expect
         .element(
           f.screen.getByText(
-            "Langle has no server. Your words are kept in this browser and, if you like, synced through Chrome sync.",
+            "Langle has no server. Everything is kept in this browser; your settings, including the sites Langle is off for, are also saved to Chrome sync.",
           ),
         )
         .toBeVisible();
@@ -1155,7 +1155,7 @@ describe("SettingsPage", () => {
 
   describe("your own cloud storage", () => {
     const LEAD =
-      "Langle has no server. Your words are kept in this browser and, if you like, synced through Chrome sync or your own Google Drive.";
+      "Langle has no server. Everything is kept in this browser and, if you like, your own Google Drive; your settings, including the sites Langle is off for, are also saved to Chrome sync.";
     const DESC =
       "Google Drive. Everything is saved there, in a folder only Langle can open.";
     const syncSwitch = (sync: ReturnType<typeof section>) =>
