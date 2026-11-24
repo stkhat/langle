@@ -102,6 +102,8 @@ export interface HandlerDeps {
     "status" | "requestCheck" | "connect" | "disconnect"
   >;
   openOptionsPage(): Promise<void>;
+  /** The toolbar popup; does nothing where the browser cannot open it. */
+  openPopup(): Promise<void>;
 }
 
 /** The part of `runtime.MessageSender` the handlers use; extension pages have no tab. */
@@ -218,6 +220,7 @@ export function createHandlers({
   sync,
   cloud,
   openOptionsPage,
+  openPopup,
 }: HandlerDeps): Handle {
   /** Cached translations of `texts`; best effort: none when the cache cannot be read. */
   async function cachedTranslations(
@@ -379,6 +382,10 @@ export function createHandlers({
     setSettings: ({ patch }) => settings.set(patch),
     async openOptions() {
       await openOptionsPage();
+      return null;
+    },
+    async openPopup() {
+      await openPopup();
       return null;
     },
 

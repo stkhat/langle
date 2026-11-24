@@ -1,3 +1,4 @@
+import type { Narrowing } from "../adapter-kit";
 import type { InsertionPoint } from "../platform";
 
 /**
@@ -28,8 +29,10 @@ export interface YouTubeLayout {
   besidePlayer(): HTMLElement | null;
   /** The box in fullscreen that can be narrowed, or null outside fullscreen. */
   fullscreenBox(): HTMLElement | null;
-  /** How `narrowPlayer` narrows `fullscreenBox()` by `width` px at its right. */
-  readonly narrow: { property: string; value(width: number): string };
+  /** How `narrowPlayer` narrows `fullscreenBox()` by `width` px at a side. */
+  readonly narrow: Narrowing;
+  /** The site's layers over `fullscreenBox()` but outside it, narrowed with it. */
+  fullscreenLayers(box: HTMLElement): HTMLElement[];
   /** Calls `listener` after an in-page navigation; returns an unsubscribe. */
   onNavigate(listener: () => void): () => void;
 }

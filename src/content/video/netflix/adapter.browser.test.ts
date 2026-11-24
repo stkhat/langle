@@ -174,6 +174,17 @@ describe("the watch page", () => {
     removeEventListener("resize", onResize);
   });
 
+  it("leaves a video in the flow to its parents' layout once narrowed", async () => {
+    // Wider than the narrowed player and offset, but static: offsets do not move it.
+    page.video.style.cssText =
+      "position: static; width: 150%; margin-left: -20%;";
+    const before = page.video.getAttribute("style");
+    adapter.narrowPlayer?.(392);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(page.video.getAttribute("style")).toBe(before);
+    adapter.narrowPlayer?.(0);
+  });
+
   it("narrows a player view Netflix rendered again", () => {
     adapter.narrowPlayer?.(392);
     const again = page.player.cloneNode(true) as HTMLElement;

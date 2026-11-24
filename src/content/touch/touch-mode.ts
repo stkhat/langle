@@ -11,6 +11,12 @@ export interface TouchMode {
   watch(listener: (on: boolean) => void): () => void;
 }
 
+/** A page never in touch mode (the default of the parts that take one). */
+export const NEVER_TOUCH: TouchMode = {
+  on: () => false,
+  watch: () => () => {},
+};
+
 /** Touch mode from `TOUCH_QUERY`; `match` is `matchMedia` but in tests. */
 export function createTouchMode(
   match: (query: string) => MediaQueryList = (query) => matchMedia(query),

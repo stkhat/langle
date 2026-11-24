@@ -134,6 +134,8 @@ export interface VideoState {
   selecting: boolean;
   /** The pointer is on the subtitle (over the video or in the box below it). */
   subtitleHover: boolean;
+  /** Langle paused the video (`holdPlayback`) and it has not played since. */
+  heldPaused: boolean;
   /** The Langle menu above the ^ button. */
   menuOpen: boolean;
   /** The player is in fullscreen: no transcript, the subtitle always in the video. */
@@ -229,6 +231,8 @@ export interface VideoApp extends ExplainActions {
   previewSettings(patch: SettingsPatch): void;
   /** The menu's gear. */
   openSettings(): void;
+  /** The L over a video in fullscreen on a phone: the toolbar popup (the Langle sheet). */
+  openPopup(): void;
   setMenuOpen(open: boolean): void;
   setFullscreen(on: boolean): void;
   setPanelTab(tab: PanelTab): void;
@@ -279,6 +283,7 @@ export function freshState(
     phrase: null,
     selecting: false,
     subtitleHover: false,
+    heldPaused: false,
     menuOpen: false,
     fullscreen,
     panelTab: "transcript",

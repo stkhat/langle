@@ -1,6 +1,13 @@
 // Articles in touch mode (mock MobileArticle*): real touches through CDP, Chromium only.
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { page } from "vitest/browser";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+} from "vitest";
+import { commands, page } from "vitest/browser";
 import {
   cleanUp,
   dictionary,
@@ -103,6 +110,15 @@ describe.runIf(canTouch)("articles in touch mode", () => {
     expect(getSelection()!.isCollapsed).toBe(true);
   });
 
+  it("snaps a selection that rests while the finger is still down", async () => {
+    // WebKit on iOS: a handle's drag sends the page no end of the press.
+    const { root } = await setup(ARTICLE, { touch: true });
+    await commands.touch([{ type: "touchStart", points: [on(root, "rise")] }]);
+    onTestFinished(() => commands.touch([{ type: "touchEnd", points: [] }]));
+    selectText(root, "rise", 2, "fall", 2);
+    await expect.element(heading("rise and fall")).toBeVisible();
+  });
+
   it("leaves a selection of more than 8 words alone", async () => {
     const { root } = await setup(ARTICLE, { touch: true });
     selectText(root, "one", 1, "ten", 2);
@@ -120,6 +136,15 @@ describe.runIf(canTouch)("articles in touch mode", () => {
       clicks++;
       event.preventDefault();
     });
+
+    // On a touch screen the link's text is Langle's to long-press: no system menu, no
+    // selection (WebKit on iOS takes such a press over).
+    const rules = document.adoptedStyleSheets.flatMap((sheet) =>
+      [...sheet.cssRules].map((rule) => rule.cssText),
+    );
+    expect(rules).toContainEqual(
+      expect.stringMatching(/hover: none.*a\[href\].*user-select: none/s),
+    );
 
     await longPress([on(root, "tedious", 2)]);
     await expect.element(heading("tedious")).toBeVisible();

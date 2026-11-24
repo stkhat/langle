@@ -1,4 +1,4 @@
-import { fromUser } from "../../ui/from-user";
+import { fromUser } from "../from-user";
 import {
   createRecognizer,
   LONG_PRESS_MS,

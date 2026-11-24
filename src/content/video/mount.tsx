@@ -9,6 +9,7 @@ import {
   InPlayerUi,
   MenuUi,
   PageUi,
+  PHONE_COLUMN,
   PlayerBarUi,
   SUBTITLE_BOTTOM,
   subtitleOverVideo,
@@ -20,15 +21,16 @@ import {
 import type { InsertionPoint, PlatformAdapter } from "./platform";
 import { transcriptPlace } from "./placement";
 import type { VideoApp } from "./state";
+import { NEVER_TOUCH, type TouchMode } from "../touch/touch-mode";
 
 export interface MountOptions {
   adapter: PlatformAdapter;
   app: VideoApp;
   /**
-   * The page is in touch mode (spec mobile-app.md "Touch in place of hover"), read on
-   * every placing. Default: never (the desktop).
+   * Whether the page is in touch mode (spec mobile-app.md "Touch in place of hover").
+   * Default: never (the desktop).
    */
-  touchMode?: () => boolean;
+  touchMode?: TouchMode;
 }
 
 interface Part {
@@ -70,11 +72,27 @@ function fullscreenHost(): Element | null {
 }
 
 /** The transcript sidebar beside a player that fills the window (mock FullWindow): 360px wide, 16px in. */
-const SIDEBAR = { width: 360, inset: 16 };
-/** How much narrower the player gets for the sidebar. */
-const SIDEBAR_ROOM = SIDEBAR.width + 2 * SIDEBAR.inset;
+const SIDEBAR = { width: 360, inset: 16, side: 16, room: 392 };
+
+/** The sidebar host's style for `column` (the desktop's, or a phone's) at `side`. */
+const sidebarStyle = (
+  column: typeof SIDEBAR | typeof PHONE_COLUMN,
+  side: "left" | "right",
+) =>
+  `position: fixed; z-index: ${SIDEBAR_LAYER}; top: ${column.inset}px;` +
+  ` ${side}: ${column.side}px; bottom: ${column.inset}px;` +
+  ` width: ${column.width}px; overflow: hidden;`;
 /** Above the site's player, below Langle's menu, hover card and dictionary window. */
 const SIDEBAR_LAYER = 2147483600;
+
+/** `element` stays where it is while the page scrolls: it or an ancestor is fixed or sticky. */
+function staysInWindow(element: Element): boolean {
+  for (let at: Element | null = element; at; at = at.parentElement) {
+    const { position } = getComputedStyle(at);
+    if (position === "fixed" || position === "sticky") return true;
+  }
+  return false;
+}
 
 /** The most a part is moved back into the same parent in one second. */
 const MAX_MOVES_PER_SECOND = 10;
@@ -92,19 +110,22 @@ const MAX_MOVES_PER_SECOND = 10;
 export function mountVideoUi({
   adapter,
   app,
-  touchMode = () => false,
+  touchMode = NEVER_TOUCH,
 }: MountOptions): () => void {
   const layout = createStore<VideoLayout>({
     frameHeight: 0,
     subtitleBottom: SUBTITLE_BOTTOM,
     vertical: adapter.vertical?.() ?? false,
     sidebar: false,
-    touch: touchMode(),
+    sidebarSide: "right",
+    fillsWindow: false,
+    touch: touchMode.on(),
+    pinned: null,
+    pinnedBottom: null,
   });
   const sidebar = document.createElement("langle-video-sidebar");
-  sidebar.style.cssText = `position: fixed; z-index: ${SIDEBAR_LAYER};
-    top: ${SIDEBAR.inset}px; right: ${SIDEBAR.inset}px; bottom: ${SIDEBAR.inset}px;
-    width: ${SIDEBAR.width}px; overflow: hidden;`;
+  let sidebarStyled = sidebarStyle(SIDEBAR, "right");
+  sidebar.style.cssText = sidebarStyled;
   const parts: Part[] = [];
   const roots: ShadowRoot[] = [];
 
@@ -122,7 +143,11 @@ export function mountVideoUi({
   }
 
   /** The hosts the geometry measures, once made. */
-  const made: { buttons?: HTMLElement; transcript?: HTMLElement } = {};
+  const made: {
+    buttons?: HTMLElement;
+    transcript?: HTMLElement;
+    below?: HTMLElement;
+  } = {};
   const geometry: VideoGeometry = {
     player: () => boxOf(adapter.playerElement()),
     buttons: () => boxOf(made.buttons?.isConnected ? made.buttons : null),
@@ -131,6 +156,14 @@ export function mountVideoUi({
       return box && box.bottom > box.top ? box : null;
     },
     beside: () => boxOf(adapter.besidePlayer?.() ?? null),
+    subtitle: () => {
+      const box = boxOf(made.below?.isConnected ? made.below : null);
+      // Pinned: where the box shows, not where its room has scrolled to.
+      const { pinned, pinnedBottom } = layout.get();
+      if (box && pinned && pinnedBottom !== null)
+        return { ...box, top: pinned.top, bottom: pinnedBottom };
+      return box && box.bottom > box.top ? box : null;
+    },
   };
 
   part(
@@ -146,8 +179,17 @@ export function mountVideoUi({
       const below = adapter.belowVideoElement();
       return below ? { parent: below, before: below.firstElementChild } : null;
     },
-    <BelowVideoUi app={app} layout={layout} />,
+    <BelowVideoUi
+      app={app}
+      layout={layout}
+      onPinnedHeight={(height) => {
+        pinnedHeight = height;
+        belowHost.style.height = height === null ? "" : `${height}px`;
+        tellPinnedBottom();
+      }}
+    />,
   );
+  made.below = belowHost;
   made.transcript = part(
     "langle-transcript",
     // Clickable inside a frame that lets clicks through to the video (Netflix).
@@ -239,29 +281,93 @@ export function mountVideoUi({
 
   /**
    * The sidebar shows while the transcript does beside a player that fills the window:
-   * the player is narrowed for it, and given its width back otherwise.
+   * the player is narrowed for it, and given its width back otherwise. In touch mode
+   * it is the phone's column, at the side `phoneFullscreenTranscript` picks ("off":
+   * none); the desktop's sidebar never shows there.
    */
   function arrangeSidebar() {
     const { enabled, status, settings } = app.store.get();
+    const { touch, vertical } = layout.get();
+    const fillsWindow = !vertical && (adapter.fillsWindow?.() ?? false);
+    const side =
+      touch && settings.phoneFullscreenTranscript === "left" ? "left" : "right";
     const on =
       enabled &&
       status === "ready" &&
-      settings.transcriptShown &&
-      !layout.get().vertical &&
-      (adapter.fillsWindow?.() ?? false);
-    adapter.narrowPlayer?.(on ? SIDEBAR_ROOM : 0);
+      fillsWindow &&
+      (touch
+        ? settings.phoneFullscreenTranscript !== "off"
+        : settings.transcriptShown);
+    const column = touch ? PHONE_COLUMN : SIDEBAR;
+    adapter.narrowPlayer?.(on ? column.room : 0, side);
     if (on) {
+      const style = sidebarStyle(column, side);
+      if (style !== sidebarStyled)
+        sidebar.style.cssText = sidebarStyled = style;
       const parent = fullscreenHost() ?? document.body;
       if (sidebar.parentElement !== parent) parent.append(sidebar);
     } else sidebar.remove();
-    if (on !== layout.get().sidebar) layout.set({ sidebar: on });
+    const now = layout.get();
+    if (
+      on !== now.sidebar ||
+      side !== now.sidebarSide ||
+      fillsWindow !== now.fillsWindow
+    )
+      layout.set({ sidebar: on, sidebarSide: side, fillsWindow });
+  }
+
+  /** The pinned subtitle box's height, null while it is not pinned or not shown. */
+  let pinnedHeight: number | null = null;
+  const belowResize = new ResizeObserver(() => schedule());
+  belowResize.observe(belowHost);
+
+  function tellPinnedBottom() {
+    const { pinned } = layout.get();
+    const pinnedBottom =
+      pinned === null ? null : pinned.top + (pinnedHeight ?? 0);
+    if (pinnedBottom !== layout.get().pinnedBottom)
+      layout.set({ pinnedBottom });
+  }
+
+  /**
+   * In touch mode, under a player that stays at the window's top while the page
+   * scrolls (it or an ancestor is fixed or sticky: m.youtube.com's portrait page), the
+   * subtitle box is pinned under the player (`BelowVideoUi`), so the line stays in view
+   * over the page; its host keeps its room in the page.
+   */
+  function pinBelow(player: HTMLElement | null) {
+    const box =
+      layout.get().touch &&
+      belowHost.isConnected &&
+      player &&
+      !player.contains(belowHost) &&
+      staysInWindow(player)
+        ? boxOf(player)
+        : null;
+    const room = box && boxOf(belowHost);
+    const pinned =
+      box && room
+        ? {
+            top: Math.round(box.bottom),
+            left: Math.round(room.left),
+            width: Math.round(room.right - room.left),
+          }
+        : null;
+    const now = layout.get().pinned;
+    if (
+      pinned?.top !== now?.top ||
+      pinned?.left !== now?.left ||
+      pinned?.width !== now?.width
+    )
+      layout.set({ pinned });
+    tellPinnedBottom();
   }
 
   /** Puts every part where it belongs (only those that moved: no mutation otherwise). */
   function place() {
     const vertical = adapter.vertical?.() ?? false;
     if (vertical !== layout.get().vertical) layout.set({ vertical });
-    const touch = touchMode();
+    const touch = touchMode.on();
     if (touch !== layout.get().touch) layout.set({ touch });
     arrangeSidebar();
     // Not before: narrowing the player tells the site, which may render it again.
@@ -284,6 +390,7 @@ export function mountVideoUi({
     }
     holdBackControlBar();
     liftSubtitle(player);
+    pinBelow(player);
     const frame = layout.get().sidebar ? sidebar : player;
     if (frame !== observed) {
       if (observed) resize.unobserve(observed);
@@ -313,11 +420,14 @@ export function mountVideoUi({
   document.addEventListener("fullscreenchange", onFullscreen);
   // Langle on or off, the video's subtitles, the menu's switch and the column's ×.
   const offStore = app.store.subscribe(schedule);
+  const offTouch = touchMode.watch(schedule);
 
   return () => {
     offStore();
+    offTouch();
     observer.disconnect();
     resize.disconnect();
+    belowResize.disconnect();
     if (frame !== undefined) cancelAnimationFrame(frame);
     document.removeEventListener("fullscreenchange", onFullscreen);
     for (const root of roots) render(null, root);

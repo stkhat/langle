@@ -170,7 +170,7 @@ What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` 
   - the caption capture (`page.ts` in the page's world, unchanged on m.youtube.com: notes "Checked: captions on the mobile site"), `tracks`, `loadCaptions`;
   - `seek`, `pause`, `play`, `adShowing`, `hideSiteCaptions`;
   - `videoId` and `url()`. `url()` stays `https://www.youtube.com/watch?v=<id>`, so a word met on the phone and on the desktop has the same source.
-- `YouTubeLayout` holds the page's structure: the player, the title, the insertion points (`controlsPoint`, `belowVideoElement`, `sideColumn`), the fullscreen box (`fillsWindow`, `narrowPlayer`), Shorts (`vertical`, `besidePlayer`) and `onNavigate`.
+- `YouTubeLayout` holds the page's structure: the player, the title, the insertion points (`controlsPoint`, `belowVideoElement`, `sideColumn`), the fullscreen box and the layers beside it (`fillsWindow`, `narrowPlayer`, `fullscreenLayers`), Shorts (`vertical`, `besidePlayer`) and `onNavigate`.
   - `desktopLayout` is today's code.
   - `mobileLayout` is measured on the real site first: the DOM points, the navigation signal, whether the player stays pinned while the page scrolls, the fullscreen element, and the ad and caption classes (notes/mobile.md).
 - Entrypoints: `youtube.content.ts` (www, desktop layout, not in the app) as now, and a new `youtube-mobile.content.ts` (m.youtube.com, mobile layout, every build) that runs only the video part. The page-world hook runs on both hosts. The manifest's `matches` picks the layout, not a host check in code.
@@ -183,9 +183,9 @@ What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` 
   - **scroll**: moved first. It does nothing.
 - In touch mode there is no hover card.
 - **Long-press selection**:
-  - **Subtitles and the transcript** (Langle's own text): a Langle gesture, long-press and then drag. Whole words (2–8) are snapped as the finger moves. The text has `user-select: none` and `-webkit-touch-callout: none`, so the system's menu does not show.
+  - **Subtitles and the transcript** (Langle's own text): a Langle gesture, long-press and then drag. Whole words (2–8) are snapped as the finger moves. The text has `-webkit-touch-callout: none`, so the system's menu does not show, and `user-select: none` at rest; it is selectable only while Langle's selection is in it (WebKit on iOS takes a long-press on selectable text over: the page gets no release, notes/mobile.md "Device checks (M3d)").
   - **Articles**: the phone's own selection. When it settles it is snapped to words. 1–8 words open the sheet ("Selected · not saved"). More than 8 stay the phone's selection, for copying.
-  - **A word inside a link**: a tap follows the link, and a long-press opens its sheet, with the link's own menu kept away. The shells turn off what still gets in the way (iOS link previews, for example), as found on the devices.
+  - **A word inside a link**: a tap follows the link, and a long-press opens its sheet, with the link's own menu kept away: `contextmenu` is prevented (Android), and in touch mode links get `-webkit-touch-callout: none` and `user-select: none` (iOS fires no `contextmenu`; its menu and preview take the touch over, and without them its long-press would select text in the sheet under the finger).
 - The video pauses while a selection or the sheet is open, through the existing hold.
 
 ### The dictionary sheet
@@ -205,7 +205,7 @@ What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` 
   - There is no L or ^ on the player. L is in the app's title bar (M4); until then it is the M1/M2 shells' button.
 - **Fullscreen landscape**:
   - the subtitle over the video, and L at the top right. L opens the Langle sheet (`action.openPopup` through the background);
-  - with `phoneFullscreenTranscript` set to Left or Right, the transcript takes a 300 px column on that side, 16 px from the top and bottom, rounded and dark. The video shrinks beside it (`narrowPlayer`), never covered.
+  - with `phoneFullscreenTranscript` set to Left or Right, the transcript takes a 300 px column on that side, 16 px from the top and bottom, rounded and dark. The video shrinks beside it (`narrowPlayer`), never covered, and so do the site's layers that cover the whole screen beside the player's box (m.youtube.com's controls; `fullscreenLayers`).
 - **The WebViews' fullscreen** is measured on each device first: Android's `WebChromeClient.onShowCustomView`, and iOS's `WKPreferences.isElementFullscreenEnabled`. The shells get what keeps Langle's overlay inside the page's element fullscreen.
   - If the iPhone offers only the video's native fullscreen (Langle cannot draw over it), the fallback is the app's own fullscreen: landscape, bars hidden, the player filling the page. That fallback is brought back to the user before it is built.
 - The controls for the two phone settings are in the Langle sheet (M4). In M3 they are set through the check build's settings channel.

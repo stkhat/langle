@@ -54,7 +54,7 @@ Setup: Playwright's Chromium (headless), 390 × 844, `isMobile`, `hasTouch`, an 
 - **Under the player**: `ytm-watch` > `div.player-placeholder`, then `div.watch-below-the-player`, which holds `ytm-single-column-watch-next-results-renderer.watch-content` (first `ytm-slim-video-metadata-section-renderer`: the title, the channel and the action bar; then the comments teaser, then `div.related-items-container`). There is no side column, at 390 or at 844 px wide.
 - **Title**: `ytm-slim-video-metadata-section-renderer h2` (class `ytVideoMetadataViewModelTitle`); there is no `h1`. The document title is "<title> - YouTube", as on desktop.
 - **Navigation**: a tap on a related video's link calls `history.pushState` and fires `state-navigatestart` on `window`, then `video-data-change` on `window` and `document` about ten times, then **`state-navigateend` on `window`** once, after the URL changed. `yt-navigate-finish` never fired. Langle listens to `state-navigateend`.
-- **Fullscreen**: the button is `button.icon-button.fullscreen-icon` ("Enter full screen") in `.player-controls-bottom-right`. It calls **`requestFullscreen()` on `#player-container-id`** and then `screen.orientation.lock("landscape")`; `webkitEnterFullscreen` on the video is not called (desktop Chromium; the WebViews are measured in M3c). In fullscreen `#movie_player` gets `ytp-fullscreen` and fills the screen. In a 844 × 390 landscape viewport the video is laid out by inline style (`width: 693px; height: 390px; left: 75px` for 16:9). Narrowing `#player` (`width: calc(100% - 332px)`) narrows `#player` and `#movie_player`, but the player did not lay its video out again (not after a `resize` event, nor after `setSize()` / `setInternalSize()`); `margin-right` on `#player` and `padding-right` on the fullscreen element change nothing. **Open for M3d**: how the video shrinks beside the transcript column.
+- **Fullscreen**: the button is `button.icon-button.fullscreen-icon` ("Enter full screen") in `.player-controls-bottom-right`. It calls **`requestFullscreen()` on `#player-container-id`** and then `screen.orientation.lock("landscape")`; `webkitEnterFullscreen` on the video is not called (desktop Chromium; the WebViews are measured in M3c). In fullscreen `#movie_player` gets `ytp-fullscreen` and fills the screen. In a 844 × 390 landscape viewport the video is laid out by inline style (`width: 693px; height: 390px; left: 75px` for 16:9). Narrowing `#player` (`width: calc(100% - 332px)`) narrows `#player` and `#movie_player`, but the player did not lay its video out again (not after a `resize` event, nor after `setSize()` / `setInternalSize()`); `margin-right` on `#player` and `padding-right` on the fullscreen element change nothing. M3d fits the video into the narrowed box, and narrows YouTube's controls layer with it ("Device checks (M3d)").
 - **Ads**: the player gets `ad-created ad-showing ad-interrupting`, as on desktop (seen before the second TED talk after an in-page navigation).
 - **Captions**: the site's caption container is `#ytp-caption-window-container.ytp-caption-window-container` inside `#movie_player`, as on desktop.
 - **The player's own timedtext request** is seen as an XHR to `m.youtube.com/api/timedtext` with `lang=en`, `fmt=json3`, `potc` + `pot` and the client params (`c`, `cver`, `cplatform`, `cmodel`, …), for both videos (`kind=asr` for the vlog), once the video plays with captions on. So `page.ts` captures it unchanged.
@@ -148,6 +148,50 @@ The Langle app's shells (`mobile/android`, `mobile/ios`, check builds), signed o
 
 - On Android, the test element is on screen but not on top at its centre (`elementFromPoint` returns YouTube's overlay over the video, also outside fullscreen). Langle's real overlay must be placed above YouTube's layers, not only inside the player (M3d).
 - **iOS needs the fallback** from the spec (the app's own fullscreen: landscape, bars hidden, the player filling the page). It goes back to the user before it is built. The shell's landscape-in-element-fullscreen code stays in place for when WebKit exposes element fullscreen on the iPhone. Not checked: an iPad, where WebKit does expose it.
+
+## Device checks (M3d, 2026-11-24)
+
+The check build (`bundle-build.sh check`, `check.sh build check`), logged out, videos muted. YouTube: Ken Robinson's TED talk `iG9CE55wbtY` on `m.youtube.com`. Articles: the E2E page `article-en.html` from `node e2e/serve.ts`.
+
+### Desktop Chromium first (`scripts/mobile/phone-check.ts`)
+
+- Playwright's bundled Chromium (headless and headed) and Google Chrome, phone viewport and user agent: YouTube answered every `/api/timedtext` request with 200 and an empty body (with a PO token), on both videos. Playback stopped with "an error occurred" after about a minute; once the "use the app" dialog covered the player.
+- So no lines showed there: YouTube refusing an automated browser. It was not worked around (that would mean getting past bot detection). Langle's parts mounted and the error log had only info entries. The real captions were checked on the devices below.
+
+### iPhone 17 Simulator (iOS 27.2)
+
+- **Video, portrait**: the real captions load, with highlights; the subtitle band stays pinned under the player while the page scrolls, and the transcript marks the playing card. A tap opens the sheet under the subtitle, the video pauses and the Paused pill shows; closing plays again. A still long-press opens the word; a long-press and drag selects a phrase ("Selected · not saved"). Learning survives a kill and relaunch.
+- **Fullscreen**: not checked, it is M3e (WebKit on the iPhone offers only the video's own fullscreen, "Fullscreen in the shells").
+- **Articles**: a tap opens the sheet; a long-press is the phone's selection, read once it has rested 500 ms (word or phrase sheet); dragging a handle re-snaps to whole words when it rests ("rush the process"). A long-press on a word in a link opens it, with no link menu and the link not followed. iOS shows its own Copy / Look Up menu over the article's selection.
+- **Error log**: 32 entries, all info (pack files served by the mirror), 0 findings; cleared.
+- **Found and fixed on the device**:
+  - WebKit on iOS takes a long-press on _selectable_ text over with its own text selection: the page then gets no `pointerup`, `touchend` or `pointercancel`, and a native handle drag gives a `pointerdown` with no end either. iOS fires no `contextmenu` on a long-press, so preventing it does nothing; and `setBaseAndExtent` cannot select `user-select: none` text. Whether iOS starts its selection is decided when the touch starts.
+    - Subtitles and the transcript: `user-select: none` at rest, so the long-press stays Langle's; the text turns selectable while Langle's selection is in it, and back when it goes (`text-selection.ts`).
+    - Articles: in touch mode the selection is read when it has rested alone, not on the finger's release, which never comes (`interactions.ts`).
+    - Links: iOS's link menu and preview took a long-press over (Langle's sheet opened under it). In touch mode links get `-webkit-touch-callout: none` (WKWebView's `contextMenuConfigurationForElement` answered with nil shows the default menu) and `user-select: none` (without the menu, the long-press otherwise selected text in the sheet that had opened under the finger).
+  - WebKit breaks a line between a word and the punctuation after it when they are in separate inline boxes: the punctuation is glued to its word (`nowrap`).
+  - `position: sticky` does not hold the subtitle band under m.youtube's fixed player on iOS: the band is pinned with `position: fixed` and an in-flow placeholder of its exact height.
+- **Open**:
+  - YouTube's unmute button sits over the Paused pill at the video's top left (portrait), while the video is muted.
+  - The sheet's top is set when it opens; it does not follow a later change of the subtitle band's height.
+  - Pages without a viewport meta (the E2E article) lay out 980 px wide and are shown at about 0.41, and Langle's fixed UI (the sheet) with them. A general fix would scale Langle's fixed UI by `1 / visualViewport.scale`; not built.
+  - iOS draws its selection handles on Langle's subtitle selection; a finger on a handle is a new press and does not extend the selection.
+
+### Android emulator (Android 17 image, WebView Dev 160)
+
+- **Video, portrait**: the real captions load (427 English cues, the site's Japanese track with 378); the band sits under the player and the transcript marks the playing card. A tap on a playing video opens the sheet under the subtitle, pauses it and shows the Paused pill (12 / 12); closing plays again. A still long-press opens the word or the phrase under it ("blow away"); a long-press and drag selects a phrase ("I've been blown away by", "Selected · not saved"). Learning shows in the band and the transcript and survives a kill and relaunch.
+- **Fullscreen** (YouTube's button; the page's container goes fullscreen and the screen turns): the subtitle over the video; a tapped word opens the white panel at the right and the subtitle keeps its place under it; the pill at 56 / 16. With "Transcript in fullscreen" Left and Right the column takes its side, dark, the video shrinks beside it, a tapped word opens the dictionary in the column ("‹ Transcript") and the pill is at 12 / 12 from the video's edge. Off again and out of fullscreen, every style Langle set is gone.
+- **Articles**: a tap opens the sheet; a long-press selects the word under Android's own selection (handles and the Copy / Share menu) and opens it once the selection has rested; dragging a handle gives a phrase of whole words ("tedious at first. You have"). A long-press on a word in a link opens it; the link is not followed and no link menu shows.
+- **Error log**: empty after four loads of the video, fullscreen and the article; cleared.
+- **Found and fixed on the device**:
+  - Two loads of about five showed no subtitles and no warning: Langle's wait for the player's own request ended, and its own request for the track got no answer, while a pre-roll ad played (the player asks for no captions of the video during an ad; asked by hand after the ad it did at once). A wait an ad was part of is now tried again once the ad has ended (`captureFor`, at most three times). Four fresh loads afterwards all had subtitles within 3 s of the check.
+  - In fullscreen with the transcript column, YouTube's controls (`#player-control-container`, a fixed layer over the whole screen beside `#player`, not inside it) stayed full width: the time and the progress bar ran under the column. The fullscreen element's other children that cover the whole screen (the controls, the thumbnail, the ambient glow; not Langle's) are now narrowed with the player's box.
+- **Open**:
+  - The Langle sheet in landscape spans the screen, its content in a column at the left.
+  - Langle's L at the top right of the video covers YouTube's settings gear while the controls show.
+  - With YouTube's controls showing in fullscreen, Langle's subtitle sits over the progress bar and the bottom row (the controls hide after a few seconds).
+  - Pages without a viewport meta are shown scaled down here as on the iPhone, Langle's sheet with them.
+  - Once, the transcript column showed empty for a moment after it opened in fullscreen (its cards were there and painted on the next frame looked at).
 
 ## iOS prototype (2026-11-22)
 `mobile/prototypes/ios-wkwebview` (SwiftUI shell, a hand-written Xcode project with a synchronized folder; no generator), on the Simulator (iPhone 17, iOS 27.2), logged out, the same video and the same `probe.js`. Driven from the shell by `check.sh` (`simctl launch` arguments, Darwin notifications for commands, results in the unified log).

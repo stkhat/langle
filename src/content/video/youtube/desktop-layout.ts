@@ -1,3 +1,4 @@
+import { NARROW_BY_MARGIN } from "../adapter-kit";
 import type { YouTubeLayout } from "./layout";
 
 /** A Short's path and its video id. */
@@ -87,8 +88,9 @@ export function desktopLayout(
         ? box
         : null;
     },
-    // A width on the growing flex item has no effect: a margin narrows it.
-    narrow: { property: "margin-right", value: (width) => `${width}px` },
+    narrow: NARROW_BY_MARGIN,
+    // The player's controls are inside it.
+    fullscreenLayers: () => [],
     onNavigate(listener) {
       const handler = () => listener();
       document.addEventListener("yt-navigate-finish", handler);
