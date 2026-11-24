@@ -81,6 +81,32 @@ describe("SubtitleOverlay", () => {
     expect(screen.container.querySelector("[lang=en]")?.textContent).toBe(TEXT);
   });
 
+  test("keeps punctuation on the line of the term it touches", async () => {
+    // WebKit breaks between an inline-block term and the punctuation after it.
+    const text = "So “scratch” bread from scratch.";
+    const spans: Span[] = [
+      { start: 4, end: 11, key: "scratch", kind: "word", category: "new" },
+      {
+        start: text.indexOf("from"),
+        end: text.indexOf("from") + 12,
+        key: "from scratch",
+        kind: "phrase",
+        category: "learning",
+      },
+    ];
+    const screen = await mountInShadowRoot(
+      <SubtitleOverlay {...base} text={text} spans={spans} />,
+    );
+    const glued = (term: string) => {
+      const element = word(screen, term);
+      const group = element.parentElement!;
+      return [group.textContent, getComputedStyle(group).whiteSpace];
+    };
+    expect(glued("from scratch")).toEqual(["from scratch.", "nowrap"]);
+    expect(glued("scratch")).toEqual(["“scratch”", "nowrap"]);
+    expect(screen.container.querySelector("[lang=en]")?.textContent).toBe(text);
+  });
+
   test("hides the translation when it is switched off or missing", async () => {
     const screen = await mountInShadowRoot(
       <SubtitleOverlay {...base} showTranslation={false} />,
