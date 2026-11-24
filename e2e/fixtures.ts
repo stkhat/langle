@@ -5,6 +5,7 @@ import {
   test as base,
   chromium,
   type BrowserContext,
+  type BrowserContextOptions,
   type Page,
 } from "@playwright/test";
 import {
@@ -58,11 +59,19 @@ export const extensionPathOf = (build: Build) =>
  * to data/packs/ first (pack-mirrors.ts), then the extension is loaded through CDP
  * (after `before`, if given): once installed, it opens its setup and nothing else.
  */
+/** What a phone project sets (playwright.config.ts `phone`). */
+type Device = Pick<
+  BrowserContextOptions,
+  "isMobile" | "hasTouch" | "viewport" | "userAgent"
+>;
+
 async function launchWithExtension(
   build: Build,
   port: number,
   mirrors: MirrorRouting,
   before: ((context: BrowserContext) => Promise<void>) | null,
+  /** A phone (the `phone` project): its screen, touch and user agent; none: desktop. */
+  device: Device | null = null,
 ): Promise<BrowserContext> {
   const extensionPath = extensionPathOf(build);
   if (!fs.existsSync(path.join(extensionPath, "manifest.json")))
@@ -72,6 +81,7 @@ async function launchWithExtension(
     // Bundled Chromium: stable Chrome 137+ cannot load an unpacked extension this way.
     channel: "chromium",
     headless: !headed,
+    ...device,
     // Playwright turns extensions off; --disable-extensions-except would load this one
     // at launch, before the routes.
     ignoreDefaultArgs: ["--disable-extensions"],
@@ -188,7 +198,18 @@ export const test = base.extend<{
     await use(await freePort());
   },
   context: async (
-    { build, startPair, beforeInstall, mirrorsHeld, mirrorBitsPerSecond, port },
+    {
+      build,
+      startPair,
+      beforeInstall,
+      mirrorsHeld,
+      mirrorBitsPerSecond,
+      port,
+      isMobile,
+      hasTouch,
+      viewport,
+      userAgent,
+    },
     use,
   ) => {
     const context = await launchWithExtension(
@@ -196,6 +217,14 @@ export const test = base.extend<{
       port,
       { held: mirrorsHeld, bitsPerSecond: mirrorBitsPerSecond },
       beforeInstall,
+      isMobile
+        ? {
+            isMobile,
+            hasTouch,
+            viewport,
+            ...(userAgent && { userAgent }),
+          }
+        : null,
     );
     if (startPair) await useStartPair(context, startPair);
     await use(context);
