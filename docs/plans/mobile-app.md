@@ -1,4 +1,4 @@
-# Mobile app: implementation plan (M0, spikes S1 and S2, M1 and M2)
+# Mobile app: implementation plan (M0, spikes S1 and S2, M1, M2 and M3)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -18,6 +18,11 @@
 - [x] S2: Android spike (branch `claude/mobile-s2`): the plan holds on WebView 146.0.7680.10 or later; renderers are per profile, and the host stops in the background (notes/mobile.md "Android extension host spike")
 - [x] M2: iOS shell (branch `claude/mobile-m2`)
 - [x] M1: Android shell (branch `claude/mobile-m1`): Langle runs on the E2E article on the emulator (WebView Dev 160): highlights, a saved word survives a restart, the error log is empty
+- [x] M3 designed (2026-11-24): spec [mobile-app.md](../specs/mobile-app.md) "M3: m.youtube.com and touch"
+- [ ] M3a: YouTube adapter split and the m.youtube.com layout (branch `claude/mobile-m3a`)
+- [ ] M3b: touch mode, gestures, the dictionary sheet, articles (branch `claude/mobile-m3b`)
+- [ ] M3c: fullscreen in the shells (branch `claude/mobile-m3c`)
+- [ ] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`)
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
@@ -343,3 +348,206 @@ Branch `claude/mobile-m1` from `main`. Read [notes/mobile.md](../notes/mobile.md
   - status.md: one line;
   - tick M1 in Progress.
 - [x] `npm run verify`, push, draft PR "Mobile app M1: Android shell" based on `main`, then `gh pr ready`.
+
+---
+
+## M3: m.youtube.com and touch (planned 2026-11-24)
+Spec [mobile-app.md](../specs/mobile-app.md) "M3: m.youtube.com and touch"; screens in [ui.md](../specs/ui.md) "Mobile app" and the mock's `Mobile app` page (`project/MobileYouTube*.dc.html`, `project/MobileArticle*.dc.html`, read with the Artifact tool: [CLAUDE.md](../../CLAUDE.md) "UI mock").
+
+**Running order**
+- M3a, M3b and M3c start together, each from `main`. They touch different files (below).
+- M3d starts when M3a and M3b are merged.
+- Devices: one at a time (16 GB Mac). M3c and M3d write and build everything first. At the device steps they check that the other device is off (`pgrep -fl qemu-system`, `xcrun simctl list devices booted`), then **stop and report "ready for the device"**. The parent resumes them when the device is free. Shut it down when done.
+
+**For this session (the user's instruction, 2026-11-24): no Firefox tests.**
+- Use `npm run verify -- --skip-firefox` (sandbox off), not `npm run verify`.
+- Do not run `npm run test:browser:firefox`.
+
+**Shared rules**: "Before you start (every agent)" above. Also:
+- A UI change is rendered and compared with the mock before it is committed (screenshot at 390 × 844 next to the mock's board).
+- Desktop behaviour must not change. The existing unit, browser and E2E tests pass unmodified, except where a test names a moved file.
+- Strings go through `t("key")`.
+
+### M3a: the adapter split and the m.youtube.com layout (one agent, Opus)
+Branch `claude/mobile-m3a`.
+
+**Files**
+| Path | Responsibility |
+| --- | --- |
+| `src/content/video/youtube/adapter.ts` | `createYouTubeAdapter(layout, options)`: the caption capture, tracks, `loadCaptions`, seek, pause, play, `adShowing`, `hideSiteCaptions`, `videoId`, `url()`, delegating layout methods to `layout` |
+| `src/content/video/youtube/layout.ts` | the `YouTubeLayout` interface (below) |
+| `src/content/video/youtube/desktop-layout.ts` | today's DOM code moved out of `adapter.ts` (watch page, Shorts, full-bleed fullscreen, `yt-navigate-finish`) |
+| `src/content/video/youtube/mobile-layout.ts` | m.youtube.com, from the measurement |
+| `src/content/video/youtube/mobile-layout.browser.test.ts` | against `tests/fixtures/m-youtube-watch.html`, a trimmed copy of the measured DOM |
+| `src/entrypoints/youtube-mobile.content.ts`, `src/entrypoints/youtube-mobile-main.content.ts` | `*://m.youtube.com/*`, every build; the first runs `runVideoSite(ctx, createYouTubeAdapter(mobileLayout()))` only (no comments part), the second `installYouTubeHooks()` in `MAIN` |
+| `src/content/video/placement.ts` (or where the transcript's place is chosen today) | the rule: no side column, not vertical → the transcript goes below the video, after the subtitle |
+| `src/core/settings.ts` (+ its tests, `core/cloud/settings.ts` if fields are listed there) | `phoneSubtitlePosition: "inVideo" \| "belowVideo"` (default `belowVideo`), `phoneFullscreenTranscript: "off" \| "left" \| "right"` (default `off`), validated as the others are |
+| `e2e/sites.ts`, `e2e/phone.spec.ts`, `playwright.config.ts` | a fake `m.youtube.com` watch page (the measured skeleton + `tests/fake-youtube-player.ts`) and a `phone` project |
+| `tests/app-manifest.test.ts`, `tests/manifest.test.ts` | the new matches in every build |
+
+```ts
+// src/content/video/youtube/layout.ts
+export interface YouTubeLayout {
+  /** The current page's player, or null. */
+  player(): HTMLElement | null;
+  /** The video's heading; the adapter falls back to document.title. */
+  heading(): string | undefined;
+  controlsPoint(): InsertionPoint | null;
+  belowVideoElement(): HTMLElement | null;
+  sideColumn(): InsertionPoint | null;
+  vertical(): boolean;
+  besidePlayer(): HTMLElement | null;
+  /** The box in fullscreen that can be narrowed, or null outside fullscreen. */
+  fullscreenBox(): HTMLElement | null;
+  /** The CSS property `narrowPlayer` sets on `fullscreenBox()` ("margin-right" on the desktop). */
+  readonly narrowProperty: string;
+  onNavigate(listener: () => void): () => void;
+}
+```
+Adjust the shape to what the code needs when moving it, keeping one interface for both layouts.
+
+**Tasks**
+- [ ] **Measure m.youtube.com** before writing `mobile-layout.ts`:
+  - Use Playwright's Chromium (`require("playwright")`, not installed again), `viewport 390×844`, `isMobile: true`, `hasTouch: true`, an Android Chrome user agent, logged out. Open the baseline (Ken Robinson's TED talk, `https://m.youtube.com/watch?v=iG9CE55wbtY`, hand-made captions) and one video with auto-generated English captions (name it in the notes).
+  - Record:
+    - the player element, the title element, the element under the player where YouTube's metadata starts;
+    - the event or URL change after an in-page navigation to another video;
+    - whether the player stays pinned while the page scrolls;
+    - what YouTube's fullscreen button calls (`requestFullscreen` on which element, or `webkitEnterFullscreen` on the video);
+    - the ad class on the player, and the caption container's id or class;
+    - whether the player's own timedtext request is seen.
+  - If automated Chromium gets no captions or is refused, measure the DOM in the Claude app's built-in browser (mobile preset) instead, and say so.
+  - Write it to [notes/mobile.md](../notes/mobile.md) as "m.youtube.com layout (measured 2026-11-…)". Save a trimmed DOM as the fixture. Commit.
+- [ ] **Split the adapter**, test-first: `adapter.browser.test.ts` passes unchanged against `desktopLayout()`. Commit.
+- [ ] **`mobileLayout()`** with its browser test on the fixture. Commit.
+- [ ] **Entrypoints and manifests**: both new scripts in every build, `www.youtube.com` scripts unchanged. Commit.
+- [ ] **The placement rule** with a test. Commit.
+- [ ] **The two settings**, test-first. The video UI reads `phoneSubtitlePosition` instead of `subtitlePosition` when the page is in touch mode. Until M3b lands, take touch mode as a `touchMode: () => boolean` dependency, `false` by default; M3d wires the real one. Commit.
+- [ ] **Phone E2E**: the `phone` project (Chromium only; `isMobile`, `hasTouch`, 390 × 844, Android user agent) on the fake m.youtube.com: Langle's subtitle shows with highlights, below the video once touch mode is wired (M3d adds the rest). Commit.
+- [ ] **Docs**: architecture.md code layout (the layouts, the new entrypoints); ui.md is unchanged; tick M3a.
+- [ ] `npm run verify -- --skip-firefox`, push, draft PR "Mobile app M3a: m.youtube.com adapter", `gh pr ready`.
+
+### M3b: touch mode, gestures, the sheet, articles (one agent, Opus)
+Branch `claude/mobile-m3b`.
+
+**Files**
+| Path | Responsibility |
+| --- | --- |
+| `src/content/touch/touch-mode.ts` | `createTouchMode(match = matchMedia)`: `{ on(): boolean; watch(listener): () => void }` from `(hover: none) and (pointer: coarse)` |
+| `src/content/touch/gestures.ts` (+ `gestures.test.ts`) | the pure recognizer (below) |
+| `src/content/touch/listen.ts` | feeds trusted `pointerType === "touch"` pointer events on a root to the recognizer and calls `tap`, `longPress`, `drag`, `release` callbacks with the event's point |
+| `src/ui/lookup/Sheet.tsx` (+ browser test) | the sheet frame: grab handle, half and full height, swipe down or × closes, `top` given by the caller |
+| `src/content/article/interactions.ts`, `ArticleUi.tsx`, `selection.ts` | touch mode on articles: no hover, tap → the word's sheet, the phone's selection snapped on settle (1–8 words → the phrase's sheet), long-press on a link word |
+| `src/content/article/scroll.ts` | keeps the tapped word above the sheet |
+
+```ts
+// src/content/touch/gestures.ts
+export const TAP_MAX_MS = 500;
+export const LONG_PRESS_MS = 500;
+export const SLOP_PX = 10;
+
+export type TouchInput =
+  | { type: "down"; x: number; y: number; t: number }
+  | { type: "move"; x: number; y: number; t: number }
+  | { type: "up"; x: number; y: number; t: number }
+  | { type: "cancel"; t: number }
+  | { type: "tick"; t: number }; // the long-press timer firing
+
+export type Gesture =
+  | { type: "tap"; x: number; y: number }
+  | { type: "longPress"; x: number; y: number }
+  | { type: "drag"; x: number; y: number } // only after a long-press
+  | { type: "release"; x: number; y: number } // the end of a long-press or drag
+  | { type: "scroll" }; // moved before the long-press: the browser scrolls, Langle does nothing
+
+export interface Recognizer {
+  feed(input: TouchInput): Gesture | undefined;
+}
+export function createRecognizer(): Recognizer;
+```
+Unit tests cover:
+- a tap;
+- a slow release that is not a tap;
+- a long-press, then drag, then release;
+- a move past the slop before the long-press (`scroll`, then nothing until the next `down`);
+- `cancel` at every stage;
+- a second finger (`down` while one is held) cancels.
+
+**Tasks**
+- [ ] **Touch mode** with unit tests (a fake `matchMedia` that changes). Commit.
+- [ ] **The recognizer**, test-first. Commit.
+- [ ] **`listen.ts`**, with a browser test. Untrusted events are ignored, as `interactions.ts` does; check how the existing browser tests get trusted pointer events and do the same (Vitest browser's `userEvent`, or CDP `Input.dispatchTouchEvent` through the Playwright provider; record which one works). Commit.
+- [ ] **`Sheet`**, test-first, rendering `DictionaryWindow`'s content unchanged. Compare a render at 390 × 844 with `MobileArticleDictionary` and `MobileYouTubeDictionary`. Commit.
+- [ ] **Articles in touch mode**:
+  - no hover cards;
+  - a tap opens the sheet, and a tap on another word switches it;
+  - the phone's selection is snapped on settle (1–8 words: the phrase's sheet, "Selected · not saved"; more: left alone);
+  - a long-press on a word in a link opens its sheet and keeps the link from following (`contextmenu` / `click` prevented for that press);
+  - the page scrolls so the word stays above the sheet.
+  Browser tests with touch mode forced on. The existing article tests still pass with it off. Commit.
+- [ ] **Phone E2E on the article fixture** (`e2e/phone.spec.ts`; if M3a's `phone` project is not on `main` yet, add the project here and let the later branch merge it): tap → sheet → Learning saves the word; long-press across two words → the phrase's sheet. Commit.
+- [ ] **Docs**: architecture.md (touch mode and `content/touch/`), tick M3b.
+- [ ] `npm run verify -- --skip-firefox`, push, draft PR "Mobile app M3b: touch and the dictionary sheet", `gh pr ready`.
+
+### M3c: fullscreen in the shells (one agent, Opus)
+Branch `claude/mobile-m3c`. Read notes/mobile.md "Android extension host spike (S2)" and "iOS extension host spike (S1)", and [development.md](../development.md) "Mobile app".
+
+**Files**: `mobile/android/app/` (the activity and `WebViewPage`'s `WebChromeClient`), `mobile/ios/Langle/` (`WebKitEngine`, the scene's orientation), both `check.sh` (a `fullscreen` command that reports `document.fullscreenElement`, the screen's orientation and whether an element Langle injected in the player is on screen).
+
+**Tasks**
+- [ ] **Android, without the device**:
+  - `onShowCustomView` shows the given view over the activity, in landscape and immersive mode (system bars hidden);
+  - `onHideCustomView` brings back the page and the orientation;
+  - the system back gesture leaves fullscreen first.
+  `./gradlew :app:assembleDebug` passes. Commit.
+- [ ] **iOS, without the device**:
+  - `WKPreferences.isElementFullscreenEnabled = true` on browsing pages;
+  - the scene allows landscape while a page is in fullscreen.
+  `check.sh build` passes. Commit.
+- [ ] **Report "ready for the device"** (emulator first).
+- [ ] **On the emulator, then the Simulator**: open a watch page in the app and tap YouTube's fullscreen button. Record in notes/mobile.md ("Fullscreen in the shells"):
+  - what fullscreen YouTube used;
+  - whether a test element injected in Langle's world inside the player stays on screen;
+  - the screen's size and orientation;
+  - that leaving fullscreen restores the page.
+  - If iOS gives only the video's native fullscreen, **stop and report**: the fallback (the app's own fullscreen) goes back to the user before it is built.
+- [ ] **Docs**: development.md "Mobile app" (the `fullscreen` command); tick M3c.
+- [ ] `npm run verify -- --skip-firefox`, push, draft PR "Mobile app M3c: fullscreen in the shells", `gh pr ready`.
+
+### M3d: the video UI on a phone, and the device checks (one agent, Opus; after M3a and M3b)
+Branch `claude/mobile-m3d` from `main` with M3a and M3b merged (and M3c, if merged by then; if not, the fullscreen device checks wait for it).
+
+**Files**: `src/content/video/VideoUi.tsx`, `mount.tsx`, `session.ts`, `selection.ts`, `hold.ts`, `placement.ts`; `src/ui/video/` (the subtitle and transcript components); their tests; `e2e/phone.spec.ts`; a real-site script `scripts/mobile/phone-check.ts`.
+
+**Tasks**
+- [ ] **Wire touch mode** (M3b's `createTouchMode`) into the video session in place of M3a's `false` stand-in. Commit.
+- [ ] **Portrait**:
+  - Langle's subtitle below the video (`phoneSubtitlePosition`), larger as in `MobileYouTube`, pinned under the player if M3a measured that the player stays pinned;
+  - the transcript under it, with the playing cue marked, auto-scroll and the fold button;
+  - no L or ^ on the player;
+  - a tap on a word opens `Sheet` with its top at the subtitle's bottom, and the video pauses;
+  - a long-press and drag on the subtitle or a transcript card selects 2–8 whole words and opens the phrase's sheet;
+  - closing it plays the video again.
+  Browser tests with touch mode on; the desktop tests unchanged. Compare with `MobileYouTube`, `MobileYouTubeDictionary` and `MobileYouTubePhrase`. Commit.
+- [ ] **Fullscreen landscape** (844 × 390):
+  - the subtitle over the video, with L at the top right opening the Langle sheet (`action.openPopup` through the background);
+  - a tapped word opens a white panel at the right (300 px, 12 px top and bottom), and the subtitle keeps its width;
+  - with `phoneFullscreenTranscript` `left` or `right`, a dark 300 px column on that side (16 px from the top and bottom), the video narrowed beside it (`narrowPlayer`), the dictionary inside the column with "‹ Transcript".
+  Compare with `MobileYouTubeLandscape` and its `TranscriptRight` / `TranscriptLeft` boards. Commit.
+- [ ] **Phone E2E** on the fake m.youtube.com: tap → sheet → save, long-press → phrase, the transcript below, fullscreen with the panel and with the column (the setting through the check settings channel). Commit.
+- [ ] **The real site in desktop Chromium**: `scripts/mobile/phone-check.ts` launches Chromium with the check build (`npm run build:check`), the phone viewport, `isMobile`, `hasTouch` and an Android user agent. It opens the TED baseline and one auto-caption video on m.youtube.com, taps a highlighted word, and prints the error log (`langle:check-errors`). Every entry is fixed or explained. Commit.
+- [ ] **Report "ready for the device"**. Then on the emulator, then the Simulator, with the check build (`bundle-build.sh check`):
+  - the real m.youtube.com (the TED baseline) and the E2E article;
+  - highlights in the subtitle;
+  - a tap opens the sheet, and a long-press selects a phrase;
+  - a word saved there survives a kill and relaunch;
+  - fullscreen landscape with and without the transcript column (needs M3c);
+  - on the article: a tap, a long-press, and a word in a link;
+  - the error log is empty or each entry is explained;
+  - screenshots in the PR next to the mock's boards.
+- [ ] **Docs**:
+  - ui.md "Mobile app": anything that differs from what was built gets the mock fixed first, then ui.md;
+  - status.md one line;
+  - notes/mobile.md: what the devices showed;
+  - tick M3d.
+- [ ] `npm run verify -- --skip-firefox`, push, draft PR "Mobile app M3d: the video UI on a phone", `gh pr ready`.

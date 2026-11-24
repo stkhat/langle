@@ -152,6 +152,78 @@ Each milestone has its own branch and its own draft PR. At most three subagents 
 
 1. **M0**: the `langle-app` target, the bridge protocol and golden files, and the shim with its tests (shared TS). S1 and S2 run alongside it.
 2. **M1 Android shell** and **M2 iOS shell**, in parallel. Each one has the engine implementation, the router, the key-value store, the extension host, the app origin, and a minimal screen (one page and an address field). It is done when Langle runs on an article end to end.
-3. **M3**: the `m.youtube.com` `PlatformAdapter`, and touch in place of hover (tap → dictionary sheet, long-press selection). This is shared TS, checked first in desktop Chromium with a phone viewport.
+3. **M3**: the `m.youtube.com` `PlatformAdapter`, and touch in place of hover (tap → dictionary sheet, long-press selection), portrait and fullscreen landscape. This is shared TS, checked first in desktop Chromium with a phone viewport. Designed below ("M3: m.youtube.com and touch").
 4. **M4**: the app's screens from the mock (Home, title bar, Langle sheet, Words, Settings, first run).
 5. Then the translation hosts (mobile-translation.md "Build order" 3), ad blocking, own-cloud sync in the app, Share / Open with, and the release checks already listed in the notes. Each one gets its own short design pass where the notes leave a decision open.
+
+## M3: m.youtube.com and touch (approved with the user on 2026-11-24)
+What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` page. This section is how the shared TS gets there.
+
+### Decisions (the user's choices, 2026-11-24)
+- **Every build gets the m.youtube.com scripts** (Chrome, Firefox and `langle-app`). The article script already matches `<all_urls>`, so no new permission is asked. Desktop Chromium with a phone viewport runs the ordinary extension, and Firefox for Android gets it later for free. `www.youtube.com` on the desktop behaves as before.
+- **Fullscreen landscape is part of M3**: the subtitle over the video, the dictionary as a panel at the right, and the transcript column (Left or Right).
+- **The phone has its own subtitle settings**, synced like the others: `phoneSubtitlePosition` (`belowVideo` by default) and `phoneFullscreenTranscript` (`off` by default, or `left` / `right`). The phone layout reads these. Desktop changes do not move the phone, and phone changes do not move the desktop.
+- Not in M3: Shorts and comments on m.youtube.com (not in the mock). A `/shorts/` URL on m.youtube.com runs nothing.
+
+### The adapter
+- `createYouTubeAdapter(layout, options)`. The part that does not depend on the page's layout is shared:
+  - the caption capture (`page.ts` in the page's world, unchanged on m.youtube.com: notes "Checked: captions on the mobile site"), `tracks`, `loadCaptions`;
+  - `seek`, `pause`, `play`, `adShowing`, `hideSiteCaptions`;
+  - `videoId` and `url()`. `url()` stays `https://www.youtube.com/watch?v=<id>`, so a word met on the phone and on the desktop has the same source.
+- `YouTubeLayout` holds the page's structure: the player, the title, the insertion points (`controlsPoint`, `belowVideoElement`, `sideColumn`), the fullscreen box (`fillsWindow`, `narrowPlayer`), Shorts (`vertical`, `besidePlayer`) and `onNavigate`.
+  - `desktopLayout` is today's code.
+  - `mobileLayout` is measured on the real site first: the DOM points, the navigation signal, whether the player stays pinned while the page scrolls, the fullscreen element, and the ad and caption classes (notes/mobile.md).
+- Entrypoints: `youtube.content.ts` (www, desktop layout, not in the app) as now, and a new `youtube-mobile.content.ts` (m.youtube.com, mobile layout, every build) that runs only the video part. The page-world hook runs on both hosts. The manifest's `matches` picks the layout, not a host check in code.
+
+### Touch in place of hover
+- **Touch mode** is `matchMedia("(hover: none) and (pointer: coarse)")` (a page whose primary pointer cannot hover), watched for changes and passed in as a dependency so tests can set it. A desktop with a mouse is never in touch mode, so its code path does not change.
+- **Gestures**: a pure recognizer over touch pointer events:
+  - **tap**: released within 500 ms and moved less than 10 px. It goes where a click goes (`click(ref)`), so the dictionary opens;
+  - **long-press**: held for 500 ms within 10 px;
+  - **scroll**: moved first. It does nothing.
+- In touch mode there is no hover card.
+- **Long-press selection**:
+  - **Subtitles and the transcript** (Langle's own text): a Langle gesture, long-press and then drag. Whole words (2–8) are snapped as the finger moves. The text has `user-select: none` and `-webkit-touch-callout: none`, so the system's menu does not show.
+  - **Articles**: the phone's own selection. When it settles it is snapped to words. 1–8 words open the sheet ("Selected · not saved"). More than 8 stay the phone's selection, for copying.
+  - **A word inside a link**: a tap follows the link, and a long-press opens its sheet, with the link's own menu kept away. The shells turn off what still gets in the way (iOS link previews, for example), as found on the devices.
+- The video pauses while a selection or the sheet is open, through the existing hold.
+
+### The dictionary sheet
+- The same `DictionaryWindow` content in another frame: `Sheet` in touch mode, `Floating` (today's window) on the desktop.
+- `Sheet` has a grab handle. A swipe up gives it the full height; a swipe down or × closes it; a tap on another word switches it.
+- Where it goes:
+  - portrait YouTube: its top is the subtitle's bottom, so the sentence stays in view;
+  - articles: the page scrolls so the word stays above it;
+  - fullscreen landscape: a white panel at the right, 300 px wide. The subtitle keeps its place and width;
+  - with the transcript column: inside the column, in its dark colors, with "‹ Transcript" to go back.
+
+### The watch page on a phone
+- **Portrait**:
+  - Langle's subtitle sits below the video by default (larger text and its translation), then the transcript (the playing cue marked, auto-scroll, a fold button), where YouTube's metadata would start. YouTube's page continues under them.
+  - If the player stays pinned while the page scrolls, the subtitle stays pinned under it.
+  - **A general placement rule**: on a page with no side column, the transcript goes below the video, after the subtitle.
+  - There is no L or ^ on the player. L is in the app's title bar (M4); until then it is the M1/M2 shells' button.
+- **Fullscreen landscape**:
+  - the subtitle over the video, and L at the top right. L opens the Langle sheet (`action.openPopup` through the background);
+  - with `phoneFullscreenTranscript` set to Left or Right, the transcript takes a 300 px column on that side, 16 px from the top and bottom, rounded and dark. The video shrinks beside it (`narrowPlayer`), never covered.
+- **The WebViews' fullscreen** is measured on each device first: Android's `WebChromeClient.onShowCustomView`, and iOS's `WKPreferences.isElementFullscreenEnabled`. The shells get what keeps Langle's overlay inside the page's element fullscreen.
+  - If the iPhone offers only the video's native fullscreen (Langle cannot draw over it), the fallback is the app's own fullscreen: landscape, bars hidden, the player filling the page. That fallback is brought back to the user before it is built.
+- The controls for the two phone settings are in the Langle sheet (M4). In M3 they are set through the check build's settings channel.
+
+### Testing
+- **Vitest (unit and browser)**:
+  - the recognizer;
+  - touch mode against hover mode;
+  - `Sheet`;
+  - `mobileLayout` against a DOM fixture made from the measurement;
+  - the placement rule;
+  - the two settings.
+- **E2E**: a Playwright project `phone` (Chromium; 390 × 844, `isMobile`, `hasTouch`, an Android Chrome user agent) on the article fixture and a fake m.youtube.com (from `tests/fake-youtube-player.ts`). It covers tap, long-press, save, the subtitle below the video, the transcript, and fullscreen. The desktop E2E passing unchanged shows the desktop did not change.
+- **The real site in desktop Chromium**: a script runs the check build with the phone viewport on m.youtube.com (the TED baseline and one auto-caption video) and reads the error log.
+- **On the emulator, then the Simulator** (one at a time), with the real m.youtube.com and an article in the app:
+  - highlights in the subtitle;
+  - a tap opens the sheet, and a long-press selects a phrase;
+  - a saved word survives a restart;
+  - fullscreen landscape with and without the transcript column;
+  - the error log is empty;
+  - screenshots compared with the mock.
