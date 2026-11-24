@@ -91,6 +91,26 @@ describe("holdPlayback", () => {
     expect(t.video().paused).toBe(false);
   });
 
+  it("says in the store while the video is Langle's pause, until it plays", async () => {
+    const t = setup();
+    const held = () => t.store.get().heldPaused;
+    t.store.set({ panel: OPEN });
+    expect(held()).toBe(true);
+    t.store.set({ panel: null });
+    await later();
+    expect(held()).toBe(false);
+    // The user plays it while held: no longer Langle's pause.
+    t.store.set({ panel: OPEN });
+    expect(held()).toBe(true);
+    t.video().set(true);
+    expect(held()).toBe(false);
+    t.store.set({ panel: null });
+    // A video the user had paused is not Langle's pause.
+    const paused = setup({ playing: false });
+    paused.store.set({ panel: OPEN });
+    expect(paused.store.get().heldPaused).toBeFalsy();
+  });
+
   it("pauses while the pointer is on the subtitle, and through a card shown from it", async () => {
     const t = setup();
     t.store.set({ subtitleHover: true });

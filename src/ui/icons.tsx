@@ -151,6 +151,21 @@ export function PlayIcon() {
   );
 }
 
+export function PauseIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <rect x="6" y="5" width="4" height="14" rx="1"></rect>
+      <rect x="14" y="5" width="4" height="14" rx="1"></rect>
+    </svg>
+  );
+}
+
 /** The dictionary window's drag handle: two columns of three dots. */
 /** "Explain in context": the on-device AI (mock ContextMeaning). */
 export function SparkleIcon() {
