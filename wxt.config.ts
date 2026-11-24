@@ -1,14 +1,22 @@
 import { defineConfig } from "wxt";
 import preact from "@preact/preset-vite";
 import pkg from "./package.json" with { type: "json" };
+import { bundledLicenses } from "./scripts/licenses.ts";
 import { noticesPlugin } from "./scripts/notices.ts";
 import { DEVELOPMENT_EXTENSION_KEY } from "./src/background/sync/google-clients.ts";
+import { LICENSES_FILE } from "./src/core/notices.ts";
+
+// The packages each build ships, found in its output, for THIRD_PARTY_LICENSES.txt.
+const licenses = bundledLicenses(import.meta.dirname);
 
 export default defineConfig({
   srcDir: "src",
   manifestVersion: 3,
-  // The data sources and licenses page's data (`virtual:langle-notices`).
-  vite: () => ({ plugins: [preact(), noticesPlugin()] }),
+  // The data sources and licenses page's data (`virtual:langle-notices`), and the
+  // bundled packages' licenses.
+  vite: () => ({
+    plugins: [preact(), noticesPlugin(), licenses.plugin()],
+  }),
   manifest: ({ mode }) => {
     return {
       name: "Langle",
@@ -32,6 +40,11 @@ export default defineConfig({
     "build:before": (wxt) => {
       if (wxt.config.mode === "production" && process.env.WXT_PACK_MIRRORS)
         wxt.logger.warn("WXT_PACK_MIRRORS is ignored in production builds");
+      licenses.reset();
+    },
+    // Runs once every entrypoint is built: the licenses of all the packages they ship.
+    "build:publicAssets": (_wxt, files) => {
+      files.push({ relativeDest: LICENSES_FILE, contents: licenses.file() });
     },
   },
 });

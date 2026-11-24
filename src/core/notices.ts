@@ -3,6 +3,13 @@
  * `scripts/data/formats.ts` and the full notices in `scripts/data/licenses/`
  * (`scripts/notices-data.ts`, served as `virtual:langle-notices` by `scripts/notices.ts`).
  */
+
+/**
+ * The file at the extension's root with the licenses of the packages whose code or
+ * fonts the build ships (written by `scripts/licenses.ts`); the page links to it.
+ */
+export const LICENSES_FILE = "THIRD_PARTY_LICENSES.txt";
+
 export interface NoticesData {
   /** Every language pack, as its npm package carries its notices. */
   packs: NoticePack[];
