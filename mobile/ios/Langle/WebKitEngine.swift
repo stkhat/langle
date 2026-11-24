@@ -63,6 +63,9 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate {
     switch profile {
     case .browsing:
       config.websiteDataStore = .default()
+      // The page's element fullscreen (`requestFullscreen`, YouTube's fullscreen button), not
+      // only the video's own: Langle's overlay inside the fullscreen element stays on screen.
+      config.preferences.isElementFullscreenEnabled = true
       bridgeWorld = .langle
     case .app:
       config.websiteDataStore = WKWebsiteDataStore(forIdentifier: WebKitEngine.appStoreID)
@@ -90,7 +93,26 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate {
       webView.observe(\.title) { view, _ in notify(view) },
       webView.observe(\.canGoBack) { view, _ in notify(view) },
       webView.observe(\.canGoForward) { view, _ in notify(view) },
+      webView.observe(\.fullscreenState) { [weak self] view, _ in
+        MainActor.assumeIsolated { self?.fullscreenChanged(view.fullscreenState) }
+      },
     ]
+  }
+
+  /// Entering counts from its start (so the window can turn), leaving from its end.
+  private var inFullscreen = false
+  private func fullscreenChanged(_ state: WKWebView.FullscreenState) {
+    let now: Bool
+    switch state {
+    case .enteringFullscreen, .inFullscreen: now = true
+    case .notInFullscreen: now = false
+    case .exitingFullscreen: return
+    @unknown default: return
+    }
+    guard now != inFullscreen else { return }
+    inFullscreen = now
+    Log.app.info("fullscreen \(now ? "on" : "off", privacy: .public)")
+    delegate?.page(self, fullscreen: now)
   }
 
   private func navigated() {
