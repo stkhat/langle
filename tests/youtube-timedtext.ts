@@ -10,7 +10,7 @@ const FIXTURES = path.resolve(
 );
 
 /** The video the fixtures were recorded from. */
-export const FIXTURE_VIDEO_ID = "iG9CE55wbtY";
+export const FIXTURE_VIDEO_ID = "sampleVid01";
 
 /**
  * The body /api/timedtext would send for `url`. Like the real server, a request naming

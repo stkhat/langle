@@ -110,7 +110,7 @@ export async function routeYouTube(
   );
   await context.addInitScript(installFakeYouTubePlayer, {
     videoId: FIXTURE_VIDEO_ID,
-    title: "Do schools kill creativity?",
+    title: "A lantern for the lighthouse",
     playerResponse: fixturePlayerResponse(),
     ...(options.refreshResponse && {
       refreshedResponse: refreshedPlayerResponse(fixturePlayerResponse()),
@@ -160,7 +160,7 @@ export async function routeMobileYouTube(context: BrowserContext) {
   );
   await context.addInitScript(installFakeYouTubePlayer, {
     videoId: FIXTURE_VIDEO_ID,
-    title: "Do schools kill creativity?",
+    title: "A lantern for the lighthouse",
     playerResponse: fixturePlayerResponse(),
   });
 }

@@ -1056,7 +1056,7 @@ for (const build of ["production", "check"] as const)
         for (const url of [
           "https://en.wikipedia.org/wiki/Bread",
           "https://www.bbc.com/news",
-          "https://www.youtube.com/watch?v=iG9CE55wbtY",
+          "https://www.youtube.com/watch?v=sampleVid01",
         ])
           test(`no reports on ${url}`, async ({ context, extensionId }) => {
             await showNewWords(context, extensionId);

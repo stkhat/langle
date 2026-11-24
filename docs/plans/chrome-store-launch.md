@@ -76,7 +76,7 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 
 ## F. Repository (it is public today)
 
-- [ ] F1 **Do first, the repository stays public**: recorded YouTube captions are committed (`src/core/subtitles/fixtures/youtube/`, a talk's human translation among them). Replace them with made-up lines, as the Netflix fixtures are
+- [x] F1 **Do first, the repository stays public**: recorded YouTube captions are committed (`src/core/subtitles/fixtures/youtube/`, a talk's human translation among them). Replace them with made-up lines, as the Netflix fixtures are. Done: all text in the 10 caption files is made up (word-for-word substitution on the recorded timings, segment splits and ASR shapes), the talk's Japanese translation and its translator credit included; `captionTracks.json`, the watch-page fixtures and the test helpers use made-up video ids, titles and channel names (`sampleVid01`). Git history still holds the old files, see F2
 - [ ] F2 Remove personal identifiers from the committed notes; decide whether the history needs rewriting (U)
 - [ ] F3 While public: add a code licence, or state that there is none on purpose. Decide the visibility again before G6
 

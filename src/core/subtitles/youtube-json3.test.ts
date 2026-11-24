@@ -71,7 +71,7 @@ describe("parseYouTubeJson3", () => {
 
   it("drops empty lines, empty events and zero-width spaces from translations", () => {
     const cues = parseYouTubeJson3(fixture("en-tlang-ja.json3"));
-    expect(cues.find((c) => c.startMs === 43096)?.text).toBe("会議には、");
+    expect(cues.find((c) => c.startMs === 43096)?.text).toBe("金絵には、");
     expect(cues.find((c) => c.startMs === 48997)?.text).toBe(
       "机そは、せれまで窓ってあた",
     );
