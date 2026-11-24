@@ -514,7 +514,7 @@ export function BelowVideoUi(props: {
   useLayoutEffect(() => {
     const element = band.current;
     if (!isPinned || !element || !onPinnedHeight) return;
-    const tell = () => onPinnedHeight(element.offsetHeight);
+    const tell = () => onPinnedHeight(element.getBoundingClientRect().height);
     const observer = new ResizeObserver(tell);
     observer.observe(element);
     tell();
