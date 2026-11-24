@@ -196,8 +196,8 @@ const FIT = ["left", "top", "width", "height", "object-fit"] as const;
 /**
  * Keeps the largest video in `box` inside it, for a player that does not size its
  * video for a narrowed box: once the site has had its time to lay the video out again,
- * a video still reaching outside the box is set to the box's size (letterboxed:
- * `object-fit: contain`) and moved onto it. It is fitted again while the box changes
+ * a positioned video still reaching outside the box is set to the box's size
+ * (letterboxed: `object-fit: contain`) and moved onto it. It is fitted again while the box changes
  * size or the site writes the video's style. Returns an undo that gives the video its
  * own styles back.
  */
@@ -244,7 +244,9 @@ function fitVideo(box: HTMLElement): () => void {
         rect.right <= area.right + 1 &&
         rect.top >= area.top - 1 &&
         rect.bottom <= area.bottom + 1;
-      if (inside) return;
+      // A video in the flow is laid out by its parents, which the site narrows with
+      // the box; offsets would not move it, and fitting it again would never settle.
+      if (inside || getComputedStyle(video).position === "static") return;
       own = Object.fromEntries(
         FIT.map((property) => [
           property,
@@ -260,7 +262,7 @@ function fitVideo(box: HTMLElement): () => void {
     if (!video) return;
     const style = getComputedStyle(video);
     const rect = video.getBoundingClientRect();
-    // Its offsets now, moved by how far it is from the box (static: none to move).
+    // Its offsets now, moved by how far it is from the box.
     const left = (Number.parseFloat(style.left) || 0) + area.left - rect.left;
     const top = (Number.parseFloat(style.top) || 0) + area.top - rect.top;
     const wanted: Record<(typeof FIT)[number], string> = {
