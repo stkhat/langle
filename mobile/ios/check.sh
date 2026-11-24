@@ -56,8 +56,8 @@ return fullscreenProbe();"
   sleep 1
   xcrun simctl spawn booted notifyutil -p "$bundle.state"
   sleep 1
-  xcrun simctl spawn booted log show --info --style compact --last 5s \
-    --predicate "subsystem == \"$bundle\" && category == \"check\""
+  xcrun simctl spawn booted log show --info --style compact --last 10s \
+    --predicate "subsystem == \"$bundle\" && category == \"check\"" | grep -o "check] .*"
   ;;
 log)
   xcrun simctl spawn booted log show --info --debug --style compact --last "${2:-60}s" \
