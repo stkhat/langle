@@ -115,6 +115,10 @@ export function startBackground(): void {
     sync,
     cloud,
     openOptionsPage: () => browser.runtime.openOptionsPage(),
+    // Chrome refuses it at times (no focused window): nothing then.
+    openPopup: async () => {
+      await browser.action.openPopup?.().catch(() => undefined);
+    },
   });
 
   const answer = setup.guard(handle);

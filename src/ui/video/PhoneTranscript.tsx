@@ -1,14 +1,14 @@
 import { useState } from "preact/hooks";
 import { t } from "../../i18n/t";
 import { FoldIcon } from "../icons";
-import { color, iconButton, root } from "../styles";
+import { color, iconButton, phoneColumnPanel, root } from "../styles";
 import { Transcript, type TranscriptProps } from "./Transcript";
 
 /**
  * The transcript on a phone (mock MobileYouTube, MobileYouTubeLandscape): a "Transcript"
  * heading over the cards. Under the video (`column` false) the heading has a fold
  * button and the cards are `height` px tall; in the dark column beside a video in
- * fullscreen the cards fill the column.
+ * fullscreen the panel is `height` px tall and the cards fill it.
  */
 export function PhoneTranscript(
   props: TranscriptProps & { column: boolean; height?: number },
@@ -23,7 +23,10 @@ export function PhoneTranscript(
         display: "flex",
         flexDirection: "column",
         ...(column
-          ? { height: "100%" }
+          ? {
+              ...phoneColumnPanel,
+              height: props.height ? `${props.height}px` : "100%",
+            }
           : {
               background: color.card,
               borderBottom: `1px solid ${color.line}`,

@@ -1,3 +1,4 @@
+import { NARROW_BY_WIDTH } from "../adapter-kit";
 import type { YouTubeLayout } from "./layout";
 
 /**
@@ -31,8 +32,7 @@ export function mobileLayout(): YouTubeLayout {
         ? box
         : null;
     },
-    // The box is as wide as its container: a width narrows it.
-    narrow: { property: "width", value: (width) => `calc(100% - ${width}px)` },
+    narrow: NARROW_BY_WIDTH,
     onNavigate(listener) {
       // Fired once after the URL changed (yt-navigate-finish is not fired here).
       const handler = () => listener();

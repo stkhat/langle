@@ -286,6 +286,11 @@ export type Request =
   /** Content scripts cannot open the options page themselves. */
   | { type: "openOptions" }
   /**
+   * The L button over a video in fullscreen on a phone: the toolbar popup (in the
+   * Langle app, its Langle sheet), where the browser has `action.openPopup`.
+   */
+  | { type: "openPopup" }
+  /**
    * Nothing is kept while the history is off or the host is blocked. `casing` is the
    * document's, as `analyze` has it: its names are not kept.
    */
@@ -579,6 +584,7 @@ interface ResponseMap {
   /** Keyed by term id; a term that is gone is left out. */
   exportDetails: Record<string, ExportDetails>;
   openOptions: null;
+  openPopup: null;
   /** How many sentences were added. */
   recordHistory: { kept: number };
   historyStatus: HistoryStatus;

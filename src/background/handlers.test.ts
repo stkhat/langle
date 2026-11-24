@@ -202,6 +202,7 @@ let cloud: {
 let deps: HandlerDeps;
 let handle: Handle;
 let openOptionsPage: Mock<() => Promise<void>>;
+let openPopup: Mock<() => Promise<void>>;
 let loadPack: ReturnType<typeof stubPackLoader>;
 let packs: FakePacks;
 
@@ -221,6 +222,7 @@ beforeEach(() => {
   loadPack = stubPackLoader();
   packs = fakePacks();
   openOptionsPage = vi.fn(async () => {});
+  openPopup = vi.fn(async () => {});
   deps = {
     store,
     history,
@@ -232,6 +234,7 @@ beforeEach(() => {
     sync,
     cloud,
     openOptionsPage,
+    openPopup,
   };
   handle = createHandlers(deps);
 });
@@ -252,6 +255,11 @@ describe("handlers: routing", () => {
   it("opens the options page for openOptions (content scripts cannot)", async () => {
     expect(await value({ type: "openOptions" })).toBeNull();
     expect(openOptionsPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the toolbar popup for openPopup", async () => {
+    expect(await value({ type: "openPopup" })).toBeNull();
+    expect(openPopup).toHaveBeenCalledTimes(1);
   });
 
   it("answers syncStatus from the sync backend", async () => {

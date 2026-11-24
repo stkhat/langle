@@ -9,6 +9,7 @@ import {
   InPlayerUi,
   MenuUi,
   PageUi,
+  PHONE_COLUMN,
   PlayerBarUi,
   SUBTITLE_BOTTOM,
   subtitleOverVideo,
@@ -71,9 +72,16 @@ function fullscreenHost(): Element | null {
 }
 
 /** The transcript sidebar beside a player that fills the window (mock FullWindow): 360px wide, 16px in. */
-const SIDEBAR = { width: 360, inset: 16 };
-/** How much narrower the player gets for the sidebar. */
-const SIDEBAR_ROOM = SIDEBAR.width + 2 * SIDEBAR.inset;
+const SIDEBAR = { width: 360, inset: 16, side: 16, room: 392 };
+
+/** The sidebar host's style for `column` (the desktop's, or a phone's) at `side`. */
+const sidebarStyle = (
+  column: typeof SIDEBAR | typeof PHONE_COLUMN,
+  side: "left" | "right",
+) =>
+  `position: fixed; z-index: ${SIDEBAR_LAYER}; top: ${column.inset}px;` +
+  ` ${side}: ${column.side}px; bottom: ${column.inset}px;` +
+  ` width: ${column.width}px; overflow: hidden;`;
 /** Above the site's player, below Langle's menu, hover card and dictionary window. */
 const SIDEBAR_LAYER = 2147483600;
 
@@ -112,13 +120,14 @@ export function mountVideoUi({
     subtitleBottom: SUBTITLE_BOTTOM,
     vertical: adapter.vertical?.() ?? false,
     sidebar: false,
+    sidebarSide: "right",
+    fillsWindow: false,
     touch: touchMode.on(),
     pinnedBottom: null,
   });
   const sidebar = document.createElement("langle-video-sidebar");
-  sidebar.style.cssText = `position: fixed; z-index: ${SIDEBAR_LAYER};
-    top: ${SIDEBAR.inset}px; right: ${SIDEBAR.inset}px; bottom: ${SIDEBAR.inset}px;
-    width: ${SIDEBAR.width}px; overflow: hidden;`;
+  let sidebarStyled = sidebarStyle(SIDEBAR, "right");
+  sidebar.style.cssText = sidebarStyled;
   const parts: Part[] = [];
   const roots: ShadowRoot[] = [];
 
@@ -262,26 +271,43 @@ export function mountVideoUi({
 
   /**
    * The sidebar shows while the transcript does beside a player that fills the window:
-   * the player is narrowed for it, and given its width back otherwise.
+   * the player is narrowed for it, and given its width back otherwise. In touch mode
+   * it is the phone's column, at the side `phoneFullscreenTranscript` picks ("off":
+   * none); the desktop's sidebar never shows there.
    */
   function arrangeSidebar() {
     const { enabled, status, settings } = app.store.get();
+    const { touch, vertical } = layout.get();
+    const fillsWindow = !vertical && (adapter.fillsWindow?.() ?? false);
+    const side =
+      touch && settings.phoneFullscreenTranscript === "left" ? "left" : "right";
     const on =
       enabled &&
       status === "ready" &&
-      settings.transcriptShown &&
-      !layout.get().vertical &&
-      (adapter.fillsWindow?.() ?? false);
-    adapter.narrowPlayer?.(on ? SIDEBAR_ROOM : 0);
+      fillsWindow &&
+      (touch
+        ? settings.phoneFullscreenTranscript !== "off"
+        : settings.transcriptShown);
+    const column = touch ? PHONE_COLUMN : SIDEBAR;
+    adapter.narrowPlayer?.(on ? column.room : 0, side);
     if (on) {
+      const style = sidebarStyle(column, side);
+      if (style !== sidebarStyled)
+        sidebar.style.cssText = sidebarStyled = style;
       const parent = fullscreenHost() ?? document.body;
       if (sidebar.parentElement !== parent) parent.append(sidebar);
     } else sidebar.remove();
-    if (on !== layout.get().sidebar) layout.set({ sidebar: on });
+    const now = layout.get();
+    if (
+      on !== now.sidebar ||
+      side !== now.sidebarSide ||
+      fillsWindow !== now.fillsWindow
+    )
+      layout.set({ sidebar: on, sidebarSide: side, fillsWindow });
   }
 
-  /** The sticky style the subtitle box under the video has now ("" for none). */
-  let pinnedStyle = "";
+  /** The top the subtitle box under the video sticks at now (null: it does not). */
+  let pinnedTop: number | null = null;
   const belowResize = new ResizeObserver(() => schedule());
   belowResize.observe(belowHost);
 
@@ -300,21 +326,13 @@ export function mountVideoUi({
         ? boxOf(player)
         : null;
     const top = box ? Math.round(box.bottom) : null;
-    const style =
-      top === null
-        ? ""
-        : `position: sticky; top: ${top}px; z-index: ${PINNED_LAYER};`;
-    if (style !== pinnedStyle) {
-      belowHost.style.position = "";
-      belowHost.style.top = "";
-      belowHost.style.zIndex = "";
-      if (top !== null)
-        Object.assign(belowHost.style, {
-          position: "sticky",
-          top: `${top}px`,
-          zIndex: `${PINNED_LAYER}`,
-        });
-      pinnedStyle = style;
+    if (top !== pinnedTop) {
+      Object.assign(belowHost.style, {
+        position: top === null ? "" : "sticky",
+        top: top === null ? "" : `${top}px`,
+        zIndex: top === null ? "" : `${PINNED_LAYER}`,
+      });
+      pinnedTop = top;
     }
     const pinnedBottom = top === null ? null : top + belowHost.offsetHeight;
     if (pinnedBottom !== layout.get().pinnedBottom)

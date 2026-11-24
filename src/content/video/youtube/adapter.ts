@@ -105,8 +105,7 @@ export function createYouTubeAdapter(
   const player = () => layout.player();
   const narrowPlayer = playerNarrower(
     () => layout.fullscreenBox(),
-    layout.narrow.property,
-    layout.narrow.value,
+    layout.narrow,
   );
   cleanups.push(() => narrowPlayer(0));
 

@@ -229,6 +229,8 @@ export interface VideoApp extends ExplainActions {
   previewSettings(patch: SettingsPatch): void;
   /** The menu's gear. */
   openSettings(): void;
+  /** The L over a video in fullscreen on a phone: the toolbar popup (the Langle sheet). */
+  openPopup(): void;
   setMenuOpen(open: boolean): void;
   setFullscreen(on: boolean): void;
   setPanelTab(tab: PanelTab): void;

@@ -819,6 +819,9 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     openSettings() {
       deps.send({ type: "openOptions" }).catch(warn);
     },
+    openPopup() {
+      deps.send({ type: "openPopup" }).catch(warn);
+    },
     setMenuOpen: (open) => setIf("menuOpen", open),
     setFullscreen(on) {
       if (store.get().fullscreen === on) return;
