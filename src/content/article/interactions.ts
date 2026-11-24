@@ -2,7 +2,7 @@ import { fromUser } from "../../ui/from-user";
 import { isLangleHost } from "../../ui/langle-host";
 import type { Box } from "../lookup/geometry";
 import { createHoverIntent } from "../lookup/hover-intent";
-import { listenTouches } from "../touch/listen";
+import { listenTouches } from "../../ui/touch/listen";
 import type { SpanRef } from "./locate";
 
 export interface InteractionCallbacks {

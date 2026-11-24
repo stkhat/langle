@@ -3,6 +3,7 @@ import { unsupportedPage } from "../../messaging/page-protocol";
 import type { LookupHooks } from "../lookup/lookup";
 import { warn } from "../lookup/warn";
 import { leaveWhenOrphaned } from "../orphan";
+import { createTouchMode } from "../touch/touch-mode";
 import { answerPageRequests, contentDeps } from "../wiring";
 import { mountVideoUi } from "./mount";
 import type { PlatformAdapter } from "./platform";
@@ -20,9 +21,11 @@ export async function runVideoSite(
   hooks: LookupHooks = {},
 ): Promise<VideoSession | undefined> {
   leaveWhenOrphaned(ctx);
+  const touchMode = createTouchMode();
   const started = startVideo({
     ...contentDeps(ctx),
     adapter,
+    touchMode,
     ...hooks,
   }).catch((error: unknown) => {
     warn(error);
@@ -41,7 +44,7 @@ export async function runVideoSite(
     adapter.dispose();
     return undefined;
   }
-  const unmount = mountVideoUi({ adapter, app: session.app });
+  const unmount = mountVideoUi({ adapter, app: session.app, touchMode });
   ctx.onInvalidated(() => {
     unmount();
     session.stop();

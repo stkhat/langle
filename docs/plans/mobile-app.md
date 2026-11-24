@@ -435,14 +435,14 @@ Branch `claude/mobile-m3b`.
 | Path | Responsibility |
 | --- | --- |
 | `src/content/touch/touch-mode.ts` | `createTouchMode(match = matchMedia)`: `{ on(): boolean; watch(listener): () => void }` from `(hover: none) and (pointer: coarse)` |
-| `src/content/touch/gestures.ts` (+ `gestures.test.ts`) | the pure recognizer (below) |
-| `src/content/touch/listen.ts` | feeds trusted `pointerType === "touch"` pointer events on a root to the recognizer and calls `tap`, `longPress`, `drag`, `release` callbacks with the event's point |
+| `src/ui/touch/gestures.ts` (+ `gestures.test.ts`) | the pure recognizer (below) |
+| `src/ui/touch/listen.ts` | feeds trusted `pointerType === "touch"` pointer events on a root to the recognizer and calls `tap`, `longPress`, `drag`, `release` callbacks with the event's point |
 | `src/ui/lookup/Sheet.tsx` (+ browser test) | the sheet frame: grab handle, half and full height, swipe down or × closes, `top` given by the caller |
 | `src/content/article/interactions.ts`, `ArticleUi.tsx`, `selection.ts` | touch mode on articles: no hover, tap → the word's sheet, the phone's selection snapped on settle (1–8 words → the phrase's sheet), long-press on a link word |
 | `src/content/article/scroll.ts` | keeps the tapped word above the sheet |
 
 ```ts
-// src/content/touch/gestures.ts
+// src/ui/touch/gestures.ts
 export const TAP_MAX_MS = 500;
 export const LONG_PRESS_MS = 500;
 export const SLOP_PX = 10;

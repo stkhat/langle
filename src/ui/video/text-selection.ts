@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "preact/hooks";
 import { wordRuns } from "../../core/phrases/key";
 import { fromUser } from "../from-user";
+import { listenTouches } from "../touch/listen";
 import {
   boxOfOffsets,
   rangeOfOffsets,
@@ -42,6 +43,12 @@ export interface TextSelectionProps {
   onSelect?: (
     selected: SelectedText | undefined,
   ) => SelectedOffsets | undefined;
+  /**
+   * Touch mode (spec mobile-app.md "Long-press selection"): a long-press selects the
+   * word under the finger and a drag after it grows the selection by whole words; the
+   * system's own selection and its menu are kept away from the text.
+   */
+  touch?: boolean;
 }
 
 /**
@@ -94,6 +101,186 @@ function wordNear(
   return best;
 }
 
+/** Drops the page's selection when it is in `el`. */
+function unselectIn(el: Element) {
+  if (selectedOffsets(el)) getSelection()?.removeAllRanges();
+}
+
+/**
+ * Selects in `el` the whole words from `pressed` to the word nearest (`x`, `y`), as
+ * `onSnap` snaps them, and returns them (undefined: none). A text that changed since
+ * the press (the next line) selects nothing. `shown` is what is selected now.
+ */
+function snapTo(
+  el: Element,
+  text: string,
+  words: readonly Word[],
+  pressed: Word | undefined,
+  x: number,
+  y: number,
+  props: TextSelectionProps,
+  shown: SelectedText | undefined,
+): SelectedText | undefined {
+  const near = pressed && wordNear(el, words, x, y);
+  const snapped =
+    pressed && near && el.textContent === text
+      ? props.onSnap?.(
+          Math.min(pressed.start, near.start),
+          Math.max(pressed.end, near.end),
+          near.start < pressed.start ? "end" : "start",
+        )
+      : undefined;
+  if (snapped?.from === shown?.from && snapped?.to === shown?.to) return shown;
+  const anchor: Anchor =
+    near && pressed && near.start < pressed.start ? "end" : "start";
+  const next = snapped && {
+    ...snapped,
+    anchor,
+    boxOf: (start: number, end: number) => boxOfOffsets(el, start, end),
+  };
+  if (next) selectOffsets(el, next.from, next.to);
+  else unselectIn(el);
+  return next;
+}
+
+/** Swallows the click that ends a selecting press (the next one, before anything sees it). */
+function swallowClick() {
+  const swallow = (click: Event) => {
+    click.stopImmediatePropagation();
+    click.preventDefault();
+    forget();
+  };
+  const forget = () => {
+    removeEventListener("click", swallow, true);
+    removeEventListener("pointerdown", forget, true);
+  };
+  addEventListener("click", swallow, true);
+  // A drag let go outside the window gets no click: the next press is not it.
+  addEventListener("pointerdown", forget, true);
+}
+
+/**
+ * The end of a selecting press: `onSelect` with the words it selected (none when the
+ * text went), and the words it keeps left selected.
+ */
+function endSelecting(
+  el: Element,
+  props: TextSelectionProps,
+  shown: SelectedText | undefined,
+) {
+  const connected = el.isConnected;
+  const kept = props.onSelect?.(connected ? shown : undefined);
+  if (!connected) return;
+  // Words without a card are not left selected.
+  if (!kept) unselectIn(el);
+  else if (kept.from !== shown?.from || kept.to !== shown.to)
+    selectOffsets(el, kept.from, kept.to);
+}
+
+/**
+ * Touch mode: a long-press and drag on a text select its words (see `useTextSelection`).
+ * The long-press selects the word under the finger, the drag grows the selection by whole
+ * words once a frame, and lifting the finger calls `onSelect`. While the finger is held
+ * the page does not scroll; the system's long-press selection, its callout and its
+ * context menu never start on the text. Returns a stop.
+ */
+function selectByTouch(
+  el: HTMLElement,
+  handlers: { current: TextSelectionProps },
+): () => void {
+  let press:
+    | {
+        text: string;
+        words: Word[];
+        pressed: Word | undefined;
+        shown: SelectedText | undefined;
+        last: { x: number; y: number };
+      }
+    | undefined;
+  let frame: number | undefined;
+
+  const follow = (x: number, y: number) => {
+    if (!press) return;
+    press.last = { x, y };
+    const { text, words, pressed, shown } = press;
+    press.shown = snapTo(
+      el,
+      text,
+      words,
+      pressed,
+      x,
+      y,
+      handlers.current,
+      shown,
+    );
+  };
+
+  function end(x: number, y: number) {
+    if (frame !== undefined) cancelAnimationFrame(frame);
+    frame = undefined;
+    const ended = press;
+    press = undefined;
+    if (!ended) return;
+    if (el.isConnected) follow(x, y);
+    // A long-press may still end in a click: it is not the word's.
+    swallowClick();
+    endSelecting(el, handlers.current, ended.shown);
+  }
+
+  const stopTouches = listenTouches(el, {
+    longPress({ x, y }) {
+      if (!handlers.current.onSelect) return;
+      const text = el.textContent ?? "";
+      const words = wordRuns(text);
+      press = {
+        text,
+        words,
+        pressed: wordNear(el, words, x, y),
+        shown: undefined,
+        last: { x, y },
+      };
+      handlers.current.onSelectStart?.();
+      follow(x, y);
+    },
+    drag({ x, y }) {
+      if (!press) return;
+      press.last = { x, y };
+      frame ??= requestAnimationFrame(() => {
+        frame = undefined;
+        if (press) follow(press.last.x, press.last.y);
+      });
+    },
+    release: ({ x, y }) => end(x, y),
+  });
+  // The browser took the touch over (or a second finger came): it ends where it was.
+  const onCancel = (event: PointerEvent) => {
+    if (press && event.pointerType === "touch") end(press.last.x, press.last.y);
+  };
+  const holdPage = (event: TouchEvent) => {
+    if (press) event.preventDefault();
+  };
+  const noSystem = (event: Event) => event.preventDefault();
+  el.addEventListener("pointercancel", onCancel, true);
+  el.addEventListener("touchmove", holdPage, { passive: false });
+  el.addEventListener("contextmenu", noSystem);
+  el.addEventListener("selectstart", noSystem);
+  return () => {
+    if (frame !== undefined) cancelAnimationFrame(frame);
+    press = undefined;
+    stopTouches();
+    el.removeEventListener("pointercancel", onCancel, true);
+    el.removeEventListener("touchmove", holdPage);
+    el.removeEventListener("contextmenu", noSystem);
+    el.removeEventListener("selectstart", noSystem);
+  };
+}
+
+/** Touch mode's look of a text words are selected in: no system callout on a long-press. */
+export const TOUCH_TEXT = {
+  WebkitTouchCallout: "none",
+  WebkitTapHighlightColor: "transparent",
+} as const;
+
 /**
  * Selecting words in a text of Langle's UI (a shadow root), as Langle draws it
  * (2026-11-19): the browser's own drag selection would leave the text for the site's
@@ -116,6 +303,11 @@ export function useTextSelection<E extends HTMLElement>(
   handlers.current = props;
   const stop = useRef<(() => void) | undefined>(undefined);
   useEffect(() => () => stop.current?.(), []);
+  const touch = props.touch === true;
+  useEffect(() => {
+    const el = ref.current;
+    return touch && el ? selectByTouch(el, handlers) : undefined;
+  }, [touch]);
 
   function onPointerDown(event: PointerEvent) {
     const el = ref.current;
@@ -126,6 +318,8 @@ export function useTextSelection<E extends HTMLElement>(
     // A press inside selected words would drag them (the browser's text drag): the
     // press selects anew.
     if (selectedOffsets(el)) getSelection()?.removeAllRanges();
+    // A finger selects by a long-press (`selectByTouch`); a tap is a click.
+    if (touch && event.pointerType === "touch") return;
     const text = el.textContent ?? "";
     const words = wordRuns(text);
     const pressed = wordNear(el, words, event.clientX, event.clientY);
@@ -140,34 +334,9 @@ export function useTextSelection<E extends HTMLElement>(
 
     const noNativeSelection = (e: Event) => e.preventDefault();
 
-    const unselect = () => {
-      if (selectedOffsets(el!)) getSelection()?.removeAllRanges();
-    };
-
-    /**
-     * Selects the words from the pressed one to the one nearest the pointer. A text
-     * that changed under the press (the next line) selects nothing.
-     */
+    /** Selects the words from the pressed one to the one nearest the pointer. */
     function follow(x: number, y: number) {
-      const near = pressed && wordNear(el!, words, x, y);
-      const snapped =
-        pressed && near && el!.textContent === text
-          ? handlers.current.onSnap?.(
-              Math.min(pressed.start, near.start),
-              Math.max(pressed.end, near.end),
-              near.start < pressed.start ? "end" : "start",
-            )
-          : undefined;
-      if (snapped?.from === shown?.from && snapped?.to === shown?.to) return;
-      const anchor: Anchor =
-        near && pressed && near.start < pressed.start ? "end" : "start";
-      shown = snapped && {
-        ...snapped,
-        anchor,
-        boxOf: (start, end) => boxOfOffsets(el!, start, end),
-      };
-      if (shown) selectOffsets(el!, shown.from, shown.to);
-      else unselect();
+      shown = snapTo(el!, text, words, pressed, x, y, handlers.current, shown);
     }
 
     /** The press moved far enough to select. */
@@ -203,22 +372,6 @@ export function useTextSelection<E extends HTMLElement>(
       });
     }
 
-    /** Swallows the click that ends a drag (the next one, before anything sees it). */
-    function swallowClick() {
-      const swallow = (click: Event) => {
-        click.stopImmediatePropagation();
-        click.preventDefault();
-        forget();
-      };
-      const forget = () => {
-        removeEventListener("click", swallow, true);
-        removeEventListener("pointerdown", forget, true);
-      };
-      addEventListener("click", swallow, true);
-      // A drag let go outside the window gets no click: the next press is not it.
-      addEventListener("pointerdown", forget, true);
-    }
-
     function onUp(up: PointerEvent) {
       if (up.pointerId !== pointerId || !fromUser(up)) return;
       finish(up.clientX, up.clientY);
@@ -236,20 +389,12 @@ export function useTextSelection<E extends HTMLElement>(
     function finish(x: number, y: number) {
       end();
       if (!dragging && Math.hypot(x - startX, y - startY) >= DRAG_PX) begin();
-      const connected = el!.isConnected;
       if (dragging) {
         // The last moves may not have had their frame yet.
-        if (connected) follow(x, y);
+        if (el!.isConnected) follow(x, y);
         swallowClick();
       }
-      const kept = handlers.current.onSelect?.(
-        dragging && connected ? shown : undefined,
-      );
-      if (!connected) return;
-      // Words without a card are not left selected.
-      if (!kept) unselect();
-      else if (kept.from !== shown?.from || kept.to !== shown.to)
-        selectOffsets(el!, kept.from, kept.to);
+      endSelecting(el!, handlers.current, dragging ? shown : undefined);
     }
 
     function end() {
