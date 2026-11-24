@@ -19,7 +19,7 @@ function setup() {
   const log: string[] = [];
   const at = (name: string) => (p: TouchPoint) =>
     log.push(
-      `${name} ${Math.round(p.x)},${Math.round(p.y)}${p.target === inner ? " on word" : ""}`,
+      `${name} ${Math.round(p.x)},${Math.round(p.y)}${p.path[0] === inner ? " on word" : ""}`,
     );
   const stop = listenTouches(document, {
     tap: at("tap"),

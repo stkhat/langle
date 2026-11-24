@@ -10,8 +10,8 @@ import {
 export interface TouchPoint {
   x: number;
   y: number;
-  /** The innermost target of the press's `pointerdown` (inside shadow roots too). */
-  target: EventTarget | null;
+  /** The press's `pointerdown` path (`composedPath()`), innermost first. */
+  path: readonly EventTarget[];
 }
 
 export interface TouchCallbacks {
@@ -38,7 +38,7 @@ export function listenTouches(
   const down = new Set<number>();
   /** The finger whose gesture is being recognized. */
   let primary: number | undefined;
-  let target: EventTarget | null = null;
+  let path: readonly EventTarget[] = [];
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   function emit(gesture: Gesture | undefined) {
@@ -46,7 +46,7 @@ export function listenTouches(
       if (gesture) clearTimeout(timer);
       return;
     }
-    const at = { x: gesture.x, y: gesture.y, target };
+    const at = { x: gesture.x, y: gesture.y, path };
     if (gesture.type !== "longPress") clearTimeout(timer);
     callbacks[gesture.type]?.(at);
   }
@@ -65,7 +65,7 @@ export function listenTouches(
     if (!first && primary === undefined) return;
     if (first) {
       primary = event.pointerId;
-      target = event.composedPath()[0] ?? event.target;
+      path = event.composedPath();
       clearTimeout(timer);
       timer = setTimeout(
         () => feed({ type: "tick", t: performance.now() }),

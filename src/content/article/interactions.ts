@@ -2,6 +2,7 @@ import { fromUser } from "../../ui/from-user";
 import { isLangleHost } from "../../ui/langle-host";
 import type { Box } from "../lookup/geometry";
 import { createHoverIntent } from "../lookup/hover-intent";
+import { listenTouches } from "../touch/listen";
 import type { SpanRef } from "./locate";
 
 export interface InteractionCallbacks {
@@ -24,6 +25,13 @@ export interface InteractionCallbacks {
   selecting(): boolean;
   /** The page or an element in it scrolled, or the window was resized. */
   scroll(): void;
+  /**
+   * The page is in touch mode (`touch/touch-mode.ts`): no hover card; a tap on a word
+   * opens it (`click`), a tap elsewhere is `pressAway`, and a long-press on a word in a
+   * link opens it without following the link. The phone's own selection is read once
+   * it has settled for `TOUCH_SELECTION_DELAY_MS`.
+   */
+  touch(): boolean;
 }
 
 export interface Interactions {
@@ -51,6 +59,17 @@ function inLangleUi(event: Event): boolean {
 
 /** How long the selection must stay unchanged before it is read (ms). */
 const SELECTION_DELAY_MS = 100;
+/**
+ * The same in touch mode: the phone's selection changes while a finger drags its
+ * handles, and pauses as the finger does; it is snapped only once it rests.
+ */
+const TOUCH_SELECTION_DELAY_MS = 500;
+
+/** A link: a tap on its words follows it, a long-press opens the word. */
+const LINK = "a[href], [role=link]";
+
+const elements = (path: readonly EventTarget[]) =>
+  path.filter((target): target is Element => target instanceof Element);
 
 const same = (a: SpanRef | undefined, b: SpanRef | undefined) =>
   a === b ||
@@ -87,6 +106,8 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
   /** A button is down on the page: the selection is still being made. */
   let pressed = false;
   let selectionTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Touch mode: this press long-pressed a word in a link, which opened instead. */
+  let linkPress = false;
 
   function hideNow() {
     candidate = undefined;
@@ -104,7 +125,7 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
   }
 
   function onPointerMove(event: PointerEvent) {
-    if (!fromUser(event)) return;
+    if (!fromUser(event) || cb.touch()) return;
     lastMove = event;
     frame ??= requestAnimationFrame(() => {
       frame = undefined;
@@ -113,9 +134,14 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
   }
 
   function onPointerDown(event: PointerEvent) {
-    if (!fromUser(event) || inLangleUi(event)) return;
+    if (!fromUser(event)) return;
+    // A new press: whatever it clicks is its own.
+    linkPress = false;
+    if (inLangleUi(event)) return;
     pressed = true;
     hideNow();
+    // A tap or a long-press decides (`listenTouches` below); a press may be a scroll.
+    if (cb.touch()) return;
     if (event.button === 0 && !event.shiftKey && cb.selecting())
       getSelection()?.removeAllRanges();
     if (!opensWord(event)) cb.pressAway();
@@ -141,7 +167,35 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
   }
 
   function onSelectionChange() {
-    if (!pressed) readSelection(SELECTION_DELAY_MS);
+    if (!pressed)
+      readSelection(cb.touch() ? TOUCH_SELECTION_DELAY_MS : SELECTION_DELAY_MS);
+  }
+
+  /** Opens the word at a point in a link, pressed long; true when there is one. */
+  function openLinkWord(x: number, y: number): boolean {
+    const ref = cb.spanAt(x, y);
+    if (!ref) return false;
+    linkPress = true;
+    hideNow();
+    cb.click(ref);
+    return true;
+  }
+
+  const inLink = (path: readonly EventTarget[]) =>
+    elements(path).some((element) => element.matches(LINK));
+
+  /**
+   * Touch mode: a long-press shows the link's menu (`contextmenu`), maybe before the
+   * long-press timer below fires. On a word in a link the word opens instead.
+   */
+  function onContextMenu(event: MouseEvent) {
+    if (!fromUser(event) || !cb.touch() || inLangleUi(event)) return;
+    if (
+      linkPress ||
+      (inLink(event.composedPath()) &&
+        openLinkWord(event.clientX, event.clientY))
+    )
+      event.preventDefault();
   }
 
   /** A click at the event's point would open a word (see `onClick`). */
@@ -152,6 +206,14 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
   }
 
   function onClick(event: MouseEvent) {
+    if (fromUser(event) && cb.touch()) {
+      // Taps are read from the touches; a long-pressed link word does not follow it.
+      if (linkPress) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      return;
+    }
     if (!fromUser(event) || event.button !== 0 || inLangleUi(event)) return;
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
       return;
@@ -186,6 +248,23 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
   document.addEventListener("keydown", onKeyDown, true);
   window.addEventListener("scroll", onScroll, passive);
   window.addEventListener("resize", onScroll, passive);
+  document.addEventListener("contextmenu", onContextMenu, true);
+  const stopTouches = listenTouches(document, {
+    tap({ x, y, path }) {
+      if (!cb.touch() || path.some(isLangleHost)) return;
+      // The page's own control (a link: the tap follows it) takes the tap.
+      const ref = elements(path).some((element) => element.matches(INTERACTIVE))
+        ? undefined
+        : cb.spanAt(x, y);
+      if (ref) cb.click(ref);
+      else cb.pressAway();
+    },
+    longPress({ x, y, path }) {
+      // Elsewhere a long-press is the phone's own selection.
+      if (cb.touch() && !linkPress && !path.some(isLangleHost) && inLink(path))
+        openLinkWord(x, y);
+    },
+  });
 
   return {
     enterListed(ref, anchor) {
@@ -216,6 +295,8 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
       document.removeEventListener("keydown", onKeyDown, true);
       window.removeEventListener("scroll", onScroll, passive);
       window.removeEventListener("resize", onScroll, passive);
+      document.removeEventListener("contextmenu", onContextMenu, true);
+      stopTouches();
     },
   };
 }
