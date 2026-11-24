@@ -167,8 +167,10 @@ export function watchInteractions(cb: InteractionCallbacks): Interactions {
   }
 
   function onSelectionChange() {
-    if (!pressed)
-      readSelection(cb.touch() ? TOUCH_SELECTION_DELAY_MS : SELECTION_DELAY_MS);
+    // In touch mode the rest alone settles it: WebKit on iOS takes a long-press or a
+    // handle's drag over without a `pointerup` or `pointercancel` to the page.
+    if (cb.touch()) readSelection(TOUCH_SELECTION_DELAY_MS);
+    else if (!pressed) readSelection(SELECTION_DELAY_MS);
   }
 
   /** Opens the word at a point in a link, pressed long; true when there is one. */
