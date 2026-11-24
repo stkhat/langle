@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.RenderProcessGoneDetail
@@ -254,6 +255,18 @@ private class WebViewPage(
   }
 
   private inner class Chrome : WebChromeClient() {
+    /**
+     * Element fullscreen (`requestFullscreen`, YouTube's fullscreen button): [view] renders the
+     * page's fullscreen element, with everything inside it, Langle's overlay included.
+     */
+    override fun onShowCustomView(view: View, callback: CustomViewCallback) {
+      delegate.onEnterFullscreen(this@WebViewPage, view) { callback.onCustomViewHidden() }
+    }
+
+    override fun onHideCustomView() {
+      delegate.onExitFullscreen(this@WebViewPage)
+    }
+
     override fun onCloseWindow(window: WebView) {
       if (window === web) delegate.onClose(this@WebViewPage)
     }
