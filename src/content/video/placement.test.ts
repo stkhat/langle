@@ -3,6 +3,7 @@ import {
   dictionaryFrame,
   menuBelowPlacement,
   menuPlacement,
+  transcriptPlace,
   verticalDictionaryFrame,
 } from "./placement";
 
@@ -189,5 +190,36 @@ describe("menuBelowPlacement", () => {
       right: 1440 - 922 + 16,
       top: 144,
     });
+  });
+});
+
+describe("transcriptPlace", () => {
+  const page = {
+    sidebar: false,
+    sideColumn: false,
+    vertical: false,
+    belowInPage: true,
+  };
+
+  it("goes in the sidebar beside a player that fills the window, before anything else", () => {
+    expect(transcriptPlace({ ...page, sidebar: true, sideColumn: true })).toBe(
+      "sidebar",
+    );
+  });
+
+  it("goes in the side column where there is one (youtube.com)", () => {
+    expect(transcriptPlace({ ...page, sideColumn: true })).toBe("sideColumn");
+  });
+
+  it("goes below the video on a page with no side column (m.youtube.com)", () => {
+    expect(transcriptPlace(page)).toBe("belowVideo");
+  });
+
+  it("is not placed below the video when that area is a box over the video (Netflix)", () => {
+    expect(transcriptPlace({ ...page, belowInPage: false })).toBeNull();
+  });
+
+  it("is not placed beside a vertical video", () => {
+    expect(transcriptPlace({ ...page, vertical: true })).toBeNull();
   });
 });

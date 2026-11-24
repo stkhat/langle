@@ -13,7 +13,7 @@ import type { LookupHooks } from "../../lookup/lookup";
 import { createShadowHost } from "../../shadow-host";
 import { contentDeps } from "../../wiring";
 import type { PlatformAdapter } from "../platform";
-import { isShortsUrl } from "./adapter";
+import { isShortsUrl } from "./desktop-layout";
 
 /** A comment's text on a YouTube watch page (its replies' too). */
 const COMMENT_TEXT = "#content-text";

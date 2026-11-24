@@ -53,6 +53,14 @@ export const extensionPathOf = (build: Build) =>
     BUILDS[build].dir,
   );
 
+/** The project's screen and input (playwright.config.ts: the `phone` project's). */
+interface Device {
+  viewport: { width: number; height: number } | null;
+  isMobile: boolean | undefined;
+  hasTouch: boolean | undefined;
+  userAgent: string | undefined;
+}
+
 /**
  * A fresh browser profile with a built extension loaded. The lock's mirrors are routed
  * to data/packs/ first (pack-mirrors.ts), then the extension is loaded through CDP
@@ -63,12 +71,14 @@ async function launchWithExtension(
   port: number,
   mirrors: MirrorRouting,
   before: ((context: BrowserContext) => Promise<void>) | null,
+  device: Device,
 ): Promise<BrowserContext> {
   const extensionPath = extensionPathOf(build);
   if (!fs.existsSync(path.join(extensionPath, "manifest.json")))
     throw new Error(`Build first: ${BUILDS[build].command}`);
   const headed = !!process.env.PWDEBUG || !!process.env.HEADED;
   const context = await chromium.launchPersistentContext("", {
+    ...device,
     // Bundled Chromium: stable Chrome 137+ cannot load an unpacked extension this way.
     channel: "chromium",
     headless: !headed,
@@ -188,7 +198,18 @@ export const test = base.extend<{
     await use(await freePort());
   },
   context: async (
-    { build, startPair, beforeInstall, mirrorsHeld, mirrorBitsPerSecond, port },
+    {
+      build,
+      startPair,
+      beforeInstall,
+      mirrorsHeld,
+      mirrorBitsPerSecond,
+      port,
+      viewport,
+      isMobile,
+      hasTouch,
+      userAgent,
+    },
     use,
   ) => {
     const context = await launchWithExtension(
@@ -196,6 +217,7 @@ export const test = base.extend<{
       port,
       { held: mirrorsHeld, bitsPerSecond: mirrorBitsPerSecond },
       beforeInstall,
+      { viewport, isMobile, hasTouch, userAgent },
     );
     if (startPair) await useStartPair(context, startPair);
     await use(context);
