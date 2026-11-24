@@ -19,7 +19,7 @@
 - [x] M2: iOS shell (branch `claude/mobile-m2`)
 - [x] M1: Android shell (branch `claude/mobile-m1`): Langle runs on the E2E article on the emulator (WebView Dev 160): highlights, a saved word survives a restart, the error log is empty
 - [x] M3 designed (2026-11-24): spec [mobile-app.md](../specs/mobile-app.md) "M3: m.youtube.com and touch"
-- [ ] M3a: YouTube adapter split and the m.youtube.com layout (branch `claude/mobile-m3a`)
+- [x] M3a: YouTube adapter split and the m.youtube.com layout (branch `claude/mobile-m3a`): the player stays pinned under the header; narrowing it in fullscreen leaves the video's size (M3d)
 - [ ] M3b: touch mode, gestures, the dictionary sheet, articles (branch `claude/mobile-m3b`)
 - [ ] M3c: fullscreen in the shells (branch `claude/mobile-m3c`)
 - [ ] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`)
@@ -407,7 +407,7 @@ export interface YouTubeLayout {
 Adjust the shape to what the code needs when moving it, keeping one interface for both layouts.
 
 **Tasks**
-- [ ] **Measure m.youtube.com** before writing `mobile-layout.ts`:
+- [x] **Measure m.youtube.com** before writing `mobile-layout.ts`:
   - Use Playwright's Chromium (`require("playwright")`, not installed again), `viewport 390×844`, `isMobile: true`, `hasTouch: true`, an Android Chrome user agent, logged out. Open the baseline (Ken Robinson's TED talk, `https://m.youtube.com/watch?v=iG9CE55wbtY`, hand-made captions) and one video with auto-generated English captions (name it in the notes).
   - Record:
     - the player element, the title element, the element under the player where YouTube's metadata starts;
@@ -418,14 +418,14 @@ Adjust the shape to what the code needs when moving it, keeping one interface fo
     - whether the player's own timedtext request is seen.
   - If automated Chromium gets no captions or is refused, measure the DOM in the Claude app's built-in browser (mobile preset) instead, and say so.
   - Write it to [notes/mobile.md](../notes/mobile.md) as "m.youtube.com layout (measured 2026-11-…)". Save a trimmed DOM as the fixture. Commit.
-- [ ] **Split the adapter**, test-first: `adapter.browser.test.ts` passes unchanged against `desktopLayout()`. Commit.
-- [ ] **`mobileLayout()`** with its browser test on the fixture. Commit.
-- [ ] **Entrypoints and manifests**: both new scripts in every build, `www.youtube.com` scripts unchanged. Commit.
-- [ ] **The placement rule** with a test. Commit.
-- [ ] **The two settings**, test-first. The video UI reads `phoneSubtitlePosition` instead of `subtitlePosition` when the page is in touch mode. Until M3b lands, take touch mode as a `touchMode: () => boolean` dependency, `false` by default; M3d wires the real one. Commit.
-- [ ] **Phone E2E**: the `phone` project (Chromium only; `isMobile`, `hasTouch`, 390 × 844, Android user agent) on the fake m.youtube.com: Langle's subtitle shows with highlights, below the video once touch mode is wired (M3d adds the rest). Commit.
-- [ ] **Docs**: architecture.md code layout (the layouts, the new entrypoints); ui.md is unchanged; tick M3a.
-- [ ] `npm run verify -- --skip-firefox`, push, draft PR "Mobile app M3a: m.youtube.com adapter", `gh pr ready`.
+- [x] **Split the adapter**, test-first: `adapter.browser.test.ts` passes unchanged against `desktopLayout()`. Commit.
+- [x] **`mobileLayout()`** with its browser test on the fixture. Commit.
+- [x] **Entrypoints and manifests**: both new scripts in every build, `www.youtube.com` scripts unchanged. Commit.
+- [x] **The placement rule** with a test. Commit.
+- [x] **The two settings**, test-first. The video UI reads `phoneSubtitlePosition` instead of `subtitlePosition` when the page is in touch mode. Until M3b lands, take touch mode as a `touchMode: () => boolean` dependency, `false` by default; M3d wires the real one. Commit.
+- [x] **Phone E2E**: the `phone` project (Chromium only; `isMobile`, `hasTouch`, 390 × 844, Android user agent) on the fake m.youtube.com: Langle's subtitle shows with highlights, below the video once touch mode is wired (M3d adds the rest). Commit.
+- [x] **Docs**: architecture.md code layout (the layouts, the new entrypoints); ui.md is unchanged; tick M3a.
+- [x] `npm run verify -- --skip-firefox`, push, draft PR "Mobile app M3a: m.youtube.com adapter", `gh pr ready`.
 
 ### M3b: touch mode, gestures, the sheet, articles (one agent, Opus)
 Branch `claude/mobile-m3b`.
