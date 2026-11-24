@@ -89,9 +89,14 @@ export function createYouTubeAdapter(
     channel: CHANNEL,
     isEvent: isTimedtextMessage,
   });
+  // The site's caption window, and the caption track the browser draws in the video
+  // itself (YouTube turns one on when its video is in fullscreen on an iPhone, for the
+  // system's player: docs/notes/mobile.md "The app's own fullscreen (M3e)"). Separate
+  // rules: a browser that does not know the pseudo-element drops only its rule.
   const hideCaptions = styleSwitch(
     "langle-hide-site-captions",
-    "#ytp-caption-window-container { display: none !important; }",
+    "#ytp-caption-window-container { display: none !important; }\n" +
+      ".html5-video-player video::-webkit-media-text-track-container { display: none !important; }",
   );
   const cleanups: (() => void)[] = [];
 

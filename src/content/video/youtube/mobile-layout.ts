@@ -1,4 +1,5 @@
 import { NARROW_BY_WIDTH } from "../adapter-kit";
+import { fullscreenElement } from "../../fullscreen";
 import type { YouTubeLayout } from "./layout";
 
 /**
@@ -28,7 +29,7 @@ export function mobileLayout(): YouTubeLayout {
     vertical: () => false,
     besidePlayer: () => null,
     fullscreenBox() {
-      const element = document.fullscreenElement;
+      const element = fullscreenElement();
       const box = player()?.parentElement;
       return element && box && element.contains(box) && !box.contains(element)
         ? box

@@ -38,11 +38,17 @@ final class ContentInjector {
     return text
   }
 
-  /// The scripts for a web page at `url`; none when no content script matches it.
+  /// The scripts for a web page at `url`: the app's own fullscreen on every page (it installs
+  /// itself only where WebKit has no element fullscreen, docs/plans/mobile-app.md "M3e"), then
+  /// Langle's when a content script matches it.
   func webPageScripts(for url: URL) -> [UserScript] {
+    var scripts: [UserScript] = []
+    if let fullscreen = source("langle-fullscreen.js") {
+      scripts.append(UserScript(source: fullscreen, world: .page, runAt: .start))
+    }
     let matched = manifest.scripts(for: url.absoluteString)
-    guard !matched.isEmpty else { return [] }
-    var scripts = debugScripts(.langle)
+    guard !matched.isEmpty else { return scripts }
+    scripts += debugScripts(.langle)
     if matched.contains(where: { $0.world == .isolated }), let shim = source("langle-shim.js") {
       scripts.append(UserScript(source: appInfo("content"), world: .langle, runAt: .start))
       scripts.append(UserScript(source: shim, world: .langle, runAt: .start))
