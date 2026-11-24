@@ -18,11 +18,11 @@ export default defineConfig({
   },
   // Only Chromium can load unpacked extensions.
   projects: [
-    { name: "chromium", testIgnore: /phone\.spec\.ts/ },
+    { name: "chromium", testIgnore: "phone.spec.ts" },
     {
-      // A phone (Chrome on Android, as Kiwi or Edge Canary run extensions): touch mode.
+      // A phone: m.youtube.com and articles as the mobile app's web view shows them.
       name: "phone",
-      testMatch: /phone\.spec\.ts/,
+      testMatch: "phone.spec.ts",
       use: {
         viewport: { width: 390, height: 844 },
         isMobile: true,

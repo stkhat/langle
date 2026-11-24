@@ -1,11 +1,22 @@
-// Articles on a phone (the `phone` project): touch mode, the dictionary sheet.
+// The `phone` project (playwright.config.ts): a 390 × 844 touch screen with an Android
+// user agent, as the mobile app's web view. Articles: touch mode, the dictionary sheet.
+// On the fake m.youtube.com, the MAIN-world hook catches the player's caption request and
+// Langle's parts go where the mobile layout puts them. (The video UI's touch mode is not
+// wired yet, mobile-app.md M3d: the subtitle follows the desktop's setting.)
 import type { Page } from "@playwright/test";
 import en from "../src/i18n/locales/en.json" with { type: "json" };
 import { test, expect } from "./fixtures";
-import { COLD_LOAD, highlighted, openArticle, showNewWords } from "./page";
+import {
+  COLD_LOAD,
+  highlighted,
+  ON_TIME,
+  openArticle,
+  showNewWords,
+} from "./page";
+import { routeMobileYouTube, YOUTUBE_MOBILE_WATCH } from "./sites";
 
 /** A point a little in from the left edge of `text` in the article, scrolled into view. */
-function pointOn(page: Page, text: string) {
+function wordPoint(page: Page, text: string) {
   return page.evaluate((text) => {
     const walker = document.createTreeWalker(
       document.querySelector("article")!,
@@ -35,7 +46,7 @@ test("a tap opens the word's sheet, and Learning saves the word", async ({
 }) => {
   await showNewWords(context, extensionId);
   const page = await openArticle(context);
-  const loaf = await pointOn(page, "loaf");
+  const loaf = await wordPoint(page, "loaf");
   await page.touchscreen.tap(loaf.x, loaf.y);
   await expect(sheet(page).getByRole("heading", { name: "loaf" })).toBeVisible(
     COLD_LOAD,
@@ -65,8 +76,8 @@ test("a long-press across two words opens their phrase's sheet", async ({
 }) => {
   await showNewWords(context, extensionId);
   const page = await openArticle(context);
-  const from = await pointOn(page, "tangy taste");
-  const to = await pointOn(page, "taste");
+  const from = await wordPoint(page, "tangy taste");
+  const to = await wordPoint(page, "taste");
   const cdp = await context.newCDPSession(page);
   const touch = (
     type: "touchStart" | "touchMove" | "touchEnd",
@@ -98,4 +109,45 @@ test("a long-press across two words opens their phrase's sheet", async ({
   expect(await page.evaluate(() => getSelection()!.toString())).toBe(
     "tangy taste",
   );
+});
+
+/** "extraordinary" and "creativity" are New words. */
+const LINE = "Mara found an extraordinary fossil of pure creativity";
+
+test("m.youtube.com: the subtitle shows with its highlights, the transcript below the video", async ({
+  context,
+  extensionId,
+}) => {
+  await showNewWords(context, extensionId);
+  await routeMobileYouTube(context);
+  const page = await context.newPage();
+  await page.goto(YOUTUBE_MOBILE_WATCH);
+
+  // No side column on the phone: the transcript opens the area under the player.
+  const transcript = page.getByRole("complementary", {
+    name: en["app.name"],
+  });
+  await expect(transcript).toBeVisible();
+  expect(
+    await page
+      .locator(".watch-below-the-player")
+      .evaluate((below) => below.querySelector("langle-transcript") !== null),
+  ).toBe(true);
+  const player = (await page.locator("#movie_player").boundingBox())!;
+  const column = (await transcript.boundingBox())!;
+  expect(column.y).toBeGreaterThanOrEqual(player.y + player.height);
+  expect(column.width).toBeLessThanOrEqual(390);
+
+  await transcript
+    .getByRole("button", { name: LINE })
+    .click({ position: ON_TIME });
+  const subtitle = page.locator("langle-video-player").getByRole("region", {
+    name: en["video.subtitle"],
+  });
+  await expect(subtitle).toContainText(LINE);
+  await expect(subtitle.getByText("creativity", { exact: true })).toHaveCSS(
+    "box-shadow",
+    /rgb\(141, 180, 255\)/,
+  );
+  await expect(page.locator("#ytp-caption-window-container")).toBeHidden();
 });

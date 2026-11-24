@@ -6,6 +6,7 @@ import SwiftUI
 ///   xcrun simctl launch booted dev.langle.app [-url <page>] [-reset 1]
 @main
 struct LangleApp: App {
+  @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
   @StateObject private var model = AppModel()
 
   var body: some Scene {
@@ -90,5 +91,45 @@ struct PageContainer: UIViewRepresentable {
       host.frame = .zero
       container.addSubview(host)
     }
+  }
+}
+
+/// The window stays in portrait, and turns to landscape while the browsing page is in fullscreen
+/// (docs/specs/mobile-app.md "The WebViews' fullscreen"). Info.plist lists portrait and both
+/// landscapes, so that landscape is possible at all; this mask narrows them.
+@MainActor
+final class AppDelegate: NSObject, UIApplicationDelegate {
+  static var orientations: UIInterfaceOrientationMask = .portrait
+
+  func application(
+    _ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?
+  ) -> UIInterfaceOrientationMask {
+    Self.orientations
+  }
+}
+
+@MainActor
+enum Orientation {
+  /// Landscape while a page is in fullscreen, portrait again after; every window of the scene
+  /// (WebKit's fullscreen window among them) is told to ask again.
+  static func fullscreen(_ on: Bool) {
+    AppDelegate.orientations = on ? .landscape : .portrait
+    for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+      for window in scene.windows {
+        window.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+      }
+      scene.requestGeometryUpdate(.iOS(interfaceOrientations: AppDelegate.orientations)) { error in
+        Log.app.info("orientation not changed: \(error.localizedDescription, privacy: .public)")
+      }
+    }
+  }
+
+  /// The scene's orientation and size, for `check.sh`.
+  static var current: String {
+    guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first
+    else { return "no scene" }
+    let landscape = scene.effectiveGeometry.interfaceOrientation.isLandscape
+    let size = scene.effectiveGeometry.coordinateSpace.bounds.size
+    return "orientation=\(landscape ? "landscape" : "portrait") window=\(Int(size.width))x\(Int(size.height))"
   }
 }

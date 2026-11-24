@@ -17,6 +17,7 @@ final class ContextPage: PageDelegate {
   var onNavigate: ((_ url: URL?, _ title: String, _ canGoBack: Bool, _ canGoForward: Bool) -> Void)?
   var onCommit: ((URL) -> Void)?
   var onProcessGone: (() -> Void)?
+  var onFullscreen: ((Bool) -> Void)?
 
   init(
     engine: BrowsingEngine, profile: PageProfile, router: Router, world: ScriptWorld,
@@ -69,6 +70,10 @@ final class ContextPage: PageDelegate {
     connection?.disconnect()
     connection = nil
     onProcessGone?()
+  }
+
+  func page(_ page: Page, fullscreen: Bool) {
+    onFullscreen?(fullscreen)
   }
 }
 

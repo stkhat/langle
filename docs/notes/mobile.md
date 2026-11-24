@@ -46,6 +46,20 @@ Setup: the Claude desktop app's built-in browser (Chromium, not automated, `navi
 - DOM differs: present are `#movie_player`, `video.html5-main-video`, `.ytp-caption-window-container`; absent are `ytd-watch-flexy` and `.ytp-chrome-bottom` (desktop controls). Player at 375x211 under a 48 px header. A separate `PlatformAdapter` is needed for button and transcript placement.
 - Not checked here: signed-in state, Shorts, live streams. Real Android WebView and GeckoView were checked on 2026-11-22 ("Android prototypes" below), WKWebView too ("iOS prototype").
 
+## m.youtube.com layout (measured 2026-11-24)
+Setup: Playwright's Chromium (headless), 390 × 844, `isMobile`, `hasTouch`, an Android 14 Chrome user agent, en-US, logged out, muted. Videos: Ken Robinson's TED talk `iG9CE55wbtY` (hand-made captions, the baseline) and "a week in my life vlog" `kaPgGH5HC0w` (auto-generated English only, `en/asr`; from the 2026-11-cards corpus). Automated Chromium was not refused: both pages played and captioned. This is what `mobileLayout()` (`src/content/video/youtube/mobile-layout.ts`) reads; the trimmed DOM is `tests/fixtures/m-youtube-watch.html`.
+
+- **Player**: `#movie_player` (classes `html5-video-player … ytp-mweb-player`) in `#player.player-api.player-size` in `#player-container-id.player-container.sticky-player`, a child of `<body>`, outside `ytm-app`. The video is `video.video-stream.html5-main-video`, as on desktop. The player's controls are not inside `#movie_player`: they are in `#player-control-container` (`ytm-custom-control` > `ytm-watch-player-controls`), a sibling of `#player`.
+- **Pinned**: `#player-container-id` is `position: fixed; top: 48px` (under the 48 px `ytm-mobile-topbar-renderer`), 390 × 219 for a 16:9 player. The page keeps its place with `div.player-size.player-placeholder` (390 × 219) at the top of `ytm-watch`. After `scrollTo(0, 1200)` the player was still at top 48: **it stays pinned while the page scrolls**, and the page scrolls under it.
+- **Under the player**: `ytm-watch` > `div.player-placeholder`, then `div.watch-below-the-player`, which holds `ytm-single-column-watch-next-results-renderer.watch-content` (first `ytm-slim-video-metadata-section-renderer`: the title, the channel and the action bar; then the comments teaser, then `div.related-items-container`). There is no side column, at 390 or at 844 px wide.
+- **Title**: `ytm-slim-video-metadata-section-renderer h2` (class `ytVideoMetadataViewModelTitle`); there is no `h1`. The document title is "<title> - YouTube", as on desktop.
+- **Navigation**: a tap on a related video's link calls `history.pushState` and fires `state-navigatestart` on `window`, then `video-data-change` on `window` and `document` about ten times, then **`state-navigateend` on `window`** once, after the URL changed. `yt-navigate-finish` never fired. Langle listens to `state-navigateend`.
+- **Fullscreen**: the button is `button.icon-button.fullscreen-icon` ("Enter full screen") in `.player-controls-bottom-right`. It calls **`requestFullscreen()` on `#player-container-id`** and then `screen.orientation.lock("landscape")`; `webkitEnterFullscreen` on the video is not called (desktop Chromium; the WebViews are measured in M3c). In fullscreen `#movie_player` gets `ytp-fullscreen` and fills the screen. In a 844 × 390 landscape viewport the video is laid out by inline style (`width: 693px; height: 390px; left: 75px` for 16:9). Narrowing `#player` (`width: calc(100% - 332px)`) narrows `#player` and `#movie_player`, but the player did not lay its video out again (not after a `resize` event, nor after `setSize()` / `setInternalSize()`); `margin-right` on `#player` and `padding-right` on the fullscreen element change nothing. **Open for M3d**: how the video shrinks beside the transcript column.
+- **Ads**: the player gets `ad-created ad-showing ad-interrupting`, as on desktop (seen before the second TED talk after an in-page navigation).
+- **Captions**: the site's caption container is `#ytp-caption-window-container.ytp-caption-window-container` inside `#movie_player`, as on desktop.
+- **The player's own timedtext request** is seen as an XHR to `m.youtube.com/api/timedtext` with `lang=en`, `fmt=json3`, `potc` + `pot` and the client params (`c`, `cver`, `cplatform`, `cmodel`, …), for both videos (`kind=asr` for the vlog), once the video plays with captions on. So `page.ts` captures it unchanged.
+- Shorts (`m.youtube.com/shorts/…`) were not measured: they are not in M3, and `mobileLayout()` shows nothing there.
+
 ## Android engine: System WebView (decided 2026-11-22)
 - **Why**: GeckoView bundles the engine. Its debug APK is 210 MB, about 96 MB compressed (estimate), against 6.8 MB and about 2.2 MB for WebView. About 90 MB is the engine, which a release build does not shrink. `tlang` is refused on both ("Translated captions"), so it does not justify the size.
 - **What WebView costs, given that iOS needs the shim anyway**:
@@ -121,6 +135,19 @@ Two throwaway apps in `mobile/prototypes/` (setup: [development.md](../developme
   - Q2 on the Dev channel only; Q3 and Q4 on 145 only;
   - renderers ended with `terminate()`, not a real crash or a low-memory kill;
   - not checked: iframes (`setOf("*")` with frames), a real phone, memory pressure, the real `langle-app` build.
+
+## Fullscreen in the shells (M3c, 2026-11-24)
+The Langle app's shells (`mobile/android`, `mobile/ios`, check builds), signed out, on `https://m.youtube.com/watch?v=iG9CE55wbtY` (muted). `check.sh fullscreen` (`mobile/check/fullscreen.js`) was run before and after tapping YouTube's fullscreen button (`button.fullscreen-icon`, "Enter full screen"). On its first call it puts a red 48 px test element, created from Langle's world, next to the largest video (`div.html5-video-container`).
+
+| | Android (emulator `Medium_Phone_API_37.0`, WebView Dev 160.0.8171.0) | iOS (Simulator iPhone 17, iOS 27.2) |
+|---|---|---|
+| What YouTube used | **Element fullscreen**: `document.fullscreenElement` is `div#player-container-id.player-container` (914 × 411 CSS px); `onShowCustomView` fired | **Only the video's own fullscreen** (`webkitDisplayingFullscreen` true, `fullscreenElement` null), drawn by the system's player. `isElementFullscreenEnabled = true` was set, but the page still has no `Element.prototype.requestFullscreen`, `webkitRequestFullscreen` or `document.fullscreenEnabled`: on the iPhone WebKit does not expose element fullscreen |
+| Test element in Langle's world | Inside the fullscreen element, on screen at the top left, visible in the screenshot | Not shown: the system's player covers the page. Its own captions showed |
+| Screen | Landscape: screen 915 × 412, window 2400 × 1080 px, system bars hidden (Android shows its "Viewing full screen, swipe down to exit" hint the first time) | Portrait at first. Turning the device rotated the system's player to landscape, although the app is portrait-only then |
+| Leaving fullscreen | System back, and `document.exitFullscreen()`: the page came back in portrait at the same URL, `fullscreen=false`, the error log empty | `webkitExitFullscreen()`: the page came back in portrait at the same URL, the error log empty |
+
+- On Android, the test element is on screen but not on top at its centre (`elementFromPoint` returns YouTube's overlay over the video, also outside fullscreen). Langle's real overlay must be placed above YouTube's layers, not only inside the player (M3d).
+- **iOS needs the fallback** from the spec (the app's own fullscreen: landscape, bars hidden, the player filling the page). It goes back to the user before it is built. The shell's landscape-in-element-fullscreen code stays in place for when WebKit exposes element fullscreen on the iPhone. Not checked: an iPad, where WebKit does expose it.
 
 ## iOS prototype (2026-11-22)
 `mobile/prototypes/ios-wkwebview` (SwiftUI shell, a hand-written Xcode project with a synchronized folder; no generator), on the Simulator (iPhone 17, iOS 27.2), logged out, the same video and the same `probe.js`. Driven from the shell by `check.sh` (`simctl launch` arguments, Darwin notifications for commands, results in the unified log).

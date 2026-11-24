@@ -5,7 +5,6 @@ import {
   test as base,
   chromium,
   type BrowserContext,
-  type BrowserContextOptions,
   type Page,
 } from "@playwright/test";
 import {
@@ -54,34 +53,35 @@ export const extensionPathOf = (build: Build) =>
     BUILDS[build].dir,
   );
 
+/** The project's screen and input (playwright.config.ts: the `phone` project's). */
+interface Device {
+  viewport: { width: number; height: number } | null;
+  isMobile: boolean | undefined;
+  hasTouch: boolean | undefined;
+  userAgent: string | undefined;
+}
+
 /**
  * A fresh browser profile with a built extension loaded. The lock's mirrors are routed
  * to data/packs/ first (pack-mirrors.ts), then the extension is loaded through CDP
  * (after `before`, if given): once installed, it opens its setup and nothing else.
  */
-/** What a phone project sets (playwright.config.ts `phone`). */
-type Device = Pick<
-  BrowserContextOptions,
-  "isMobile" | "hasTouch" | "viewport" | "userAgent"
->;
-
 async function launchWithExtension(
   build: Build,
   port: number,
   mirrors: MirrorRouting,
   before: ((context: BrowserContext) => Promise<void>) | null,
-  /** A phone (the `phone` project): its screen, touch and user agent; none: desktop. */
-  device: Device | null = null,
+  device: Device,
 ): Promise<BrowserContext> {
   const extensionPath = extensionPathOf(build);
   if (!fs.existsSync(path.join(extensionPath, "manifest.json")))
     throw new Error(`Build first: ${BUILDS[build].command}`);
   const headed = !!process.env.PWDEBUG || !!process.env.HEADED;
   const context = await chromium.launchPersistentContext("", {
+    ...device,
     // Bundled Chromium: stable Chrome 137+ cannot load an unpacked extension this way.
     channel: "chromium",
     headless: !headed,
-    ...device,
     // Playwright turns extensions off; --disable-extensions-except would load this one
     // at launch, before the routes.
     ignoreDefaultArgs: ["--disable-extensions"],
@@ -205,9 +205,9 @@ export const test = base.extend<{
       mirrorsHeld,
       mirrorBitsPerSecond,
       port,
+      viewport,
       isMobile,
       hasTouch,
-      viewport,
       userAgent,
     },
     use,
@@ -217,14 +217,7 @@ export const test = base.extend<{
       port,
       { held: mirrorsHeld, bitsPerSecond: mirrorBitsPerSecond },
       beforeInstall,
-      isMobile
-        ? {
-            isMobile,
-            hasTouch,
-            viewport,
-            ...(userAgent && { userAgent }),
-          }
-        : null,
+      { viewport, isMobile, hasTouch, userAgent },
     );
     if (startPair) await useStartPair(context, startPair);
     await use(context);
