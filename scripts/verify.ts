@@ -254,8 +254,13 @@ async function main(): Promise<number> {
   mkdirSync(logDir, { recursive: true });
   const tree = workingTree();
 
+  // `--skip-firefox`: a session the user asked to run without the Firefox lane.
+  const skipFirefox = process.argv.includes("--skip-firefox");
+  if (skipFirefox) console.log("- browser (Firefox) skipped (--skip-firefox)");
   const results = await Promise.all(
-    Object.keys(LANES).map((lane) => runLane(lane, logDir)),
+    Object.keys(LANES)
+      .filter((lane) => !(skipFirefox && lane === "firefox"))
+      .map((lane) => runLane(lane, logDir)),
   );
   const total = seconds(Date.now() - started);
   const failures = results.filter((r) => r.failed);
