@@ -1,5 +1,11 @@
 import type { ComponentChildren, CSSProperties } from "preact";
-import { useEffect, useMemo, useReducer } from "preact/hooks";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+} from "preact/hooks";
 import { FEEDBACK_URL } from "../../core/links";
 import type { Settings } from "../../core/settings";
 import { DictionaryWindow } from "../../ui/lookup/DictionaryWindow";
@@ -85,12 +91,17 @@ export interface VideoLayout {
    */
   touch: boolean;
   /**
-   * The bottom of the subtitle box under the video while it is pinned under a player
-   * that stays at the window's top (m.youtube.com's portrait page), in px from the
-   * window's top; null while it scrolls with the page.
+   * Where the subtitle box under the video is pinned, fixed under a player that stays at
+   * the window's top (m.youtube.com's portrait page), in px in the window; null while it
+   * scrolls with the page.
    */
+  pinned: { top: number; left: number; width: number } | null;
+  /** The pinned subtitle box's bottom, in px from the window's top; null when not pinned. */
   pinnedBottom: number | null;
 }
+
+/** The pinned subtitle box over the page that scrolls under it. */
+const PINNED_LAYER = 10;
 
 /** Where the subtitle goes: the phone's own setting in touch mode, the desktop's otherwise. */
 const subtitlePosition = (
@@ -477,24 +488,57 @@ export function MenuUi(props: {
   );
 }
 
-/** Under the video: the large subtitle box (subtitle position "Below video"). */
+/**
+ * Under the video: the large subtitle box (subtitle position "Below video"). Pinned, it
+ * is fixed under the player and tells its height (`onPinnedHeight`, null when it goes),
+ * so its host keeps its room in the page. Fixed, not sticky: a sticky box sticks only
+ * inside its nearest scroll container, and on the iPhone m.youtube.com's `ytm-app`
+ * (`overflow-x: hidden`, never scrolled) is that container, so a sticky box scrolled
+ * away with the page.
+ */
 export function BelowVideoUi(props: {
   app: VideoApp;
   layout: Store<VideoLayout>;
+  onPinnedHeight?: (height: number | null) => void;
 }) {
-  const { app } = props;
+  const { app, onPinnedHeight } = props;
   const state = useStore(app.store);
-  const { touch, fillsWindow } = useStore(props.layout);
-  if (
-    !showing(state) ||
-    state.fullscreen ||
-    (touch && fillsWindow) ||
-    subtitlePosition(state.settings, touch) !== "belowVideo"
-  )
-    return null;
+  const { touch, fillsWindow, pinned } = useStore(props.layout);
+  const band = useRef<HTMLDivElement>(null);
+  const shown =
+    showing(state) &&
+    !state.fullscreen &&
+    !(touch && fillsWindow) &&
+    subtitlePosition(state.settings, touch) === "belowVideo";
+  const isPinned = shown && pinned !== null;
+  useLayoutEffect(() => {
+    const element = band.current;
+    if (!isPinned || !element || !onPinnedHeight) return;
+    const tell = () => onPinnedHeight(element.offsetHeight);
+    const observer = new ResizeObserver(tell);
+    observer.observe(element);
+    tell();
+    return () => {
+      observer.disconnect();
+      onPinnedHeight(null);
+    };
+  }, [isPinned]);
+  if (!shown) return null;
   return (
     // A phone (mock MobileYouTube): a band from edge to edge under the video.
-    <div style={{ margin: touch ? 0 : "12px 0" }}>
+    <div
+      ref={band}
+      style={{
+        margin: touch ? 0 : "12px 0",
+        ...(pinned && {
+          position: "fixed",
+          top: `${pinned.top}px`,
+          left: `${pinned.left}px`,
+          width: `${pinned.width}px`,
+          zIndex: PINNED_LAYER,
+        }),
+      }}
+    >
       <Subtitle
         app={app}
         state={state}

@@ -306,10 +306,18 @@ describe("mountVideoUi", () => {
     expect(text("langle-video-below")).not.toContain("The yeast");
   });
 
-  it("in touch mode, under a player fixed at the top, the subtitle sticks under the player", async () => {
+  it("in touch mode, under a player fixed at the top, the subtitle is pinned under the player and keeps its room", async () => {
     const fake = fakeApp(readyState());
     page.player.style.cssText +=
       "position: fixed; top: 48px; left: 0; width: 390px; height: 219px;";
+    // As m.youtube.com on the iPhone: an ancestor that clips without scrolling (a sticky
+    // box would stick inside it, and scroll away with the page), and a long page.
+    const below = adapter.belowVideoElement()!;
+    const clipping = below.parentElement!;
+    clipping.style.cssText += "overflow-x: hidden; padding-top: 48px;";
+    const tail = document.createElement("div");
+    tail.style.height = "3000px";
+    clipping.append(tail);
     unmount = mountVideoUi({
       adapter,
       app: fake.app,
@@ -318,14 +326,33 @@ describe("mountVideoUi", () => {
     await expect
       .poll(() => text("langle-video-below"))
       .toContain("The yeast smells tangy.");
-    const below = host("langle-video-below");
-    await expect.poll(() => below.style.position).toBe("sticky");
-    expect(below.style.top).toBe("267px");
+    const band = () =>
+      inside("langle-video-below")!
+        .querySelector("[role=region]")!
+        .getBoundingClientRect();
+    await expect.poll(() => band().top).toBe(267);
+    // The host keeps the band's room in the page.
+    const room = host("langle-video-below").getBoundingClientRect();
+    expect(room.height).toBeGreaterThan(0);
+    expect(room.height).toBeCloseTo(band().height, 0);
+    scrollTo(0, 400);
+    await expect.poll(() => band().top).toBe(267);
+    scrollTo(0, 0);
     // Not fixed: the box scrolls with the page.
     page.player.style.position = "relative";
     page.player.style.top = "";
-    window.dispatchEvent(new Event("resize"));
-    await expect.poll(() => below.style.position).toBe("");
+    // The site renders again (Langle places its parts on the page's mutations).
+    const rendered = document.body.appendChild(document.createElement("hr"));
+    await expect.poll(() => host("langle-video-below").style.height).toBe("");
+    scrollTo(0, 100);
+    await expect
+      .poll(() => band().top)
+      .toBeCloseTo(page.player.getBoundingClientRect().bottom, 0);
+    scrollTo(0, 0);
+    rendered.remove();
+    tail.remove();
+    clipping.style.overflowX = "";
+    clipping.style.paddingTop = "";
   });
 
   it("in touch mode, shows Paused at the video's top left while Langle holds it paused; never on a desktop", async () => {
