@@ -103,6 +103,19 @@ describe.each(["chrome-mv3", "firefox-mv3"])("%s manifest", (dir) => {
         world: "MAIN",
         run_at: "document_start",
       },
+      // The mobile site, in every build (mobile-app.md "M3: m.youtube.com and touch").
+      {
+        matches: ["*://m.youtube.com/*"],
+        js: ["content-scripts/youtube-mobile-main.js"],
+        world: "MAIN",
+        run_at: "document_start",
+      },
+      {
+        matches: ["*://m.youtube.com/*"],
+        js: ["content-scripts/youtube-mobile.js"],
+        world: undefined,
+        run_at: "document_start",
+      },
       {
         matches: ["*://www.youtube.com/*"],
         js: ["content-scripts/youtube.js"],
@@ -216,6 +229,7 @@ describe("check build", () => {
     for (const file of [
       "content-scripts/content.js",
       "content-scripts/youtube.js",
+      "content-scripts/youtube-mobile.js",
       "content-scripts/netflix.js",
     ])
       expect(
@@ -232,6 +246,7 @@ describe("check build", () => {
       "background.js",
       "content-scripts/content.js",
       "content-scripts/youtube.js",
+      "content-scripts/youtube-mobile.js",
       "content-scripts/netflix.js",
     ])
       expect(has(file), file).toBe(true);
