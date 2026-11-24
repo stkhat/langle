@@ -1294,3 +1294,56 @@ describe("DictionaryWindow in a language written right to left", () => {
     expect(getComputedStyle(english).direction).toBe("ltr");
   });
 });
+
+describe("DictionaryWindow as a sheet (touch mode)", () => {
+  const sheet: DictionaryWindowProps = {
+    ...panel,
+    variant: "sheet",
+    frame: { top: 380 },
+    status: "new",
+  };
+
+  test("shows the same content in a sheet from the top it is given", async () => {
+    const screen = await mountInShadowRoot(<DictionaryWindow {...sheet} />);
+    const aside = screen.getByRole("complementary", { name: "Dictionary" });
+    await expect.element(aside).toBeVisible();
+    expect(Math.round(aside.element().getBoundingClientRect().top)).toBe(380);
+    await expect
+      .element(screen.getByRole("heading", { name: "figure out", level: 2 }))
+      .toBeVisible();
+    await expect
+      .element(screen.getByRole("group", { name: "Word status" }))
+      .toBeVisible();
+    await expect.element(screen.getByText("Meanings")).toBeVisible();
+    await expect
+      .element(screen.getByRole("link", { name: "Cambridge" }))
+      .toBeInTheDocument();
+  });
+
+  test("says the status above the entry: New, Selected, Learning", async () => {
+    const screen = await mountInShadowRoot(<DictionaryWindow {...sheet} />);
+    await expect.element(screen.getByText("New · not saved")).toBeVisible();
+    await screen.rerender(<DictionaryWindow {...sheet} selected />);
+    await expect
+      .element(screen.getByText("Selected · not saved"))
+      .toBeVisible();
+    await screen.rerender(
+      <DictionaryWindow {...sheet} selected status="learning" />,
+    );
+    await expect
+      .element(screen.getByText("Learning", { exact: true }).first())
+      .toBeVisible();
+    expect(screen.container.textContent).not.toContain("not saved");
+  });
+
+  test("× closes it, with a 44px target", async () => {
+    const onClose = vi.fn();
+    const screen = await mountInShadowRoot(
+      <DictionaryWindow {...sheet} onClose={onClose} />,
+    );
+    const close = screen.getByRole("button", { name: "Close dictionary" });
+    expect(close.element().getBoundingClientRect().height).toBe(44);
+    await userEvent.click(close);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+});
