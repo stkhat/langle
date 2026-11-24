@@ -209,7 +209,8 @@ test("m.youtube.com: a tap on a word opens its sheet under the subtitle and paus
   await expect(pausedPill(page)).toBeVisible();
   const band = (await subtitle.boundingBox())!;
   const box = (await sheet(page).boundingBox())!;
-  expect(box.y).toBeCloseTo(band.y + band.height, 0);
+  // Rounded to a whole pixel.
+  expect(Math.abs(box.y - (band.y + band.height))).toBeLessThanOrEqual(0.5);
   const learning = sheet(page).getByRole("button", {
     name: en["status.learning"],
     exact: true,
