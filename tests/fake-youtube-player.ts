@@ -149,7 +149,8 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
           t.languageCode === option.languageCode &&
           (t.kind ?? "") === (option.kind ?? ""),
       );
-      if (!raw) return;
+      // The player asks for no captions of the video while an ad plays.
+      if (!raw || player?.classList.contains("ad-showing")) return;
       const base = new URL(raw.baseUrl, location.href);
       const url = new URL(base.pathname + base.search, location.origin);
       // youtube.com's player adds its PO token to a baseUrl naming exp=xpe only.

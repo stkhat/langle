@@ -57,6 +57,8 @@ export interface YouTubeAdapterOptions {
 const PLAYER_RESPONSE_TIMEOUT_MS = 30_000;
 /** Videos whose last captured request is kept (the current one and a few before). */
 const KEEP_CAPTURES = 4;
+/** How many times the player is asked again after an ad kept it from answering. */
+const AD_TRIES = 3;
 /** A try of `loadCaptions` to make again (see `loadFrom`). */
 const AGAIN = Symbol("again");
 
@@ -106,6 +108,7 @@ export function createYouTubeAdapter(
   const narrowPlayer = playerNarrower(
     () => layout.fullscreenBox(),
     layout.narrow,
+    (box) => layout.fullscreenLayers(box),
   );
   cleanups.push(() => narrowPlayer(0));
 
@@ -148,7 +151,12 @@ export function createYouTubeAdapter(
     }
   }
 
-  /** The player's request for this video, asking the player for `original` if needed. */
+  /**
+   * The player's request for this video, asking the player for `original` if needed. The
+   * player asks for nothing while an ad plays, and an ad can start after Langle looked
+   * (the Android WebView, docs/notes/mobile.md "Device checks (M3d)"): a wait an ad was
+   * part of is tried again once the ad has ended.
+   */
   async function captureFor(
     id: string,
     original: YouTubeTrack,
@@ -156,9 +164,30 @@ export function createYouTubeAdapter(
   ): Promise<TimedtextMessage | undefined> {
     const seen = captures.get(id);
     if (seen) return seen;
-    while (adShowing()) await sleep(pollMs, signal);
-    const own = await captures.wait(id, playerRequestWaitMs, signal);
-    if (own) return own;
+    for (let tries = 0; ; tries++) {
+      while (adShowing()) await sleep(pollMs, signal);
+      const own = await captures.wait(id, playerRequestWaitMs, signal);
+      if (own) return own;
+      if (adShowing()) continue;
+      let ad = false;
+      const watch = setInterval(() => {
+        ad ||= adShowing();
+      }, pollMs);
+      try {
+        const asked = await askPlayer(id, original, signal);
+        if (asked || !(ad || adShowing()) || tries >= AD_TRIES) return asked;
+      } finally {
+        clearInterval(watch);
+      }
+    }
+  }
+
+  /** Asks the player for `original` and waits for its request. */
+  async function askPlayer(
+    id: string,
+    original: YouTubeTrack,
+    signal?: AbortSignal,
+  ): Promise<TimedtextMessage | undefined> {
     const { previous } = await call({
       type: "loadTrack",
       languageCode: original.lang,

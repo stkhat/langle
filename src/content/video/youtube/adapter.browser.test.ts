@@ -520,6 +520,27 @@ describe("loading captions", () => {
     expect((await loading)?.track.id).toBe(".en");
   });
 
+  it("asks the player again once an ad that kept it from answering has ended", async () => {
+    start();
+    // An ad starts as Langle asks (the Android WebView): the player asks for nothing.
+    const api = page.player as unknown as {
+      setOption: (...args: unknown[]) => void;
+    };
+    const setOption = api.setOption.bind(api);
+    let first = true;
+    api.setOption = (...args) => {
+      if (first) page.player.classList.add("ad-showing");
+      first = false;
+      setOption(...args);
+    };
+    const loading = adapter.loadCaptions(REQUEST);
+    await expect.poll(() => page.player.fake.setOption.length).toBe(1);
+    expect(page.player.fake.requests).toEqual([]);
+    setTimeout(() => page.player.classList.remove("ad-showing"), 300);
+    expect((await loading)?.track.id).toBe(".en");
+    expect(page.player.fake.requests.length).toBeGreaterThan(0);
+  });
+
   it("follows SPA navigation and returns nothing when YouTube sends empty captions", async () => {
     start();
     // Another video whose timedtext answers are empty (as under automation).
