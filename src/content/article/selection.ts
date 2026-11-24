@@ -34,6 +34,8 @@ interface Selected {
   ref?: SpanRef;
   /** The phrase's card, once looked up. */
   card?: TermCard;
+  /** Touch mode: the phrase's sheet was opened for these words. */
+  opened?: boolean;
 }
 
 const snappedRange = (s: Snapped) => rangeOf(s.block, s.start, s.end);
@@ -56,6 +58,13 @@ export function createSelection(o: {
   spans: SpanMap;
   /** Other words were selected: the hover card goes. */
   dismissHover(): void;
+  /**
+   * Touch mode: selected words open their phrase's dictionary sheet ("Selected · not
+   * saved") instead of the card over them.
+   */
+  touch(): boolean;
+  /** Touch mode: opens the sheet for the phrase of the selected words. */
+  openPhrase(ref: SpanRef): void;
   /** One word was selected: its panel opens, as a click on it does. */
   openWord(ref: SpanRef): void;
   /** A phrase was saved; it may be anywhere on the page. */
@@ -71,6 +80,13 @@ export function createSelection(o: {
   /** Shows the card of the selected words once it is looked up, above them. */
   function show(selected: Selected) {
     const { card } = selected;
+    if (o.touch()) {
+      if (selected.ref && !selected.opened) {
+        selected.opened = true;
+        o.openPhrase(selected.ref);
+      }
+      return;
+    }
     const [anchor] = wordBoxes(snappedRange(selected.snapped));
     if (card && anchor) store.set({ phrase: { anchor, card } });
   }

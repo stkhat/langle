@@ -27,6 +27,11 @@ export interface WordsPanel {
 /** What the UI shows. */
 export interface ArticleState {
   settings: Settings;
+  /**
+   * Touch mode (`touch/touch-mode.ts`): no hover card, and the dictionary is a sheet at
+   * the bottom instead of the panel at the right.
+   */
+  touch: boolean;
   /** The hover card over a word: where the word is and what it says. */
   hover: { anchor: Box; card: TermCard } | null;
   /** The dictionary panel for the clicked word. */
@@ -37,6 +42,8 @@ export interface ArticleState {
     dictionaries: DictionaryLink[];
     /** The clicked word's boxes, outlined. */
     outline: Box[];
+    /** Touch mode: the term is the page's selected words ("Selected · not saved"). */
+    selected?: true;
   } | null;
   /** The panel's "In this sentence"; null: none. */
   explain: ExplainView | null;
