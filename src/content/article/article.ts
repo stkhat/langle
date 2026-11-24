@@ -39,11 +39,14 @@ import { createBlocks } from "./blocks";
 import { createCards, sentenceOf, writtenOf } from "./cards";
 import { watchEndOfArticle } from "./end-of-article";
 import { watchInteractions, type Interactions } from "./interactions";
+import { createTouchMode, type TouchMode } from "../touch/touch-mode";
+import { keepAboveSheet } from "./scroll";
 import { spanAtPoint, type SpanRef } from "./locate";
 import type { MainContent } from "./main-content";
 import { createPageCasing } from "./page-casing";
 import {
   collectBlocks,
+  rangeOf,
   createPageText,
   type PageText,
   type TextBlock,
@@ -63,6 +66,8 @@ export interface ArticleDeps extends LookupDeps {
   detectLanguage: DetectLanguage;
   /** Mounts Langle's UI for the page once it qualifies; returns an unmount. */
   mountUi(app: ArticleApp): (() => void) | Promise<() => void>;
+  /** Whether the page is in touch mode (default: `createTouchMode()`, the media query). */
+  touchMode?: TouchMode;
 }
 
 export interface ArticleOptions {
@@ -196,8 +201,10 @@ export async function startArticle(
     },
   });
   const { run } = lookup;
+  const touchMode = deps.touchMode ?? createTouchMode();
   const store = createStore<ArticleState>({
     settings,
+    touch: touchMode.on(),
     hover: null,
     panel: null,
     phrase: null,
@@ -304,7 +311,9 @@ export async function startArticle(
     index: blocks.index,
     spans,
     dismissHover: () => later.interactions.get().dismissHover(),
-    openWord: (ref) => void cards.openPanel(ref).catch(warn),
+    openWord: (ref) => openOnPage(ref),
+    touch: () => store.get().touch,
+    openPhrase: (ref) => openOnPage(ref, false, true),
     async saved() {
       deps.onTermsChanged?.();
       await reanalyze();
@@ -321,6 +330,20 @@ export async function startArticle(
     opened: (ref, card) => void explain.open(explainTarget(ref, card)),
     closed: explain.close,
   });
+
+  /**
+   * Opens the panel for `ref`, a word or words on the page (`cards.openPanel`); in touch
+   * mode the page then scrolls them above the sheet.
+   */
+  function openOnPage(ref: SpanRef, outline = true, selected = false) {
+    void cards
+      .openPanel(ref, outline, selected)
+      .then(() => {
+        if (store.get().touch && cards.panelRef() === ref)
+          keepAboveSheet(rangeOf(ref.block, ref.span.start, ref.span.end));
+      })
+      .catch(warn);
+  }
 
   /** What the on-device AI reads for the term at `ref`: its sentence and the lines around it. */
   function explainTarget(ref: SpanRef, card: TermCard): ExplainTarget {
@@ -511,8 +534,11 @@ export async function startArticle(
     },
     setPanelStatus(status) {
       const ref = cards.panelRef();
-      const card = store.get().panel?.card;
-      if (ref && card) run(() => changeStatus(ref, card, status));
+      const panel = store.get().panel;
+      if (!ref || !panel) return;
+      // Touch mode: the selected words are saved, the phone's selection has done its job.
+      if (panel.selected && status !== "new") getSelection()?.removeAllRanges();
+      run(() => changeStatus(ref, panel.card, status));
     },
     useMeaning(index) {
       choose((card) => {
@@ -622,11 +648,12 @@ export async function startArticle(
       },
       showHover: (ref, anchor) => void cards.showHover(ref, anchor).catch(warn),
       hideHover: cards.hideHover,
-      click: (ref) => void cards.openPanel(ref).catch(warn),
+      click: (ref) => openOnPage(ref),
       selection: selection.select,
       escape: closePanel,
       pressAway: closePanel,
       selecting: selection.selecting,
+      touch: () => store.get().touch,
       scroll() {
         cards.follow();
         selection.follow();
@@ -634,6 +661,11 @@ export async function startArticle(
       },
     }),
   );
+
+  const unwatchTouch = touchMode.watch((touch) => {
+    interactions.dismissHover();
+    store.set({ touch });
+  });
 
   const unwatch = deps.watchSettings((next) => {
     const levelChanged = next.knownLevel !== settings.knownLevel;
@@ -665,6 +697,7 @@ export async function startArticle(
       }),
     stop() {
       unwatch();
+      unwatchTouch();
       explain.close();
       controller.abort();
       words.stop();

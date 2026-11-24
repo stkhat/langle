@@ -12,6 +12,7 @@ import { createShadowHost } from "../content/shadow-host";
 import { testBackground } from "./background";
 import type { TranslationProvider } from "../content/translate/translator";
 import { detectEnglish, noTranslation } from "./stubs";
+import { fixedTouchMode } from "./touch";
 
 const cleanups: (() => void | Promise<void>)[] = [];
 
@@ -34,6 +35,8 @@ export interface SetupOptions {
    * closes it, after `cleanUp`.
    */
   background?: ReturnType<typeof testBackground>;
+  /** Touch mode, forced (default: off, whatever the browser's pointer is). */
+  touch?: boolean;
 }
 
 function textNodes(root: Node): Text[] {
@@ -98,6 +101,7 @@ export async function setup(html: string, options: SetupOptions = {}) {
         };
       },
       createTranslator: () => translator,
+      touchMode: fixedTouchMode(options.touch ?? false),
       ...(options.explainProvider && {
         explainProvider: options.explainProvider,
       }),

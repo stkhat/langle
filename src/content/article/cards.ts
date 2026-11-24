@@ -68,6 +68,8 @@ export function createCards(o: {
   let panelRef: SpanRef | undefined;
   /** The panel's word is outlined (it was clicked on the page, not in the Words list). */
   let outlined = true;
+  /** The panel's words are the page's selection, not saved yet (touch mode). */
+  let selectedWords = false;
   const panelTicket = latest();
   /** The span of each "On this page" sentence, for scrolling to it. */
   let panelRanges: Range[] = [];
@@ -95,6 +97,7 @@ export function createCards(o: {
       here,
       dictionaries: lookup.dictionaries(card.head),
       outline: outlined ? boxesOf(ref) : [],
+      ...(selectedWords && { selected: true }),
     });
   }
 
@@ -129,10 +132,15 @@ export function createCards(o: {
   }
 
   /**
-   * The panel for `ref`; `outline` false when the word was not clicked on the page.
+   * The panel for `ref`; `outline` false when the word was not clicked on the page,
+   * `selected` true when the words are the page's selection (touch mode's phrase sheet).
    * Without the language data it needs, it opens once the data is there.
    */
-  async function openPanel(ref: SpanRef, outline = true): Promise<void> {
+  async function openPanel(
+    ref: SpanRef,
+    outline = true,
+    selected = false,
+  ): Promise<void> {
     const isLatest = panelTicket.next();
     let card: TermCard;
     try {
@@ -143,7 +151,7 @@ export function createCards(o: {
         lookup.showWhenReady(
           "window",
           error,
-          () => void openPanel(ref, outline).catch(warn),
+          () => void openPanel(ref, outline, selected).catch(warn),
         )
       )
         return;
@@ -152,6 +160,7 @@ export function createCards(o: {
     if (!isLatest()) return;
     panelRef = ref;
     outlined = outline;
+    selectedWords = selected;
     showPanel(ref, card);
     o.opened?.(ref, card);
     o.onPanelOpen?.();

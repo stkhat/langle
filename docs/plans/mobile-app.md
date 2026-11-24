@@ -20,7 +20,7 @@
 - [x] M1: Android shell (branch `claude/mobile-m1`): Langle runs on the E2E article on the emulator (WebView Dev 160): highlights, a saved word survives a restart, the error log is empty
 - [x] M3 designed (2026-11-24): spec [mobile-app.md](../specs/mobile-app.md) "M3: m.youtube.com and touch"
 - [x] M3a: YouTube adapter split and the m.youtube.com layout (branch `claude/mobile-m3a`): the player stays pinned under the header; narrowing it in fullscreen leaves the video's size (M3d)
-- [ ] M3b: touch mode, gestures, the dictionary sheet, articles (branch `claude/mobile-m3b`)
+- [x] M3b: touch mode, gestures, the dictionary sheet, articles (branch `claude/mobile-m3b`): trusted touches in browser tests come from CDP `Input.dispatchTouchEvent` (the Vitest command `touch`, Chromium only); desktop Chromium has no touch text selection, so the phone E2E makes the selection a long-press leaves
 - [x] M3c: fullscreen in the shells (branch `claude/mobile-m3c`)
   - Android uses element fullscreen and Langle's content is inside it; on the iPhone WebKit offers only the video's own fullscreen, so Langle cannot draw over it there (whether to build the app's own fullscreen is open, with the user).
 - [ ] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`)
@@ -475,20 +475,20 @@ Unit tests cover:
 - a second finger (`down` while one is held) cancels.
 
 **Tasks**
-- [ ] **Touch mode** with unit tests (a fake `matchMedia` that changes). Commit.
-- [ ] **The recognizer**, test-first. Commit.
-- [ ] **`listen.ts`**, with a browser test. Untrusted events are ignored, as `interactions.ts` does; check how the existing browser tests get trusted pointer events and do the same (Vitest browser's `userEvent`, or CDP `Input.dispatchTouchEvent` through the Playwright provider; record which one works). Commit.
-- [ ] **`Sheet`**, test-first, rendering `DictionaryWindow`'s content unchanged. Compare a render at 390 × 844 with `MobileArticleDictionary` and `MobileYouTubeDictionary`. Commit.
-- [ ] **Articles in touch mode**:
+- [x] **Touch mode** with unit tests (a fake `matchMedia` that changes). Commit.
+- [x] **The recognizer**, test-first. Commit.
+- [x] **`listen.ts`**, with a browser test. Untrusted events are ignored, as `interactions.ts` does; check how the existing browser tests get trusted pointer events and do the same (Vitest browser's `userEvent`, or CDP `Input.dispatchTouchEvent` through the Playwright provider; record which one works). Commit.
+- [x] **`Sheet`**, test-first, rendering `DictionaryWindow`'s content unchanged. Compare a render at 390 × 844 with `MobileArticleDictionary` and `MobileYouTubeDictionary`. Commit.
+- [x] **Articles in touch mode**:
   - no hover cards;
   - a tap opens the sheet, and a tap on another word switches it;
   - the phone's selection is snapped on settle (1–8 words: the phrase's sheet, "Selected · not saved"; more: left alone);
   - a long-press on a word in a link opens its sheet and keeps the link from following (`contextmenu` / `click` prevented for that press);
   - the page scrolls so the word stays above the sheet.
   Browser tests with touch mode forced on. The existing article tests still pass with it off. Commit.
-- [ ] **Phone E2E on the article fixture** (`e2e/phone.spec.ts`; if M3a's `phone` project is not on `main` yet, add the project here and let the later branch merge it): tap → sheet → Learning saves the word; long-press across two words → the phrase's sheet. Commit.
-- [ ] **Docs**: architecture.md (touch mode and `content/touch/`), tick M3b.
-- [ ] `npm run verify -- --skip-firefox`, push, draft PR "Mobile app M3b: touch and the dictionary sheet", `gh pr ready`.
+- [x] **Phone E2E on the article fixture** (`e2e/phone.spec.ts`; if M3a's `phone` project is not on `main` yet, add the project here and let the later branch merge it): tap → sheet → Learning saves the word; long-press across two words → the phrase's sheet. Commit.
+- [x] **Docs**: architecture.md (touch mode and `content/touch/`), tick M3b.
+- [x] `npm run verify -- --skip-firefox`, push, draft PR "Mobile app M3b: touch and the dictionary sheet", `gh pr ready`.
 
 ### M3c: fullscreen in the shells (one agent, Opus)
 Branch `claude/mobile-m3c`. Read notes/mobile.md "Android extension host spike (S2)" and "iOS extension host spike (S1)", and [development.md](../development.md) "Mobile app".
