@@ -31,7 +31,7 @@
 | `npm run test:manifest` | check the built manifests (both browsers and the phone app) |
 | `npm run test:e2e:build` | production, check and check-download builds, then run E2E |
 | `npm run test:e2e:real` | E2E error checks on real sites (Wikipedia, BBC, YouTube); needs the network |
-| `npm run verify` | everything a push needs, in about 75 s (`scripts/verify.ts`): check, unit, browser on Chromium, builds and E2E on the host, while the Firefox browser tests run in Docker (3 containers) alongside; one line per stage, and the part of the log that says why when one fails (full logs in `$(git rev-parse --git-path langle-verify)`). The first failure stops the rest. When it passes, it records the tree it tested for the pre-push hook |
+| `npm run verify` | everything a push needs, in about 75 s (`scripts/verify.ts`): check, unit, browser on Chromium, builds and E2E on the host, while the Firefox browser tests run in Docker (3 containers) alongside; one line per stage, and the part of the log that says why when one fails (full logs in `$(git rev-parse --git-path langle-verify)`). The first failure stops the rest. When it passes, it records the tree it tested for the pre-push hook. `npm run verify -- --skip-firefox` leaves the Firefox lane out, only for a session the user asked to run without Firefox (it still records the tree; that command is not in the sandbox exclusions, so Claude runs it with the sandbox off) |
 | `npm run zip` / `npm run zip:firefox` | store-ready zips in `.output/` |
 | `npm run test:mutation` | Stryker report in `reports/mutation/` |
 
