@@ -21,7 +21,8 @@
 - [x] M3 designed (2026-11-24): spec [mobile-app.md](../specs/mobile-app.md) "M3: m.youtube.com and touch"
 - [ ] M3a: YouTube adapter split and the m.youtube.com layout (branch `claude/mobile-m3a`)
 - [ ] M3b: touch mode, gestures, the dictionary sheet, articles (branch `claude/mobile-m3b`)
-- [ ] M3c: fullscreen in the shells (branch `claude/mobile-m3c`)
+- [x] M3c: fullscreen in the shells (branch `claude/mobile-m3c`)
+  - Android uses element fullscreen and Langle's content is inside it; on the iPhone WebKit offers only the video's own fullscreen, so Langle cannot draw over it there (whether to build the app's own fullscreen is open, with the user).
 - [ ] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`)
 
 ## Running order
