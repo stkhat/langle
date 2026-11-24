@@ -1,4 +1,8 @@
-import type { NoticePack, NoticesData } from "../../core/notices";
+import {
+  LICENSES_FILE,
+  type NoticePack,
+  type NoticesData,
+} from "../../core/notices";
 import { t } from "../../i18n/t";
 import { color, FONT } from "../../ui/styles";
 
@@ -83,6 +87,12 @@ export function NoticesPage(props: { data: NoticesData }) {
         {t("notices.title")}
       </h1>
       <p class="meta">{t("notices.lead")}</p>
+      <p class="meta">
+        {t("notices.code")}{" "}
+        <a href={`/${LICENSES_FILE}`} target="_blank" rel="noopener noreferrer">
+          {LICENSES_FILE}
+        </a>
+      </p>
       {props.data.packs.map((pack) => (
         <Pack key={pack.package} pack={pack} />
       ))}

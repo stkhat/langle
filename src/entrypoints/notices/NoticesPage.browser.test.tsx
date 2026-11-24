@@ -28,6 +28,13 @@ describe("NoticesPage", () => {
     }
   });
 
+  it("links to the licenses of the bundled libraries and fonts", async () => {
+    const screen = await render(<NoticesPage data={data} />);
+    await expect
+      .element(screen.getByRole("link", { name: "THIRD_PARTY_LICENSES.txt" }))
+      .toHaveAttribute("href", "/THIRD_PARTY_LICENSES.txt");
+  });
+
   it("carries the full notices of the WordNet-style licenses", async () => {
     const screen = await render(<NoticesPage data={data} />);
     const notices = screen.getByRole("region", { name: "License notices" });

@@ -62,6 +62,31 @@ describe.each(BUILDS)("%s manifest", (dir) => {
       expect(existsSync(`.output/${dir}/icon-off/${size}.png`)).toBe(true);
   });
 
+  // The build finds the packages it ships itself (scripts/licenses.ts) and fails for one
+  // without a license text; here, the file is in the build with every dependency.
+  test("ships the licenses of the packages it bundles, the fonts' with the full OFL", () => {
+    const file = readFileSync(
+      `.output/${dir}/THIRD_PARTY_LICENSES.txt`,
+      "utf8",
+    );
+    const pkg = JSON.parse(readFileSync("package.json", "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    for (const name of Object.keys(pkg.dependencies))
+      expect(file).toMatch(new RegExp(`^${name} \\S+ \\(.+\\)$`, "m"));
+    expect(file).toContain("Copyright 2014 The Nunito Project Authors");
+    expect(file).toContain("Copyright 2016 The Inter Project Authors");
+    expect(file).toContain("SIL OPEN FONT LICENSE Version 1.1");
+  });
+
+  test("has no source maps", () => {
+    const maps = readdirSync(`.output/${dir}`, { recursive: true }).filter(
+      (file) => String(file).endsWith(".map"),
+    );
+    expect(maps).toEqual([]);
+    expect(scriptsOf(dir)).not.toContain("sourceMappingURL");
+  });
+
   test("leaves out the phone app's shim", () => {
     expect(existsSync(`.output/${dir}/langle-shim.js`)).toBe(false);
   });
