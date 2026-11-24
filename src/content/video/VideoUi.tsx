@@ -69,7 +69,7 @@ export interface VideoLayout {
 }
 
 /** Where the subtitle goes: the phone's own setting in touch mode, the desktop's otherwise. */
-export const subtitlePosition = (
+const subtitlePosition = (
   settings: Settings,
   touch: boolean,
 ): Settings["subtitlePosition"] =>
