@@ -18,6 +18,7 @@ import {
   type VideoLayout,
 } from "./VideoUi";
 import type { InsertionPoint, PlatformAdapter } from "./platform";
+import { transcriptPlace } from "./placement";
 import type { VideoApp } from "./state";
 
 export interface MountOptions {
@@ -128,7 +129,7 @@ export function mountVideoUi({ adapter, app }: MountOptions): () => void {
     (player) => (player ? { parent: player, before: null } : null),
     <InPlayerUi app={app} layout={layout} />,
   );
-  part(
+  const belowHost = part(
     "langle-video-below",
     "display: block;",
     () => {
@@ -141,10 +142,27 @@ export function mountVideoUi({ adapter, app }: MountOptions): () => void {
     "langle-transcript",
     // Clickable inside a frame that lets clicks through to the video (Netflix).
     "display: block; margin-bottom: 12px; pointer-events: auto;",
-    () =>
-      layout.get().sidebar
-        ? { parent: sidebar, before: null }
-        : adapter.sideColumn(),
+    (player) => {
+      const side = adapter.sideColumn();
+      const below = adapter.belowVideoElement();
+      const place = transcriptPlace({
+        sidebar: layout.get().sidebar,
+        sideColumn: side !== null,
+        vertical: layout.get().vertical,
+        belowInPage: below !== null && !(player?.contains(below) ?? false),
+      });
+      if (place === "sidebar") return { parent: sidebar, before: null };
+      if (place === "sideColumn") return side;
+      if (place !== "belowVideo" || !below) return null;
+      // After the subtitle box, which opens the area under the player.
+      return {
+        parent: below,
+        before:
+          belowHost.parentElement === below
+            ? belowHost.nextElementSibling
+            : below.firstElementChild,
+      };
+    },
     <TranscriptUi app={app} layout={layout} />,
   );
   made.buttons = part(
