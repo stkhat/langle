@@ -7,8 +7,7 @@ name: CI
 # change only docs/ do not run it: no check, test or build reads those files.
 #
 # Only what Linux can tell apart from the dev Mac runs here: `npm run check` gives the
-# same answer on any OS, and the Firefox browser tests already ran in this very image
-# (scripts/test-firefox.ts), both in `verify`. Release zips come from release.yml.
+# same answer on any OS and already ran in `verify`. Release zips come from release.yml.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -57,10 +56,7 @@ jobs:
         run: node scripts/check-playwright-image.ts
       - run: npm test
       - run: npm run test:browser
-        env:
-          VITEST_BROWSERS: chromium
       - run: npm run build
-      - run: npm run build:firefox
       - run: npm run build:check
       - run: npm run build:check-download
       - run: npm run build:app
@@ -75,4 +71,3 @@ jobs:
             playwright-report/
             test-results/
           if-no-files-found: ignore
-      - run: npx web-ext lint --source-dir .output/firefox-mv3

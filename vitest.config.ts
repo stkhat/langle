@@ -7,12 +7,6 @@ import { timedtextBody } from "./tests/youtube-timedtext.ts";
 import { unit } from "./vitest.unit.config.ts";
 import { noticesPlugin } from "./scripts/notices.ts";
 
-// Playwright's Firefox may not launch on some dev machines; e.g. VITEST_BROWSERS=chromium
-const browsers = (process.env.VITEST_BROWSERS ?? "chromium,firefox")
-  .split(",")
-  .map((b) => b.trim())
-  .filter(Boolean) as ("chromium" | "firefox")[];
-
 /** Answers /api/timedtext from the recorded fixtures, like YouTube (see tests/youtube-timedtext.ts). */
 function timedtextFixtures(): Plugin {
   return {
@@ -98,14 +92,8 @@ export default defineConfig({
             enabled: true,
             headless: true,
             provider: playwright(),
-            // Each test file runs in a window of its own. Firefox has one active window,
-            // and a window that becomes active (another file's click or focus) ends the
-            // drag selection and the fullscreen in the one that was: Firefox runs its
-            // files one at a time. Chromium keeps every page active, so its run side by side.
-            instances: browsers.map((browser) => ({
-              browser,
-              fileParallelism: browser !== "firefox",
-            })),
+            // Chromium only: Firefox is paused (docs/notes/firefox-paused.md).
+            instances: [{ browser: "chromium" }],
             commands: { emulateMedia, mouse },
           },
         },

@@ -1,9 +1,9 @@
-// `npm run verify`: everything a push needs, in two lanes at once. The host lane runs
-// check, unit, browser tests on Chromium, builds and E2E, then the phone app's build and
-// its manifest; the Firefox lane runs the browser tests in CI's Playwright image
-// (scripts/test-firefox.ts), which uses the Docker VM's own CPUs. Each lane's output goes to a log; the console gets one line per stage
-// and, when one fails, the part of its log that says why. The first failure stops the
-// other lane. One run at a time on the machine (scripts/test-lock.ts): a second waits.
+// `npm run verify`: everything a push needs: check, unit, browser tests on Chromium,
+// builds and E2E, then the phone app's build and its manifest. The stages run in lanes
+// (one for now; lanes run at once). Each lane's output goes to a log; the console gets
+// one line per stage and, when one fails, the part of its log that says why. The first
+// failure stops the other lanes. One run at a time on the machine (scripts/test-lock.ts):
+// a second waits.
 //
 // When everything passes, the tested tree (the working tree as `git add -A` would commit
 // it) is recorded as verified, and the pre-push hook (scripts/pre-push.ts) lets a push of
@@ -37,7 +37,6 @@ const LANES: Record<string, Stage[]> = {
     {
       name: "browser (Chromium)",
       args: ["run", "test:browser", "--", "--reporter=dot"],
-      env: { VITEST_BROWSERS: "chromium" },
     },
     {
       name: "builds and E2E",
@@ -55,18 +54,6 @@ const LANES: Record<string, Stage[]> = {
         "--project",
         "manifest",
         "tests/app-manifest.test.ts",
-        "--reporter=dot",
-      ],
-    },
-  ],
-  firefox: [
-    {
-      name: "browser (Firefox)",
-      args: [
-        "run",
-        "test:browser:firefox",
-        "--",
-        "--shards=3",
         "--reporter=dot",
       ],
     },
@@ -254,13 +241,10 @@ async function main(): Promise<number> {
   mkdirSync(logDir, { recursive: true });
   const tree = workingTree();
 
-  // `--skip-firefox`: a session the user asked to run without the Firefox lane.
-  const skipFirefox = process.argv.includes("--skip-firefox");
-  if (skipFirefox) console.log("- browser (Firefox) skipped (--skip-firefox)");
+  // `--skip-firefox` is still accepted and does nothing, for old instructions that pass it
+  // (Firefox is paused: docs/notes/firefox-paused.md).
   const results = await Promise.all(
-    Object.keys(LANES)
-      .filter((lane) => !(skipFirefox && lane === "firefox"))
-      .map((lane) => runLane(lane, logDir)),
+    Object.keys(LANES).map((lane) => runLane(lane, logDir)),
   );
   const total = seconds(Date.now() - started);
   const failures = results.filter((r) => r.failed);
