@@ -62,4 +62,6 @@ protocol PageDelegate: AnyObject {
   func page(_ page: Page, didNavigate url: URL?, title: String, canGoBack: Bool, canGoForward: Bool)
   /// The page's content process is gone (memory pressure, a crash).
   func pageProcessGone(_ page: Page)
+  /// The page put an element in fullscreen (true), or left it (false).
+  func page(_ page: Page, fullscreen: Bool)
 }

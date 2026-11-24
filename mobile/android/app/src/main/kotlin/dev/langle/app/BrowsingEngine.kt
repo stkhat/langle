@@ -87,4 +87,13 @@ interface PageDelegate {
 
   /** The page's renderer is gone (memory pressure, a crash); the page waits for [Page.recreate]. */
   fun onProcessGone(page: Page)
+
+  /**
+   * The page put an element in fullscreen: [view] shows it until the page leaves fullscreen
+   * ([onExitFullscreen]). [exit] asks the page to leave (the system back gesture).
+   */
+  fun onEnterFullscreen(page: Page, view: View, exit: () -> Unit)
+
+  /** The page left fullscreen; [onEnterFullscreen]'s view is no longer in use. */
+  fun onExitFullscreen(page: Page)
 }

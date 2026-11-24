@@ -3,6 +3,7 @@ package dev.langle.app
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import dev.langle.core.Clock
@@ -31,6 +32,8 @@ class ContextPage(
   var onLeaveApp: ((url: String) -> Unit)? = null
   var onClose: (() -> Unit)? = null
   var onProcessGone: (() -> Unit)? = null
+  var onEnterFullscreen: ((view: View, exit: () -> Unit) -> Unit)? = null
+  var onExitFullscreen: (() -> Unit)? = null
 
   /** The renderer is gone, and the page waits to be created again. */
   var isGone = false
@@ -85,6 +88,15 @@ class ContextPage(
     connection = null
     isGone = true
     onProcessGone?.invoke()
+  }
+
+  override fun onEnterFullscreen(page: Page, view: View, exit: () -> Unit) {
+    // A page nobody shows in fullscreen leaves it at once.
+    onEnterFullscreen?.invoke(view, exit) ?: exit()
+  }
+
+  override fun onExitFullscreen(page: Page) {
+    onExitFullscreen?.invoke()
   }
 }
 

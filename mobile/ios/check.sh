@@ -7,6 +7,8 @@
 #   check.sh launch [args…]         relaunches the app; args: -url <url>, -reset 1 (a first run)
 #   check.sh cmd <name>             errors | clear-errors | state: the result goes to the log
 #   check.sh js <target> <js|@file>  runs <js> (an async function body) in host | page | langle | sheet
+#   check.sh fullscreen             the page's fullscreen, the screen and a test element in the
+#                                   player (mobile/check/fullscreen.js), then the shell's state
 #   check.sh log [seconds]          the app's log for the last <seconds> (default 60)
 #   check.sh kill                   terminates the app
 #   check.sh screenshot <file.png>  saves a screenshot of the Simulator
@@ -46,6 +48,17 @@ js)
     "$target" "$source" >"$data/Documents/eval.json"
   xcrun simctl spawn booted notifyutil -p "$bundle.eval"
   ;;
+fullscreen)
+  # The probe is a function; the script calls it. Then the shell's state, and both results.
+  probe=$(cat "$here/../check/fullscreen.js")
+  sh "$0" js langle "$probe
+return fullscreenProbe();"
+  sleep 1
+  xcrun simctl spawn booted notifyutil -p "$bundle.state"
+  sleep 1
+  xcrun simctl spawn booted log show --info --style compact --last 10s \
+    --predicate "subsystem == \"$bundle\" && category == \"check\"" | grep -o "check] .*"
+  ;;
 log)
   xcrun simctl spawn booted log show --info --debug --style compact --last "${2:-60}s" \
     --predicate "subsystem == \"$bundle\""
@@ -57,7 +70,7 @@ screenshot)
   xcrun simctl io booted screenshot "${2:?usage: check.sh screenshot <file.png>}"
   ;;
 *)
-  sed -n '2,15p' "$0"
+  sed -n '2,17p' "$0"
   exit 2
   ;;
 esac
