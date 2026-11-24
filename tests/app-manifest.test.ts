@@ -51,6 +51,30 @@ describe("langle-app manifest", () => {
     expect(matches.filter((match) => match.includes("netflix"))).toEqual([]);
   });
 
+  test("has the m.youtube.com scripts and none for www.youtube.com", () => {
+    const scripts = (readManifest().content_scripts ?? []).map((script) => ({
+      matches: script.matches,
+      js: script.js,
+      world: script.world,
+    }));
+    expect(
+      scripts.filter((script) =>
+        (script.matches as string[]).some((match) => match.includes("youtube")),
+      ),
+    ).toEqual([
+      {
+        matches: ["*://m.youtube.com/*"],
+        js: ["content-scripts/youtube-mobile-main.js"],
+        world: "MAIN",
+      },
+      {
+        matches: ["*://m.youtube.com/*"],
+        js: ["content-scripts/youtube-mobile.js"],
+        world: undefined,
+      },
+    ]);
+  });
+
   test("ships the shim", () => {
     expect(existsSync(`${DIR}/langle-shim.js`)).toBe(true);
   });
