@@ -23,7 +23,8 @@
 - [x] M3b: touch mode, gestures, the dictionary sheet, articles (branch `claude/mobile-m3b`): trusted touches in browser tests come from CDP `Input.dispatchTouchEvent` (the Vitest command `touch`, Chromium only); desktop Chromium has no touch text selection, so the phone E2E makes the selection a long-press leaves
 - [x] M3c: fullscreen in the shells (branch `claude/mobile-m3c`)
   - Android uses element fullscreen and Langle's content is inside it; on the iPhone WebKit offers only the video's own fullscreen, so Langle cannot draw over it there (whether to build the app's own fullscreen is open, with the user).
-- [ ] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`)
+- [x] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`): the iPhone 17 Simulator (portrait) and the Android emulator (WebView Dev 160), notes/mobile.md "Device checks (M3d)"
+- [ ] M3e: the app's own fullscreen on the iPhone (branch claude/mobile-m3e; decided with the user 2026-11-24)
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
