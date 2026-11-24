@@ -241,6 +241,7 @@
   "settings.about.licenses": "Licenses",
   "notices.title": "Data sources and licenses",
   "notices.lead": "Langle downloads the language data it uses. Each package below is licensed as a whole as shown, and lists the sources it was made from with their licenses.",
+  "notices.code": "The libraries and fonts built into Langle, with their licenses:",
   "notices.changes": "Changes from the sources: {changes}",
   "notices.used": "Used for: {used}",
   "notices.full": "License notices",
