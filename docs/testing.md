@@ -4,7 +4,7 @@
 - Test behaviour through public interfaces, not internals.
 - See a test fail before writing the code that makes it pass.
 - Mock only the boundaries: browser APIs (use WXT's `fakeBrowser` for extension APIs) and the network. Nothing else.
-- No fake DOM (jsdom, happy-dom). Code that touches the DOM runs in Vitest Browser Mode on real Chromium and Firefox.
+- No fake DOM (jsdom, happy-dom). Code that touches the DOM runs in Vitest Browser Mode on real Chromium.
 - No full-page screenshot or snapshot assertions.
 - E2E tests select elements by role and text, and never use `waitForTimeout`; wait for a condition instead.
 - YouTube and Netflix subtitle parsing is tested with recorded fixtures.
@@ -15,8 +15,8 @@
 | Layer | Tool | Location / pattern | Command |
 | --- | --- | --- | --- |
 | Unit (logic, `fakeBrowser`) | Vitest, project `unit` (Node) | `src/**/*.test.ts`, `scripts/**/*.test.ts` | `npm test` |
-| DOM / components | Vitest Browser Mode, project `browser` (Chromium + Firefox) | `src/**/*.browser.test.{ts,tsx}` | `npm run test:browser` |
-| Built manifests | Vitest, project `manifest` | `tests/manifest.test.ts`, `tests/app-manifest.test.ts` (needs `npm run build`, `npm run build:firefox`, `npm run build:check` and `npm run build:app`) | `npm run test:manifest` |
+| DOM / components | Vitest Browser Mode, project `browser` (Chromium) | `src/**/*.browser.test.{ts,tsx}` | `npm run test:browser` |
+| Built manifests | Vitest, project `manifest` | `tests/manifest.test.ts`, `tests/app-manifest.test.ts` (needs `npm run build`, `npm run build:check` and `npm run build:app`) | `npm run test:manifest` |
 | E2E with the built extension | Playwright (Chromium) | `e2e/*.spec.ts` (needs `npm run build`, `wxt build --mode check` and `npm run build:check-download`) | `npm run test:e2e:build` |
 | Mutation (report only) | Stryker | `stryker.config.json`, unit project only | `npm run test:mutation` |
 
@@ -38,17 +38,14 @@ E2E covers only what needs the built extension in a real Chromium: the MAIN-worl
 Helpers: `e2e/page.ts` (`highlighted`, `pointOn`, `ON_TIME`, `openArticle`, `showNewWords`, `saveTerm`), `e2e/fixtures.ts` (`test` with a `build` option, `testWithErrors`, `sendToBackground` through one extension page kept open, `openPopupFor`), `e2e/sites.ts` (the routed YouTube, m.youtube.com and Netflix pages). The `phone` project (`playwright.config.ts`: 390 × 844, `isMobile`, `hasTouch`, an Android user agent, which `e2e/fixtures.ts` passes to the browser it launches) runs `e2e/phone.spec.ts` only; the `chromium` project runs the rest.
 
 ## Running them
-- While iterating, run only the files you touch: `npx vitest run src/path/to/file.test.ts`, `VITEST_BROWSERS=chromium npx vitest run --project browser src/path/to/file.browser.test.tsx`, `npm run test:browser:firefox -- src/path/to/file.browser.test.tsx`, `npx playwright test e2e/<spec>.ts -g "<test name>"` (after `npm run build && wxt build --mode check` when source changed).
-- Before handing work back or pushing, run everything once: `npm run verify` (check, unit, browser on Chromium and Firefox, builds, E2E; about 75 s, terse output). The pre-push hook refuses a push of a tree `verify` has not passed on.
+- While iterating, run only the files you touch: `npx vitest run src/path/to/file.test.ts`, `npx vitest run --project browser src/path/to/file.browser.test.tsx` (outside the sandbox, like E2E), `npx playwright test e2e/<spec>.ts -g "<test name>"` (after `npm run build && wxt build --mode check` when source changed).
+- Before handing work back or pushing, run everything once: `npm run verify` (check, unit, browser on Chromium, builds, E2E; about 110 s, terse output). The pre-push hook refuses a push of a tree `verify` has not passed on.
 - Open pull requests as drafts and mark them "Ready for review" just before merging: only then does GitHub run the tests (`ci.yml`, one Linux job, about 3.5 minutes): the parts of `verify` whose result can differ on Linux (unit, Chromium browser tests, builds, E2E). `cross-os.yml` (macOS and Windows) runs by hand only, e.g. before a release.
 - On CI, a browser test that fails is retried once (`retry` in `vitest.config.ts`), like E2E (`retries` in `playwright.config.ts`). A test that needs its retry again and again is flaky: fix it.
 - E2E tests run in parallel, files and tests alike (`fullyParallel`): every test gets its own browser profile, so a test must not depend on another.
 
 ## Notes
-- Playwright's Firefox fails to launch on the dev Mac (macOS 27: "Could not find profile folder."). `npm run test:browser:firefox` (`scripts/test-firefox.ts`) runs the browser tests on Firefox in CI's Playwright image instead, in Docker on Colima ([development.md](development.md) "Firefox in Docker"); `npm run test:browser` locally therefore takes `VITEST_BROWSERS=chromium`.
-- Firefox runs its browser test files one at a time within a run (`fileParallelism` in `vitest.config.ts`), Chromium side by side; `verify` splits Firefox's files over 3 Docker containers (`--shards=3`), each with a Firefox of its own. Each file runs in a window of its own, and Firefox has one active window: a window that becomes active (another file's click or focus) ends the drag selection and the fullscreen of the window that was, so tests that select by dragging or go fullscreen failed at random when files ran side by side ([notes](notes/firefox-tests.md)).
 - Test files do not share browser state: each runs in a browser context of its own, so a Web Lock, storage or a fullscreen element in one file is not seen by another.
-- `VITEST_BROWSERS` takes a comma-separated list (`chromium`, `firefox`).
 - Only Chromium can load an unpacked extension, so E2E runs on Chromium only.
 - Production builds put Langle's UI on web pages in closed shadow roots (`src/content/shadow-host.ts`), so page scripts, and Playwright, cannot reach into it; the check build, development and the browser tests keep them open. E2E tests load the check build by default (`e2e/fixtures.ts`). On the production build `e2e/extension-errors.spec.ts` uses the pages through the mouse and keyboard and leaves out the steps that read or press the UI, and `e2e/isolation.spec.ts` checks that a page script finds the `langle-*` hosts with `shadowRoot === null`. Those shadow roots also drop events a page script dispatches (`guardShadowRoot` in `src/ui/from-user.ts`), so tests of a mounted host press its controls with `userEvent` (browser tests) or Playwright's input, never `.click()` or `dispatchEvent`.
 - YouTube captions come from the recorded fixtures, answered like the real `/api/timedtext` (empty without a PO token) by `tests/youtube-timedtext.ts`: a Vite middleware in browser tests, `context.route` in E2E. The fake player API (`tests/fake-youtube-player.ts`) and the 4-second clip (`tests/fixtures/video.webm`) are shared by both. The YouTube E2E uses a 140-second clip (`e2e/fixtures/talk.webm`, VP8, 160×90, black) so it can seek to the recorded captions (they run to 2:15); `context.route` answers its byte ranges, without which the video cannot seek.
