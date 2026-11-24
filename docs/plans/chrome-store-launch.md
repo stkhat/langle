@@ -77,12 +77,12 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 ## F. Repository (it is public today)
 
 - [x] F1 **Do first, the repository stays public**: recorded YouTube captions are committed (`src/core/subtitles/fixtures/youtube/`, a talk's human translation among them). Replace them with made-up lines, as the Netflix fixtures are. Done: all text in the 10 caption files is made up (word-for-word substitution on the recorded timings, segment splits and ASR shapes), the talk's Japanese translation and its translator credit included; `captionTracks.json`, the watch-page fixtures and the test helpers use made-up video ids, titles and channel names (`sampleVid01`). Git history still holds the old files, see F2
-- [ ] F2 Remove personal identifiers from the committed notes; decide whether the history needs rewriting (U)
+- [ ] F2 Remove personal identifiers from the committed notes; decide whether the history needs rewriting (U). Also decide on the real video ids still named in the notes and plans for live-site checks (`docs/notes/youtube-captions.md`, `youtube-comments.md`, `mobile.md`, `korean-quality.md`, `docs/plans/mobile-app.md`) and run by `scripts/mobile/phone-check.ts`
 - [ ] F3 While public: add a code licence, or state that there is none on purpose. Decide the visibility again before G6
 
 ## G. Release
 
-- [ ] G1 **Blocker** (C): confirm every pack version in the lock downloads from both mirrors
+- [x] G1 **Blocker** (C): confirm every pack version in the lock downloads from both mirrors. Checked 2026-11-24 on main at b604539c: all 154 files of the 24 packs downloaded from jsDelivr and unpkg (308 downloads) with the lock's SHA-256 and size. Check again if the lock changes before G4
 - [ ] G2 **Blocker** (C): `npm run verify`, `cross-os.yml` and a dry run of `release.yml` (neither workflow has ever run)
 - [ ] G3 **Blocker** (U+C): check the production zip in a clean Chrome profile: consent, language choice, back to the page (reloaded if it was open before the install) with the popup, download, an article, YouTube, Netflix, Settings, export and import, offline, a device without on-device AI
 - [ ] G4 **Blocker** (U): freeze pack and feature merges, choose the version, tag, upload that zip, submit with deferred publishing
