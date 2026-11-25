@@ -12,7 +12,8 @@ import {
 } from "../lookup/lookup";
 import type { Store } from "../store";
 import type { HoverPlace, VideoLine, VideoState, WordRef } from "./state";
-import { acrossCards, placeOf } from "./words";
+import { timeAt } from "../../core/subtitles/cues";
+import { acrossCards, cardSpan, placeOf } from "./words";
 
 /**
  * The hover card and the dictionary window over the words of the subtitle and the
@@ -37,11 +38,13 @@ export function createCards(o: {
   /**
    * The span `ref` points at, with its term as written (the whole phrase for a part of
    * a phrase with a gap, or of one across cards) and the sentence saving it records:
-   * the card's flat text, or the cards' a phrase across cards is in. Selected words'
-   * phrase is a span of its own, not saved.
+   * the card's flat text, or the cards' a phrase across cards is in. With where the
+   * term starts, when it is said (`timeAt`) and the time span of the card(s) holding
+   * it (`cardSpan`: a phrase across cards spans them all), which find its stored place
+   * by time (`samePlace`). Selected words' phrase is a span of its own, not saved.
    */
   function spanOf(ref: WordRef) {
-    const { cues, spans } = store.get();
+    const { cues, lines, spans } = store.get();
     const cue = cues[ref.cue];
     const span: Span | undefined = ref.selected
       ? { ...ref.selected, kind: "phrase", category: "new" }
@@ -50,12 +53,17 @@ export function createCards(o: {
     const across = ref.selected
       ? undefined
       : acrossCards(cues, spans, ref.cue, span, flat);
+    const at = (start: { cue: number; offset: number }, last: number) => ({
+      start,
+      timeMs: timeAt(cues, lines, start.cue, start.offset),
+      cardSpan: cardSpan(cues, start.cue, last),
+    });
     // Where the term starts: a phrase across cards in the first of them.
     if (across)
       return {
         cue,
         span,
-        start: { cue: across.first, offset: across.start },
+        ...at({ cue: across.first, offset: across.start }, across.last),
         surface: across.surface,
         sentence: across.sentence,
       };
@@ -63,7 +71,7 @@ export function createCards(o: {
     return {
       cue,
       span,
-      start: { cue: ref.cue, offset: start },
+      ...at({ cue: ref.cue, offset: start }, ref.cue),
       surface: flat(cue.text.slice(start, end)),
       sentence: flat(cue.text),
     };
@@ -78,7 +86,12 @@ export function createCards(o: {
     return describeSpan(
       lookup,
       found.span,
-      { surface: found.surface, sentence: found.sentence },
+      {
+        surface: found.surface,
+        sentence: found.sentence,
+        cardSpan: found.cardSpan,
+        timeMs: found.timeMs,
+      },
       shownIn,
     );
   }

@@ -18,6 +18,7 @@ import type { DocumentCasing } from "../core/text/casing";
 import type { Settings, SettingsPatch } from "../core/settings";
 import type { LocaleMessages } from "../i18n/t";
 import type { SetupStage } from "../core/setup";
+import type { TimeSpan } from "../core/place";
 import type { Platform, Position } from "../core/url";
 
 export interface TermRecord {
@@ -67,6 +68,12 @@ export interface SaveTermInput {
   sentence: string;
   translation?: string;
   pos: Position;
+  /**
+   * In a video: the time span of the live card(s) holding the term. A stored place of
+   * the term whose time lies in it is this place (`samePlace`), whatever its sentence;
+   * never stored.
+   */
+  cardSpan?: TimeSpan;
 }
 
 /**
@@ -108,6 +115,8 @@ export interface EncounterInput {
   sentence: string;
   translation?: string;
   pos: Position;
+  /** As `SaveTermInput.cardSpan`. */
+  cardSpan?: TimeSpan;
 }
 
 export interface HistorySentenceInput {
@@ -252,7 +261,9 @@ export type Request =
   /**
    * `sourceUrl` is the page or video the user is on; its occurrences come back as
    * `here`. `sentence`: the sentence there the term was looked up in ("this
-   * sentence"), whose chosen meaning comes back as `chosenHere`. `written`: how the
+   * sentence"), whose chosen meaning comes back as `chosenHere`; in a video, with
+   * `cardSpan` and `timeMs` (as `SaveTermInput.cardSpan`, and when the term is said
+   * there), a meaning chosen for the place by time counts too. `written`: how the
    * word was written there, when the page says: in lower case, capitalised in a way
    * that counts (`Span.capital`), or as an acronym. `pos`: the part of speech its tag
    * gives it there (`Span.pos`): the hover card's lines show senses of it first (rule
@@ -264,6 +275,8 @@ export type Request =
       key: string;
       sourceUrl?: string;
       sentence?: string;
+      cardSpan?: TimeSpan;
+      timeMs?: number;
       written?: Written;
       pos?: string;
       /**
@@ -498,8 +511,12 @@ export interface TermBrief extends ShortMeaning {
   status: TermStatus | "new";
   /** The meanings chosen for its sentences: most chosen first, then the newest. */
   meanings?: MeaningLine[];
-  /** Its sentences in the request's source with a meaning chosen, and that meaning's key. */
-  chosen?: { sentence: string; key: string }[];
+  /**
+   * Its sentences in the request's source with a meaning chosen, that meaning's key, and
+   * in a video when the term is said there (its occurrence's time), to find the place by
+   * time (`samePlace`).
+   */
+  chosen?: { sentence: string; key: string; timeMs?: number }[];
 }
 
 /** Live terms only. `learning` and `known` count words; `phrases` counts phrases of either status. */

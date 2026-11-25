@@ -7,7 +7,7 @@ import type { SourceInput } from "../../messaging/protocol";
 import { warn } from "../lookup/warn";
 import type { Store } from "../store";
 import type { VideoState } from "./state";
-import { acrossCards } from "./words";
+import { acrossCards, cardSpan } from "./words";
 
 /**
  * What one video records: the saved terms of the cards that play (once per term and
@@ -59,16 +59,17 @@ export function createRecorder(o: {
           if (recorded.has(seen)) continue;
           recorded.add(seen);
           const translation = translations[index];
+          const across = acrossCards(cues, spans, index, span, o.flat);
           items.push({
             termId: termId(o.lang(), span.key),
-            sentence:
-              acrossCards(cues, spans, index, span, o.flat)?.sentence ??
-              o.flat(cue.text),
+            sentence: across?.sentence ?? o.flat(cue.text),
             ...(translation ? { translation } : {}),
             // When the site says its first word, whatever the cards' cut.
             pos: {
               timeMs: timeAt(cues, lines, index, (span.part ?? span).start),
             },
+            // A place it has there already is found by time in the cards' span.
+            cardSpan: cardSpan(cues, index, across?.last ?? index),
           });
         }
       }

@@ -44,7 +44,7 @@ import {
 } from "./placement";
 import type { VideoApp, VideoState, WordPlace } from "./state";
 import { filterCounts, toWordRows } from "../words/words";
-import { flatCue, videoWords, type VideoWord } from "./words";
+import { cardSpan, flatCue, videoWords, type VideoWord } from "./words";
 import { Floating, keepSelection, TOP_LAYER } from "../lookup/Floating";
 import { shallowEqual, useStore, useStoreSelect, type Store } from "../store";
 
@@ -596,6 +596,11 @@ export function TranscriptUi(props: {
               cues[word.places[place]!.card]?.text ?? "",
               settings.learningLang,
             ),
+          // A meaning chosen there is found by time too, whatever the cards' cut.
+          videoTime: (word, place) => {
+            const { card, startMs } = word.places[place]!;
+            return { cardSpan: cardSpan(cues, card, card), timeMs: startMs };
+          },
         },
         (word, id) => ({
           places: word.places.map((place) => formatTime(place.startMs)),

@@ -19,6 +19,7 @@ import {
   trimOccurrences as rowsToKeep,
 } from "../core/cloud/merge";
 import { meaningKey, type Meaning, type MeaningFrom } from "../core/meanings";
+import { isTimeSpan, samePlace } from "../core/place";
 import { fromMinutes, toMinutes, type SyncRecord } from "../core/sync/codec";
 import { kindOfKey, termId } from "../core/term-id";
 import {
@@ -70,6 +71,30 @@ interface OccurrenceStats {
 interface LiveChoice extends MeaningChoiceRecord {
   meaningKey: string;
   url?: string;
+  /** In a video: its place's time (its occurrence's `pos.timeMs`), to match it by time. */
+  timeMs?: number;
+}
+
+/** A stored occurrence's sentence and, in a video, its time (`samePlace`). */
+const placeTime = (o: Pick<OccurrenceRecord, "sentence" | "pos">) => ({
+  sentence: o.sentence,
+  timeMs: "timeMs" in o.pos ? o.pos.timeMs : undefined,
+});
+
+/**
+ * A new copy `o` of the stored place `stored` (found by time): with that place's
+ * sentence, and the translation of it, which are its identity. Unchanged for the same
+ * sentence.
+ */
+function atPlace(o: OccurrenceRecord, stored: OccurrenceRecord) {
+  if (o.sentence === stored.sentence) return o;
+  return {
+    ...omit(o, "translation"),
+    sentence: stored.sentence,
+    ...(stored.translation !== undefined && {
+      translation: stored.translation,
+    }),
+  };
 }
 
 /**
@@ -144,8 +169,9 @@ export interface TermStore {
     termIds: readonly string[],
   ): Promise<Map<string, { meanings: MeaningRecord[]; choices: LiveChoice[] }>>;
   /**
-   * Records saved terms met again. Unsaved terms and sentences already recorded for
-   * the term in the same source are skipped. Returns how many were added.
+   * Records saved terms met again. Unsaved terms and places already recorded for the
+   * term in the same source (the sentence, or in a video the time: `findPlace`) are
+   * skipped. Returns how many were added.
    */
   recordEncounters(
     source: SourceInput,
@@ -426,9 +452,45 @@ export function createTermStore(
       .equals([o.termId, o.sourceId, o.sentence])
       .first();
 
-  /** Adds the occurrence unless the term has the sentence in that source; true when added. */
-  async function addOccurrence(occurrence: OccurrenceRecord) {
-    if (await findOccurrence(occurrence)) return false;
+  /**
+   * The term's stored occurrence in the source that is the live place `o` (`samePlace`):
+   * the one with its sentence; else, in a video (`cardSpan`: the live card's time span),
+   * one whose time lies in that span, however the cards were cut when it was recorded.
+   */
+  function findPlace(
+    o: Pick<OccurrenceRecord, "termId" | "sourceId" | "sentence" | "pos">,
+    cardSpan: unknown,
+  ) {
+    const { timeMs } = placeTime(o);
+    // Dexie's own promises throughout: a transaction whose last step is this read
+    // would otherwise commit before the caller goes on.
+    return findOccurrence(o).then((exact) =>
+      exact || !isTimeSpan(cardSpan) || timeMs === undefined
+        ? exact
+        : db.occurrences
+            .where("termId")
+            .equals(o.termId)
+            .filter((row) => row.sourceId === o.sourceId)
+            .toArray()
+            .then((rows) =>
+              samePlace(rows, placeTime, {
+                sentence: o.sentence,
+                cardSpan,
+                timeMs,
+              }),
+            ),
+    );
+  }
+
+  /**
+   * Adds the occurrence unless the term has its place in that source (`findPlace`);
+   * true when added.
+   */
+  async function addOccurrence(
+    occurrence: OccurrenceRecord,
+    cardSpan?: unknown,
+  ) {
+    if (await findPlace(occurrence, cardSpan)) return false;
     await db.occurrences.add(occurrence);
     return true;
   }
@@ -461,11 +523,20 @@ export function createTermStore(
         .filter((c) => c.meaningKey !== null)
         .toArray() as Promise<LiveChoice[]>,
     ]);
-    const sources = await db.sources.bulkGet(
-      distinct(choices.map((c) => c.sourceId)),
-    );
+    const [sources, places] = await Promise.all([
+      db.sources.bulkGet(distinct(choices.map((c) => c.sourceId))),
+      db.occurrences
+        .where("[termId+sourceId+sentence]")
+        .anyOf(choices.map((c) => [c.termId, c.sourceId, c.sentence]))
+        .toArray(),
+    ]);
     const urls = new Map(
       sources.flatMap((s) => (s ? [[s.id, s.url] as const] : [])),
+    );
+    const times = new Map(
+      places.flatMap((o) =>
+        "timeMs" in o.pos ? [[placeKey(o), o.pos.timeMs] as const] : [],
+      ),
     );
     const of = (id: string) => {
       let entry = found.get(id);
@@ -475,7 +546,12 @@ export function createTermStore(
     for (const m of meanings) of(m.termId).meanings.push(m);
     for (const c of choices) {
       const url = urls.get(c.sourceId);
-      of(c.termId).choices.push(url === undefined ? c : { ...c, url });
+      const timeMs = times.get(placeKey(c));
+      of(c.termId).choices.push({
+        ...c,
+        ...(url !== undefined && { url }),
+        ...(timeMs !== undefined && { timeMs }),
+      });
     }
     return found;
   }
@@ -602,7 +678,7 @@ export function createTermStore(
    */
   async function writeSaved(input: SaveTermInput, now: number, device: string) {
     const { term, at } = await writeTerm(input, now);
-    const occurrence = makeOccurrence(
+    const fresh = makeOccurrence(
       term.id,
       await upsertSource(input.source, at),
       input,
@@ -610,7 +686,8 @@ export function createTermStore(
       "saved",
       { deviceId: device, addedAt: Math.max(at, clearedAtOf(term)) },
     );
-    const same = await findOccurrence(occurrence);
+    const same = await findPlace(fresh, input.cardSpan);
+    const occurrence = same ? atPlace(fresh, same) : fresh;
     if (!same) await db.occurrences.add(occurrence);
     else if (mergeCopy(omit(same, "id"), occurrence) === occurrence)
       await db.occurrences.put({ ...occurrence, id: same.id });
@@ -670,10 +747,17 @@ export function createTermStore(
       return mutate(async (changes) => {
         const seenAt = now();
         const existing = await db.terms.get(id);
+        const sourceId = sourceKey(input.source).id;
+        // A place the term has (by time in a video, `findPlace`) keeps its sentence, so
+        // the choice joins it.
+        const stored = await findPlace(
+          { termId: id, sourceId, sentence: input.sentence, pos: input.pos },
+          input.cardSpan,
+        );
         const place = {
           termId: id,
-          sourceId: sourceKey(input.source).id,
-          sentence: input.sentence,
+          sourceId,
+          sentence: stored?.sentence ?? input.sentence,
         };
         const previous = await db.meaningChoices.get([
           place.termId,
@@ -693,7 +777,7 @@ export function createTermStore(
             "encountered",
             recordedNow(term, device, seenAt),
           );
-          await addOccurrence(occurrence);
+          if (!stored) await db.occurrences.add(occurrence);
         } else {
           term = await writeSaved(
             { ...input, status: "learning" },
@@ -776,7 +860,7 @@ export function createTermStore(
             "encountered",
             recordedNow(term, device, at),
           );
-          if (!(await addOccurrence(occurrence))) continue;
+          if (!(await addOccurrence(occurrence, item.cardSpan))) continue;
           await trimOccurrences(item.termId);
           changes.add(term.lang, "occurrences");
           added++;

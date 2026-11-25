@@ -5,6 +5,7 @@ import type {
 } from "../core/lexicon/dictionary";
 import { translatedLine } from "../core/lexicon/short-lines";
 import { matchSense, orderMeanings, type Meaning } from "../core/meanings";
+import { samePlace, type LivePlace } from "../core/place";
 import type { MeaningLine, YourMeaning } from "../messaging/protocol";
 import type { TermStore } from "./term-store";
 
@@ -74,16 +75,20 @@ export function lineOf(
 /**
  * The term's meanings named by its choices, with how many sentences each was chosen
  * for and its line, the one chosen at `here` first (`orderMeanings`), and that one's key.
+ * `here` is found as `samePlace` finds it: by its sentence, or in a video by time.
  */
 export function yourMeanings(
   { meanings, choices }: TermMeanings,
-  here: { url: string; sentence: string } | undefined,
+  here: ({ url: string } & LivePlace) | undefined,
   lines: LineContext,
 ): { yourMeanings: YourMeaning[]; chosenHere?: string } {
   const chosenHere =
     here &&
-    choices.find((c) => c.url === here.url && c.sentence === here.sentence)
-      ?.meaningKey;
+    samePlace(
+      choices.filter((c) => c.url === here.url),
+      (c) => c,
+      here,
+    )?.meaningKey;
   const uses = new Map<string, { count: number; lastAt: number }>();
   for (const { meaningKey, at } of choices) {
     const use = uses.get(meaningKey);

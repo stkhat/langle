@@ -1303,6 +1303,33 @@ describe("handlers: termSummaries", () => {
     expect(answer.crust).toEqual({ short: "パンの皮", status: "new" });
   });
 
+  it("gives a video's chosen places with their times, to find them by time", async () => {
+    store.termIndex.mockResolvedValue(new Map([["loaf", "learning"]]));
+    store.meaningsOfTerms.mockResolvedValue(
+      new Map([
+        [
+          "en:loaf",
+          {
+            ...LOAF_MEANINGS,
+            choices: LOAF_MEANINGS.choices.map((c) =>
+              c.url === VIDEO.url ? { ...c, timeMs: c.at * 1000 } : c,
+            ),
+          },
+        ],
+      ]),
+    );
+    const answer = await value({
+      type: "termSummaries",
+      lang: "en",
+      keys: ["loaf"],
+      sourceUrl: VIDEO.url,
+    });
+    expect(answer.loaf!.chosen).toEqual([
+      { sentence: "Shape the loaf.", key: "m-dough", timeMs: 20_000 },
+      { sentence: "Loaf by loaf.", key: "m-dough", timeMs: 30_000 },
+    ]);
+  });
+
   it("uses the dictionary of the native language from the settings", async () => {
     await setSettings({ nativeLang: "nl" });
     expect(
@@ -1535,6 +1562,36 @@ describe("handlers: lookup", () => {
         "m-loaf",
         "m-lump",
       ]);
+    });
+
+    it("finds the meaning chosen at a video place by time once its card is cut otherwise", async () => {
+      const { choices, meanings } = await store.meaningsOf("en:loaf");
+      store.meaningsOf.mockResolvedValue({
+        meanings,
+        choices: choices.map((c) =>
+          c.sentence === "Loaf around." ? { ...c, timeMs: 61_000 } : c,
+        ),
+      });
+      const lookup = (cardSpan: { startMs: number; endMs: number }) =>
+        value({
+          type: "lookup",
+          lang: "en",
+          key: "loaf",
+          sourceUrl: VIDEO.url,
+          sentence: "Just loaf around today.",
+          cardSpan,
+          timeMs: 61_200,
+        });
+      expect(
+        (await lookup({ startMs: 60_000, endMs: 63_000 })).chosenHere,
+      ).toBe("m-loaf");
+      expect(
+        (await lookup({ startMs: 62_000, endMs: 63_000 })).chosenHere,
+      ).toBeUndefined();
+      // A span that is not one is left out: the sentence alone decides.
+      expect(
+        (await lookup({ startMs: 63_000, endMs: 60_000 })).chosenHere,
+      ).toBeUndefined();
     });
 
     it("chooses nothing here for a sentence of another source", async () => {

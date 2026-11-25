@@ -179,6 +179,49 @@ describe("toWordRows with your meanings", () => {
     });
   });
 
+  it("groups a video's places by time once its cards are cut otherwise", () => {
+    // Each place's card spans 10 s, from the place's index.
+    const [row] = toWordRows(
+      [fold],
+      {
+        filter: "all",
+        sort: "order",
+        summaries: {
+          fold: {
+            status: "learning",
+            meanings,
+            chosen: [
+              // Chosen when the cards were cut otherwise: other sentences.
+              { sentence: "Once more.", key: "m-dough", timeMs: 12_000 },
+              { sentence: "The flour.", key: "m-mix", timeMs: 25_000 },
+              // A web page's place, or one from before: by sentence only.
+              { sentence: "A fold.", key: "m-dough" },
+            ],
+          },
+        },
+        learningLang: "en",
+        nativeLang: "ja",
+        sentence: (w, place) => w.places[place]!,
+        videoTime: (_, place) => ({
+          cardSpan: { startMs: place * 10_000, endMs: (place + 1) * 10_000 },
+          timeMs: place * 10_000,
+        }),
+      },
+      () => ({}),
+    );
+    expect(row!.groups).toEqual([
+      {
+        meaning: { text: "（パン生地の）折り込み", lang: "ja" },
+        places: [1, 3],
+      },
+      {
+        meaning: { text: "（料理で）…をさっくり混ぜる", lang: "ja" },
+        places: [2],
+      },
+      { places: [0] },
+    ]);
+  });
+
   it("leaves a term without meanings of the user's as it was", () => {
     const [row] = rowsOf({
       fold: { status: "learning", short: "To fold", glossLang: "en" },

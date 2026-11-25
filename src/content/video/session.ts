@@ -5,6 +5,7 @@ import {
   type WordStatus,
 } from "../../core/classify";
 import type { DataNote } from "../../core/packs/state";
+import type { TimeSpan } from "../../core/place";
 import {
   hostBlocked,
   mergeSettings,
@@ -57,7 +58,7 @@ import { startStepping } from "./stepping";
 import type { PlatformAdapter } from "./platform";
 import { createRecorder } from "./recorder";
 import { createSelection } from "./selection";
-import { flatCue } from "./words";
+import { cardSpan, flatCue } from "./words";
 import {
   freshState,
   type VideoApp,
@@ -221,8 +222,11 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     display: string,
     /** Where the term starts: a card and an offset in its text. */
     start: { cue: number; offset: number },
-    /** The cards' text for a phrase across cards (`acrossCards`). */
-    sentence?: string,
+    /**
+     * The sentence saving it records and the time span of the card(s) holding it
+     * (`spanOf`: a phrase across cards' are the cards'); else the card's.
+     */
+    place?: { sentence: string; cardSpan: TimeSpan },
   ): Omit<SaveTermInput, "status" | "key" | "kind"> | undefined {
     const { cues, lines, translations, current, subtitleTranslation } =
       store.get();
@@ -234,10 +238,12 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       lang: lang(),
       display,
       source: source(),
-      sentence: sentence ?? flat(cue.text),
+      sentence: place?.sentence ?? flat(cue.text),
       ...(translation ? { translation } : {}),
       // When the site says its first word, whatever the cards' cut.
       pos: { timeMs: timeAt(cues, lines, start.cue, start.offset) },
+      // The place it already has there, if any, is found by time in this span.
+      cardSpan: place?.cardSpan ?? cardSpan(cues, index, index),
     };
   }
 
@@ -644,7 +650,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
   function saveInput(ref: WordRef, card: TermCard) {
     const found = cards.spanOf(ref);
     const input =
-      found && termInput(ref.cue, found.surface, found.start, found.sentence);
+      found && termInput(ref.cue, found.surface, found.start, found);
     return input && { ...input, key: card.key, kind: card.kind };
   }
 

@@ -2,6 +2,7 @@ import type { Category, Span, TermKind, TermStatus } from "../../core/classify";
 import type { ExplanationProvider } from "../../core/explain/provider";
 import type { Written } from "../../core/lexicon/dictionary";
 import type { PackStates } from "../../core/packs/state";
+import type { TimeSpan } from "../../core/place";
 import type { DocumentCasing } from "../../core/text/casing";
 import { PacksUnavailableError } from "../../core/packs/unavailable";
 import type { Settings } from "../../core/settings";
@@ -71,6 +72,10 @@ interface ShownTerm extends Term {
   wordPos?: Readonly<Record<string, string>>;
   /** The sentence it is in ("this sentence"), as saving it from there records it. */
   sentence?: string;
+  /** In a video: the time span of the card(s) holding it (`SaveTermInput.cardSpan`). */
+  cardSpan?: TimeSpan;
+  /** In a video: when it is said. */
+  timeMs?: number;
 }
 
 /**
@@ -135,7 +140,13 @@ type CardPlace = "hover" | "window" | "selection";
 export function describeSpan(
   lookup: Lookup,
   span: Span,
-  place: { surface: string; sentence: string },
+  place: {
+    surface: string;
+    sentence: string;
+    /** In a video: the card(s) holding it, and when it is said. */
+    cardSpan?: TimeSpan;
+    timeMs?: number;
+  },
   shownIn: "hover" | "window" = "hover",
 ): Promise<TermCard> {
   const written = lookup.written(span, place.surface);
@@ -145,6 +156,8 @@ export function describeSpan(
       kind: span.kind,
       surface: place.surface,
       sentence: place.sentence,
+      ...(place.cardSpan !== undefined && { cardSpan: place.cardSpan }),
+      ...(place.timeMs !== undefined && { timeMs: place.timeMs }),
       category: span.category,
       ...(written !== undefined && { written }),
       ...(span.pos !== undefined && { pos: span.pos }),
