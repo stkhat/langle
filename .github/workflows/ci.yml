@@ -23,19 +23,32 @@ permissions:
   contents: read
 
 jobs:
-  # One Linux job: each extra job pays for its own setup and `npm ci`. It runs in
-  # Playwright's image, which has the browsers and their system libraries installed.
-  # The tag must match @playwright/test in package-lock.json: bump both together (the
-  # "Check the Playwright image" step fails otherwise). cross-os.yml runs the tests on
-  # macOS and Windows by hand.
-  ci:
+  # The Playwright image for the @playwright/test in package-lock.json, so a Playwright
+  # bump (Dependabot's, say) needs no workflow edit. Reads the lockfile only: no npm ci.
+  image:
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - id: image
+        run: echo "image=$(node scripts/playwright-image.ts)" >> "$GITHUB_OUTPUT"
+
+  # One Linux job for everything else: each extra job pays for its own setup and `npm ci`.
+  # It runs in Playwright's image, which has the browsers and their system libraries
+  # installed. cross-os.yml runs the tests on macOS and Windows by hand.
+  ci:
+    needs: image
+    runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      image: ${{ needs.image.outputs.image }}
       options: --user 1001
     env:
-      PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.65.0-noble
+      PLAYWRIGHT_IMAGE: ${{ needs.image.outputs.image }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -52,8 +65,6 @@ jobs:
         run: npm ci
       - if: steps.node-modules.outputs.cache-hit == 'true'
         run: npx wxt prepare
-      - name: Check the Playwright image matches @playwright/test
-        run: node scripts/check-playwright-image.ts
       - run: npm test
       - run: npm run test:browser
       - run: npm run build

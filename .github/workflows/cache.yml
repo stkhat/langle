@@ -18,13 +18,26 @@ permissions:
   contents: read
 
 jobs:
+  image:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - id: image
+        run: echo "image=$(node scripts/playwright-image.ts)" >> "$GITHUB_OUTPUT"
+
   node-modules:
+    needs: image
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      image: ${{ needs.image.outputs.image }}
       options: --user 1001
     env:
-      PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.65.0-noble
+      PLAYWRIGHT_IMAGE: ${{ needs.image.outputs.image }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
