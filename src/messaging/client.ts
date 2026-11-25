@@ -70,6 +70,11 @@ const REPEATABLE: Record<RequestType, boolean> = {
   recordHistory: true,
   historyStatus: true,
   clearHistory: true,
+  // A second visit would count the page as opened twice.
+  recentsVisit: false,
+  // Progress names the position, not a step: a second request writes the same.
+  recentsProgress: true,
+  recentsList: true,
   // Translations are kept by their text: a second request writes the same rows.
   cacheTranslations: true,
   packStatus: true,

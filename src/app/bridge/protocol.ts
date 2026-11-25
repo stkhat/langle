@@ -35,6 +35,7 @@ const CALL_APIS = [
   "alarms.create",
   "alarms.get",
   "alarms.clear",
+  "appHost.openPage",
 ] as const;
 
 /** What native code tells a script. */

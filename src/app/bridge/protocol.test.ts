@@ -26,6 +26,7 @@ describe("parseEnvelope", () => {
       "event-reply.json",
       "event.json",
       "hello.json",
+      "open-page.json",
       "reply-error.json",
       "reply-ok.json",
     ]);

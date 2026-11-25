@@ -23,6 +23,7 @@ import { createHandlers, type Handle, type HandlerDeps } from "./handlers";
 import type { HistoryItem, HistoryStore } from "./history-store";
 import { createLanguageResources } from "./language-resources";
 import type { DownloadedPack, PackStore } from "./pack-store";
+import type { RecentsStore } from "./recents-store";
 import { getSettings, setSettings } from "./settings-store";
 import type {
   ImportedOccurrence,
@@ -2287,5 +2288,89 @@ describe("handlers: saving brings the kept sentences in", () => {
     });
     expect(history.find).not.toHaveBeenCalled();
     expect(store.importOccurrences).not.toHaveBeenCalled();
+  });
+});
+
+describe("handlers: the phone app's recent pages", () => {
+  const VISIT = {
+    url: "https://example.com/bread",
+    title: " Patient bakers ",
+    site: "The Weekend Table",
+    kind: "page" as const,
+  };
+  const PROGRESS = {
+    url: "https://m.youtube.com/watch?v=abc",
+    position: 252,
+    duration: 570,
+    title: "Baking bread",
+    channel: "Home Bakery Club",
+  };
+  let recents: {
+    visit: Mock<RecentsStore["visit"]>;
+    progress: Mock<RecentsStore["progress"]>;
+    list: Mock<RecentsStore["list"]>;
+  };
+
+  beforeEach(() => {
+    recents = {
+      visit: vi.fn(async () => {}),
+      progress: vi.fn(async () => {}),
+      list: vi.fn(async () => []),
+    };
+  });
+
+  it("keeps nothing and lists nothing without the app's store (outside the app)", async () => {
+    expect(await value({ type: "recentsVisit", page: VISIT })).toBeNull();
+    expect(
+      await value({ type: "recentsProgress", progress: PROGRESS }),
+    ).toBeNull();
+    expect(await value({ type: "recentsList", limit: 10 })).toEqual([]);
+  });
+
+  it("keeps visits and progress in the app's store, and lists from it", async () => {
+    handle = createHandlers({ ...deps, recents });
+    await value({ type: "recentsVisit", page: VISIT });
+    expect(recents.visit).toHaveBeenCalledWith({
+      ...VISIT,
+      title: "Patient bakers",
+    });
+    await value({ type: "recentsProgress", progress: PROGRESS });
+    expect(recents.progress).toHaveBeenCalledWith(PROGRESS);
+    await value({ type: "recentsList", limit: 500 });
+    expect(recents.list).toHaveBeenCalledWith(50);
+  });
+
+  it.each([
+    ["another scheme", { ...VISIT, url: "javascript:alert(1)" }],
+    ["no title", { ...VISIT, title: undefined }],
+    ["an unknown kind", { ...VISIT, kind: "shorts" }],
+  ])("keeps no visit with %s", async (_, page) => {
+    handle = createHandlers({ ...deps, recents });
+    await value({ type: "recentsVisit", page } as Request);
+    expect(recents.visit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a negative position", { ...PROGRESS, position: -1 }],
+    ["an unknown length", { ...PROGRESS, duration: Number.NaN }],
+  ])("keeps no progress with %s", async (_, progress) => {
+    handle = createHandlers({ ...deps, recents });
+    await value({ type: "recentsProgress", progress });
+    expect(recents.progress).not.toHaveBeenCalled();
+  });
+
+  it("keeps nothing of a host in Never run on, and still keeps a site Langle is off on", async () => {
+    await setSettings({
+      neverRunOn: ["example.com"],
+      disabledSites: ["youtube.com"],
+    });
+    handle = createHandlers({ ...deps, recents });
+    await value({
+      type: "recentsVisit",
+      page: { ...VISIT, url: "https://news.example.com/a" },
+    });
+    expect(recents.visit).not.toHaveBeenCalled();
+    await value({ type: "recentsProgress", progress: PROGRESS });
+    expect(recents.progress).toHaveBeenCalled();
   });
 });

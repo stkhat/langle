@@ -253,7 +253,7 @@ What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` 
 - **The search field**: text that parses as an address (a scheme, or a dot and no space) opens it (`https://` added); anything else opens `https://m.youtube.com/results?search_query=…`. It asks the shell to open the page (`appHost.openPage(url)`).
 - **Continue**: the recent pages, newest first (at most 10 shown). A video shows its thumbnail (`i.ytimg.com/vi/<id>/mqdefault.jpg`), its progress bar and "Channel · 4:12 of 9:30"; an article its icon and "Site · Yesterday".
 - **Sites**: YouTube first, then the sites of the recent pages, the most opened first (four tiles at most).
-- **The recents store**: a Dexie table `recents` (key: the normalized URL; `url`, `title`, `site`, `kind: "video" | "page"`, `position?`, `duration?`, `openedAt`, `opens`). Content scripts report `recents.visit` on load and `recents.progress` on a video every 10 s and on pause and leaving; the background keeps the newest 50. Messages are sent only where `appHost` exists, and the background handles them only there.
+- **The recents store**: a Dexie table `recents` (key: the normalized URL; `url`, `title`, `site`, `kind: "video" | "page"`, `channel?`, `position?`, `duration?`, `openedAt`, `opens`). Content scripts report `recentsVisit` on load and `recentsProgress` on a video every 10 s and on pause and leaving; the background keeps the newest 50. Messages are sent only where `appHost` exists, and the background handles them only there.
 
 ### The shells (native)
 - **Screens**: Home, Words and Settings are app-origin pages under a native tab bar (Home · Words · Settings). The tab bar shows only on them.

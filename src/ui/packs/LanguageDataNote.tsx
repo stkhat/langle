@@ -45,11 +45,14 @@ export function LanguageDataNote(props: {
   /** The learning language's name ("Spanish"). */
   language: string;
   onRetry: () => void;
+  /** Over the note's own look (Home's card). */
+  style?: Style;
 }) {
   const { note, language } = props;
+  const look = { ...NOTE, ...props.style };
   if (note.state === "failed")
     return (
-      <div role="status" style={NOTE}>
+      <div role="status" style={look}>
         <span style={{ flex: 1, minWidth: 0 }}>
           {t("data.failed", { language })}
         </span>
@@ -62,7 +65,7 @@ export function LanguageDataNote(props: {
     <div
       role="status"
       style={{
-        ...NOTE,
+        ...look,
         flexDirection: "column",
         alignItems: "stretch",
         gap: "8px",

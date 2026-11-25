@@ -307,6 +307,20 @@ export function createYouTubeAdapter(
     vertical: onShorts,
     besidePlayer: () => layout.besidePlayer(),
     adShowing,
+    async details() {
+      const response = (await call({ type: "getPlayerResponse" })) as {
+        videoDetails?: { videoId?: unknown; title?: unknown; author?: unknown };
+      } | null;
+      const { videoId: id, title, author } = response?.videoDetails ?? {};
+      if (typeof id !== "string") return undefined;
+      return {
+        id,
+        ...(typeof title === "string" &&
+          title.trim() && { title: title.trim() }),
+        ...(typeof author === "string" &&
+          author.trim() && { channel: author.trim() }),
+      };
+    },
     async tracks() {
       const id = videoId();
       return id ? (await captionInfo(id)).tracks : [];

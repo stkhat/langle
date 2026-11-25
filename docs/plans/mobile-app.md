@@ -29,7 +29,7 @@
 - [x] M4 designed (2026-11-25, with the user): spec [mobile-app.md](../specs/mobile-app.md) "M4: the app's screens"
 - [ ] M4-0: Words, Settings and the first run drawn in the mock; reviewed by the user
 - [x] M4a: the Langle sheet's phone layout and "Saved on this phone" (branch `claude/mobile-m4a`)
-- [ ] M4b: Home and the recents store (branch `claude/mobile-m4b`)
+- [x] M4b: Home and the recents store (branch `claude/mobile-m4b`)
 - [ ] M4c-ios and M4c-android: the tab bar, the title bar and the page over Home (branches `claude/mobile-m4c-ios`, `claude/mobile-m4c-android`)
 - [ ] M4d: Words, Settings and the first run in the phone layout (branch `claude/mobile-m4d`)
 - [ ] M4e: the device checks of the whole of M4
@@ -620,12 +620,12 @@ Branch `claude/mobile-m4b`.
 **Files**: `src/background/db.ts` (a new version with `recents`), a new `src/background/recents-store.ts` (+ browser test), `src/background/handlers.ts`, `src/messaging/protocol.ts`; the reporting in the content scripts (`src/content/video/session.ts` for position, the article and video entrypoints for visits), in a new `src/content/recents.ts`; a new entrypoint `src/entrypoints/home/` (`index.html`, `main.tsx`, `Home.tsx`, + browser test) included only in `langle-app`; `src/app/shim/` for `appHost.openPage` if it is not there; `tests/app-manifest.test.ts` if the build's pages are listed there.
 
 **Tasks**
-- [ ] **The store**: `recents` (key the normalized URL; `url`, `title`, `site`, `kind`, `position?`, `duration?`, `openedAt`, `opens`), `visit`, `progress`, `list(limit)`, the newest 50 kept. Browser test with fake-indexeddb as the other stores. Commit.
-- [ ] **Messages** `recents.visit`, `recents.progress`, `recents.list`; the background handles them only where `appHost` exists. Unit tests: without `appHost`, nothing is kept. Commit.
-- [ ] **Reporting**: content scripts send a visit on load (title, `og:site_name` or the host) and, on a video, the position every 10 s, on pause and on `pagehide`; only where `appHost` exists. Tests: nothing sent without it. Commit.
-- [ ] **`appHost.openPage(url)`**: a shim call the shells answer by opening the page over Home. Add it to the protocol's golden files and to `reference-native.ts`. Commit.
-- [ ] **Home** as `MobileStart`: header, the search field (the spec's parsing; unit tests for addresses and searches), counts and the saved line (M4a's `device` string if merged, else the same key added here; one of the two branches rebases), Continue, Sites. Browser tests. Render against `MobileStart`. Commit.
-- [ ] **Docs**: ui.md if needed, architecture.md (the recents store, app only), status.md, tick M4b. `verify -- --skip-firefox`, draft PR "Mobile app M4b: Home and recent pages", `gh pr ready`.
+- [x] **The store**: `recents` (key the normalized URL; `url`, `title`, `site`, `kind`, `position?`, `duration?`, `openedAt`, `opens`), `visit`, `progress`, `list(limit)`, the newest 50 kept. Browser test with fake-indexeddb as the other stores. Commit.
+- [x] **Messages** `recentsVisit`, `recentsProgress`, `recentsList` (camelCase, as the other messages); the background handles them only where `appHost` exists. Unit tests: without `appHost`, nothing is kept. Commit.
+- [x] **Reporting**: content scripts send a visit on load (title, `og:site_name` or the host) and, on a video, the position every 10 s, on pause and on `pagehide`; only where `appHost` exists. Tests: nothing sent without it. Commit.
+- [x] **`appHost.openPage(url)`**: a shim call the shells answer by opening the page over Home. Add it to the protocol's golden files and to `reference-native.ts`. Commit.
+- [x] **Home** as `MobileStart`: header, the search field (the spec's parsing; unit tests for addresses and searches), counts and the saved line (M4a's `device` string if merged, else the same key added here; one of the two branches rebases), Continue, Sites. Browser tests. Render against `MobileStart`. Commit.
+- [x] **Docs**: ui.md if needed, architecture.md (the recents store, app only), status.md, tick M4b. `verify -- --skip-firefox`, draft PR "Mobile app M4b: Home and recent pages", `gh pr ready`.
 
 ### M4c-ios and M4c-android: the tab bar, the title bar and the page over Home (two agents, Opus)
 Branches `claude/mobile-m4c-ios`, `claude/mobile-m4c-android`, from `main` with M4b merged. They share no files and write their code in parallel; the device steps take turns (iOS first).
