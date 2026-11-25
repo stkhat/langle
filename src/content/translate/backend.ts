@@ -23,6 +23,12 @@ export interface TranslatorBackend {
   /** Starts the downloads Langle translates `learning` → `native` with. */
   downloadModels(learning: string, native: string): Promise<void>;
   /**
+   * Whether a model Langle translates `learning` → `native` with waits for the user
+   * to agree to its download (iOS: Apple's sheet was declined); `downloadModels`
+   * asks again. The browser's models never wait for that.
+   */
+  waitsForConsent(learning: string, native: string): Promise<boolean>;
+  /**
    * `downloadModels` for a page that closes after the click (the setup): resolves once
    * every download is asked for, `downloaded` once they ended.
    */
@@ -47,6 +53,7 @@ export function builtInBackend(
     available: (from, to) => builtInTranslatorAvailable(from, to, g),
     downloadModels: (learning, native) =>
       downloadTranslationModels(learning, native, g),
+    waitsForConsent: async () => false,
     startModels: (learning, native) =>
       startTranslationModels(learning, native, g),
     downloadOnFirstActivation: (target, languages, options) =>

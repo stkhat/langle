@@ -17,6 +17,7 @@ import type {
   Request,
   SyncStatus,
 } from "../../messaging/protocol";
+import type { TranslatorStatus } from "../../core/app-host";
 import type { SyncPlace } from "../../core/browser-env";
 import type { PackState, PackStates } from "../../core/packs/state";
 import type { SupportLinks } from "../../core/links";
@@ -546,6 +547,50 @@ describe("SettingsPage", () => {
       await expect
         .element(section(f.screen, "Languages").getByText("Downloading · 73%"))
         .toBeVisible();
+    });
+
+    it("offers Download while Apple's translator waits for consent, which shows the sheet again (iOS)", async () => {
+      let status: TranslatorStatus = "download";
+      const sheets: string[] = [];
+      vi.stubGlobal("appHost", {
+        translator: { models: "system" },
+        translatorStatus: async () => status,
+        prepareTranslator: async (pair: { from: string; to: string }) => {
+          sheets.push(`${pair.from}>${pair.to}`);
+          status = "ready";
+          return status;
+        },
+      });
+      const f = await open({ app: true });
+      const languages = section(f.screen, "Languages");
+      await expect
+        .element(languages.getByText("32.0 MB · Translator not downloaded"))
+        .toBeVisible();
+      expect(languages.getByText("Downloaded").query()).toBeNull();
+
+      await languages.getByRole("button", { name: "Download" }).click();
+      await expect.element(languages.getByText("Downloaded")).toBeVisible();
+      await expect.element(languages.getByText("32.0 MB")).toBeVisible();
+      expect(
+        languages.getByRole("button", { name: "Download" }).query(),
+      ).toBeNull();
+      // English → Japanese: the definitions' translator is the pages' one.
+      expect(sheets).toEqual(["en>ja"]);
+    });
+
+    it("keeps the usual states where no consent is waited for (Android, the browser)", async () => {
+      vi.stubGlobal("appHost", {
+        translator: { models: "packs" },
+        translatorStatus: async () => "packs",
+        prepareTranslator: async () => "packs",
+      });
+      const f = await open({ app: true });
+      const languages = section(f.screen, "Languages");
+      await expect.element(languages.getByText("Downloaded")).toBeVisible();
+      await expect.element(languages.getByText("32.0 MB")).toBeVisible();
+      expect(
+        languages.getByText(/Translator not downloaded/).query(),
+      ).toBeNull();
     });
 
     it("says the download failed, and Retry asks the background to try again", async () => {
@@ -1596,6 +1641,44 @@ describe("SettingsPage on a phone", () => {
     screen
       .getByRole("navigation", { name: "Settings sections" })
       .getByRole("button", { name: new RegExp(`^${name}`) });
+
+  it("puts Download beside the pair in Language data, and a download's share under it", async () => {
+    vi.stubGlobal("appHost", {
+      translator: { models: "system" },
+      translatorStatus: async () => "download",
+      prepareTranslator: async () => "download",
+    });
+    const top = (element: Element) => element.getBoundingClientRect().top;
+    const ios = await openPhone();
+    await pushed(ios.screen, "Languages").click();
+    const pair = ios.screen.getByText("English → Japanese", { exact: true });
+    const download = ios.screen.getByRole("button", { name: "Download" });
+    await expect.element(download).toBeVisible();
+    expect(download.element().getBoundingClientRect().height).toBe(44);
+    expect(top(download.element())).toBeLessThan(
+      pair.element().getBoundingClientRect().bottom,
+    );
+    cleanup();
+
+    const loading = await openPhone({
+      settings: { learningLang: "es", nativeLang: "en" },
+      packStatus: () =>
+        spanish(ready(3 * MB_), {
+          state: "downloading",
+          received: 1 * MB_,
+          total: 3.4 * MB_,
+        }),
+    });
+    await pushed(loading.screen, "Languages").click();
+    const share = loading.screen.getByText("Downloading · 62%");
+    await expect.element(share).toBeVisible();
+    expect(top(share.element())).toBeGreaterThan(
+      loading.screen
+        .getByText("Spanish → English", { exact: true })
+        .element()
+        .getBoundingClientRect().bottom,
+    );
+  });
 
   it("lists the sections with their values, Backup for Sync, and Support with Rate and feedback only", async () => {
     const { screen } = await openPhone({
