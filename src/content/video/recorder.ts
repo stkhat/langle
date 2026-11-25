@@ -1,5 +1,6 @@
 import type { Settings } from "../../core/settings";
 import type { DocumentCasing } from "../../core/text/casing";
+import { timeAt } from "../../core/subtitles/cues";
 import { termId } from "../../core/term-id";
 import type { send } from "../../messaging/client";
 import type { SourceInput } from "../../messaging/protocol";
@@ -45,7 +46,7 @@ export function createRecorder(o: {
     },
     /** Tells the background which saved terms the played cards among `indices` have. */
     encounters(indices: number[]) {
-      const { cues, spans, translations } = o.store.get();
+      const { cues, lines, spans, translations } = o.store.get();
       const items = [];
       for (const index of indices) {
         const cue = cues[index];
@@ -64,7 +65,10 @@ export function createRecorder(o: {
               acrossCards(cues, spans, index, span, o.flat)?.sentence ??
               o.flat(cue.text),
             ...(translation ? { translation } : {}),
-            pos: { timeMs: cue.startMs },
+            // When the site says its first word, whatever the cards' cut.
+            pos: {
+              timeMs: timeAt(cues, lines, index, (span.part ?? span).start),
+            },
           });
         }
       }

@@ -47,6 +47,7 @@ import { warn } from "../lookup/warn";
 import { createStore } from "../store";
 import type { TranslationPair } from "../translate/queue";
 import { translatorBackend } from "../translate/backend";
+import { landingSeek, timeAt } from "../../core/subtitles/cues";
 import { cardRuns, splitRun } from "../../core/subtitles/runs";
 import { captionCards, type TimedTranslation } from "./captions";
 import { createCards } from "./cards";
@@ -113,6 +114,11 @@ interface Watch {
   aheadKey: string;
   /** The video played to its end once (unsaved new words were handled). */
   endReached: boolean;
+  /**
+   * The time an occurrence link opened the video at (`PlatformAdapter.landing`), until
+   * the first tick with the cards checks it (`land`).
+   */
+  landing: number | undefined;
 }
 
 const sameNote = (a: DataNote | null, b: DataNote | null) =>
@@ -213,10 +219,13 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
   function termInput(
     index: number,
     display: string,
+    /** Where the term starts: a card and an offset in its text. */
+    start: { cue: number; offset: number },
     /** The cards' text for a phrase across cards (`acrossCards`). */
     sentence?: string,
   ): Omit<SaveTermInput, "status" | "key" | "kind"> | undefined {
-    const { cues, translations, current, subtitleTranslation } = store.get();
+    const { cues, lines, translations, current, subtitleTranslation } =
+      store.get();
     const cue = cues[index];
     if (!cue) return undefined;
     const translation =
@@ -227,7 +236,8 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       source: source(),
       sentence: sentence ?? flat(cue.text),
       ...(translation ? { translation } : {}),
-      pos: { timeMs: cue.startMs },
+      // When the site says its first word, whatever the cards' cut.
+      pos: { timeMs: timeAt(cues, lines, start.cue, start.offset) },
     };
   }
 
@@ -350,6 +360,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       ahead: new Map(),
       aheadKey: "",
       endReached: false,
+      landing: adapter.landing?.(),
     };
     watch = w;
     // Moving on to another video aborts what was asked for ahead.
@@ -410,6 +421,23 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     await analyzeAll(w, true);
   }
 
+  /**
+   * A video opened from an occurrence link: on the first tick with the cards, past any ad
+   * and once the player knows the video, it goes back to the start of the card that
+   * holds the link's time if it is still inside that card (`landingSeek`). Once.
+   */
+  function land(w: Watch, video: HTMLVideoElement) {
+    if (w.landing === undefined || adapter.adShowing() || video.readyState < 1)
+      return;
+    const to = landingSeek(
+      store.get().cues,
+      w.landing,
+      video.currentTime * 1000,
+    );
+    w.landing = undefined;
+    if (to !== undefined) adapter.seek(to).catch(warn);
+  }
+
   function update(w: Watch, video: HTMLVideoElement) {
     if (watch !== w) return;
     const state = store.get();
@@ -426,6 +454,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       }
       store.set(now);
     }
+    land(w, video);
     steps.tick(video.currentTime * 1000, !video.paused);
     if (now.current >= 0 && w.recorder.play(now.current))
       void played(w, now.current).catch(warn);
@@ -614,7 +643,8 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
   /** What saving the term at `ref` sends besides its status. */
   function saveInput(ref: WordRef, card: TermCard) {
     const found = cards.spanOf(ref);
-    const input = found && termInput(ref.cue, found.surface, found.sentence);
+    const input =
+      found && termInput(ref.cue, found.surface, found.start, found.sentence);
     return input && { ...input, key: card.key, kind: card.kind };
   }
 
@@ -647,8 +677,13 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
    */
   async function saveCorrected(w: Watch, phrase: CorrectedPhrase) {
     const ref = store.get().panel?.ref;
-    const input = ref && termInput(ref.cue, phrase.display);
-    if (!ref || !input) return;
+    if (!ref) return;
+    const start = cards.spanOf(ref)?.start ?? {
+      cue: ref.cue,
+      offset: ref.selected?.start ?? 0,
+    };
+    const input = termInput(ref.cue, phrase.display, start);
+    if (!input) return;
     const { key } = phrase;
     await deps.send({
       type: "saveTerm",

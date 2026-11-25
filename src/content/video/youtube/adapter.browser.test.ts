@@ -22,6 +22,7 @@ import {
   VIDEO_ID,
   type TestPage,
 } from "../../../testing/youtube-page";
+import { occurrenceLink } from "../../../core/url";
 import { enterFullscreen } from "../../../testing/fullscreen";
 import { holdBackPageCalls, type HeldCalls } from "../../../testing/page-calls";
 import {
@@ -234,6 +235,39 @@ describe("the watch page", () => {
     off();
     page.navigate({ videoId: "x", title: "X", playerResponse: captionTracks });
     expect(calls).toBe(1);
+  });
+});
+
+describe("a watch page opened from an occurrence link", () => {
+  const link = (ms: number, id = VIDEO_ID) =>
+    occurrenceLink(
+      { platform: "youtube", url: `https://www.youtube.com/watch?v=${id}` },
+      { timeMs: ms },
+    );
+
+  it("hands out the link's time once, also after the site rewrote the URL", () => {
+    href = link(12_345);
+    start();
+    // The site drops Langle's parameter: the URL the page opened with still counts.
+    href = `https://www.youtube.com/watch?v=${VIDEO_ID}&t=12s`;
+    expect(adapter.url()).toBe(`https://www.youtube.com/watch?v=${VIDEO_ID}`);
+    expect(adapter.landing?.()).toBe(12_345);
+    expect(adapter.landing?.()).toBeUndefined();
+  });
+
+  it("reads a link the page moved to, once", () => {
+    start();
+    expect(adapter.landing?.()).toBeUndefined();
+    href = link(5_000, "otherVideo1");
+    expect(adapter.landing?.()).toBe(5_000);
+    expect(adapter.landing?.()).toBeUndefined();
+  });
+
+  it("does not hand the opening link's time to another video", () => {
+    href = link(12_345);
+    start();
+    href = "https://www.youtube.com/watch?v=otherVideo1";
+    expect(adapter.landing?.()).toBeUndefined();
   });
 });
 

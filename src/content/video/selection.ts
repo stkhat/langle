@@ -47,6 +47,8 @@ export function createSelection(o: {
   termInput(
     cue: number,
     display: string,
+    /** Where the term starts: a card and an offset in its text. */
+    start: { cue: number; offset: number },
   ): Omit<SaveTermInput, "status" | "key" | "kind"> | undefined;
   /** Words began to be selected: the hover card goes. */
   dismissHover(): void;
@@ -187,7 +189,11 @@ export function createSelection(o: {
     const match = await selected.match;
     const { start, end } = match ?? selected;
     const key = match?.key ?? selectionKey(shown(cue.text), selected.spans);
-    const input = o.termInput(selected.cue, o.flat(cue.text.slice(start, end)));
+    const input = o.termInput(
+      selected.cue,
+      o.flat(cue.text.slice(start, end)),
+      { cue: selected.cue, offset: start },
+    );
     if (!input) return;
     await o.send({ type: "saveTerm", ...input, key, kind: "phrase", status });
     if (phrase === selected) clear();

@@ -50,12 +50,20 @@ export function createCards(o: {
     const across = ref.selected
       ? undefined
       : acrossCards(cues, spans, ref.cue, span, flat);
+    // Where the term starts: a phrase across cards in the first of them.
     if (across)
-      return { cue, span, surface: across.surface, sentence: across.sentence };
+      return {
+        cue,
+        span,
+        start: { cue: across.first, offset: across.start },
+        surface: across.surface,
+        sentence: across.sentence,
+      };
     const { start, end } = span.part ?? span;
     return {
       cue,
       span,
+      start: { cue: ref.cue, offset: start },
       surface: flat(cue.text.slice(start, end)),
       sentence: flat(cue.text),
     };

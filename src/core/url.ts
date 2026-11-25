@@ -96,14 +96,39 @@ export function sourceId(platform: Platform, normalizedUrl: string): string {
   return fnv1a64(`${platform}|${normalizedUrl}`);
 }
 
-/** A link back to the spot: YouTube times become `&t=<seconds>s`; otherwise the source URL. */
+/**
+ * The query parameter that marks Langle's occurrence links, with the time in ms: the
+ * watch page then lands at the start of the card holding it (`landingSeek`). Every
+ * parameter but `v` is dropped from a YouTube URL by `normalizeUrl`, so the source stays
+ * the same.
+ */
+const LANDING_PARAM = "langle";
+
+/**
+ * A link back to the spot: YouTube times become `&t=<seconds>s` plus Langle's marker
+ * (`LANDING_PARAM`); otherwise the source URL.
+ */
 export function occurrenceLink(
   source: { platform: Platform; url: string },
   pos: Position,
 ): string {
-  if (source.platform === "youtube" && "timeMs" in pos)
-    return `${source.url}&t=${Math.floor(pos.timeMs / 1000)}s`;
+  if (source.platform === "youtube" && "timeMs" in pos) {
+    const ms = Math.max(0, Math.round(pos.timeMs));
+    return `${source.url}&t=${Math.floor(ms / 1000)}s&${LANDING_PARAM}=${ms}`;
+  }
   return source.url;
+}
+
+/** The time (ms) an occurrence link (`occurrenceLink`) points to; undefined for other URLs. */
+export function landingOf(href: string): number | undefined {
+  let value: string | null;
+  try {
+    value = new URL(href).searchParams.get(LANDING_PARAM);
+  } catch {
+    return undefined;
+  }
+  if (value === null || !/^\d+$/.test(value)) return undefined;
+  return Number(value);
 }
 
 /** True when `hostname` is `entry` or one of its subdomains, ignoring case. */

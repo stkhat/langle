@@ -1,4 +1,5 @@
 import type { Track } from "../../../core/subtitles/types";
+import { landingOf, tryNormalizeUrl } from "../../../core/url";
 import {
   parseYouTubeJson3,
   youtubeCaptionInfo,
@@ -100,6 +101,9 @@ export function createYouTubeAdapter(
   options: YouTubeAdapterOptions = {},
 ): PlatformAdapter {
   const href = options.href ?? (() => location.href);
+  /** The page's URL as it opened, and the occurrence links already landed (`landing`). */
+  const opened = href();
+  const landed = new Set<string>();
   const pollMs = options.pollMs ?? 250;
   const playerRequestWaitMs = options.playerRequestWaitMs ?? 1500;
   const captureTimeoutMs = options.captureTimeoutMs ?? 10_000;
@@ -370,14 +374,27 @@ export function createYouTubeAdapter(
     return translation && { track: original, cues, translation };
   }
 
+  function url() {
+    const id = videoId();
+    return id ? `https://www.youtube.com/watch?v=${id}` : href();
+  }
+
   return {
     platform: "youtube",
     videoId,
     title: () =>
       layout.heading() || document.title.replace(/ - YouTube$/, "").trim(),
-    url() {
-      const id = videoId();
-      return id ? `https://www.youtube.com/watch?v=${id}` : href();
+    url,
+    landing() {
+      // The page's URL now, or as it opened (the site may rewrite it), for this video.
+      for (const at of [href(), opened]) {
+        const ms = landingOf(at);
+        if (ms === undefined || landed.has(at) || tryNormalizeUrl(at) !== url())
+          continue;
+        landed.add(at);
+        return ms;
+      }
+      return undefined;
     },
     video: () =>
       player()?.querySelector<HTMLVideoElement>("video.html5-main-video") ??

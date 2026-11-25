@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { asrSentenceCards, cueWords } from "./asr";
-import { alignByOverlap, chooseTranslation } from "./translation";
+import { timeAt } from "./cues";
+import {
+  alignByOverlap,
+  chooseTranslation,
+  joinCoveredCards,
+} from "./translation";
 import { parseTtml } from "./ttml";
 import type { Cue, Track } from "./types";
 import { parseYouTubeJson3, youtubeCaptionInfo } from "./youtube-json3";
@@ -323,5 +328,35 @@ describe("alignByOverlap on sentence cards", () => {
       "間違う覚悟がなければ独創的なものは生まれません",
     );
     expect(of("[AUDIENCE APPLAUDS]")).toBe("（拍手）");
+  });
+});
+
+describe("joinCoveredCards", () => {
+  it("moves the lines' words with their card, keeping their times", () => {
+    const cues = [
+      cue(0, 2000, "They feel fear and doubt."),
+      cue(2000, 3500, "They procrastinate."),
+    ];
+    const sentences = asrSentenceCards(
+      cues.map((c) => ({ ...c, words: cueWords(c) })),
+      { lang: "en", linesByCue: true },
+    );
+    const joined = joinCoveredCards(
+      sentences,
+      [cue(0, 3500, "恐れや疑いを感じて先延ばしにします")],
+      " ",
+    );
+    expect(joined.cards.map((c) => c.text)).toEqual([
+      "They feel fear and doubt. They procrastinate.",
+    ]);
+    const text = joined.cards[0]!.text;
+    expect(joined.lines[1]!.words).toEqual([
+      { start: text.indexOf("They procrastinate"), startMs: 2000 },
+      { start: text.indexOf("procrastinate"), startMs: 2395 },
+    ]);
+    // A word's time is the same before and after the join.
+    expect(timeAt(joined.cards, joined.lines, 0, text.indexOf("procr"))).toBe(
+      timeAt(sentences.cards, sentences.lines, 1, "They ".length),
+    );
   });
 });

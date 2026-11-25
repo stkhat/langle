@@ -1,6 +1,7 @@
 import { primary } from "../languages";
 import {
   isSoundLabel,
+  type LineWord,
   lowerBound,
   SENTENCE_END,
   type SentenceCards,
@@ -220,14 +221,23 @@ function largestGap(
 const separatorBefore = (token: Token) =>
   token.spaceBefore ? (token.speaker ? "\n" : " ") : "";
 
-/** Text of `tokens` as shown: cleaned, separated as `separatorBefore` says. */
-function textOf(tokens: readonly Token[]): string {
+/**
+ * Text of `tokens` as shown (cleaned, separated as `separatorBefore` says) and where each
+ * word starts in it, `at` characters into the card's text, with the site's time for it.
+ */
+function textOf(
+  tokens: readonly Token[],
+  at: number,
+): { text: string; words: LineWord[] } {
   let text = "";
+  const words: LineWord[] = [];
   for (const token of tokens) {
     if (token.clean === "") continue;
-    text += (text !== "" ? separatorBefore(token) : "") + token.clean;
+    if (text !== "") text += separatorBefore(token);
+    words.push({ start: at + text.length, startMs: token.startMs });
+    text += token.clean;
   }
-  return text;
+  return { text, words };
 }
 
 /** The length of `textOf(tokens.slice(0, k))`, for each k from 0 to `tokens.length`. */
@@ -311,8 +321,8 @@ function cardsOf(
       : splitLines(sentence, maxChars);
     let text = "";
     parts.forEach((part, p) => {
-      const partText = textOf(part);
       if (text !== "") text += separatorBefore(part[0] as Token);
+      const { text: partText, words } = textOf(part, text.length);
       const nextStart = parts[p + 1]?.[0]?.startMs ?? endMs;
       lines.push({
         startMs: (part[0] as Token).startMs,
@@ -323,6 +333,7 @@ function cardsOf(
         card,
         start: text.length,
         end: text.length + partText.length,
+        words,
       });
       text += partText;
     });
