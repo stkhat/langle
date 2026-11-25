@@ -161,7 +161,10 @@ function NeverRunOn(props: {
   );
 }
 
-/** The sites' switches and the never-run list; the phone app (`app`) plays no Netflix. */
+/**
+ * The sites' switches and the never-run list; the phone app (`app`) plays no Netflix, and
+ * its lead names the Langle sheet for the toolbar popup.
+ */
 export function SitesSection(props: SectionProps & { app?: boolean }) {
   const s = props.settings;
   const sites = props.app
@@ -171,7 +174,7 @@ export function SitesSection(props: SectionProps & { app?: boolean }) {
     <Section
       id="sites"
       label="settings.section.sites"
-      lead={t("settings.sites.lead")}
+      lead={t(props.app ? "settings.sites.leadApp" : "settings.sites.lead")}
     >
       {sites.map((site) => (
         <SwitchRow
