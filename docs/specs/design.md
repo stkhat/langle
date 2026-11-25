@@ -21,7 +21,7 @@ Development pair: learning language = English, native language = Japanese, sites
 - **Target browsers**: Chrome only for now (Firefox is paused since 2026-11-24: [notes](../notes/firefox-paused.md)), but the code stays browser-neutral so Firefox, Edge and others can follow (see [architecture](architecture.md) "Browser differences")
 - "New" is decided by **a frequency level (the top N words count as known) + saving a whole page at once**
 - Every saved word **always has a source**, and you can see **whether a saved word appeared elsewhere**
-- The UI is **English only** for now, built so it can be switched later
+- The UI follows Your language by default and can be set to any native language (architecture "Interface language"); Arabic mirrors the layout
 - Colors: **white background + dark navy text + green accent**, the same across video, article, popup and settings (Grammarly-like, but not identical). A dark theme follows the browser by default (see [ui.md](ui.md) "Shared: theme")
 
 ## Phases
