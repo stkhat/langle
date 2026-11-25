@@ -79,6 +79,10 @@ describe("langle-app manifest", () => {
     expect(existsSync(`${DIR}/langle-shim.js`)).toBe(true);
   });
 
+  test("ships Home, the app's first screen", () => {
+    expect(existsSync(`${DIR}/home.html`)).toBe(true);
+  });
+
   test("asks only for permissions the app has", () => {
     const manifest = readManifest();
     expect(

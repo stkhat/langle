@@ -91,6 +91,10 @@ describe.each(BUILDS)("%s manifest", (dir) => {
     expect(existsSync(`.output/${dir}/langle-shim.js`)).toBe(false);
   });
 
+  test("leaves out the phone app's Home", () => {
+    expect(existsSync(`.output/${dir}/home.html`)).toBe(false);
+  });
+
   test("requests no host permissions", () => {
     expect(manifest().host_permissions).toBeUndefined();
   });
