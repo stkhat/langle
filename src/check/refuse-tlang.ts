@@ -6,7 +6,7 @@ import { browser } from "wxt/browser";
  * takes, so a video that would get `tlang` (the TED baseline) shows on-device
  * translated subtitles. Set through `langle:check-settings` (`refuseTlang`).
  */
-export const REFUSE_TLANG_KEY = "checkRefuseTlang";
+const REFUSE_TLANG_KEY = "checkRefuseTlang";
 
 /** Whether the switch is on; off when it cannot be read. */
 export async function tlangRefused(): Promise<boolean> {

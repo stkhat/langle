@@ -116,7 +116,7 @@ export interface ReferenceTranslator {
 }
 
 /** The error of a call the app cannot answer yet, the same text in all three routers. */
-export const notAvailable = (api: string) => `${api} is not available here.`;
+const notAvailable = (api: string) => `${api} is not available here.`;
 
 const HOST_WAIT_MS = 10_000;
 const MINUTE = 60_000;
