@@ -160,6 +160,29 @@ WebKit on the iPhone has no element fullscreen ("Fullscreen in the shells"), so 
 
 **Checked** on the iPhone 17 Simulator (iOS 27.2), the check build, TED `iG9CE55wbtY` muted: YouTube's button turns the app to landscape (874 × 402) with the status bar, home indicator and address row hidden; `fullscreenElement` is `#player-container-id`. Langle's subtitle and L show, YouTube's own track is hidden, a word opens its panel at the right. The transcript column at the right and at the left, the dictionary inside the column. Leaving by YouTube's button, the edge swipe and turning back to portrait. Error log empty, cleared.
 
+## The app's screens on iOS (M4c, 2026-11-25)
+The iOS shell as the spec's "M4: the app's screens" ("The shells"): `Shell` in LangleCore decides the screen (the first run, a tab, the page over Home), back's order and the title bar's text (XCTest); the app draws the native tab bar (`TabBar.swift`), the title bar (`TitleBar.swift`) and the sheet frame (`SheetFrame.swift`), with the mock's icons drawn from their SVG path data (`SVGPath.swift`, `Icons.swift`). Checks drive the screens without taps through `check.sh cmd` (`home`, `words`, `settings`, `back-home`, `edge-back`, `langle`, `close-sheet`) and `check.sh js first|tab` ([development.md](../development.md) "Mobile app").
+
+**Checked** on the iPhone 18 Pro Simulator (iOS 27.2), the check build, a fresh install (`-reset 1`), TED `iG9CE55wbtY` muted and the E2E article. The Simulator tool's device access went unanswered, so the screens were driven by `check.sh cmd` and `check.sh js` (no taps):
+- **First run**: `welcome.html` fills the screen with no bars (MobileStart's first run); agree, then the languages step (Japanese → English preset from the phone), Start → Home under the tab bar.
+- **Home** as `MobileStart`: the search, the counts, "Not saved yet", Sites; later Continue (the video with its thumbnail and "TED · 3:07 of 20:03", the article with "localhost · 4 minutes ago") and Sites (YouTube, localhost).
+- **The page over Home**: the search opened the article and the video. The title bar matches `MobileArticle` / `MobileYouTube` (56 pt, ‹, the title and the site on two lines, the 28 pt L, ⋮). The site is "youtube.com" on the video, as in the mock: `og:site_name` is read when the URL changes, before m.youtube.com adds it. Scrolling the video page down hides the bar (the status bar's strip stays white), scrolling up brings it back. The article fits the screen and does not scroll.
+- **L** opens `popup.html` in the sheet frame, over the dimmed page and the title bar, as in `MobileLangleSheet`. On the video, Subtitles → In video moved the subtitle into the video and Show transcript off removed the transcript (both put back afterwards). The sheet's word list button showed the Words tab and closed the sheet.
+- **Back**: ‹ shows Home and pauses the video; Continue's first row shows the kept page as it was (playing on from where it was); the edge swipe from the page's first entry shows Home.
+- **Error log**: 32 entries, all info (pack files served by the mirror); cleared.
+- **Not checked**: ⋮ (Forward, Share, Copy link, Open in another browser) and editing the title need taps; Words and Settings are still the desktop layouts (M4d).
+- **Found and fixed on the device**:
+  - Continue names an m.youtube.com video by its canonical address (www.youtube.com), so it reloaded the kept page. The shell asks the page for `link[rel=canonical]` and shows the kept page when either address matches (`Shell.asksCanonical`, `handle(_:canonical:)`), as Android does.
+  - The video kept playing after the sheet's word list button left the page: the page's media is now paused whenever another screen shows, not only on ‹ and the edge swipe.
+  - Home's search field kept the last address it opened; it is emptied once the page opens.
+
+**Open** (differs from the mock, or not built here):
+- The sheet frame is always at its full height (up to the status bar); the mock's `MobileLangleSheet` sizes it to its content. The page inside cannot tell the shell its height yet.
+- The title bar hides for Langle's in-page dictionary sheet in the mock (`MobileArticle`), but the shell hears only scrolling, so it stays.
+- Editing the title (a tap on it puts the address in an editable field) is not drawn in the mock; the field takes the title's place between ‹ and L, with the keyboard's Go.
+- The first run's "Not now" closes its tab with `tabs.getCurrent`, which the shim does not answer, so it does nothing in the app (M4d, with the first run's phone layout). Its "Sends" item still mentions connecting Google Drive, which the app does not offer yet (M4d).
+- The bar follows the page's scroll offset, so a page that grows or shrinks above the view (YouTube's lists loading) can move the bar as a scroll would.
+
 ## Device checks (M3d, 2026-11-24)
 
 The check build (`bundle-build.sh check`, `check.sh build check`), logged out, videos muted. YouTube: Ken Robinson's TED talk `iG9CE55wbtY` on `m.youtube.com`. Articles: the E2E page `article-en.html` from `node e2e/serve.ts`.

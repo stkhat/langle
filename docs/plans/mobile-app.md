@@ -30,7 +30,7 @@
 - [ ] M4-0: Words, Settings and the first run drawn in the mock; reviewed by the user
 - [x] M4a: the Langle sheet's phone layout and "Saved on this phone" (branch `claude/mobile-m4a`)
 - [x] M4b: Home and the recents store (branch `claude/mobile-m4b`)
-- [ ] M4c-ios: the tab bar, the title bar and the page over Home (branch `claude/mobile-m4c-ios`)
+- [x] M4c-ios: the tab bar, the title bar and the page over Home (branch `claude/mobile-m4c-ios`), notes/mobile.md "The app's screens on iOS (M4c)"
 - [x] M4c-android: the same on Android (branch `claude/mobile-m4c-android`), notes/mobile.md "Device checks (M4c, Android)"
 - [ ] M4d: Words, Settings and the first run in the phone layout (branch `claude/mobile-m4d`)
 - [ ] M4e: the device checks of the whole of M4
