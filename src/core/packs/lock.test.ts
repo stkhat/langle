@@ -102,7 +102,13 @@ describe("readLock", () => {
     const { v, mirrors, packs } = readLock();
     expect(v).toBe(1);
     expect(mirrors).toEqual(lock.mirrors);
-    expect(Object.keys(packs).sort()).toEqual(Object.keys(lock.packs).sort());
+    // The phone app's translation models (kind "model") come on top of the data packs.
+    const dataPacks = Object.entries(packs).filter(([, e]) => !e.kind);
+    expect(dataPacks.map(([name]) => name).sort()).toEqual(
+      Object.keys(lock.packs).sort(),
+    );
+    for (const [name, e] of Object.entries(packs))
+      if (e.kind) expect(name).toMatch(/^mt-[a-z]+-[a-z]+$/);
     for (const pack of Object.values(packs)) {
       expect(pack.files.length).toBeGreaterThan(0);
       expect(pack).not.toHaveProperty("bundled");

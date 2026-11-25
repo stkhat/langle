@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { NOTICES_DIR, PACKS } from "./data/formats.ts";
+import { MODEL_PACKS, NOTICES_DIR, PACKS } from "./data/formats.ts";
 import { noticesData } from "./notices-data.ts";
 
 describe("noticesData", () => {
@@ -48,5 +48,17 @@ describe("noticesData", () => {
       expect(data.notices.map((notice) => notice.text)).toContain(
         readFileSync(join(NOTICES_DIR, file), "utf8").trimEnd(),
       );
+  });
+
+  it("lists the translation models in the phone app's build only", () => {
+    const models = Object.values(MODEL_PACKS).map((info) => info.package);
+    expect(models).toContain("@langle/mt-en-ja");
+    const app = noticesData({ models: true });
+    expect(app.packs.map((pack) => pack.package)).toEqual([
+      ...data.packs.map((pack) => pack.package),
+      ...models,
+    ]);
+    expect(data.packs.map((pack) => pack.package)).not.toContain(models[0]);
+    expect(app.notices.map((notice) => notice.title)).toContain("MPL 2.0");
   });
 });

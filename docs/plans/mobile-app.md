@@ -675,7 +675,7 @@ Spec [mobile-translation.md](../specs/mobile-translation.md) "M5: the hosts" (th
 - [x] M5 designed (2026-11-26, with the user): spec "M5: the hosts"
 - [ ] M5-0: the iOS row state in the mock and ui.md (the parent session)
 - [x] M5a: the bridge and the bridge provider (shared TS) (branch `claude/mobile-m5a`)
-- [ ] M5b: the model packs' pipeline, the engine files, `mt-en-ja` (branch `claude/mobile-m5b`)
+- [x] M5b: the model packs' pipeline, the engine files, `mt-en-ja` (branch `claude/mobile-m5b`)
 - [ ] M5c: the Android host (branch `claude/mobile-m5c`)
 - [ ] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`)
 - [ ] M5e: the other 17 model packs (branch `claude/mobile-m5e`)
@@ -719,12 +719,12 @@ Branch `claude/mobile-m5b`. No device.
 
 **Tasks**
 
-- [ ] **Licences first**: Mozilla's translation models and the Bergamot WebAssembly build: their licences and terms, recorded in notes/mobile.md with links. If either forbids redistribution through npm or in the APK, stop and report.
-- [ ] **The source**: Mozilla's released models (the model registry), pinned per direction by version and SHA-256; the script fetches, checks, splits each file below the CDNs' per-file limit (find jsDelivr's and unpkg's limits and record them) and writes `data/packs/mt-<from>-<to>/`. Unit tests for splitting and joining. Commit.
-- [ ] **The lock**: `kind: "model"` packs, their sizes in `pack-sizes.test.ts`, `LICENSES` and README per package. Only `mt-en-ja` in this branch. Commit.
-- [ ] **Placeholder and trust**: `@langle/mt-en-ja@0.0.0` and `npm trust` as the memory's default way; the agent **stops and reports** before the trust step so the parent asks the user for the tap.
-- [ ] **The engine files**: `scripts/mobile/bergamot.ts` fetches the pinned WebAssembly build and glue, checks SHA-256, writes them where the Android build copies them into its assets; `mobile/android` fails its build with a clear message when they are missing. Commit.
-- [ ] **Docs**: architecture.md (model packs), development.md (the scripts), notes/mobile.md (licences, sizes), status.md, tick M5b. Draft PR "Mobile app M5b: model packs", `gh pr ready`. The parent runs packs.yml after the merge.
+- [x] **Licences first**: Mozilla's translation models and the Bergamot WebAssembly build: their licences and terms, recorded in notes/mobile.md with links. If either forbids redistribution through npm or in the APK, stop and report.
+- [x] **The source**: Mozilla's released models (the model registry), pinned per direction by version and SHA-256; the script fetches, checks, splits each file below the CDNs' per-file limit (find jsDelivr's and unpkg's limits and record them) and writes `data/packs/mt-<from>-<to>/`. Unit tests for splitting and joining. Commit.
+- [x] **The lock**: `kind: "model"` packs, their sizes in `pack-sizes.test.ts`, `LICENSES` and README per package. Only `mt-en-ja` in this branch. Commit.
+- [x] **Placeholder and trust**: `@langle/mt-en-ja@0.0.0` and `npm trust` as the memory's default way; the agent **stops and reports** before the trust step so the parent asks the user for the tap.
+- [x] **The engine files**: `scripts/mobile/bergamot.ts` fetches the pinned WebAssembly build and glue, checks SHA-256, writes them where the Android build copies them into its assets; `mobile/android` fails its build with a clear message when they are missing. Commit.
+- [x] **Docs**: architecture.md (model packs), development.md (the scripts), notes/mobile.md (licences, sizes), status.md, tick M5b. Draft PR "Mobile app M5b: model packs", `gh pr ready`. The parent runs packs.yml after the merge.
 
 ### M5c: the Android host (one agent, Opus)
 

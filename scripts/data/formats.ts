@@ -1,8 +1,17 @@
 import { join } from "node:path";
 import { recipeNatives, type RecipeNative } from "../../src/core/natives.ts";
 import type { PackName } from "../../src/core/packs/load.ts";
+import type { ModelPackName } from "../../src/core/packs/pairs.ts";
 import { PACK_FORMATS } from "../../src/core/packs/formats.ts";
+import { MODEL_FORMAT } from "../../src/core/packs/model-manifest.ts";
 import { PACKS_DIR, ROOT } from "./common.ts";
+import {
+  MODEL_BUCKET,
+  MODEL_REGISTRY_PAGE,
+  modelPackName,
+  MT_MODELS,
+  type ModelPin,
+} from "./mt-models.ts";
 import {
   LEARNING_PAIRS,
   learningOf,
@@ -100,6 +109,13 @@ const LICENSES = {
     url: "https://opensource.org/licenses/MIT",
     notice: "wordnet-bahasa.txt",
   },
+  // Mozilla's translation models (the model packs; docs/notes/mobile.md "Licences of
+  // the models and the engine"). Each package carries the licence's full text.
+  mpl2: {
+    name: "MPL 2.0",
+    url: "https://www.mozilla.org/en-US/MPL/2.0/",
+    notice: "mpl-2.0.txt",
+  },
 } as const satisfies Readonly<Record<string, SourceLicense>>;
 
 interface Source {
@@ -117,6 +133,8 @@ interface PackSource extends Source {
 }
 
 export interface PackInfo {
+  /** "model": a translation model for the phone app (scripts/data/mt-models.ts); none for a data pack. */
+  kind?: "model";
   dir: string;
   format: number;
   package: string;
@@ -798,6 +816,53 @@ export const PACKS: Readonly<Record<PackName, PackInfo>> = {
       learningPairPack(pair),
     ]),
   ) as Record<LearningPairName, PackInfo>),
+};
+
+/** The licence of the model packs as a whole: Mozilla's, unchanged. */
+const MPL = {
+  spdx: "MPL-2.0",
+  name: "Mozilla Public License 2.0 (MPL 2.0)",
+  url: "https://www.mozilla.org/en-US/MPL/2.0/",
+};
+
+/** A model pack: one of Mozilla's translation models, its files split into parts. */
+function modelPack(pin: ModelPin): PackInfo {
+  const name = modelPackName(pin);
+  const from = ENGLISH_NAMES.of(pin.from) ?? pin.from;
+  const to = ENGLISH_NAMES.of(pin.to) ?? pin.to;
+  return {
+    kind: "model",
+    dir: join(PACKS_DIR, name),
+    format: MODEL_FORMAT,
+    package: `${NPM_SCOPE}/${name}`,
+    license: MPL,
+    changes:
+      "none; each file larger than 8 MiB is split into parts, which manifest.json lists in order",
+    title: `${from}–${to} translation model`,
+    description: `Mozilla's ${from} to ${to} translation model for Bergamot`,
+    sources: [
+      {
+        title: `Firefox Translations, ${from} to ${to} model (${pin.architecture})`,
+        url: MODEL_REGISTRY_PAGE,
+        via: `the released files in ${MODEL_BUCKET}/${pin.dir}/`,
+        by: "Mozilla",
+        license: LICENSES.mpl2,
+        used: "the model, its lexical shortlist and its vocabularies",
+      },
+    ],
+  };
+}
+
+/** The model packs, by name (`mt-en-ja`): the phone app's on-device translator. */
+export const MODEL_PACKS: Readonly<Record<ModelPackName, PackInfo>> =
+  Object.fromEntries(
+    MT_MODELS.map((pin) => [modelPackName(pin), modelPack(pin)]),
+  );
+
+/** Every package `npm run data:publish` writes: the data packs and the model packs. */
+export const ALL_PACKS: Readonly<Record<string, PackInfo>> = {
+  ...PACKS,
+  ...MODEL_PACKS,
 };
 
 /**

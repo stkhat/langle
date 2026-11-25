@@ -1,0 +1,77 @@
+{
+  "v": 1,
+  "from": "en",
+  "to": "ja",
+  "gemmPrecision": "int8shiftAlphaAll",
+  "files": {
+    "model": {
+      "size": 43849787,
+      "sha256": "59ae659f9bb63e4f81f474fe3c03d3f4499434b5f9e779fab7c12a45f31fd562",
+      "parts": [
+        {
+          "path": "model.enja.intgemm.alphas.bin.1",
+          "size": 8388608,
+          "sha256": "791daa2e5029fb9db3b0167441b04cab05f4cf0f5d3a7f71185983534abddebe"
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.2",
+          "size": 8388608,
+          "sha256": "043154c4bfdafa923f27668a51b82232b67d7419a338558fd508590a027dbea8"
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.3",
+          "size": 8388608,
+          "sha256": "0c67792635dbfd02e4f80cdd8c0ec07e3a10eb79bc02472aa67a247a1021285f"
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.4",
+          "size": 8388608,
+          "sha256": "c2a194f7a26a475c40449e88a5681d616f79749ab6feb1af7b1013c56ea9ebc9"
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.5",
+          "size": 8388608,
+          "sha256": "888b33257e09d98e035ae0a9729b0d90efba9a235cd46818ecca445419d065e7"
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.6",
+          "size": 1906747,
+          "sha256": "d10ab509c8247d11b797b2e18e7b93707903fd79ae1c2b8847ab3fac5dc1a1a6"
+        }
+      ]
+    },
+    "lex": {
+      "size": 4128360,
+      "sha256": "edfb7eb47b98a2689b804ab3614c31b24f1257aa54b1154da3d85e1ae8152d9f",
+      "parts": [
+        {
+          "path": "lex.50.50.enja.s2t.bin",
+          "size": 4128360,
+          "sha256": "edfb7eb47b98a2689b804ab3614c31b24f1257aa54b1154da3d85e1ae8152d9f"
+        }
+      ]
+    },
+    "srcvocab": {
+      "size": 796275,
+      "sha256": "970c98d174fc01e0339fbabbf45af36a4be3f26f819ec1a5ea1189f71e091889",
+      "parts": [
+        {
+          "path": "srcvocab.enja.spm",
+          "size": 796275,
+          "sha256": "970c98d174fc01e0339fbabbf45af36a4be3f26f819ec1a5ea1189f71e091889"
+        }
+      ]
+    },
+    "trgvocab": {
+      "size": 827144,
+      "sha256": "3b3d9f8f3a034d98d0a476f1794fa79c01e4e98a967ceb6777a66ba2d03ec1e1",
+      "parts": [
+        {
+          "path": "trgvocab.enja.spm",
+          "size": 827144,
+          "sha256": "3b3d9f8f3a034d98d0a476f1794fa79c01e4e98a967ceb6777a66ba2d03ec1e1"
+        }
+      ]
+    }
+  }
+}

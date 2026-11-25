@@ -12,8 +12,9 @@ import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { PACK_FORMATS } from "../../src/core/packs/formats.ts";
 import type { PackLock } from "../../src/core/packs/lock.ts";
-import { PACKS, recipePack, type PackInfo } from "./formats.ts";
+import { ALL_PACKS, recipePack, type PackInfo } from "./formats.ts";
 import { gateReport, offeredPairs } from "./gate.ts";
+import { writeModelPack, type ModelPin } from "./mt-models.ts";
 import {
   buildLock,
   dateVersion,
@@ -296,6 +297,90 @@ describe("publish", () => {
   });
 });
 
+describe("a model pack", () => {
+  const files = { model: "0123456789abc", lex: "lex", vocab: "vocab" };
+  const pin: ModelPin = {
+    from: "en",
+    to: "xx",
+    architecture: "base-memory",
+    dir: "models/en-xx/run/exported",
+    files: {
+      model: {
+        name: "model.enxx.intgemm.alphas.bin",
+        size: 13,
+        sha256: sha256(files.model),
+      },
+      lex: {
+        name: "lex.50.50.enxx.s2t.bin",
+        size: 3,
+        sha256: sha256(files.lex),
+      },
+      vocab: { name: "vocab.enxx.spm", size: 5, sha256: sha256(files.vocab) },
+    },
+  };
+  const contents = new Map([
+    [pin.files.model!.name, files.model],
+    [pin.files.lex!.name, files.lex],
+    [pin.files.vocab!.name, files.vocab],
+  ]);
+  const options = () => ({
+    packs,
+    lockPath: join(dir, "src/packs.lock.json"),
+    publishDir: join(dir, "publish"),
+    now: NOV_11,
+  });
+  const modelDir = () => join(dir, "data/mt-en-xx");
+  beforeEach(() => {
+    packs["mt-en-xx"] = { ...info("mt-en-xx"), kind: "model" };
+    writeModelPack(
+      pin,
+      (file) => new TextEncoder().encode(contents.get(file.name)),
+      modelDir(),
+      10,
+    );
+  });
+
+  it("is locked from its manifest alone, with its kind", () => {
+    const lock = buildLock(packs, { now: NOV_11 });
+    const entry = lock.packs["mt-en-xx" as keyof PackLock["packs"]]!;
+    expect(entry.kind).toBe("model");
+    expect(entry.files.map((file) => file.path)).toEqual([
+      "lex.50.50.enxx.s2t.bin",
+      "manifest.json",
+      "model.enxx.intgemm.alphas.bin.1",
+      "model.enxx.intgemm.alphas.bin.2",
+      "vocab.enxx.spm",
+    ]);
+    rmSync(join(modelDir(), "model.enxx.intgemm.alphas.bin.1"));
+    expect(buildLock(packs, { now: NOV_11 })).toEqual(lock);
+  });
+  it("is packaged for the app with its parts, and left out without them", () => {
+    publish(options());
+    expect(read("publish/mt-en-xx/model.enxx.intgemm.alphas.bin.2")).toBe(
+      "abc",
+    );
+    const pkg = JSON.parse(read("publish/mt-en-xx/package.json")) as {
+      description: string;
+      files: string[];
+    };
+    expect(pkg.description).toBe(
+      "The mt-en-xx pack, for the Langle app's on-device translator",
+    );
+    expect(pkg.files).toContain("manifest.json");
+    expect(read("publish/mt-en-xx/README.md")).toContain(
+      "`manifest.json` lists in order",
+    );
+    expect(read("publish/mt-en-xx/LICENSE")).toContain(
+      "The model files in this package",
+    );
+
+    rmSync(join(modelDir(), "vocab.enxx.spm"));
+    publish(options());
+    expect(existsSync(join(dir, "publish/mt-en-xx"))).toBe(false);
+    expect(existsSync(join(dir, "publish/es/package.json"))).toBe(true);
+  });
+});
+
 describe("recipePack", () => {
   it("lists the recipe's sources in order, the English wordnet after the wordnets", () => {
     const info = recipePack("it", {
@@ -360,14 +445,16 @@ describe("the committed lock", () => {
 
   it("matches the pack files and formats (else run npm run data:publish)", () => {
     expect(
-      buildLock(PACKS, {
+      buildLock(ALL_PACKS, {
         previous: lock,
         pairs: offeredPairs(gateReport()),
       }),
     ).toEqual(lock);
     expect(
       Object.fromEntries(
-        Object.entries(lock.packs).map(([name, e]) => [name, e.format]),
+        Object.entries(lock.packs)
+          .filter(([, e]) => e.kind === undefined)
+          .map(([name, e]) => [name, e.format]),
       ),
     ).toEqual(PACK_FORMATS);
     // It hashes every pack file and reads every pair's dictionary for the gate.

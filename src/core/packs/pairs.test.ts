@@ -73,9 +73,9 @@ describe("pairsOfPack", () => {
     expect(pairsOfPack("en-defs")[0]).toEqual({ learning: "en", native: "ja" });
   });
 
-  it("names a pair for every pack of the lock", () => {
-    for (const pack of Object.keys(readLock().packs))
-      expect(pairsOfPack(pack)[0]).toBeDefined();
+  it("names a pair for every data pack of the lock", () => {
+    for (const [pack, entry] of Object.entries(readLock().packs))
+      if (!entry.kind) expect(pairsOfPack(pack)[0]).toBeDefined();
   });
 
   it("names none for a pack no offered pair uses", () => {

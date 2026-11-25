@@ -13,7 +13,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import type { PackLock, PackLockFile } from "../../src/core/packs/lock.ts";
-import { PACKS, type PackInfo } from "./formats.ts";
+import { ALL_PACKS, type PackInfo } from "./formats.ts";
+import { modelPackFiles } from "./mt-models.ts";
 import {
   listPackFiles,
   LOCK_PATH,
@@ -45,7 +46,11 @@ export function lockProblems(packs: Packs, lock: PackLock): string[] {
       problems.push(
         `${name}: the lock names ${entry.package}, formats.ts ${info.package}`,
       );
-    if (!sameFiles(listPackFiles(info.dir), entry.files))
+    const files =
+      info.kind === "model"
+        ? modelPackFiles(info.dir)
+        : listPackFiles(info.dir);
+    if (!sameFiles(files, entry.files))
       problems.push(`${name}: its files differ from the lock`);
   }
   return problems;
@@ -80,14 +85,14 @@ function main() {
     options: { "dry-run": { type: "boolean", default: false } },
   });
   const lock = JSON.parse(readFileSync(LOCK_PATH, "utf8")) as PackLock;
-  const problems = lockProblems(PACKS, lock);
+  const problems = lockProblems(ALL_PACKS, lock);
   if (problems.length > 0) {
     console.error(
       `The lock does not match the pack files (run npm run data:publish and commit):\n${problems.join("\n")}`,
     );
     process.exit(1);
   }
-  const packages = writePackages(PACKS, lock).map((pack) => {
+  const packages = writePackages(ALL_PACKS, lock).map((pack) => {
     const dir = join(PUBLISH_DIR, pack);
     const { name, version } = JSON.parse(
       readFileSync(join(dir, "package.json"), "utf8"),
