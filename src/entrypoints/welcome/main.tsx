@@ -1,6 +1,6 @@
 import { browser } from "wxt/browser";
 import { googleClients } from "../../background/sync/google-clients";
-import { startTranslationModels } from "../../content/translate/translator";
+import { translatorBackend } from "../../content/translate/backend";
 import { createBrowserEnv } from "../../core/browser-env";
 import { PRIVACY_POLICY_URL } from "../../core/links";
 import { send } from "../../messaging/client";
@@ -29,7 +29,9 @@ mountPage(() => {
     privacyPolicy: PRIVACY_POLICY_URL,
     startModels: (learning, native) =>
       Promise.race([
-        startTranslationModels(learning, native).then(() => {}),
+        translatorBackend()
+          .startModels(learning, native)
+          .then(() => {}),
         new Promise<void>((resolve) => setTimeout(resolve, MODELS_WAIT_MS)),
       ]),
     close() {

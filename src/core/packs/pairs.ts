@@ -64,6 +64,31 @@ export function pairsOfPack(pack: string): LanguagePair[] {
   );
 }
 
+/** A translation model pack of the phone app (Android): one direction, "mt-en-ja". */
+export type ModelPackName = `mt-${string}-${string}`;
+
+/** The model pack that translates `from` into `to` directly. */
+export const modelPackName = (from: string, to: string): ModelPackName =>
+  `mt-${from}-${to}`;
+
+/**
+ * The model packs that translate `from` into `to`, of those `has` says exist (the
+ * lock's, or those with a state): the direct one, else two through English (de → fr =
+ * mt-de-en + mt-en-fr); none for one language or a pair with no models.
+ */
+export function modelPacksFor(
+  from: string,
+  to: string,
+  has: (pack: ModelPackName) => boolean,
+): ModelPackName[] {
+  if (from === to) return [];
+  const direct = modelPackName(from, to);
+  if (has(direct)) return [direct];
+  if (from === "en" || to === "en") return [];
+  const through = [modelPackName(from, "en"), modelPackName("en", to)];
+  return through.every(has) ? through : [];
+}
+
 /** The key machine translations of a pair are cached under ("en>ja"). */
 export const translationPair = (lang: string, nativeLang: string) =>
   `${lang}>${nativeLang}`;
