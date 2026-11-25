@@ -6,7 +6,6 @@ import {
 } from "../../../core/settings";
 import { languageName } from "../../../i18n/languages";
 import { t } from "../../../i18n/t";
-import { fmt } from "../../../ui/format/format";
 import { color } from "../../../ui/styles";
 import { Section, type SectionProps } from "../rows";
 
@@ -24,7 +23,7 @@ export function LevelSection(props: SectionProps) {
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         <label for="level-range" style={{ fontSize: "15px", fontWeight: 600 }}>
           {t("settings.level.label", {
-            count: fmt(level),
+            count: level,
             language: languageName(s.learningLang),
           })}
         </label>
@@ -50,12 +49,8 @@ export function LevelSection(props: SectionProps) {
             color: color.muted,
           }}
         >
-          <span>
-            {t("settings.level.min", { count: fmt(KNOWN_LEVEL_MIN) })}
-          </span>
-          <span>
-            {t("settings.level.max", { count: fmt(KNOWN_LEVEL_MAX) })}
-          </span>
+          <span>{t("settings.level.min", { count: KNOWN_LEVEL_MIN })}</span>
+          <span>{t("settings.level.max", { count: KNOWN_LEVEL_MAX })}</span>
         </div>
       </div>
       <p

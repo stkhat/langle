@@ -158,7 +158,7 @@ function fake(options: FakeOptions = {}) {
     },
     watchSettings: settingsWatchers.watch,
     watchPackState: packWatchers.watch,
-    sync: options.place ?? { kind: "browser", name: "Chrome sync" },
+    sync: options.place ?? { kind: "browser", browser: "Chrome" },
     ...(options.phone && { touch: fixedTouchMode(true) }),
     links: {
       coffee: "",

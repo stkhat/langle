@@ -1,4 +1,21 @@
-import { t } from "../../i18n/t";
+import { t, uiLocale } from "../../i18n/t";
+
+/**
+ * A formatter for the interface language, made once per language: dates, times and
+ * numbers read as the interface around them (architecture "Interface language").
+ */
+function perLocale<F>(make: (locale: string) => F): () => F {
+  const made = new Map<string, F>();
+  return () => {
+    const locale = uiLocale();
+    let formatter = made.get(locale);
+    if (!formatter) {
+      formatter = make(locale);
+      made.set(locale, formatter);
+    }
+    return formatter;
+  };
+}
 
 const SECOND = 1000;
 const UNITS: readonly [Intl.RelativeTimeFormatUnit, number][] = [
@@ -9,7 +26,9 @@ const UNITS: readonly [Intl.RelativeTimeFormatUnit, number][] = [
   ["minute", 60 * SECOND],
 ];
 
-const RELATIVE = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+const relative = perLocale(
+  (locale) => new Intl.RelativeTimeFormat(locale, { numeric: "auto" }),
+);
 
 /**
  * How long ago `at` was, e.g. "2 minutes ago", "yesterday"; under a minute (or a
@@ -18,7 +37,7 @@ const RELATIVE = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 export function relativeTime(at: number, now: number): string {
   const ago = now - at;
   for (const [unit, size] of UNITS)
-    if (ago >= size) return RELATIVE.format(-Math.floor(ago / size), unit);
+    if (ago >= size) return relative().format(-Math.floor(ago / size), unit);
   return t("time.justNow");
 }
 
@@ -34,24 +53,29 @@ export function megabytes(bytes: number): number {
   return Math.max(1, Math.round(bytes / (1024 * 1024)));
 }
 
-const TENTHS = new Intl.NumberFormat("en-US", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
+const tenths = perLocale(
+  (locale) =>
+    new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }),
+);
 
 /**
  * MB (1,048,576 bytes) to one decimal, as text ("6.4"); any data at all counts as at
  * least 0.1 MB.
  */
 export function megabytesTenths(bytes: number): string {
-  if (bytes <= 0) return TENTHS.format(0);
-  return TENTHS.format(Math.max(0.1, bytes / (1024 * 1024)));
+  if (bytes <= 0) return tenths().format(0);
+  return tenths().format(Math.max(0.1, bytes / (1024 * 1024)));
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** A count with thousands grouped: "12,345". */
-export const fmt = (n: number) => n.toLocaleString("en-US");
+const counts = perLocale((locale) => new Intl.NumberFormat(locale));
+
+/** A count with thousands grouped as the interface language does: "12,345". */
+export const fmt = (n: number) => counts().format(n);
 
 /** A playback time as m:ss, or h:mm:ss from an hour on. */
 export function formatTime(ms: number): string {
@@ -77,20 +101,23 @@ export function sameDay(a: number, b: number): boolean {
   );
 }
 
-const MONTH_DAY = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-});
-const MONTH_DAY_YEAR = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
+const monthDay = perLocale(
+  (locale) =>
+    new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }),
+);
+const monthDayYear = perLocale(
+  (locale) =>
+    new Intl.DateTimeFormat(locale, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }),
+);
 
 /** "Today", "Nov 6" within this year, else "Nov 6, 2025" (local dates). */
 export function shortDate(at: number, now: number): string {
   if (sameDay(at, now)) return t("time.today");
   return new Date(at).getFullYear() === new Date(now).getFullYear()
-    ? MONTH_DAY.format(at)
-    : MONTH_DAY_YEAR.format(at);
+    ? monthDay().format(at)
+    : monthDayYear().format(at);
 }

@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import en from "./locales/en.json";
-import { interpolate, t } from "./t";
+import { interpolate, onUiLocaleChange, setUiLocale, t, uiLocale } from "./t";
+
+afterEach(() => setUiLocale("en"));
 
 describe("t", () => {
   it("returns the en.json value for a key", () => {
@@ -15,7 +17,61 @@ describe("t", () => {
   it("rejects unknown keys at type level", () => {
     // @ts-expect-error unknown key must be a TypeScript error
     const value = t("no.such.key");
-    expect(value).toBeUndefined();
+    expect(value).toBe("no.such.key");
+  });
+});
+
+describe("t in another locale", () => {
+  it("shows the locale's message, and English for a key it lacks", () => {
+    setUiLocale("ja", { "app.name": "ラングル" });
+    expect(uiLocale()).toBe("ja");
+    expect(t("app.name")).toBe("ラングル");
+    expect(t("time.today")).toBe(en["time.today"]);
+  });
+
+  it("chooses the plural form by count, with the locale's rules", () => {
+    expect(t("dict.sentences", { count: 1 })).toBe("1 sentence");
+    expect(t("dict.sentences", { count: 2 })).toBe("2 sentences");
+    expect(t("dict.sentences", { count: 0 })).toBe("0 sentences");
+    setUiLocale("ru", {
+      "dict.sentences": {
+        one: "{count} предложение",
+        few: "{count} предложения",
+        many: "{count} предложений",
+        other: "{count} предложения",
+      },
+    });
+    expect(t("dict.sentences", { count: 1 })).toBe("1 предложение");
+    expect(t("dict.sentences", { count: 21 })).toBe("21 предложение");
+    expect(t("dict.sentences", { count: 3 })).toBe("3 предложения");
+    expect(t("dict.sentences", { count: 5 })).toBe("5 предложений");
+    expect(t("dict.sentences", { count: 1.5 })).toBe("1,5 предложения");
+  });
+
+  it("takes other for a form the message lacks, a plain string for every count", () => {
+    setUiLocale("ru", { "dict.sentences": { other: "{count} шт." } });
+    expect(t("dict.sentences", { count: 1 })).toBe("1 шт.");
+    setUiLocale("ja", { "dict.sentences": "{count}文" });
+    expect(t("dict.sentences", { count: 1 })).toBe("1文");
+  });
+
+  it("writes number vars as the locale does", () => {
+    expect(t("cloud.devices", { count: 12345 })).toBe("12,345 devices");
+    setUiLocale("de", { "cloud.devices": "{count} Geräte" });
+    expect(t("cloud.devices", { count: 12345 })).toBe("12.345 Geräte");
+    expect(t("settings.languages.dataSize", { size: "6.4" })).toBe("6.4 MB");
+  });
+
+  it("tells the listeners when the locale changes, not when it stays", () => {
+    const listener = vi.fn();
+    const unwatch = onUiLocaleChange(listener);
+    const messages = { "app.name": "ラングル" };
+    setUiLocale("ja", messages);
+    setUiLocale("ja", messages);
+    expect(listener).toHaveBeenCalledTimes(1);
+    unwatch();
+    setUiLocale("en");
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });
 

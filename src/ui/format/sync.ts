@@ -2,6 +2,13 @@ import { t } from "../../i18n/t";
 import type { SyncStatus } from "../../messaging/protocol";
 import { kilobytes } from "./format";
 
+/**
+ * The browser's sync by its name in the interface language ("Chrome sync"); the
+ * browser's name comes from `BrowserEnv`, never from a locale file.
+ */
+export const browserSyncName = (browser: string) =>
+  t("env.syncName", { browser });
+
 /** The synced data's room in whole KB, and the share used (0–100) for a `Meter`. */
 export function syncSpace(
   status: Pick<SyncStatus, "bytesUsed" | "quotaBytes"> | undefined,
