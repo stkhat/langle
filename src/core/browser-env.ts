@@ -7,11 +7,17 @@ import { REVIEW_URLS } from "./links";
  * background's service worker, so the UI detects it where it translates.
  */
 
+/**
+ * Where `storage.sync` keeps the data: the browser's own sync (named in the UI), or
+ * only this device (the phone app, whose `storage.sync` is never synced).
+ */
+export type SyncPlace = { kind: "browser"; name: string } | { kind: "device" };
+
 export interface BrowserEnv {
   /** For UI text, e.g. "Chrome". */
   name: string;
-  /** e.g. "Chrome sync". */
-  syncName: string;
+  /** e.g. `{ kind: "browser", name: "Chrome sync" }`; `device` in the phone app. */
+  sync: SyncPlace;
   /** The store listing's review page ("Rate"); empty until the listing exists. */
   reviewUrl: string;
   features: {
@@ -20,23 +26,22 @@ export interface BrowserEnv {
   };
 }
 
-/** Targets other than Firefox are Chromium builds and get Chrome's names. */
+/**
+ * Targets other than Firefox are Chromium builds and get Chrome's names. Where the
+ * phone app's `appHost` exists on the global, nothing is synced: `sync` is `device`.
+ */
 export function createBrowserEnv(
   target: string = import.meta.env.BROWSER,
   g: object = globalThis,
 ): BrowserEnv {
+  const firefox = target === "firefox";
   return {
-    ...(target === "firefox"
-      ? {
-          name: "Firefox",
-          syncName: "Firefox Sync",
-          reviewUrl: REVIEW_URLS.firefoxAddOns,
-        }
-      : {
-          name: "Chrome",
-          syncName: "Chrome sync",
-          reviewUrl: REVIEW_URLS.chromeWebStore,
-        }),
+    name: firefox ? "Firefox" : "Chrome",
+    sync:
+      "appHost" in g
+        ? { kind: "device" }
+        : { kind: "browser", name: firefox ? "Firefox Sync" : "Chrome sync" },
+    reviewUrl: firefox ? REVIEW_URLS.firefoxAddOns : REVIEW_URLS.chromeWebStore,
     features: {
       fileSystemAccess: "showDirectoryPicker" in g,
     },

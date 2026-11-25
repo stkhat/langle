@@ -31,7 +31,7 @@ function fake(
     }) as WelcomeDeps["send"],
     watchSettings,
     uiLanguage: "ja",
-    syncName: "Chrome sync",
+    sync: { kind: "browser", name: "Chrome sync" },
     drive: true,
     privacyPolicy: "https://example.com/privacy",
     startModels: vi.fn(async () => {
@@ -79,6 +79,18 @@ describe("How Langle uses your data", () => {
     await expect
       .element(screen.getByRole("link", { name: "Privacy policy" }))
       .toHaveAttribute("href", "https://example.com/privacy");
+  });
+
+  it("says the words and settings stay on a device that syncs nothing", async () => {
+    const screen = await show(
+      fake(undefined, { sync: { kind: "device" }, drive: false }).deps,
+    );
+    await expect
+      .element(screen.getByRole("region"))
+      .toMatchTextContent(
+        "Your words and settings stay on this phone. A word you look up or play may go to the phone’s speech and translation services.",
+      );
+    expect(screen.container.textContent).not.toContain("Chrome sync");
   });
 
   it("leaves out Drive in a build without it, and a policy without an address", async () => {

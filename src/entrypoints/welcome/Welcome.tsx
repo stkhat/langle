@@ -6,6 +6,7 @@ import {
   spokenLanguages,
   suggestedPair,
 } from "../../core/languages";
+import type { SyncPlace } from "../../core/browser-env";
 import type { Settings } from "../../core/settings";
 import { languageOption } from "../../i18n/languages";
 import { t } from "../../i18n/t";
@@ -21,8 +22,8 @@ export interface WelcomeDeps {
   watchSettings(listener: (settings: Settings) => void): () => void;
   /** The browser's UI language, e.g. "pt-BR". */
   uiLanguage: string;
-  /** `BrowserEnv.syncName`, e.g. "Chrome sync". */
-  syncName: string;
+  /** `BrowserEnv.sync`: the browser's sync, or this device only (the phone app). */
+  sync: SyncPlace;
   /** This build can connect Google Drive. */
   drive: boolean;
   /** The policy's address; empty: the link is left out. */
@@ -155,7 +156,9 @@ function Consent(props: {
           {t("setup.consent.keepsWhat")}
         </Row>
         <Row icon="arrow" verb={t("setup.consent.sends")}>
-          {t("setup.consent.sendsWhat", { syncName: deps.syncName })}
+          {deps.sync.kind === "browser"
+            ? t("setup.consent.sendsWhat", { syncName: deps.sync.name })
+            : t("setup.consent.sendsWhatDevice")}
           {deps.drive && (
             <span style={{ display: "block", marginTop: "4px" }}>
               {t("setup.consent.sendsDrive")}

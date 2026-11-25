@@ -67,7 +67,7 @@ function readyPopup() {
     },
     watchSettings,
     watchPackState,
-    syncName: env.syncName,
+    sync: env.sync,
     links: supportLinks(env.reviewUrl),
     openTab(url) {
       void browser.tabs.create({ url }).finally(() => window.close());

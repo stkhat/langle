@@ -58,19 +58,20 @@ const BOX_NOTE = { fontSize: "12px", lineHeight: 1.45, color: color.muted };
 /** The browser-sync switch and its space, while no cloud storage is connected here. */
 function BrowserSyncRows(
   props: SectionProps & {
-    env: Pick<BrowserEnv, "name" | "syncName">;
+    browser: string;
+    syncName: string;
     sync: SyncStatus | undefined;
     now: number;
   },
 ) {
-  const { settings, env, sync } = props;
+  const { settings, sync, syncName } = props;
   const { used, quota, share } = syncSpace(sync);
   return (
     <>
       <SwitchRow
         first
-        title={t("settings.sync.switch", { syncName: env.syncName })}
-        desc={t("settings.sync.switchDesc", { browser: env.name })}
+        title={t("settings.sync.switch", { syncName })}
+        desc={t("settings.sync.switchDesc", { browser: props.browser })}
         checked={settings.syncEnabled}
         onToggle={() => props.change({ syncEnabled: !settings.syncEnabled })}
       />
@@ -178,19 +179,20 @@ function ConnectedRows(props: {
 /** The last row while not connected here: Connect, "on this device too", or Coming later. */
 function ConnectRow(props: {
   view: Exclude<CloudView, { kind: "connected" }>;
-  env: Pick<BrowserEnv, "syncName" | "features">;
+  syncName: string;
+  features: BrowserEnv["features"];
   busy: boolean;
   onCloud: (request: CloudRequest) => void;
 }) {
-  const { view, env } = props;
+  const { view, syncName } = props;
   if (view.kind === "unavailable")
     return (
       <LaterRow
         title={t("settings.cloud.title")}
         desc={
-          env.features.fileSystemAccess
-            ? t("settings.cloud.desc", { syncName: env.syncName })
-            : t("settings.cloud.descNoFolder", { syncName: env.syncName })
+          props.features.fileSystemAccess
+            ? t("settings.cloud.desc", { syncName })
+            : t("settings.cloud.descNoFolder", { syncName })
         }
       />
     );
@@ -206,10 +208,7 @@ function ConnectRow(props: {
         desc={
           too
             ? t("settings.cloud.tooDesc", { provider: view.name })
-            : t("settings.cloud.offer", {
-                provider: view.name,
-                syncName: env.syncName,
-              })
+            : t("settings.cloud.offer", { provider: view.name, syncName })
         }
       />
       <button
@@ -231,7 +230,7 @@ function ConnectRow(props: {
 export function SyncSection(
   props: SectionProps & {
     deps: BackupDeps;
-    env: Pick<BrowserEnv, "name" | "syncName" | "features">;
+    env: Pick<BrowserEnv, "name" | "sync" | "features">;
     sync: SyncStatus | undefined;
     /** Undefined until the cloud status is known. */
     cloud: CloudView | undefined;
@@ -259,14 +258,18 @@ export function SyncSection(
 
   const provider =
     cloud && cloud.kind !== "unavailable" ? cloud.name : undefined;
+  /** None where nothing is synced (the phone app): no browser-sync or cloud rows. */
+  const syncName = env.sync.kind === "browser" ? env.sync.name : undefined;
   return (
     <Section
       id="sync"
       label="settings.section.sync"
       lead={
-        provider
-          ? t("settings.sync.leadCloud", { syncName: env.syncName, provider })
-          : t("settings.sync.lead", { syncName: env.syncName })
+        syncName === undefined
+          ? t("settings.sync.leadDevice")
+          : provider
+            ? t("settings.sync.leadCloud", { syncName, provider })
+            : t("settings.sync.lead", { syncName })
       }
     >
       {cloud?.kind === "connected" ? (
@@ -277,13 +280,16 @@ export function SyncSection(
           onCloud={onCloud}
         />
       ) : (
-        <BrowserSyncRows
-          settings={props.settings}
-          change={props.change}
-          env={env}
-          sync={props.sync}
-          now={props.now}
-        />
+        syncName !== undefined && (
+          <BrowserSyncRows
+            settings={props.settings}
+            change={props.change}
+            browser={env.name}
+            syncName={syncName}
+            sync={props.sync}
+            now={props.now}
+          />
+        )
       )}
       <div class="row">
         <RowLabel
@@ -311,8 +317,14 @@ export function SyncSection(
           }}
         />
       </div>
-      {cloud && cloud.kind !== "connected" && (
-        <ConnectRow view={cloud} env={env} busy={busy} onCloud={onCloud} />
+      {cloud && cloud.kind !== "connected" && syncName !== undefined && (
+        <ConnectRow
+          view={cloud}
+          syncName={syncName}
+          features={env.features}
+          busy={busy}
+          onCloud={onCloud}
+        />
       )}
     </Section>
   );

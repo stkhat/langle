@@ -4,13 +4,17 @@ export interface SwitchProps {
   checked: boolean;
   label: string;
   onToggle: () => void;
-  /** `small`: mock Main's 36×22 (default); `large`: the popup's and settings page's 44×26. */
-  size?: "small" | "large";
+  /**
+   * `small`: mock Main's 36×22 (default); `large`: the popup's and settings page's
+   * 44×26; `phone`: the phone layout's 52×32 (mock MobileLangleSheet).
+   */
+  size?: "small" | "large" | "phone";
 }
 
 const SIZES = {
   small: { width: 36, height: 22, knob: 16, shadow: "0 1px 2px" },
   large: { width: 44, height: 26, knob: 20, shadow: "0 1px 3px" },
+  phone: { width: 52, height: 32, knob: 26, shadow: "0 1px 3px" },
 } as const;
 
 /** An on/off switch: a rounded track, green when on. */

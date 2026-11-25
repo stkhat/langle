@@ -6,9 +6,10 @@ import { color, sectionHeading, termMark, toggleChip } from "../styles";
 export interface HighlightChipsProps {
   /**
    * Mock Main's transcript header (`video`) or the toolbar popup (`popup`: the same
-   * chips under an uppercase heading).
+   * chips under an uppercase heading; `phone`: the popup's phone layout, mock
+   * MobileLangleSheet, with 44px chips).
    */
-  look: "video" | "popup";
+  look: "video" | "popup" | "phone";
   highlight: Settings["highlight"];
   onToggle: (category: WordStatus) => void;
 }
@@ -27,6 +28,7 @@ const swatch = (id: WordStatus) => ({
 
 /** "Highlight" and a toggle chip per category. */
 export function HighlightChips(props: HighlightChipsProps) {
+  const phone = props.look === "phone";
   const chips = CHIPS.map((c) => {
     const pressed = props.highlight[c.id];
     return (
@@ -35,7 +37,15 @@ export function HighlightChips(props: HighlightChipsProps) {
         type="button"
         aria-pressed={pressed}
         onClick={() => props.onToggle(c.id)}
-        style={toggleChip(pressed, color.muted)}
+        style={{
+          ...toggleChip(pressed, color.muted),
+          ...(phone && {
+            gap: "8px",
+            height: "44px",
+            padding: "0 14px",
+            fontSize: "14px",
+          }),
+        }}
       >
         <span
           style={{
@@ -51,11 +61,23 @@ export function HighlightChips(props: HighlightChipsProps) {
     );
   });
 
-  if (props.look === "popup")
+  if (props.look !== "video")
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: phone ? "10px" : "8px",
+        }}
+      >
         <span style={sectionHeading}>{t("card.highlight")}</span>
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: phone ? "8px" : "6px",
+            flexWrap: "wrap",
+          }}
+        >
           {chips}
         </div>
       </div>

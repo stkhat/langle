@@ -24,7 +24,7 @@ mountPage(() => {
     send,
     watchSettings,
     uiLanguage: browser.i18n.getUILanguage(),
-    syncName: createBrowserEnv().syncName,
+    sync: createBrowserEnv().sync,
     drive: googleClients() !== undefined,
     privacyPolicy: PRIVACY_POLICY_URL,
     startModels: (learning, native) =>

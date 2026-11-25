@@ -654,7 +654,7 @@ Done 2026-11-15/16 in Chrome 157; results and the user's decisions: [notes](../n
 - The extension `i18n` API follows the browser's language and cannot be chosen by the user, so use a small custom mechanism: every UI string goes through `t("key")` with one file per language (`locales/en.json`). Switch with the `uiLocale` setting, default `en`
 - Only the store name and description use `_locales/en/messages.json` (the `i18n` API)
 - The interface language is a separate setting from the dictionary/translation languages (learning and native)
-- Strings containing a browser name ("Chrome sync") are not written into the locale file; insert `BrowserEnv` values with `t("key", { syncName })`
+- Strings containing a browser name ("Chrome sync") are not written into the locale file; insert `BrowserEnv` values with `t("key", { syncName })` (the name from `BrowserEnv.sync`)
 
 ## Browser differences
 Only Chrome is built and tested for now: Firefox is paused (2026-11-24; why, what it needs and how Chrome and Firefox differ: [notes](../notes/firefox-paused.md)). The structure must still not need rewriting when other browsers follow.
@@ -667,7 +667,8 @@ Only Chrome is built and tested for now: Firefox is paused (2026-11-24; why, wha
 5. WXT generates the manifest per browser (`wxt.config.ts`); browser-specific keys go there, not into code
 
 ### What `BrowserEnv` holds
-- Browser name and sync name ("Chrome sync") for UI text
+- Browser name for UI text
+- `sync`: where `storage.sync` keeps the data. `{ kind: "browser", name }` names the browser's sync ("Chrome sync", "Firefox Sync"); `{ kind: "device" }` where the phone app's `appHost` exists on the global (its `storage.sync` is never synced). Every string that names the browser's sync has a `device` counterpart ("Saved on this phone · {when}", the first run's line on what is sent, Settings' lead), and the rows that only make sense with a browser's sync (the browser-sync switch, connecting cloud storage) are left out
 - Features detected where `BrowserEnv` is built (File System Access API). The translator is detected in the UI, where it runs: it never exists in the service worker. The built-in AI is detected by its provider (`chromePromptApi`), where it runs
 - Add a field only when code reads it
 
