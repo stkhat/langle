@@ -677,7 +677,7 @@ Spec [mobile-translation.md](../specs/mobile-translation.md) "M5: the hosts" (th
 - [x] M5a: the bridge and the bridge provider (shared TS) (branch `claude/mobile-m5a`)
 - [x] M5b: the model packs' pipeline, the engine files, `mt-en-ja` (branch `claude/mobile-m5b`)
 - [ ] M5c: the Android host (branch `claude/mobile-m5c`)
-- [ ] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`)
+- [x] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`): the Simulator cannot translate (`unsupported` for every strategy), so the sheet and translation wait for M5g's real iPhone (notes/mobile.md "The iOS translation host (M5d)")
 - [ ] M5e: the other 17 model packs (branch `claude/mobile-m5e`)
 - [x] M5f: subtitles missing on an early load (branch `claude/mobile-m5f`): the player drops a track set before it lists its caption tracks; `captureFor` now waits for the list (notes/mobile.md "Subtitles missing on an early load (M5f)")
 - [ ] M5g: device checks, Android then iOS (branches `claude/mobile-m5g-android`, `claude/mobile-m5g-ios`)
@@ -748,11 +748,11 @@ Branch `claude/mobile-m5d`, from `main` with M5a merged, M5-0 reviewed, and the 
 
 **Tasks**
 
-- [ ] **XCTest first** (fake clock, fake session): the same cases as M5c's JUnit. Commit.
-- [ ] **The host** on Apple Translation; `prepareTranslator` from the first run's Start and from the row's Download. Commit.
-- [ ] **The row** as the mock's state; render at 390 × 844 against it. Commit.
-- [ ] Build. **Report "ready for the device"**. On the Simulator: the sheet, a tapped word's definition translated, the release. If the Simulator cannot translate, record it and leave the rest to the real-iPhone check (spec "Testing"). Error log read, fixed or explained, cleared. Shut the Simulator down.
-- [ ] **Docs**: notes/mobile.md, ui.md if anything differs (mock first), status.md, tick M5d. Draft PR "Mobile app M5d: the iOS translation host", `gh pr ready`.
+- [x] **XCTest first** (fake clock, fake session): the same cases as M5c's JUnit. Commit.
+- [x] **The host** on Apple Translation; `prepareTranslator` from the first run's Start and from the row's Download. Commit.
+- [x] **The row** as the mock's state; render at 390 × 844 against it. Commit.
+- [x] Build. **Report "ready for the device"**. On the Simulator: the sheet, a tapped word's definition translated, the release. If the Simulator cannot translate, record it and leave the rest to the real-iPhone check (spec "Testing"). Error log read, fixed or explained, cleared. Shut the Simulator down.
+- [x] **Docs**: notes/mobile.md, ui.md if anything differs (mock first), status.md, tick M5d. Draft PR "Mobile app M5d: the iOS translation host", `gh pr ready`.
 
 ### M5e: the other 17 model packs (one agent, Sonnet)
 
