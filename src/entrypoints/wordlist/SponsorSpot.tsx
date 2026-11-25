@@ -1,3 +1,4 @@
+import { NEW_TAB } from "../../ui/external-link";
 import type { CSSProperties } from "preact";
 import { cardHref, type SponsorCard } from "../../core/sponsors";
 import { languageName } from "../../i18n/languages";
@@ -107,8 +108,7 @@ export function SponsorSpot(props: {
             {sponsorPage && (
               <a
                 href={sponsorPage}
-                target="_blank"
-                rel="noopener"
+                {...NEW_TAB}
                 style={{ ...pageLink, fontSize: "12px" }}
               >
                 {t("support.becomeSponsor")}
@@ -131,7 +131,7 @@ export function SponsorSpot(props: {
           }}
         >
           {t("sponsor.open", { language: languageName(props.learningLang) })}{" "}
-          <a href={sponsorPage} target="_blank" rel="noopener" style={pageLink}>
+          <a href={sponsorPage} {...NEW_TAB} style={pageLink}>
             {t("sponsor.openLink")}
           </a>
         </p>

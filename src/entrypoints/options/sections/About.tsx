@@ -1,3 +1,4 @@
+import { NEW_TAB } from "../../../ui/external-link";
 import { t } from "../../../i18n/t";
 import { color } from "../../../ui/styles";
 import { Section } from "../rows";
@@ -19,7 +20,7 @@ export function AboutSection(props: { version: string; noticesUrl: string }) {
       >
         {t("settings.about.line", { version: props.version })}
         {" · "}
-        <a href={props.noticesUrl} target="_blank" rel="noopener">
+        <a href={props.noticesUrl} {...NEW_TAB}>
           {t("settings.about.licenses")}
         </a>
       </p>
