@@ -54,6 +54,7 @@ class ScreenController(
     private set
   private val tabPages = mutableMapOf<AppTab, ContextPage>()
   private var firstRun: ContextPage? = null
+  private var firstRunTab: Int? = null
 
   /** The window's content: the shell, and the page's fullscreen view over it while there is one. */
   val root = FrameLayout(activity)
@@ -75,6 +76,9 @@ class ScreenController(
   /** Called after anything that can change what the system back does. */
   var onChanged: (() -> Unit)? = null
 
+  /** A new document started in the browsing page (the translation host turns back on). */
+  var onPageOpened: (() -> Unit)? = null
+
   init {
     val mark = origin.file("/icon/128.png")?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
     titleBar =
@@ -91,6 +95,7 @@ class ScreenController(
       ContextPage(engine, PageProfile.BROWSING, router, injector?.webPageScripts() ?: emptyList()) { ContextSpec.Content(tabId) }
     browsing.onDocument = { url ->
       router.tabs.setUrl(tabId, url)
+      onPageOpened?.invoke()
       pageTitle = null
       ogSite = null
       barScroll.reset()
@@ -182,6 +187,27 @@ class ScreenController(
 
   fun tabPage(tab: AppTab): ContextPage? = tabPages[tab]
 
+  /**
+   * Whether a context's page is on the screen the shell shows (the translation host serves only
+   * those): the browsing page on the page screen (under the sheet too), the sheet's page, the
+   * shown tab's page, the first run's. The extension host never is.
+   */
+  fun isOnScreen(spec: ContextSpec): Boolean =
+    when (spec) {
+      ContextSpec.Host -> false
+      is ContextSpec.Content -> spec.tabId == shell.pageTab && shell.screen == Screen.Page
+      is ContextSpec.Page -> {
+        val screen = shell.screen
+        when {
+          sheet?.let { it.tabId == spec.tabId } == true -> true
+          spec.tabId == null -> false
+          screen == Screen.FirstRun -> firstRunTab == spec.tabId
+          screen is Screen.OnTab -> shell.tabId(screen.tab) == spec.tabId
+          else -> false
+        }
+      }
+    }
+
   val firstRunPage: ContextPage?
     get() = firstRun
 
@@ -260,12 +286,14 @@ class ScreenController(
     context.onClose = { router.tabs.get(tabId)?.let { apply(shell.handle(RouterAction.CloseTab(it))) } }
     stage.addView(context.page.view, matchParent())
     firstRun = context
+    firstRunTab = tabId
     context.load(url)
   }
 
   private fun closeFirstRun() {
     val context = firstRun ?: return
     firstRun = null
+    firstRunTab = null
     stage.removeView(context.page.view)
     context.close()
   }

@@ -32,13 +32,15 @@ import dev.langle.core.parseJson
 import dev.langle.core.pickerTypes
 import dev.langle.core.string
 import dev.langle.core.toJsonText
+import java.io.ByteArrayInputStream
 
 const val TAG = "Langle"
 
 /**
  * The engine over Android System WebView (androidx.webkit 1.18.0; spike S2, docs/notes/mobile.md):
  * - browsing pages use the default profile; app pages and the extension host the profile "langle"
- *   (`ProfileStore`), with the app origin served by [AppOrigin];
+ *   (`ProfileStore`), with the app origin served by [AppOrigin]; the translation host's page the
+ *   profile "translate", served by [translateFiles] only;
  * - Langle's world is the execution world "langle"; scripts go in with `addJavaScriptOnEvent`,
  *   which registers them per WebView, so each script checks its frame and URL itself
  *   (ContentInjector);
@@ -52,8 +54,10 @@ class WebViewEngine(private val context: Context, private val origin: AppOrigin)
 
   init {
     WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
-    if (supportsLangle) ProfileStore.getInstance().getOrCreateProfile(APP_PROFILE)
-    else Log.w(TAG, "Langle does not run on pages: the WebView lacks $missingFeatures")
+    if (supportsLangle) {
+      ProfileStore.getInstance().getOrCreateProfile(APP_PROFILE)
+      ProfileStore.getInstance().getOrCreateProfile(TRANSLATE_PROFILE)
+    } else Log.w(TAG, "Langle does not run on pages: the WebView lacks $missingFeatures")
   }
 
   /**
@@ -62,13 +66,29 @@ class WebViewEngine(private val context: Context, private val origin: AppOrigin)
    */
   var chooseFiles: ((types: List<String>, multiple: Boolean, done: (Array<Uri>?) -> Unit) -> Unit)? = null
 
+  /**
+   * Serves the translate profile's requests (TranslateOrigin): the app origin with the engine and
+   * the model files; whatever it does not serve is not found, so that page never reaches the network.
+   */
+  var translateFiles: ((Uri) -> WebResourceResponse?)? = null
+
   override fun createPage(profile: PageProfile, delegate: PageDelegate): Page =
-    WebViewPage(context, profile, delegate, origin, supportsLangle) { types, multiple, done ->
+    WebViewPage(
+      context, profile, delegate, supportsLangle,
+      intercept = { url ->
+        when (profile) {
+          PageProfile.BROWSING -> null
+          PageProfile.APP -> origin.intercept(url)
+          PageProfile.TRANSLATE -> translateFiles?.invoke(url) ?: notFound()
+        }
+      },
+    ) { types, multiple, done ->
       chooseFiles?.invoke(types, multiple, done) ?: done(null)
     }
 
   companion object {
     const val APP_PROFILE = "langle"
+    const val TRANSLATE_PROFILE = "translate"
     const val LANGLE_WORLD = "langle"
     const val BRIDGE = "langleBridge"
 
@@ -82,13 +102,17 @@ class WebViewEngine(private val context: Context, private val origin: AppOrigin)
   }
 }
 
+/** A 404 for what an origin does not serve. */
+fun notFound(): WebResourceResponse =
+  WebResourceResponse("text/plain", "utf-8", 404, "Not Found", mapOf("Cache-Control" to "no-store"), ByteArrayInputStream("Not found".toByteArray()))
+
 @SuppressLint("SetJavaScriptEnabled")
 private class WebViewPage(
   private val context: Context,
   private val profile: PageProfile,
   private val delegate: PageDelegate,
-  private val origin: AppOrigin,
   private val langle: Boolean,
+  private val intercept: (Uri) -> WebResourceResponse?,
   private val chooseFiles: (types: List<String>, multiple: Boolean, done: (Array<Uri>?) -> Unit) -> Unit,
 ) : Page {
   override val view = FrameLayout(context)
@@ -101,9 +125,10 @@ private class WebViewPage(
   private var nextEval = 0
   private val evals = mutableMapOf<Int, (String) -> Unit>()
 
+  private val onAppOrigin = profile != PageProfile.BROWSING
   /** Every bridge origin rule: the app origin's pages, or any web page. */
-  private val rules = if (profile == PageProfile.APP) setOf(APP_ORIGIN) else setOf("*")
-  private val bridgeWorld = if (profile == PageProfile.APP) ScriptWorld.PAGE else ScriptWorld.LANGLE
+  private val rules = if (onAppOrigin) setOf(APP_ORIGIN) else setOf("*")
+  private val bridgeWorld = if (onAppOrigin) ScriptWorld.PAGE else ScriptWorld.LANGLE
 
   init {
     web = makeWebView()
@@ -122,6 +147,9 @@ private class WebViewPage(
     val web = WebView(context)
     // Before any other use of the WebView.
     if (langle && profile == PageProfile.APP) WebViewCompat.setProfile(web, WebViewEngine.APP_PROFILE)
+    if (langle && profile == PageProfile.TRANSLATE) WebViewCompat.setProfile(web, WebViewEngine.TRANSLATE_PROFILE)
+    web.settings.allowFileAccess = false
+    web.settings.allowContentAccess = false
     web.settings.javaScriptEnabled = true
     web.settings.domStorageEnabled = true
     if (profile == PageProfile.BROWSING) {
@@ -226,16 +254,20 @@ private class WebViewPage(
     web.destroy()
   }
 
+  override fun terminateRenderer(): Boolean =
+    WebViewFeature.isFeatureSupported(WebViewFeature.GET_WEB_VIEW_RENDERER) &&
+      WebViewCompat.getWebViewRenderProcess(web)?.terminate() == true
+
   private inner class Client : WebViewClient() {
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
-      if (profile == PageProfile.APP) origin.intercept(request.url) else null
+      intercept(request.url)
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
       if (!request.isForMainFrame) return false
       val url = request.url
-      if (profile == PageProfile.APP) {
+      if (onAppOrigin) {
         if (url.scheme == "https" && url.host == APP_HOST) return false
-        delegate.onLeaveApp(this@WebViewPage, url.toString())
+        if (profile == PageProfile.APP) delegate.onLeaveApp(this@WebViewPage, url.toString())
         return true
       }
       if (url.scheme in WEB_SCHEMES) return false

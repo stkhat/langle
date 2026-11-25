@@ -102,7 +102,8 @@ class ModelStore(
   }
 
   /** The ready packs' version folders. */
-  private val ready = mutableMapOf<String, File>()
+  // Read from the WebView's request threads too (the translate origin serves the files).
+  private val ready: MutableMap<String, File> = java.util.concurrent.ConcurrentHashMap()
   private val known = mutableSetOf<String>()
   private val inflight = mutableMapOf<String, Inflight>()
   /** Bumped by [remove], so a download that ends after it does not make the pack ready. */

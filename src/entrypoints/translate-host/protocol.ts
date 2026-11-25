@@ -1,5 +1,5 @@
 // Messages between the Android app's native translation host and translate-host.html,
-// JSON over the page's `langleBridge` (TranslationEngine.kt's WebView engine), which the
+// JSON over the page's `langleBridge` (WebViewTranslationEngine.kt), which the
 // page passes on to its Worker and back.
 
 /** Native → page → Worker. */

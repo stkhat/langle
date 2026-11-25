@@ -18,7 +18,11 @@ import dev.langle.core.toJsonText
  * - `eval`: runs `source64` (base64 of an async function body) in `target`: host | page | langle |
  *   sheet | home | words | settings | firstrun, and logs what it returns;
  * - `state`: the screen, the tabs, the sheet, the page and whether the host said hello, whether
- *   the title bar shows, whether the page is in fullscreen, the orientation and the window size.
+ *   the title bar shows, whether the page is in fullscreen, the orientation and the window size;
+ * - `translate-state`: whether the translation engine runs (its page exists), is off, and the
+ *   pairs it loaded;
+ * - `translate`: `from`, `to` and `text` through the translation host, as an on-screen page asks;
+ * - `translate-kill`: ends the translation page's renderer, as a crash would.
  */
 object CheckCommands {
   const val TAG = "LangleCheck"
@@ -82,6 +86,24 @@ object CheckCommands {
             "window=${window.width}x${window.height}",
         )
       }
+      "translate-state" -> {
+        val host = activity.translation
+        say(
+          if (host == null) "translate-state no host"
+          else "translate-state running=${host.isRunning} page=${activity.translationEngine?.isRunning} off=${host.isOff} loaded=${host.loadedPairs}",
+        )
+      }
+      "translate" -> {
+        val host = activity.translation ?: return true.also { say("translate no host") }
+        val from = intent.getStringExtra("from") ?: "en"
+        val to = intent.getStringExtra("to") ?: "ja"
+        val text = intent.getStringExtra("text") ?: "Hello."
+        val started = System.currentTimeMillis()
+        host.translate(from, to, text, start = true, onScreen = true) {
+          say("translate ${System.currentTimeMillis() - started} ms ${jsonOf(it).toJsonText()}")
+        }
+      }
+      "translate-kill" -> say("translate-kill ${activity.translationEngine?.terminateRenderer() ?: false}")
       else -> say("unknown command $command")
     }
     return true

@@ -6,6 +6,7 @@ import android.webkit.WebResourceResponse
 import androidx.webkit.WebViewAssetLoader
 import java.io.ByteArrayInputStream
 import java.io.IOException
+import java.io.InputStream
 
 const val APP_HOST = "appassets.androidplatform.net"
 
@@ -43,13 +44,19 @@ class AppOrigin(private val assets: AssetManager) {
     val headers = mapOf("Cache-Control" to "no-store")
     val data = file(path)
       ?: return WebResourceResponse("text/plain", "utf-8", 404, "Not Found", headers, ByteArrayInputStream("Not found".toByteArray()))
-    val type = TYPES[path.substringAfterLast('.', "").lowercase()] ?: "application/octet-stream"
-    val encoding = if (type.startsWith("text/") || type == "application/json") "utf-8" else null
-    return WebResourceResponse(type, encoding, 200, "OK", headers, ByteArrayInputStream(data))
+    return found(path, ByteArrayInputStream(data))
   }
 
   companion object {
     const val BUILD_FOLDER = "langle-app"
+
+    /** A 200 for a file of the origin, typed by its name's extension (none: bytes). */
+    fun found(name: String, data: InputStream, length: Long? = null): WebResourceResponse {
+      val type = TYPES[name.substringAfterLast('/').substringAfterLast('.', "").lowercase()] ?: "application/octet-stream"
+      val encoding = if (type.startsWith("text/") || type == "application/json") "utf-8" else null
+      val headers = mapOf("Cache-Control" to "no-store") + (length?.let { mapOf("Content-Length" to it.toString()) } ?: emptyMap())
+      return WebResourceResponse(type, encoding, 200, "OK", headers, data)
+    }
 
     /** Module scripts need a JavaScript type. */
     private val TYPES =
