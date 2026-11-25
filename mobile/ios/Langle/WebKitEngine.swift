@@ -266,6 +266,13 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
     _ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
     decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
   ) {
+    // A download link (an export's blob) would show the file in place of the page, with no
+    // way back from a tab: nothing happens, as on Android, until the shells save or share
+    // files (docs/notes/mobile.md "Device checks of M4 (M4e, iOS)").
+    if action.shouldPerformDownload {
+      decisionHandler(.cancel)
+      return
+    }
     if action.targetFrame?.isMainFrame ?? true, let url = action.request.url {
       // The target frame is nil for target=_blank: it loads here (one page).
       if action.targetFrame == nil {
