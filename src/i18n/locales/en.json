@@ -429,7 +429,7 @@
   "setup.consent.keepsWhat": "Your words and a history of sentences, web addresses and titles on this device, to show where you met a word.",
   "setup.consent.keepsWhatDevice": "Your words, settings and a history of sentences, web addresses and titles on this phone, to show where you met a word.",
   "setup.consent.sends": "Sends",
-  "setup.consent.sendsWhat": "Words and settings, including site choices, to {syncName}. A word you look up or play may go to that service.",
+  "setup.consent.sendsWhat": "Words and settings, including site choices, to {syncName}. A word you look up or play may go to the service that gives its meaning or sound.",
   "setup.consent.sendsWhatDevice": "Only a word you look up or play, to the service that gives its meaning or sound. Your words and settings stay on this phone.",
   "setup.consent.sendsDrive": "If you connect Google Drive, those and your history go there. Your Google email is kept to stay connected.",
   "setup.consent.notNow": "Not now",
