@@ -152,15 +152,24 @@ export function bridgeBackend(
     };
   }
 
-  /** Asks for the sheets of `learning` → `native`'s pairs whose models are Apple's to download. */
-  async function startModels(learning: string, native: string) {
-    const pairs = [...new Set(["en", learning])]
+  /** The pairs `learning` → `native` translates with (the definitions' and the pages'). */
+  const pairsOf = (learning: string, native: string): PairCodes[] =>
+    [...new Set(["en", learning])]
       .filter((from) => from !== native)
       .map((from) => ({ from, to: native }));
+
+  /** Those of the pairs whose models are Apple's to download (iOS). */
+  async function toDownload(learning: string, native: string) {
+    const pairs = pairsOf(learning, native);
     const statuses = await Promise.all(pairs.map(statusOf));
-    const sheets = pairs
-      .filter((_, i) => statuses[i] === "download")
-      .map((pair) => prepare(pair));
+    return pairs.filter((_, i) => statuses[i] === "download");
+  }
+
+  /** Asks for the sheets of `learning` → `native`'s pairs whose models are Apple's to download. */
+  async function startModels(learning: string, native: string) {
+    const sheets = (await toDownload(learning, native)).map((pair) =>
+      prepare(pair),
+    );
     return { downloaded: Promise.all(sheets) };
   }
 
@@ -174,6 +183,8 @@ export function bridgeBackend(
         await startModels(learning, native)
       ).downloaded;
     },
+    waitsForConsent: async (learning, native) =>
+      (await toDownload(learning, native)).length > 0,
     // The app's models never wait for a user activation.
     downloadOnFirstActivation: () => () => {},
   };

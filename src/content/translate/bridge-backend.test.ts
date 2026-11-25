@@ -276,6 +276,26 @@ describe("bridgeBackend", () => {
     expect(prepare).not.toHaveBeenCalled();
   });
 
+  it("waitsForConsent while a pair the languages use needs Apple's sheet (iOS)", async () => {
+    const statuses: Record<string, TranslatorStatus> = {
+      "en>ja": "ready",
+      "es>ja": "download",
+    };
+    const { backend } = setup(
+      hostWith((pair) => statuses[`${pair.from}>${pair.to}`] ?? "ready")
+        .translator,
+    );
+    await expect(backend.waitsForConsent("es", "ja")).resolves.toBe(true);
+    await expect(backend.waitsForConsent("en", "ja")).resolves.toBe(false);
+    statuses["en>ja"] = "download";
+    // English learners into English translate nothing.
+    await expect(backend.waitsForConsent("en", "en")).resolves.toBe(false);
+    for (const status of ["packs", "unavailable"] as const)
+      await expect(
+        setup(hostWith(status).translator).backend.waitsForConsent("en", "ja"),
+      ).resolves.toBe(false);
+  });
+
   it("downloadOnFirstActivation does nothing", () => {
     const status = vi.fn(() => "download" as const);
     const { backend } = setup(hostWith(status).translator);

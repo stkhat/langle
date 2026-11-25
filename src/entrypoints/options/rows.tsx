@@ -118,7 +118,9 @@ export function LaterRow(props: { title: string; desc: string }) {
 /**
  * The phone layout's section styles, under `.ph` (mock MobileSettingsSection): the
  * title and lead on the page, and each run of rows on a white card. A row whose
- * control is not a switch puts it under the title, across the card.
+ * control is not a switch puts it under the title, across the card; Language data's
+ * rows keep their state or button beside the title (mock MobileSettingsLanguages),
+ * under it when the two do not fit.
  */
 export const PHONE_SETTINGS_CSS = `
 .ph .card{background:none;border:0;border-radius:0;padding:0;gap:0}
@@ -133,7 +135,7 @@ export const PHONE_SETTINGS_CSS = `
 .ph .card>.sub{padding-left:28px}
 .ph :is(.row,.sub){flex-wrap:wrap}
 .ph :is(.row,.sub):not(:has([role=switch])){flex-direction:column;align-items:stretch;gap:10px}
-.ph .sel{height:44px;width:100%;min-width:0;font-size:16px}
+.ph .sub.data{flex-direction:row;align-items:center}.ph .sel{height:44px;width:100%;min-width:0;font-size:16px}
 .ph .btn{height:44px;font-size:15px}
 .ph .st{min-width:0}
 `;
