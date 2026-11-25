@@ -1,5 +1,6 @@
 import type { Category, TermKind, WordStatus } from "../../core/classify";
 import type { Answer } from "../../core/explain/answer";
+import type { TimeSpan } from "../../core/place";
 import {
   cleanDefinition,
   isUsageNoteShort,
@@ -438,6 +439,9 @@ export async function describeTerm(
     wordPos?: Readonly<Record<string, string>>;
     /** The sentence it is in there ("this sentence"), as saving it records it. */
     sentence?: string;
+    /** In a video: the time span of the card(s) holding it, and when it is said. */
+    cardSpan?: TimeSpan;
+    timeMs?: number;
     /** The text of its document, for an abbreviation (`Lookup.describe`). */
     document?: string;
   },
@@ -458,6 +462,8 @@ export async function describeTerm(
       pos?: string;
       clitic?: string;
       sentence?: string;
+      cardSpan?: TimeSpan;
+      timeMs?: number;
       surface?: string;
       document?: string;
     } = {},
@@ -468,6 +474,8 @@ export async function describeTerm(
       key,
       sourceUrl,
       ...(place.sentence !== undefined && { sentence: place.sentence }),
+      ...(place.cardSpan !== undefined && { cardSpan: place.cardSpan }),
+      ...(place.timeMs !== undefined && { timeMs: place.timeMs }),
       ...(place.written !== undefined && { written: place.written }),
       ...(place.pos !== undefined && { pos: place.pos }),
       ...(place.clitic !== undefined && { clitic: place.clitic }),

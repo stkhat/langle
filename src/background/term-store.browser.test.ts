@@ -1371,6 +1371,8 @@ describe("chooseMeaning", () => {
         at: clock.time,
         deviceId: expect.any(String),
         url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        // Its place's time in the video, from its occurrence.
+        timeMs: 12_000,
       },
     ]);
   });
@@ -1973,5 +1975,130 @@ describe("the times cloud files merge by", () => {
         (await store.occurrencesOf("en:dough")).map((o) => o.sentence),
       ).toEqual(["Fresh dough."]);
     });
+  });
+});
+
+describe("a video place found by time", () => {
+  // Saved from a card cut "Knead the dough." (12.0–14.0 s); the cards are cut
+  // otherwise later, and the same place is now in "Now knead the dough well." (11.0–
+  // 15.0 s).
+  const recut = {
+    sentence: "Now knead the dough well.",
+    pos: { timeMs: 12_100 },
+    cardSpan: { startMs: 11_000, endMs: 15_000 },
+  };
+  const sentences = async () =>
+    (await store.occurrencesOf("en:dough")).map((o) => [o.sentence, o.origin]);
+
+  it("records no second occurrence after a re-cut: the time lies in the card's span", async () => {
+    await store.saveTerm(dough());
+    clock.tick();
+    const added = await store.recordEncounters(VIDEO, [
+      { termId: "en:dough", ...recut },
+    ]);
+    expect(added).toBe(0);
+    expect(await sentences()).toEqual([["Knead the dough.", "saved"]]);
+  });
+
+  it("still records another place in the same video: a time outside the span", async () => {
+    await store.saveTerm(dough());
+    clock.tick();
+    const added = await store.recordEncounters(VIDEO, [
+      {
+        termId: "en:dough",
+        ...recut,
+        pos: { timeMs: 40_000 },
+        cardSpan: { startMs: 39_000, endMs: 42_000 },
+      },
+    ]);
+    expect(added).toBe(1);
+    expect(await sentences()).toEqual([
+      ["Now knead the dough well.", "encountered"],
+      ["Knead the dough.", "saved"],
+    ]);
+  });
+
+  it("matches by sentence only without a span, as on web pages", async () => {
+    await store.saveTerm(dough());
+    clock.tick();
+    const added = await store.recordEncounters(VIDEO, [
+      { termId: "en:dough", sentence: recut.sentence, pos: recut.pos },
+    ]);
+    expect(added).toBe(1);
+  });
+
+  it("saving there again keeps the place's sentence and makes an encounter the saved one", async () => {
+    await store.saveTerm(
+      dough({ sentence: "A dough.", pos: { timeMs: 90_000 } }),
+    );
+    clock.tick();
+    await store.recordEncounters(VIDEO, [
+      {
+        termId: "en:dough",
+        sentence: "Knead the dough.",
+        translation: "生地をこねる。",
+        pos: { timeMs: 12_000 },
+      },
+    ]);
+    clock.tick();
+    const term = await store.saveTerm(
+      dough({
+        ...recut,
+        translation: "さあ生地をよくこねて。",
+        status: "known",
+      }),
+    );
+    expect(term.status).toBe("known");
+    const rows = await store.occurrencesOf("en:dough");
+    expect(rows.map((o) => [o.sentence, o.origin])).toEqual([
+      ["Knead the dough.", "saved"],
+      ["A dough.", "saved"],
+    ]);
+    // The new copy's time, with the place's own sentence and translation.
+    expect(rows[0]).toMatchObject({
+      pos: recut.pos,
+      translation: "生地をこねる。",
+    });
+  });
+
+  it("writes a meaning chosen after a re-cut under the place's sentence", async () => {
+    await store.saveTerm(dough());
+    clock.tick();
+    await store.chooseMeaning(choose(PIECE, recut));
+    expect(await sentences()).toEqual([["Knead the dough.", "saved"]]);
+    const { choices } = await store.meaningsOf("en:dough");
+    expect(choices.map((c) => [c.sentence, c.timeMs])).toEqual([
+      ["Knead the dough.", 12_000],
+    ]);
+    // Undone from the re-cut card too.
+    clock.tick();
+    await store.chooseMeaning(choose(null, recut));
+    expect((await store.meaningsOf("en:dough")).choices).toEqual([]);
+  });
+
+  it("replaces a meaning chosen before the re-cut: one per place", async () => {
+    await store.chooseMeaning(choose(PIECE));
+    clock.tick();
+    await store.chooseMeaning(choose(MASS, recut));
+    const { meanings, choices } = await store.meaningsOf("en:dough");
+    expect(choices).toHaveLength(1);
+    expect(meanings.map((m) => m.text)).toEqual([MASS.text]);
+  });
+
+  it("finds a phrase across cards by the span of every card it covers", async () => {
+    // Saved from the card it starts in, when the second card held it whole.
+    await store.saveTerm(
+      figureOut({ sentence: "and figured it out.", pos: { timeMs: 21_000 } }),
+    );
+    clock.tick();
+    const added = await store.recordEncounters(VIDEO, [
+      {
+        termId: "en:figure out",
+        sentence: "She finally figured\nit out.",
+        pos: { timeMs: 20_500 },
+        cardSpan: { startMs: 19_000, endMs: 23_000 },
+      },
+    ]);
+    expect(added).toBe(0);
   });
 });

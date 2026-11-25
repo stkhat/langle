@@ -128,6 +128,36 @@ describe("yourMeanings and meaningLines", () => {
     ]);
   });
 
+  it("finds the meaning chosen at a video place by time once its card is cut otherwise", () => {
+    const video = "https://www.youtube.com/watch?v=v1";
+    const timed = {
+      ...data,
+      choices: [
+        { ...choice("A fold.", "m-mix", 30), url: video, timeMs: 5000 },
+        {
+          ...choice("One more fold.", "m-dough", 10),
+          url: video,
+          timeMs: 9000,
+        },
+      ],
+    };
+    const here = (startMs: number, endMs: number) =>
+      yourMeanings(
+        timed,
+        {
+          url: video,
+          sentence: "Another fold, and one more fold.",
+          cardSpan: { startMs, endMs },
+          timeMs: 8800,
+        },
+        lines,
+      ).chosenHere;
+    // The nearest of the places the live card spans.
+    expect(here(4000, 10_000)).toBe("m-dough");
+    expect(here(4000, 6000)).toBe("m-mix");
+    expect(here(10_000, 12_000)).toBeUndefined();
+  });
+
   it("lists the meanings most chosen first, the AI's tagged", () => {
     expect(meaningLines(data, lines)).toEqual([
       { key: "m-dough", line: "（パン生地の）折り込み", ai: true },

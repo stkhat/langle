@@ -20,6 +20,7 @@ import type {
 } from "./platform";
 import { startVideo, type VideoDeps } from "./session";
 import type { VideoSession, VideoState } from "./state";
+import { toWordRows } from "../words/words";
 import { videoWords } from "./words";
 import { fixedTouchMode } from "../../testing/touch";
 
@@ -596,6 +597,7 @@ describe("occurrences", () => {
         sentence: "The yeast smells tangy.",
         translation: "イーストはぴりっとした匂い。",
         pos: { timeMs: TANGY_0 },
+        cardSpan: { startMs: 0, endMs: 1000 },
       },
     ]);
     expect(bg.sent("recordEncounters")[0]?.source).toEqual({
@@ -614,6 +616,7 @@ describe("occurrences", () => {
       sentence: "It is a tangy loaf.",
       translation: "ぴりっとしたパンだ。",
       pos: { timeMs: TANGY_2 },
+      cardSpan: { startMs: 2500, endMs: 3500 },
     });
 
     // Each line once per video.
@@ -641,6 +644,102 @@ describe("occurrences", () => {
     expect(
       bg.sent("recordEncounters").flatMap((r) => r.items.map((i) => i.pos)),
     ).toEqual([{ timeMs: TANGY_0 }]);
+  });
+});
+
+type TestBackground = ReturnType<typeof testBackground>;
+
+describe("a place recorded when the cards were cut otherwise", () => {
+  const VIDEO_URL = "https://www.youtube.com/watch?v=vid1";
+  /** Tangy saved from the third card when it was cut "It is a tangy", at its start. */
+  const savedFromOldCut = (bg: TestBackground) =>
+    bg.send({
+      type: "saveTerm",
+      lang: "en",
+      key: "tangy",
+      display: "tangy",
+      kind: "word",
+      status: "learning",
+      source: {
+        platform: "youtube",
+        url: VIDEO_URL,
+        title: "Title of vid1",
+        lang: "en",
+      },
+      sentence: "It is a tangy",
+      pos: { timeMs: CUES[2]!.startMs },
+    });
+  const places = async (bg: TestBackground) =>
+    (
+      await bg.send({
+        type: "lookup",
+        lang: "en",
+        key: "tangy",
+        sourceUrl: VIDEO_URL,
+      })
+    ).here.map((o) => o.sentence);
+
+  it("joins it: a meaning chosen on the card that holds it now, shown there, records no second place", async () => {
+    const { state, app, bg, video } = await start(undefined, {
+      before: savedFromOldCut,
+    });
+    await ready(state);
+    await classified(state);
+    app.clickWord(refOf(state, 2, "tangy"));
+    await expect.poll(() => state().panel?.card.status).toBe("learning");
+    expect(state().panel?.card.chosenHere).toBeUndefined();
+    app.useMeaning(0);
+    // Chosen for the stored place, found by time: shown on the card as cut now.
+    await expect.poll(() => state().panel?.card.chosenHere).toBeDefined();
+    const key = state().panel!.card.chosenHere;
+    await expect
+      .poll(() => state().summaries.tangy?.chosen)
+      .toEqual([{ sentence: "It is a tangy", key, timeMs: CUES[2]!.startMs }]);
+    // The Words list groups the card's place under it.
+    const rows = toWordRows(
+      videoWords(state().cues, state().lines, state().spans, state().summaries),
+      {
+        filter: "all",
+        sort: "order",
+        summaries: state().summaries,
+        learningLang: "en",
+        nativeLang: "ja",
+        sentence: (w, place) => state().cues[w.places[place]!.card]!.text,
+        videoTime: (w, place) => {
+          const { card, startMs } = w.places[place]!;
+          const cue = state().cues[card]!;
+          return {
+            cardSpan: { startMs: cue.startMs, endMs: cue.endMs },
+            timeMs: startMs,
+          };
+        },
+      },
+      () => ({}),
+    );
+    expect(rows.find((r) => r.key === "tangy")?.groups).toEqual([
+      { meaning: expect.anything(), places: [1] },
+      { places: [0] },
+    ]);
+    // Another card has none.
+    app.clickWord(refOf(state, 0, "tangy"));
+    await expect.poll(() => state().panel?.ref.cue).toBe(0);
+    await expect.poll(() => state().panel?.card.chosenHere).toBeUndefined();
+
+    // Playing the card records the first card's place only.
+    await seekTo(video, 2.8);
+    await expect
+      .poll(() => bg.sent("recordEncounters").flatMap((r) => r.items).length)
+      .toBe(2);
+    await expect
+      .poll(() => places(bg))
+      .toEqual(["The yeast smells tangy.", "It is a tangy"]);
+
+    // Undone on the card as cut now.
+    app.clickWord(refOf(state, 2, "tangy"));
+    await expect.poll(() => state().panel?.card.chosenHere).toBe(key);
+    app.useMeaning(0);
+    await expect.poll(() => state().panel?.card.chosenHere).toBeUndefined();
+    expect(await places(bg)).toHaveLength(2);
   });
 });
 
@@ -1368,7 +1467,19 @@ describe("a phrase across cards (speech recognition's line breaks)", () => {
       sentence: "they had to give up the tangy loaf",
       // Saved from its second part, at the time "give" is said in the first card.
       pos: { timeMs: 600 },
+      // Its place there is found by time over both cards.
+      cardSpan: { startMs: 0, endMs: 3500 },
     });
+    // The hover card's lookup finds the meaning chosen there the same way.
+    expect(
+      bg.sent("lookup").filter((l) => l.sentence !== undefined),
+    ).toContainEqual(
+      expect.objectContaining({
+        key: "give up",
+        cardSpan: { startMs: 0, endMs: 3500 },
+        timeMs: 600,
+      }),
+    );
   });
 
   it("records a saved phrase once, at the time its first word is said", async () => {
@@ -1410,6 +1521,7 @@ describe("a phrase across cards (speech recognition's line breaks)", () => {
         expect.objectContaining({
           sentence: "they had to give up the tangy loaf",
           pos: { timeMs: 600 },
+          cardSpan: { startMs: 0, endMs: 3500 },
         }),
       ]);
   });
@@ -1606,7 +1718,7 @@ describe("words in the subtitles", () => {
     // The Words list reads the term's meanings again: chosen in this card.
     await expect
       .poll(() => state().summaries.tangy?.chosen)
-      .toEqual([{ sentence, key: card.chosenHere }]);
+      .toEqual([{ sentence, key: card.chosenHere, timeMs: TANGY_2 }]);
     expect(state().summaries.tangy?.meanings).toEqual([
       expect.objectContaining({ key: card.chosenHere }),
     ]);

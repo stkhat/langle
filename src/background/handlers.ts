@@ -46,6 +46,7 @@ import {
   type Settings,
   type SettingsPatch,
 } from "../core/settings";
+import { isTimeSpan } from "../core/place";
 import { termId } from "../core/term-id";
 import {
   hostnameOf,
@@ -330,7 +331,12 @@ export function createHandlers({
       string,
       {
         lines: MeaningLine[];
-        choices: { url?: string; sentence: string; meaningKey: string }[];
+        choices: {
+          url?: string;
+          sentence: string;
+          meaningKey: string;
+          timeMs?: number;
+        }[];
       }
     >();
     if (found.size === 0) return listed;
@@ -499,6 +505,8 @@ export function createHandlers({
       key,
       sourceUrl,
       sentence,
+      cardSpan,
+      timeMs,
       written,
       pos,
       clitic,
@@ -584,7 +592,14 @@ export function createHandlers({
         ...yourMeanings(
           meanings,
           hereUrl !== undefined && typeof sentence === "string"
-            ? { url: hereUrl, sentence }
+            ? {
+                url: hereUrl,
+                sentence,
+                // A video's place, matched by time too (`samePlace`).
+                ...(isTimeSpan(cardSpan) && { cardSpan }),
+                ...(typeof timeMs === "number" &&
+                  Number.isFinite(timeMs) && { timeMs }),
+              }
             : undefined,
           {
             nativeLang,
@@ -748,7 +763,11 @@ export function createHandlers({
               ? []
               : (listed?.choices ?? [])
                   .filter((c) => c.url === hereUrl)
-                  .map((c) => ({ sentence: c.sentence, key: c.meaningKey }));
+                  .map((c) => ({
+                    sentence: c.sentence,
+                    key: c.meaningKey,
+                    ...(c.timeMs !== undefined && { timeMs: c.timeMs }),
+                  }));
           return [
             key,
             {

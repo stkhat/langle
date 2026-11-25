@@ -1,4 +1,5 @@
 import type { Span, TermKind, WordStatus } from "../../core/classify";
+import { samePlace, type LivePlace, type TimeSpan } from "../../core/place";
 import { collapseSpaces } from "../../core/text/sentences";
 import { own } from "../../core/util";
 import type { MeaningLine, TermBrief } from "../../messaging/protocol";
@@ -123,23 +124,23 @@ export function sortRows<R extends { head: string; count: number }>(
 /**
  * The places of a row grouped by the meaning the user chose there (ui.md "Words in this
  * video / Words on this page"): a group per meaning, in order of first appearance, then
- * the places with none. `sentenceOf(i)` is place `i`'s sentence, as choosing a meaning
- * there records it. Undefined when no place has a meaning of `meanings`. A meaning's
- * line is in the native language unless it says otherwise.
+ * the places with none. `placeOf(i)` is place `i` as choosing a meaning there records
+ * it (its sentence; in a video its card's time span too), matched to a choice as
+ * `samePlace` matches it. Undefined when no place has a meaning of `meanings`. A
+ * meaning's line is in the native language unless it says otherwise.
  */
 function placeGroups(
   count: number,
-  sentenceOf: (place: number) => string,
-  chosen: readonly { sentence: string; key: string }[],
+  placeOf: (place: number) => LivePlace,
+  chosen: readonly { sentence: string; key: string; timeMs?: number }[],
   meanings: readonly MeaningLine[],
   nativeLang: string,
 ): PlaceGroup[] | undefined {
-  const keyAt = new Map(chosen.map((c) => [c.sentence, c.key]));
   const lines = new Map(meanings.map((m) => [m.key, m]));
   const groups = new Map<string, { meaning: MeaningLine; places: number[] }>();
   const none: number[] = [];
   for (let place = 0; place < count; place++) {
-    const key = keyAt.get(sentenceOf(place));
+    const key = samePlace(chosen, (c) => c, placeOf(place))?.key;
     const meaning = key === undefined ? undefined : lines.get(key);
     if (!meaning) {
       none.push(place);
@@ -187,7 +188,8 @@ function rowMeaning(
  * A Words list's rows: the words the filter shows, in the sort's order, each with its
  * short meaning from the summaries and what `more` adds (its places). A term with
  * meanings chosen in this list's places has its places grouped by them
- * (`placeGroups`; `sentence(word, i)`: the sentence of the word's place `i`).
+ * (`placeGroups`; `sentence(word, i)`: the sentence of the word's place `i`;
+ * `videoTime(word, i)`: in a video, the time span of its card and when it is said).
  */
 export function toWordRows<
   W extends {
@@ -208,6 +210,10 @@ export function toWordRows<
     learningLang: string;
     nativeLang: string;
     sentence(word: W, place: number): string;
+    videoTime?(
+      word: W,
+      place: number,
+    ): { cardSpan: TimeSpan; timeMs: number } | undefined;
   },
   more: (word: W, id: string) => X,
 ) {
@@ -219,7 +225,10 @@ export function toWordRows<
         brief?.chosen && brief.meanings
           ? placeGroups(
               word.places.length,
-              (place) => o.sentence(word, place),
+              (place) => ({
+                sentence: o.sentence(word, place),
+                ...o.videoTime?.(word, place),
+              }),
               brief.chosen,
               brief.meanings,
               o.nativeLang,

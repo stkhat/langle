@@ -1,4 +1,5 @@
 import type { Span, TermKind, WordStatus } from "../../core/classify";
+import type { TimeSpan } from "../../core/place";
 import { lineIndexAt, type SubtitleLine } from "../../core/subtitles/cues";
 import { joinerFor } from "../../core/subtitles/translation";
 import type { Cue } from "../../core/subtitles/types";
@@ -107,6 +108,20 @@ export function acrossCards(
     surface: flat(lines.join("\n")),
     sentence: flat(texts.join("\n")),
   };
+}
+
+/**
+ * The time span of cards `first` to `last` (a term's card, or the cards a phrase across
+ * cards covers): from the first's start to the last's end. A stored place of the term
+ * whose time lies in it is the same place (`samePlace`).
+ */
+export function cardSpan(
+  cues: readonly Cue[],
+  first: number,
+  last: number,
+): TimeSpan {
+  const startMs = cues[first]?.startMs ?? 0;
+  return { startMs, endMs: Math.max(startMs, cues[last]?.endMs ?? startMs) };
 }
 
 /**
