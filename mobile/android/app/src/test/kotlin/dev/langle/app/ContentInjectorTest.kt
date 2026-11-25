@@ -95,6 +95,13 @@ class ContentInjectorTest {
     assertEquals(true, page.contains(""""context":"host""""))
   }
 
+  @Test
+  fun `every context hears that the app translates with model packs`() {
+    for (context in listOf("content", "page", "host")) {
+      assertEquals(true, injector.appInfo(context).contains(""""translator":{"models":"packs"}"""))
+    }
+  }
+
   /** The bundled build's scripts are valid JavaScript once wrapped (scripts/bundle-build.sh). */
   @Test
   fun `wraps the bundled build's scripts into valid JavaScript`() {

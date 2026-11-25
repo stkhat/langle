@@ -19,10 +19,15 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.langle.core.FilePersistence
 import dev.langle.core.Manifest
+import dev.langle.core.ModelStore
 import dev.langle.core.ManifestRefusal
 import dev.langle.core.Router
 import dev.langle.core.RouterAction
+import dev.langle.core.TranslationHost
+import dev.langle.core.TranslationService
+import dev.langle.core.UrlFetcher
 import java.io.File
+import java.util.concurrent.Executors
 
 /**
  * The app's activity: the router, the hidden extension host and the screens (ScreenController.kt),
@@ -41,6 +46,14 @@ class MainActivity : Activity() {
   var host: ExtensionHost? = null
     private set
   private lateinit var engine: WebViewEngine
+  /** The translation host and its engine (docs/specs/mobile-translation.md "The Android host"). */
+  var translation: TranslationHost? = null
+    private set
+  var translationEngine: WebViewTranslationEngine? = null
+    private set
+  private val downloads = Executors.newSingleThreadExecutor()
+  /** Whether the activity is on the screen (between onStart and onStop). */
+  private var shown = false
   private val files = AppFiles(this)
   private var backCallback: Any? = null
   private var recovering = false
@@ -101,10 +114,49 @@ class MainActivity : Activity() {
         it.onProcessGone = ::appProfileGone
         it.start()
       }
+      startTranslation(origin)
     }
     intent.getStringExtra("url")?.let { screens.apply(screens.shell.openPage(it)) }
     updateBack()
     if (BuildConfig.DEBUG) CheckCommands.ready()
+  }
+
+  // translation
+
+  /**
+   * The model packs in the app's files, the engine's page in a zero-size slot of its own, and the
+   * host that keeps the release rules, answering the router's translation calls.
+   */
+  private fun startTranslation(origin: AppOrigin) {
+    val models = ModelStore(File(filesDir, "models"), UrlFetcher(), downloads, { run -> main.post(run) })
+    models.onLog = { Log.i(TAG, "models: $it") }
+    engine.translateFiles = TranslateOrigin(origin, assets, models)::intercept
+    val slot = FrameLayout(this)
+    screens.root.addView(slot, FrameLayout.LayoutParams(0, 0))
+    val pageEngine = WebViewTranslationEngine(engine, slot)
+    val host = TranslationHost(pageEngine, HandlerClock(), models::packsFor)
+    host.onLog = { Log.i(TAG, "translation: $it") }
+    val service = TranslationService(host, models, { shown && screens.isOnScreen(it) }, router::postToHost)
+    router.onTranslation = service::handle
+    screens.onPageOpened = host::pageOpened
+    translation = host
+    translationEngine = pageEngine
+  }
+
+  override fun onStart() {
+    super.onStart()
+    shown = true
+  }
+
+  override fun onStop() {
+    shown = false
+    super.onStop()
+  }
+
+  /** The app left the screen: the engine goes at once (its memory is the largest the app has). */
+  override fun onTrimMemory(level: Int) {
+    super.onTrimMemory(level)
+    if (level >= TRIM_MEMORY_UI_HIDDEN) translation?.uiHidden()
   }
 
   // fullscreen
@@ -220,6 +272,8 @@ class MainActivity : Activity() {
   }
 
   override fun onDestroy() {
+    translation?.uiHidden()
+    downloads.shutdown()
     screens.close()
     host?.context?.close()
     super.onDestroy()

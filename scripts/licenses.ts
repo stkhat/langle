@@ -118,6 +118,44 @@ export function licenseTexts(
 
 const RULE = "=".repeat(72);
 
+/** Code a build ships that is not an npm package, with its license text. */
+export interface ShippedCode {
+  name: string;
+  version: string;
+  license: string;
+  text: string;
+}
+
+/**
+ * The parts of the Bergamot engine the Android app ships in its APK (Firefox 145's
+ * WebAssembly build of bergamot-translator v0.6.0, scripts/mobile/bergamot.ts), each
+ * with the license of its repository: `scripts/engine-licenses/<name>.txt`.
+ */
+const ENGINE_PARTS = [
+  ["bergamot-translator", "MPL-2.0"],
+  ["marian", "MIT"],
+  ["intgemm", "MIT"],
+  ["sentencepiece", "Apache-2.0"],
+  ["ssplit-cpp", "Apache-2.0"],
+  ["pcre2", "BSD-3-Clause WITH PCRE2-exception"],
+  ["yaml-cpp", "MIT"],
+  ["spdlog", "MIT"],
+  ["zlib", "Zlib"],
+] as const;
+
+const ENGINE_LICENSES_DIR = new URL("./engine-licenses/", import.meta.url)
+  .pathname;
+
+export function engineLicenses(dir = ENGINE_LICENSES_DIR): ShippedCode[] {
+  return ENGINE_PARTS.map(([name, license]) => ({
+    name,
+    version:
+      name === "bergamot-translator" ? "0.6.0" : "(bergamot-translator 0.6.0)",
+    license,
+    text: readFileSync(join(dir, `${name}.txt`), "utf8").trim(),
+  }));
+}
+
 /**
  * The licenses file: every package, by name, with its version, its license as its
  * package.json declares it and the full text of its license files. Throws for a package
@@ -126,13 +164,20 @@ const RULE = "=".repeat(72);
 export function licensesFile(
   dirs: Iterable<string>,
   fallbackDir?: string,
+  code: ShippedCode[] = [],
 ): string {
-  const packages = [...new Set(dirs)].map((dir) => ({
-    json: JSON.parse(
-      readFileSync(join(dir, "package.json"), "utf8"),
-    ) as PackageJson,
-    texts: licenseTexts(dir, fallbackDir),
-  }));
+  const packages = [
+    ...[...new Set(dirs)].map((dir) => ({
+      json: JSON.parse(
+        readFileSync(join(dir, "package.json"), "utf8"),
+      ) as PackageJson,
+      texts: licenseTexts(dir, fallbackDir),
+    })),
+    ...code.map(({ name, version, license, text }) => ({
+      json: { name, version, license },
+      texts: [text],
+    })),
+  ];
   const missing = packages.filter((p) => p.texts.length === 0);
   if (missing.length > 0)
     throw new Error(
@@ -172,6 +217,8 @@ export function bundledLicenses(root: string) {
         }
       },
     }),
-    file: () => licensesFile(dirs),
+    /** `app`: the phone app's build, which also ships the translation engine. */
+    file: ({ app = false } = {}) =>
+      licensesFile(dirs, undefined, app ? engineLicenses() : []),
   };
 }

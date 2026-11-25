@@ -16,12 +16,15 @@ interface BrowsingEngine {
 
 /**
  * Which data a page uses: the browsing data, or the app's own (the extension host and the app
- * pages, on the app origin), kept apart from it (boundary 2). The bridge is in Langle's world on
- * browsing pages, in the page's world (the app origin only) on app pages.
+ * pages, on the app origin), kept apart from it (boundary 2), or the translation host's
+ * (`translate-host.html` on the app origin, with the model files; a renderer of its own, so the
+ * engine's memory and a crash stay out of the others). The bridge is in Langle's world on browsing
+ * pages, in the page's world (the app origin only) on the others.
  */
 enum class PageProfile {
   BROWSING,
   APP,
+  TRANSLATE,
 }
 
 /** The page's own world, or Langle's isolated world (content scripts, the bridge). */
@@ -67,6 +70,9 @@ interface Page {
 
   /** The page is gone for good. */
   fun destroy()
+
+  /** Ends the page's renderer, as a crash would (check commands); false when it cannot. */
+  fun terminateRenderer(): Boolean
 }
 
 interface PageDelegate {

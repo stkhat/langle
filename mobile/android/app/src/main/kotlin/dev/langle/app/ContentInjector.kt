@@ -25,9 +25,15 @@ import dev.langle.core.toJsonText
 class ContentInjector(val manifest: Manifest, private val read: (String) -> ByteArray?) {
   private val sources = mutableMapOf<String, String>()
 
-  /** `window.__langleAppInfo = …;` for a context (`content`, `page` or `host`). */
-  fun appInfo(context: String): String =
-    "window.__langleAppInfo = ${jsonObject("origin" to APP_ORIGIN, "manifest" to manifest.value, "context" to context).toJsonText()};"
+  /**
+   * `window.__langleAppInfo = …;` for a context (`content`, `page` or `host`). `translator`:
+   * the app translates on the device with model packs (the translation host,
+   * docs/specs/mobile-translation.md "The bridge").
+   */
+  fun appInfo(context: String): String {
+    val info = jsonObject("origin" to APP_ORIGIN, "manifest" to manifest.value, "context" to context, "translator" to TRANSLATOR)
+    return "window.__langleAppInfo = ${info.toJsonText()};"
+  }
 
   private fun source(path: String): String? =
     sources[path]
@@ -81,6 +87,9 @@ class ContentInjector(val manifest: Manifest, private val read: (String) -> Byte
       .trimIndent()
 
   companion object {
+    /** `appHost.translator`: Android's models are packs the app downloads. */
+    val TRANSLATOR = mapOf("models" to "packs")
+
     /** Runs [body] only in the top frame of a document whose URL one of [matches] matches. */
     fun guarded(matches: List<MatchPattern>, body: String): String {
       val patterns = jsonOf(matches.map { it.regex }).toJsonText()
