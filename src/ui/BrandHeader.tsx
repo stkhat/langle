@@ -2,9 +2,11 @@ import { LangleMark } from "./LangleMark";
 import { color } from "./styles";
 
 const SIZES = {
-  popup: { mark: 28, title: "15px", pair: "13px" },
-  settings: { mark: 32, title: "18px", pair: "14px" },
-  page: { mark: 32, title: "22px", pair: "14px" },
+  popup: { mark: 28, title: "15px", pair: "13px", inset: "0" },
+  /** The popup's phone layout (mock MobileLangleSheet). */
+  phone: { mark: 32, title: "16px", pair: "13px", inset: "4px" },
+  settings: { mark: 32, title: "18px", pair: "14px", inset: "0" },
+  page: { mark: 32, title: "22px", pair: "14px", inset: "0" },
 };
 
 /**
@@ -45,6 +47,7 @@ export function BrandHeader(props: {
             display: "flex",
             flexDirection: "column",
             minWidth: 0,
+            marginLeft: size.inset,
           }}
         >
           {title}

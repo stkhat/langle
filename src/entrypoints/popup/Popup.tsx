@@ -1,4 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
+import type { TouchMode } from "../../content/touch/touch-mode";
+import type { SyncPlace } from "../../core/browser-env";
 import type { CloudProviderId } from "../../core/cloud/provider";
 import type { CloudStatus, Counts, SyncStatus } from "../../messaging/protocol";
 import { onHost } from "../../core/url";
@@ -32,16 +34,20 @@ import {
   NOTE_BUTTON,
 } from "../../ui/packs/LanguageDataNote";
 import { color, FONT } from "../../ui/styles";
+import { usePhoneLayout } from "../../ui/phone-layout";
 import { Switch } from "../../ui/Switch";
 import { SaveAll } from "./SaveAll";
+import { Subtitles } from "./Subtitles";
 import { RATE_NUDGE_AT, RateNudge, SupportNav } from "./Support";
 
 /** What the popup works with; `main.tsx` passes the browser's, tests pass fakes. */
 export interface PopupDeps extends PackStatusDeps {
   /** Asks the active tab's content script; undefined when nothing there answers. */
   askPage(request: PageRequest): Promise<PageSummary | undefined>;
-  /** `BrowserEnv.syncName`, e.g. "Chrome sync". */
-  syncName: string;
+  /** `BrowserEnv.sync`: the browser's sync, or this device only (the phone app). */
+  sync: SyncPlace;
+  /** The page's touch mode, which picks the phone layout; the real one by default. */
+  touch?: TouchMode;
   /** Where the footer's links lead; an empty one is left out. */
   links: SupportLinks;
   /** Opens a link in a new tab (and so closes the popup). */
@@ -55,44 +61,67 @@ export interface PopupDeps extends PackStatusDeps {
   refreshMs: number;
 }
 
-function CountTile(props: { value: number; label: string; green?: boolean }) {
+/** A count; in the phone layout all three alike on the light surface (mock MobileLangleSheet). */
+function CountTile(props: {
+  value: number;
+  label: string;
+  green?: boolean;
+  phone: boolean;
+}) {
+  const green = props.green && !props.phone;
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
         gap: "2px",
-        padding: "10px",
+        padding: props.phone ? "10px 12px" : "10px",
         borderRadius: "10px",
-        background: props.green ? color.greenPale : color.surfaceGray,
+        background: green
+          ? color.greenPale
+          : props.phone
+            ? color.surface
+            : color.surfaceGray,
       }}
     >
       <span
         style={{
           fontSize: "20px",
           fontWeight: 700,
-          color: props.green ? color.greenDark : color.ink,
+          color: green ? color.greenDark : color.ink,
         }}
       >
         {fmt(props.value)}
       </span>
-      <span style={{ fontSize: "12px", color: color.ink2 }}>{props.label}</span>
+      <span
+        style={{
+          fontSize: "12px",
+          color: props.phone ? color.muted : color.ink2,
+        }}
+      >
+        {props.label}
+      </span>
     </div>
   );
 }
 
+/**
+ * "Saved to Chrome sync · 2 min ago" over its space, or on a device that syncs nothing
+ * (the phone app) "Saved on this phone · 2 min ago" alone.
+ */
 function SyncLine(props: {
   status: SyncStatus;
-  syncName: string;
+  place: SyncPlace;
   now: number;
+  phone: boolean;
 }) {
-  const { status } = props;
-  const line = syncSavedLine(status, (lastSavedAt) =>
-    t("popup.sync.saved", {
-      syncName: props.syncName,
-      when: relativeTime(lastSavedAt, props.now),
-    }),
-  );
+  const { status, place } = props;
+  const line = syncSavedLine(status, (lastSavedAt) => {
+    const when = relativeTime(lastSavedAt, props.now);
+    return place.kind === "browser"
+      ? t("popup.sync.saved", { syncName: place.name, when })
+      : t("popup.sync.savedDevice", { when });
+  });
   if (!status.enabled) return <span style={{ fontSize: "13px" }}>{line}</span>;
   const { used, quota, share } = syncSpace(status);
   return (
@@ -101,17 +130,22 @@ function SyncLine(props: {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "6px",
+          gap: props.phone ? "8px" : "6px",
           fontSize: "13px",
+          ...(props.phone && { color: color.ink3 }),
         }}
       >
         {status.lastSavedAt !== undefined && <CheckIcon />}
         <span>{line}</span>
       </div>
-      <Meter share={share} />
-      <span style={{ fontSize: "12px", color: color.muted }}>
-        {t("popup.sync.space", { used, quota })}
-      </span>
+      {place.kind === "browser" && (
+        <>
+          <Meter share={share} />
+          <span style={{ fontSize: "12px", color: color.muted }}>
+            {t("popup.sync.space", { used, quota })}
+          </span>
+        </>
+      )}
     </>
   );
 }
@@ -206,6 +240,14 @@ const headerButton = {
   cursor: "pointer",
 } as const;
 
+/** The header's icon buttons in the phone layout: 44px round targets. */
+const phoneHeaderButton = {
+  ...headerButton,
+  width: "44px",
+  height: "44px",
+  borderRadius: "22px",
+} as const;
+
 /**
  * The toolbar popup (mock Toolbar): the header's switch for Langle as a whole, the
  * language data while it is missing (mock LanguageData), this site, this page,
@@ -214,6 +256,8 @@ const headerButton = {
  * sync and the footer.
  */
 export function Popup({ deps }: { deps: PopupDeps }) {
+  /** The phone layout (mock MobileLangleSheet): the full width, 44px targets, Subtitles. */
+  const phone = usePhoneLayout(deps.touch);
   const [settings, setSettings] = useState<Settings>();
   const [counts, setCounts] = useState<Counts>();
   /** The active tab's summary; none while asking, or when nothing there answers. */
@@ -323,31 +367,72 @@ export function Popup({ deps }: { deps: PopupDeps }) {
     });
   }
 
+  const countTiles = langleOn && counts && (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        gap: "8px",
+      }}
+    >
+      <CountTile
+        value={counts.learning}
+        label={t("status.learning")}
+        green
+        phone={phone}
+      />
+      <CountTile value={counts.known} label={t("status.known")} phone={phone} />
+      <CountTile
+        value={counts.phrases}
+        label={t("kind.phrases")}
+        phone={phone}
+      />
+    </div>
+  );
+
+  const savedLine =
+    view?.kind === "connected" ? (
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <CloudLine
+          view={view}
+          now={now}
+          onReconnect={() => connect(view.provider)}
+        />
+      </div>
+    ) : (
+      sync && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <SyncLine status={sync} place={deps.sync} now={now} phone={phone} />
+        </div>
+      )
+    );
+
   return (
     <div
       role="dialog"
       aria-label={t("app.name")}
       style={{
-        width: "360px",
+        width: phone ? "100%" : "360px",
         boxSizing: "border-box",
         background: color.card,
         color: color.ink,
         fontFamily: FONT,
         display: "flex",
         flexDirection: "column",
+        ...(phone && { fontSize: "15px" }),
       }}
     >
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
-          padding: "12px 8px 12px 16px",
+          gap: phone ? "6px" : "8px",
+          padding: phone ? "10px 16px 12px 20px" : "12px 8px 12px 16px",
           borderBottom: `1px solid ${color.line}`,
         }}
       >
         <BrandHeader
-          size="popup"
+          size={phone ? "phone" : "popup"}
           stacked
           title={t("app.name")}
           pair={
@@ -362,23 +447,23 @@ export function Popup({ deps }: { deps: PopupDeps }) {
           aria-label={t("wordlist.title")}
           title={t("wordlist.title")}
           onClick={deps.openWordList}
-          style={headerButton}
+          style={phone ? phoneHeaderButton : headerButton}
         >
-          <WordListIcon size={20} />
+          <WordListIcon size={phone ? 22 : 20} />
         </button>
         <button
           type="button"
           aria-label={t("action.openSettings")}
           title={t("action.openSettings")}
           onClick={deps.openOptions}
-          style={headerButton}
+          style={phone ? phoneHeaderButton : headerButton}
         >
-          <GearIcon size={20} />
+          <GearIcon size={phone ? 22 : 20} />
         </button>
         {settings && (
-          <span style={{ display: "flex", padding: "0 8px 0 4px" }}>
+          <span style={{ display: "flex", padding: phone ? 0 : "0 8px 0 4px" }}>
             <Switch
-              size="large"
+              size={phone ? "phone" : "large"}
               checked={langleOn}
               label={t("popup.langleSwitch")}
               onToggle={toggleLangle}
@@ -389,10 +474,11 @@ export function Popup({ deps }: { deps: PopupDeps }) {
 
       <div
         style={{
-          padding: "14px 16px",
+          // The phone's bottom: the content's 4px and the sheet's 28px.
+          padding: phone ? "16px 20px 32px" : "14px 16px",
           display: "flex",
           flexDirection: "column",
-          gap: "16px",
+          gap: phone ? "20px" : "16px",
         }}
       >
         {langleOn && data && settings && (
@@ -431,7 +517,9 @@ export function Popup({ deps }: { deps: PopupDeps }) {
                 minWidth: 0,
               }}
             >
-              <span style={{ fontSize: "14px", fontWeight: 600 }}>
+              <span
+                style={{ fontSize: phone ? "15px" : "14px", fontWeight: 600 }}
+              >
                 {t("popup.site")}
               </span>
               <span
@@ -447,7 +535,7 @@ export function Popup({ deps }: { deps: PopupDeps }) {
               </span>
             </div>
             <Switch
-              size="large"
+              size={phone ? "phone" : "large"}
               checked={siteOn}
               label={t("popup.siteSwitch")}
               onToggle={toggleSite}
@@ -455,8 +543,21 @@ export function Popup({ deps }: { deps: PopupDeps }) {
           </div>
         )}
 
+        {phone &&
+          langleOn &&
+          settings &&
+          summary?.supported &&
+          summary.scope === "video" &&
+          siteOn && (
+            <Subtitles
+              settings={settings}
+              change={(patch) => void settingsView.change(patch)}
+            />
+          )}
+
         {langleOn && summary?.supported && siteOn && (
           <SaveAll
+            phone={phone}
             scope={summary.scope}
             unsavedCount={summary.unsaved}
             done={summary.done}
@@ -480,7 +581,7 @@ export function Popup({ deps }: { deps: PopupDeps }) {
 
         {langleOn && settings && (
           <HighlightChips
-            look="popup"
+            look={phone ? "phone" : "popup"}
             highlight={settings.highlight}
             onToggle={(category) => {
               const on = !settings.highlight[category];
@@ -489,55 +590,42 @@ export function Popup({ deps }: { deps: PopupDeps }) {
           />
         )}
 
-        {langleOn && counts && (
+        {phone ? (
+          // Mock MobileLangleSheet: the counts and the saved line under a rule.
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: "8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              paddingTop: "14px",
+              borderTop: `1px solid ${color.line}`,
             }}
           >
-            <CountTile
-              value={counts.learning}
-              label={t("status.learning")}
-              green
-            />
-            <CountTile value={counts.known} label={t("status.known")} />
-            <CountTile value={counts.phrases} label={t("kind.phrases")} />
-          </div>
-        )}
-
-        {view?.kind === "connected" ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <CloudLine
-              view={view}
-              now={now}
-              onReconnect={() => connect(view.provider)}
-            />
+            {countTiles}
+            {savedLine}
           </div>
         ) : (
-          sync && (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "6px" }}
-            >
-              <SyncLine status={sync} syncName={deps.syncName} now={now} />
-            </div>
-          )
+          <>
+            {countTiles}
+            {savedLine}
+            {nudging && <RateNudge onDismiss={() => void nudgeDone()} />}
+          </>
         )}
-
-        {nudging && <RateNudge onDismiss={() => void nudgeDone()} />}
       </div>
 
-      <SupportNav
-        reviewUrl={deps.links.review}
-        coffeeUrl={deps.links.coffee}
-        nudging={nudging}
-        onRate={() =>
-          // Stored first: opening a tab closes the popup.
-          void nudgeDone().finally(() => deps.openTab(deps.links.review))
-        }
-        onOpen={deps.openTab}
-      />
+      {/* The phone's sheet has no footer: its store page and links are the desktop's. */}
+      {!phone && (
+        <SupportNav
+          reviewUrl={deps.links.review}
+          coffeeUrl={deps.links.coffee}
+          nudging={nudging}
+          onRate={() =>
+            // Stored first: opening a tab closes the popup.
+            void nudgeDone().finally(() => deps.openTab(deps.links.review))
+          }
+          onOpen={deps.openTab}
+        />
+      )}
     </div>
   );
 }

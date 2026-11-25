@@ -9,6 +9,7 @@ import type {
   Request,
   SyncStatus,
 } from "../../messaging/protocol";
+import type { SyncPlace } from "../../core/browser-env";
 import type { PackState, PackStates } from "../../core/packs/state";
 import type { SupportLinks } from "../../core/links";
 import { mergeSettings, type Settings } from "../../core/settings";
@@ -64,6 +65,8 @@ interface FakeOptions {
   packStatus?: (settings: Settings) => PackStatus;
   /** The Support Langle links (default: none set). */
   links?: Partial<SupportLinks>;
+  /** Where the data is kept (default: Chrome sync). */
+  place?: SyncPlace;
 }
 
 const MB = 1024 * 1024;
@@ -149,7 +152,7 @@ function fake(options: FakeOptions = {}) {
     watchPackState: packWatchers.watch,
     env: {
       name: "Chrome",
-      syncName: "Chrome sync",
+      sync: options.place ?? { kind: "browser", name: "Chrome sync" },
       features: { fileSystemAccess: true },
     },
     ...(options.explainProvider && {
@@ -1069,6 +1072,24 @@ describe("SettingsPage", () => {
       expect(f.settings().syncEnabled).toBe(false);
       await expect.element(sync.getByText("Sync is off")).toBeVisible();
       expect(f.screen.getByText(/Synced/).query()).toBeNull();
+    });
+
+    it("on a device that syncs nothing, leaves out browser sync and the cloud rows", async () => {
+      const f = await open({ place: { kind: "device" }, cloud: CAN_CONNECT });
+      const sync = section(f.screen, "Sync and backup");
+      await expect
+        .element(
+          sync.getByText(
+            "Langle has no server. Everything, including your settings, is kept on this phone.",
+          ),
+        )
+        .toBeVisible();
+      await expect.element(sync.getByText("Backup file")).toBeVisible();
+      expect(sync.getByRole("switch").query()).toBeNull();
+      expect(sync.getByText("Sync space").query()).toBeNull();
+      expect(sync.getByText("Your own cloud storage").query()).toBeNull();
+      expect(sync.getByRole("button", { name: /Connect/ }).query()).toBeNull();
+      expect(f.screen.getByText(/Chrome sync/).query()).toBeNull();
     });
 
     it("exports a dated backup file and shows when", async () => {

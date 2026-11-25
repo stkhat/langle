@@ -28,7 +28,7 @@
 - [x] M3e: the app's own fullscreen on the iPhone (branch `claude/mobile-m3e`), notes/mobile.md "The app's own fullscreen (M3e)"
 - [x] M4 designed (2026-11-25, with the user): spec [mobile-app.md](../specs/mobile-app.md) "M4: the app's screens"
 - [ ] M4-0: Words, Settings and the first run drawn in the mock; reviewed by the user
-- [ ] M4a: the Langle sheet's phone layout and "Saved on this phone" (branch `claude/mobile-m4a`)
+- [x] M4a: the Langle sheet's phone layout and "Saved on this phone" (branch `claude/mobile-m4a`)
 - [ ] M4b: Home and the recents store (branch `claude/mobile-m4b`)
 - [ ] M4c-ios and M4c-android: the tab bar, the title bar and the page over Home (branches `claude/mobile-m4c-ios`, `claude/mobile-m4c-android`)
 - [ ] M4d: Words, Settings and the first run in the phone layout (branch `claude/mobile-m4d`)
@@ -606,13 +606,13 @@ Branch `claude/mobile-m4a`.
 **Files**: `src/core/browser-env.ts` (+ test); every `syncName` user (`src/entrypoints/popup/`, `src/entrypoints/options/sections/Sync.tsx`, `SettingsPage.tsx`, `src/entrypoints/welcome/`); `src/i18n/locales/en.json`; `src/entrypoints/popup/Popup.tsx` and a new `src/entrypoints/popup/Subtitles.tsx`; a shared `src/ui/phone-layout.ts` (the touch-mode hook for pages, from `src/content/touch/touch-mode.ts`'s query); their browser tests.
 
 **Tasks**
-- [ ] **`BrowserEnv.sync`**: `{ kind: "browser", name }` (Chrome sync / Firefox Sync, as now) or `{ kind: "device" }` where `appHost` exists (`g` is injectable, as for `fileSystemAccess`). Replace `syncName` everywhere. Unit tests: Chrome and Firefox unchanged, `device` with an `appHost` on the global. Commit.
-- [ ] **The `device` strings**: `popup.sync.savedDevice` "Saved on this phone · {when}"; the first run's consent line on what is sent (says the data stays on the phone); Settings leaves out the browser-sync switch and the cloud-sync rows with `device`. Browser tests for both kinds. Commit.
-- [ ] **The phone layout hook** (`usePhoneLayout()`: touch mode on the page, watched). Commit.
-- [ ] **The sheet's phone layout**: full width, 44 px targets, 52 × 32 switches, sizes and spacing as `MobileLangleSheet`. Desktop unchanged (its tests pass untouched). Commit.
-- [ ] **Subtitles section** on a video (the popup already knows the tab's platform): the rows of the spec, writing the settings (`phoneSubtitlePosition`, `subtitleTranslation`, the transcript setting the video UI reads, `phoneFullscreenTranscript`, `subtitleSize`, `subtitleOpacity` only with In video). Only in the phone layout (on the desktop these stay in the player's menu). Browser tests: each control writes its setting; Background shows only with In video. Commit.
-- [ ] Render at 390 × 844 against `MobileLangleSheet` and `MobileLangleSheetVideo`, fix differences. Commit.
-- [ ] **Docs**: ui.md if anything differs (mock first); architecture.md "Browser differences" for `sync`; status.md one line; tick M4a. `verify -- --skip-firefox`, draft PR "Mobile app M4a: the Langle sheet on a phone", `gh pr ready`.
+- [x] **`BrowserEnv.sync`**: `{ kind: "browser", name }` (Chrome sync / Firefox Sync, as now) or `{ kind: "device" }` where `appHost` exists (`g` is injectable, as for `fileSystemAccess`). Replace `syncName` everywhere. Unit tests: Chrome and Firefox unchanged, `device` with an `appHost` on the global. Commit.
+- [x] **The `device` strings**: `popup.sync.savedDevice` "Saved on this phone · {when}"; the first run's consent line on what is sent (says the data stays on the phone); Settings leaves out the browser-sync switch and the cloud-sync rows with `device`. Browser tests for both kinds. Commit.
+- [x] **The phone layout hook** (`usePhoneLayout()`: touch mode on the page, watched). Commit.
+- [x] **The sheet's phone layout**: full width, 44 px targets, 52 × 32 switches, sizes and spacing as `MobileLangleSheet`. Desktop unchanged (its tests pass untouched). Commit.
+- [x] **Subtitles section** on a video (the popup already knows the tab's platform): the rows of the spec, writing the settings (`phoneSubtitlePosition`, `subtitleTranslation`, the transcript setting the video UI reads, `phoneFullscreenTranscript`, `subtitleSize`, `subtitleOpacity` only with In video). Only in the phone layout (on the desktop these stay in the player's menu). Browser tests: each control writes its setting; Background shows only with In video. Commit.
+- [x] Render at 390 × 844 against `MobileLangleSheet` and `MobileLangleSheetVideo`, fix differences. Commit.
+- [x] **Docs**: ui.md if anything differs (mock first); architecture.md "Browser differences" for `sync`; status.md one line; tick M4a. `verify -- --skip-firefox`, draft PR "Mobile app M4a: the Langle sheet on a phone", `gh pr ready`.
 
 ### M4b: Home and the recents store (one agent, Opus)
 Branch `claude/mobile-m4b`.

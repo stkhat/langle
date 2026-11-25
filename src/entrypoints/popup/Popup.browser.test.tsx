@@ -11,8 +11,11 @@ import type { PackState, PackStates } from "../../core/packs/state";
 import type { SupportLinks } from "../../core/links";
 import { mergeSettings, type Settings } from "../../core/settings";
 import type { PageRequest, PageSummary } from "../../messaging/page-protocol";
+import type { SyncPlace } from "../../core/browser-env";
 import { Popup, type PopupDeps } from "./Popup";
 import { heldWrites, listeners, settingsListeners } from "../../testing/stubs";
+import { fixedTouchMode } from "../../testing/touch";
+import { userEvent } from "vitest/browser";
 
 const NOW = Date.UTC(2026, 10, 10, 12, 0, 0);
 const MINUTE = 60_000;
@@ -59,6 +62,10 @@ interface FakeOptions {
   packStatus?: (settings: Settings) => PackStatus;
   /** The footer's links (default: none set). */
   links?: Partial<SupportLinks>;
+  /** Where the data is kept (default: Chrome sync). */
+  place?: SyncPlace;
+  /** The page is in touch mode: the phone layout. */
+  phone?: boolean;
 }
 
 const readyPack = (pack: string, size: number) =>
@@ -151,7 +158,8 @@ function fake(options: FakeOptions = {}) {
     },
     watchSettings: settingsWatchers.watch,
     watchPackState: packWatchers.watch,
-    syncName: "Chrome sync",
+    sync: options.place ?? { kind: "browser", name: "Chrome sync" },
+    ...(options.phone && { touch: fixedTouchMode(true) }),
     links: {
       coffee: "",
       feedback: "",
@@ -505,6 +513,16 @@ describe("Popup", () => {
       await expect.element(screen.getByText("Sync is off")).toBeVisible();
       expect(screen.getByText(/Sync space/).query()).toBeNull();
       expect(screen.getByText(/Saved to/).query()).toBeNull();
+    });
+
+    it("on a device that syncs nothing, says the words are saved on this phone, without the space", async () => {
+      const f = fake({ page: ARTICLE, place: { kind: "device" } });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect
+        .element(screen.getByText("Saved on this phone · 2 minutes ago"))
+        .toBeVisible();
+      expect(screen.getByText(/Sync space/).query()).toBeNull();
+      expect(screen.getByText(/Chrome sync/).query()).toBeNull();
     });
   });
 
@@ -863,5 +881,130 @@ describe("Support Langle", () => {
     const none = await render(<Popup deps={fake().deps} />);
     await expect.element(none.getByText("2,341")).toBeVisible();
     expect(none.getByRole("navigation").query()).toBeNull();
+  });
+});
+
+describe("the phone layout", () => {
+  const VIDEO: PageSummary = {
+    ...ARTICLE,
+    hostname: "m.youtube.com",
+    scope: "video",
+    unsaved: 23,
+  };
+  const patches = (sent: Request[]) =>
+    sent.flatMap((r) => (r.type === "setSettings" ? [r.patch] : []));
+  const subtitles = (screen: Awaited<ReturnType<typeof render>>) =>
+    screen.getByRole("region", { name: "Subtitles" });
+  const size = (element: Element) => {
+    const box = element.getBoundingClientRect();
+    return [box.width, box.height];
+  };
+
+  it("fills the width, with 44px targets and 52×32 switches, and no footer", async () => {
+    const f = fake({
+      page: ARTICLE,
+      phone: true,
+      links: { coffee: "https://ko-fi.com/langle" },
+    });
+    const screen = await render(<Popup deps={f.deps} />);
+    await expect.element(screen.getByText("2,341")).toBeVisible();
+    expect(
+      screen.getByRole("dialog").element().getBoundingClientRect().width,
+    ).toBe(screen.container.getBoundingClientRect().width);
+    expect(
+      size(screen.getByRole("button", { name: "Word list" }).element()),
+    ).toEqual([44, 44]);
+    expect(
+      size(screen.getByRole("switch", { name: "Use Langle" }).element()),
+    ).toEqual([52, 32]);
+    expect(size(siteSwitch(screen).element())).toEqual([52, 32]);
+    expect(
+      size(screen.getByRole("button", { name: "Learning" }).element())[1],
+    ).toBe(44);
+    expect(
+      size(
+        screen.getByRole("button", { name: "Mark all as Known" }).element(),
+      )[1],
+    ).toBe(44);
+    expect(screen.getByRole("navigation").query()).toBeNull();
+    // Subtitles are a video's.
+    expect(subtitles(screen).query()).toBeNull();
+  });
+
+  it("keeps the desktop's popup on a desktop, Subtitles staying in the player's menu", async () => {
+    const f = fake({ page: VIDEO });
+    const screen = await render(<Popup deps={f.deps} />);
+    await expect.element(screen.getByText("This video")).toBeVisible();
+    expect(
+      screen.getByRole("dialog").element().getBoundingClientRect().width,
+    ).toBe(360);
+    expect(subtitles(screen).query()).toBeNull();
+  });
+
+  it("on a video, shows Subtitles from the settings, the phone's position, not the desktop's", async () => {
+    const f = fake({
+      page: VIDEO,
+      phone: true,
+      settings: { subtitlePosition: "inVideo" },
+    });
+    const screen = await render(<Popup deps={f.deps} />);
+    const section = subtitles(screen);
+    await expect
+      .element(section.getByRole("button", { name: "Below video" }))
+      .toHaveAttribute("aria-pressed", "true");
+    await expect
+      .element(section.getByRole("switch", { name: "Show dual subtitles" }))
+      .toHaveAttribute("aria-checked", "true");
+    await expect
+      .element(section.getByRole("switch", { name: "Show transcript" }))
+      .toHaveAttribute("aria-checked", "true");
+    await expect
+      .element(section.getByRole("button", { name: "Off" }))
+      .toHaveAttribute("aria-pressed", "true");
+    await expect
+      .element(section.getByRole("slider", { name: "Text size" }))
+      .toHaveValue("100");
+    // Background is the box behind a subtitle in the video.
+    expect(
+      section.getByRole("slider", { name: "Background" }).query(),
+    ).toBeNull();
+  });
+
+  it("writes each control's setting; Background shows only with In video", async () => {
+    const f = fake({ page: VIDEO, phone: true });
+    const screen = await render(<Popup deps={f.deps} />);
+    const section = subtitles(screen);
+    await section.getByRole("button", { name: "In video" }).click();
+    await section.getByRole("switch", { name: "Show dual subtitles" }).click();
+    await section.getByRole("switch", { name: "Show transcript" }).click();
+    await section.getByRole("button", { name: "Left" }).click();
+    await section.getByRole("button", { name: "Right" }).click();
+    await section.getByRole("slider", { name: "Text size" }).click();
+    await userEvent.keyboard("{Home}");
+    const background = section.getByRole("slider", { name: "Background" });
+    await expect.element(background).toHaveValue("80");
+    await background.click();
+    await userEvent.keyboard("{End}");
+    await expect
+      .poll(() => f.settings())
+      .toMatchObject({
+        phoneSubtitlePosition: "inVideo",
+        subtitleTranslation: false,
+        transcriptShown: false,
+        phoneFullscreenTranscript: "right",
+        subtitleSize: 50,
+        subtitleOpacity: 100,
+      });
+    expect(patches(f.sent).slice(0, 5)).toEqual([
+      { phoneSubtitlePosition: "inVideo" },
+      { subtitleTranslation: false },
+      { transcriptShown: false },
+      { phoneFullscreenTranscript: "left" },
+      { phoneFullscreenTranscript: "right" },
+    ]);
+    // The desktop's position is not the phone's.
+    expect(patches(f.sent).some((p) => "subtitlePosition" in p)).toBe(false);
+    await section.getByRole("button", { name: "Below video" }).click();
+    await expect.element(background).not.toBeInTheDocument();
   });
 });

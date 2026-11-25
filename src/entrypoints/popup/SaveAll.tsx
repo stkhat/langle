@@ -15,6 +15,8 @@ export interface SaveAllProps {
   onUndo: () => void;
   /** "Show words on this page" (articles only): opens the page's Words list. None without it. */
   onShowWords?: () => void;
+  /** The popup's phone layout (mock MobileLangleSheet): 44px buttons, 14px text. */
+  phone?: boolean;
 }
 
 const SCOPE = {
@@ -42,6 +44,8 @@ function doneLine(done: NonNullable<SaveAllProps["done"]>): string {
 
 /** Save every unsaved word at once (mock Toolbar "This page"). */
 export function SaveAll(props: SaveAllProps) {
+  const height = props.phone ? "44px" : "40px";
+  const fontSize = props.phone ? "14px" : "13px";
   return (
     <div
       style={root({ display: "flex", flexDirection: "column", gap: "10px" })}
@@ -68,7 +72,7 @@ export function SaveAll(props: SaveAllProps) {
             alignItems: "center",
             justifyContent: "center",
             gap: "8px",
-            height: "40px",
+            height,
             margin: 0,
             padding: 0,
             borderRadius: "8px",
@@ -76,7 +80,7 @@ export function SaveAll(props: SaveAllProps) {
             background: color.card,
             color: color.ink,
             font: "inherit",
-            fontSize: "13px",
+            fontSize,
             fontWeight: 600,
             cursor: "pointer",
           }}
@@ -98,11 +102,11 @@ export function SaveAll(props: SaveAllProps) {
             title={t("saveAll.note")}
             onClick={onlyFromUser(() => props.onAddLearning())}
             style={{
-              height: "40px",
+              height,
               borderRadius: "8px",
               ...statusButton.learning(false),
               font: "inherit",
-              fontSize: "13px",
+              fontSize,
               fontWeight: 600,
               cursor: "pointer",
             }}
@@ -114,11 +118,11 @@ export function SaveAll(props: SaveAllProps) {
             title={t("saveAll.note")}
             onClick={onlyFromUser(() => props.onMarkKnown())}
             style={{
-              height: "40px",
+              height,
               borderRadius: "8px",
               ...statusButton.known(true),
               font: "inherit",
-              fontSize: "13px",
+              fontSize,
               fontWeight: 600,
               cursor: "pointer",
             }}
@@ -134,7 +138,7 @@ export function SaveAll(props: SaveAllProps) {
             alignItems: "center",
             justifyContent: "space-between",
             gap: "8px",
-            fontSize: "13px",
+            fontSize,
           }}
         >
           <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -145,14 +149,14 @@ export function SaveAll(props: SaveAllProps) {
             type="button"
             onClick={onlyFromUser(() => props.onUndo())}
             style={{
-              height: "32px",
-              padding: "0 10px",
-              borderRadius: "6px",
+              height: props.phone ? "44px" : "32px",
+              padding: props.phone ? "0 12px" : "0 10px",
+              borderRadius: props.phone ? "8px" : "6px",
               border: 0,
               background: "transparent",
               color: color.greenText,
               font: "inherit",
-              fontSize: "13px",
+              fontSize,
               fontWeight: 600,
               cursor: "pointer",
             }}

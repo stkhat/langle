@@ -36,7 +36,7 @@ import { VideoSection } from "./sections/Video";
 /** What the settings page works with; `main.tsx` passes the browser's, tests pass fakes. */
 export interface SettingsDeps extends BackupDeps, PackStatusDeps {
   send: typeof send;
-  env: Pick<BrowserEnv, "name" | "syncName" | "features">;
+  env: Pick<BrowserEnv, "name" | "sync" | "features">;
   /** The on-device AI ("Dictionaries and AI"); none: no rows for it. */
   explainProvider?: ExplanationProvider;
   /** The extension's version, from the manifest. */
