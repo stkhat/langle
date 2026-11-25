@@ -294,7 +294,7 @@ The iPhone 18 Pro Simulator (iOS 27.2), the check build on a fresh install (`-re
 - **Not seen on iOS**: subtitles missing on an early load.
 
 ### Open items for M4 (both platforms)
-- **Export, backup and import do nothing in the app.** Words ⋮'s Anki, CSV, Backup (JSON) and Import and Settings' Backup Export and Import: the pages download through a blob link and pick a file with `<input type=file>`; neither shell saves or shares a download (iOS now drops it rather than showing it), and Import's file picker is unchecked on iOS (WebKit usually shows its own) and does nothing on Android. Needs a design decision: a save or share sheet for the file and a file picker in the shells.
+- **Export, backup and import do nothing in the app.** Words ⋮'s Anki, CSV, Backup (JSON) and Import and Settings' Backup Export and Import: the pages download through a blob link and pick a file with `<input type=file>`; neither shell saves or shares a download (iOS now drops it rather than showing it), and Import's file picker is unchecked on iOS (WebKit usually shows its own) and does nothing on Android. Needs a design decision: a save or share sheet for the file and a file picker in the shells. Built in M4f (the share sheet and the system's file picker); see "Device checks (M4f, Android)".
 - **Subtitles sometimes missing on an early load** (Android, 2 loads in 3 while the emulator was overloaded, one with two pre-roll ads; a reload brought them). Not reproduced in six later Android loads or on iOS. Most likely the adapter gives up its tries before the player answers.
 - **Differs from the mock**:
   - The Langle sheet is always at full height (`MobileLangleSheet` sizes it to its content); on Android its last line is cut at 90%.
@@ -306,6 +306,24 @@ The iPhone 18 Pro Simulator (iOS 27.2), the check build on a fresh install (`-re
   - A word's details show no date for today; the Paused pill sits under YouTube's unmute button while muted (Android).
   - The title bar stays for the in-page dictionary sheet (the mock hides it); editing the title is not drawn in the mock.
   - A meaning can show in English for a phrase the ja dictionary lacks ("figure out" on iOS).
+
+## Device checks (M4f, Android; 2026-11-25)
+
+The Android emulator (Android 17 Play image, signed in to a Google account), the check build on a fresh install (`check.sh reset`), the E2E article (`node e2e/serve.ts`). The first run went through `check.sh js firstrun` (Agree, native ja, learning en, Start); four terms (evidence, tedious, reluctant, the phrase figure out) were saved through the background's `saveTerm` from Langle's world on the article. Menus, buttons, the share sheet and the picker were real taps (`adb shell input tap`); the app's cache was read with `adb shell run-as dev.langle.app`.
+
+- **Export**: each opens the system chooser ("Sharing 1 file") with the right file, written to `cache/shared/` (only the latest kept):
+  - Words ⋮ Anki (.txt): `langle-anki-en-ja-2026-11-25.txt`, Anki's header lines and one tab-separated note per word (meaning, IPA, the sentence with the word in bold, the source link, tags `langle learning [phrase]`).
+  - Words ⋮ CSV: `langle-words-en-ja-2026-11-25.csv`, with a BOM, the header and the four rows.
+  - Words ⋮ Backup (JSON) and Settings › Backup Export: `langle-backup-2026-11-25.json` (2,704 bytes, `format: langle-export`, version 3, the four terms with their sources, occurrences and meanings).
+- **What the chooser offers** on this image: text/plain: Quick Share, Chrome, Gemini, Drive (Copy to clipboard), Drive, Android Accessibility (Read aloud), Bluetooth, Gmail, Messages, Google's Save; CSV: Quick Share, Gemini, Drive, Gmail, Gmail Chat; JSON: Quick Share, Drive, Gmail, Gmail Chat. **No target saves to the phone's own storage**: Files (DocumentsUI) is not a share target, and Google's "Save" refuses a file ("Can't save text. Try saving a link instead."). Drive opens "Upload to Drive" with the file's name (cancelled here, so nothing went to the account's Drive). On a phone with Files by Google or a maker's file manager the chooser may have a save target; this image has none.
+- **Import**: the file input opens DocumentsUI's picker ("Open from": Recent, Downloads, the device, Drive). The backup was put in Downloads with `adb push` (no save target, above). Picked from Words ⋮ Import after a reset and the first run: the list showed the four words; from Settings › Backup Import after another reset: "Imported 4 words", counts 3 Learning and 1 Phrase. Backing out of the picker answers the input ("picked 0 file(s)"), and the next Import opens the picker again.
+- **A removed word does not come back from an older backup** ("Imported 0 words" after removing tedious): the import merges with last-writer-wins and the removal's tombstone is newer than the file. As designed (the same on desktop); the words came back on a fresh install.
+- **Error log**: 32 entries, all info (the packs served by jsDelivr on the first start), each of the three times it was read; cleared.
+- **Found**: no bug in M4f on Android; nothing changed.
+- **Open**:
+  - No way to save an export to the phone itself on this image (above). Options for the user to decide: keep the share sheet only, or add a "Save to device" path (`ACTION_CREATE_DOCUMENT`, the system's save dialog) beside it.
+  - "Last export: just now" is set when the chooser opens, also when the user backs out of it: Android does not say whether the file was shared.
+  - The picker asks for `application/json` only (the input's `accept`): a backup a mail or chat app typed otherwise (`application/octet-stream`) would be greyed out. Not seen here (Downloads types files by their extension).
 
 ## iOS prototype (2026-11-22)
 `mobile/prototypes/ios-wkwebview` (SwiftUI shell, a hand-written Xcode project with a synchronized folder; no generator), on the Simulator (iPhone 17, iOS 27.2), logged out, the same video and the same `probe.js`. Driven from the shell by `check.sh` (`simctl launch` arguments, Darwin notifications for commands, results in the unified log).
