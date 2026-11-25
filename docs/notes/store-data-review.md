@@ -140,3 +140,32 @@ The policy must not say:
 - YouTube's and Netflix's terms (E7); the current text of the store policies (not re-read today)
 - Whether optional host permissions shorten review; whether Google accepts `chromiumapp.org` as an authorized domain (H1)
 - Google Drive's "delete hidden app data" steps as they appear today
+
+## Drafts for the listing's privacy fields (E2, E3)
+
+Drafted 2026-11-26 with the privacy policy (`site/langle/privacy/index.html`, D2), for the build with C-a to C-e merged. Every fact here is a fact of the policy, in its words; change both together.
+
+**Single purpose**: "Langle's single purpose is learning vocabulary on the pages and videos you read: it highlights words by how well you know them, shows their meaning in the sentence, and keeps the words you save with the sentence and the page or video where you met them."
+
+**Permission justifications**:
+- `storage`: "Keeps your words, their sentences and sources, the sentence history, settings and the downloaded language data on your device, and saves your settings and each word's status to Chrome sync. Langle has no servers, so this is where your data lives."
+- `alarms`: "Retries a failed download of language data later, and, while Google Drive is connected, checks Drive every 5 minutes for changes from your other devices."
+- `identity`: "Signs in to Google with `launchWebAuthFlow` only when you press Connect, so Langle can save your data to a hidden folder in your own Google Drive (scope `drive.appdata` only)."
+- Host access (`<all_urls>` content script, and the YouTube and Netflix page scripts): "Langle highlights words and shows their meanings on any page written in the language you are learning, so its content script must run on every site; page text is read in the tab and sent nowhere. You can turn articles off or list sites in Never run on. On YouTube and Netflix, small scripts in the page read the subtitle data the player already receives for the video you are watching (on YouTube, the caption tracks the player offers, fetched in your own session the way the player fetches them; on Netflix, the subtitle files Netflix lists for its player), to show subtitles in two languages, a transcript and the meanings of words. They pass subtitles to Langle only while Langle is on for that site. Langle never downloads video or audio."
+
+**Data-use checkboxes** (tick these; each matches a policy section):
+- Personally identifiable information: yes. The Google Account's email address, read from Drive after Connect, shown in Settings and used to renew access; kept only on that device (policy "Google Drive", "Limited Use")
+- Authentication information: yes. Google's access token (about an hour), kept only on the device, while Drive is connected (policy "Google Drive"). A judgement call: a token is a credential, and over-disclosure costs nothing here
+- Web history: yes. Web addresses and titles in the sentence history and in saved words' sources; the site lists in settings (policy "What Langle keeps on your device", "Browser sync")
+- User activity: yes. The sentence history records which sentences came into view or played, and the YouTube and Netflix page scripts watch the player's subtitle requests (policy "What Langle reads", "What Langle keeps on your device")
+- Website content: yes. Page text, video titles and subtitles, read in the tab; sentences kept with words and in the history (policy "What Langle reads")
+- Not ticked: health, financial and payment information (Ko-fi handles what a supporter enters; Langle receives nothing), personal communications, location
+
+**Limited Use certifications** (tick all three; policy "Limited Use"):
+- "I do not sell or transfer user data to third parties, outside of the approved use cases": Langle transfers data only to the user's own Chrome sync and Google Drive and in the requests the policy names under "Other services"
+- "I do not use or transfer user data for purposes that are unrelated to my item's single purpose": all data serves learning vocabulary on the pages and videos the user reads
+- "I do not use or transfer user data to determine creditworthiness or for lending purposes": true; the developer never receives the data
+
+**Remote code**: "No, I am not using remote code." All code, the YouTube and Netflix page scripts included, is in the package. The language data Langle downloads from jsDelivr and unpkg is data, not code: JSON files read with `JSON.parse` and checked against SHA-256 fingerprints that ship with Langle; there is no `eval`, `new Function`, `importScripts` or remote script.
+
+**Privacy policy URL**: `https://kskt-dev.github.io/langle/privacy/`

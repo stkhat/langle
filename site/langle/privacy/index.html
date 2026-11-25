@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Privacy policy · Langle</title>
+    <meta
+      name="description"
+      content="How the Langle extension for Chrome handles your data: what it reads, what it keeps on your device, what it saves to your browser's sync and your Google Drive, and how to delete it."
+    />
+    <link rel="icon" type="image/png" href="../icon.png" />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="../"
+          ><img src="../icon.png" width="28" height="28" alt="" /><span
+            >Langle</span
+          ></a
+        >
+        <a class="nav-link" href="./" aria-current="page">Privacy policy</a>
+      </div>
+    </header>
+    <main class="wrap policy">
+      <h1>Privacy policy</h1>
+      <p class="p date">Last updated 26 November 2026</p>
+      <p class="p">
+        <strong>Langle has no servers.</strong> It saves your data only on your
+        device and in your own cloud services: your browser's sync and, if you
+        connect it, your Google Drive. The developer receives none of it. Langle
+        does not sell your data, does not share it with anyone else, and does
+        not use it for ads or analytics.
+      </p>
+      <p class="p">
+        Langle is an extension for Chrome with a single purpose: learning
+        vocabulary on the pages and videos you read. It uses your data only for
+        that. It starts reading pages only after you choose “Agree and continue”
+        on its first-run screen, “How Langle uses your data”.
+      </p>
+
+      <h2 class="h2">What Langle reads</h2>
+      <ul class="p">
+        <li>
+          <strong>Pages.</strong> On the pages you open, Langle reads the page's
+          language. On a page in the language you are learning, it reads the
+          text near what you are looking at, to highlight words and show their
+          meanings. When a page does not state its language, Langle gives the
+          first 2,000 characters of its text to Chrome's built-in language
+          detection.
+        </li>
+        <li>
+          <strong>YouTube and Netflix.</strong> Langle reads the title and the
+          subtitles of the video you are watching, to show subtitles in two
+          languages, a transcript and the meanings of words. On YouTube it uses
+          the caption tracks the player offers for that video, fetched from
+          YouTube in your own session the way the player fetches them. On
+          Netflix it uses the subtitle files Netflix lists for its player.
+          Langle's scripts in these pages watch only for the player's subtitle
+          data, and pass subtitles to Langle only while Langle is on for that
+          site. Langle never downloads video or audio.
+        </li>
+        <li>
+          Page text and subtitles are processed in your browser. Langle does not
+          send them anywhere, except to Chrome's built-in AI and translator as
+          described under “Other services”. In the Chrome Web Store's terms,
+          this is website content.
+        </li>
+        <li>
+          You choose where Langle runs: Settings → Sites (YouTube, Netflix,
+          “Articles on other sites”, and the “Never run on” list), and “On this
+          site” in the toolbar popup. Langle runs in private (incognito) windows
+          only if you allow it in Chrome's extension settings.
+        </li>
+      </ul>
+
+      <h2 class="h2">What Langle keeps on your device</h2>
+      <p class="p">
+        Langle keeps the following in its own storage in this browser (IndexedDB
+        and extension storage). It does not leave the device except as described
+        under “Browser sync” and “Google Drive”.
+      </p>
+      <ul class="p">
+        <li>
+          <strong>Your words.</strong> Each word or phrase you save, its status
+          (New, Learning or Known) and your note. With it, the sentence you
+          saved it from and that page's or video's web address and title. When
+          you meet a saved word again where Langle runs, Langle adds that
+          sentence and its source to the word (“Seen elsewhere”, up to 50 per
+          word, oldest first out). This happens whether or not the sentence
+          history is on.
+        </li>
+        <li>
+          <strong>Your meanings.</strong> The dictionary meaning you chose for a
+          word in a sentence.
+        </li>
+        <li>
+          <strong>Sentence history.</strong> On by default. For each page and
+          video where Langle runs: its web address, title, language and when you
+          saw it; and the sentences that came into view or played, with their
+          translation if one was shown. It lets the dictionary show where you
+          met a word before you saved it. It is never kept from sites on your
+          “Never run on” list or sites where Langle is off. It is limited to 50
+          MB: when it goes over, the oldest pages and videos are removed until
+          it is under 45 MB. Turn it off with “Keep sentence history” in
+          Settings → Sentence history; what is already kept stays until you
+          clear it. In the Chrome Web Store's terms, the web addresses and
+          titles are web history, and the record of what came into view or
+          played is user activity.
+        </li>
+        <li>
+          <strong>AI explanations.</strong> An explanation Chrome's built-in AI
+          wrote for a word in a sentence, kept with that sentence and the page's
+          web address so it is not written again. At most 5,000; the oldest go
+          first.
+        </li>
+        <li>
+          <strong>Translations of dictionary definitions</strong> (not of page
+          text), so they are not translated again.
+        </li>
+        <li>
+          <strong>Settings</strong>, including your language pair and your site
+          lists.
+        </li>
+        <li>
+          <strong>Device details:</strong> whether and to which version of the
+          first-run screen you agreed, a random id for this device (not linked
+          to the device's hardware or to any account), and the state of
+          downloads and of Google Drive.
+        </li>
+        <li>
+          <strong>Language data</strong> downloaded for your language pair (see
+          “Other services”).
+        </li>
+      </ul>
+      <p class="p">
+        <strong>Private (incognito) windows.</strong> Where you allow Langle in
+        private windows, it keeps no sentence history and adds no “Seen
+        elsewhere” sentences there. A word you save in a private window is kept
+        without its sentence and without the page's web address and title, and
+        no AI explanation is kept. Changes to your settings apply as usual.
+      </p>
+      <p class="p">
+        <strong>Export and import.</strong> Export in Settings → Backup saves
+        your words, their sources and sentences, and your meanings to a file you
+        choose (the sentence history is not included). Import reads a file you
+        pick. Langle sends these files nowhere.
+      </p>
+
+      <h2 class="h2">Browser sync</h2>
+      <p class="p">
+        Langle saves your settings to Chrome sync, Chrome's storage for
+        extension data in your Google Account. Settings include the sites on
+        your “Never run on” list and the sites you switched Langle off for.
+        While “Sync word status with Chrome sync” is on (it is on by default),
+        Langle also saves each word or phrase with its status and when it last
+        changed, but no sentences, web addresses or titles. While Google Drive
+        is connected, words go to Drive instead and only settings are saved to
+        Chrome sync.
+      </p>
+      <p class="p">
+        Chrome sends this data to Google and to your other Chrome browsers when
+        you are signed in to Chrome with sync on; otherwise Chrome keeps it in
+        this browser. Langle cannot tell which. Google handles it under the
+        <a href="https://policies.google.com/privacy" rel="noreferrer"
+          >Google Privacy Policy</a
+        >.
+      </p>
+
+      <h2 class="h2">Google Drive (optional)</h2>
+      <p class="p">
+        Nothing goes to Google Drive unless you press Connect in Settings →
+        “Your own cloud storage” and choose an account in Google's sign-in
+        window.
+      </p>
+      <ul class="p">
+        <li>
+          <strong>Access.</strong> Langle asks Google for one permission only,
+          <code>drive.appdata</code>: a hidden folder in your Drive that only
+          Langle can open. Langle cannot see, open or change any of your other
+          Drive files.
+        </li>
+        <li>
+          <strong>What goes there.</strong> Your words with their status and
+          notes, their sources and sentences (“Seen elsewhere” included), your
+          meanings, your settings, and your sentence history unless you turn off
+          “Also save to Google Drive” in Settings → Sentence history. In Drive
+          the sentence history keeps the newest 50 MB over all your devices. The
+          files are compressed and stored by device, under the device's random
+          id. This lets your other devices that you connect use the same words
+          and history.
+        </li>
+        <li>
+          <strong>How.</strong> Your browser sends the files straight to Google
+          (<code>www.googleapis.com</code>). Nothing passes through the
+          developer.
+        </li>
+        <li>
+          <strong>Your email address.</strong> After you connect, Langle reads
+          your Google Account's email address from Drive (Drive's account
+          information, which the same permission allows; Langle asks for no
+          email or profile permission). It shows the address in Settings so you
+          can see which account is connected, and gives it to Google when it
+          renews its access without opening a window. The address is kept only
+          on that device, never in Chrome sync or in Drive. In the Chrome Web
+          Store's terms, this is personally identifiable information.
+        </li>
+        <li>
+          <strong>Sign-in token.</strong> Google gives Langle an access token
+          that lasts about an hour. It is kept only on that device. In the
+          Chrome Web Store's terms, this is authentication information.
+        </li>
+        <li>
+          <strong>Disconnect</strong> stops saving to Drive on that device and
+          forgets the token and the email address there. It does not delete the
+          files in Drive and does not remove Langle's access in your Google
+          Account; see “Deleting your data”.
+        </li>
+      </ul>
+
+      <h2 class="h2">Other services</h2>
+      <ul class="p">
+        <li>
+          <strong>Language data from jsDelivr and unpkg.</strong> After you
+          choose your languages, when you change them, and when an update needs
+          newer data, Langle downloads data files for your language pair from
+          the public package hosts jsDelivr (<code>cdn.jsdelivr.net</code>) and,
+          if that fails, unpkg (<code>unpkg.com</code>). Like any web request,
+          they receive your IP address and the names of the files requested,
+          which show your language pair. They receive nothing about the pages
+          you read or your words. The files are data, not code, and are checked
+          against fingerprints that come with Langle. Their own policies apply:
+          <a
+            href="https://www.jsdelivr.com/terms/privacy-policy"
+            rel="noreferrer"
+            >jsDelivr</a
+          >, <a href="https://unpkg.com/" rel="noreferrer">unpkg</a>.
+        </li>
+        <li>
+          <strong>Google, for Drive.</strong> Only while you are connected:
+          Google's sign-in (<code>accounts.google.com</code>) and the Drive API,
+          as described under “Google Drive”.
+        </li>
+        <li>
+          <strong>Chrome's built-in AI.</strong> When you press “Explain in
+          context” in the dictionary window, Langle gives Chrome's built-in AI
+          (the Prompt API) the word, its sentence, up to five lines around it,
+          the page's or video's title, and the dictionary's meanings. It does
+          the same without that press when you open the dictionary window on a
+          word the dictionary does not have, while “Explain words the dictionary
+          doesn't have” is on (on by default; Settings → Dictionaries and AI).
+          Chrome provides this AI on your device and downloads its model; see
+          <a
+            href="https://developer.chrome.com/docs/ai/built-in"
+            rel="noreferrer"
+            >Chrome's documentation</a
+          >. Its use is subject to Google's
+          <a
+            href="https://policies.google.com/terms/generative-ai/use-policy"
+            rel="noreferrer"
+            >Generative AI Prohibited Uses Policy</a
+          >.
+        </li>
+        <li>
+          <strong>Chrome's translator.</strong> Without a click, Langle gives
+          Chrome's built-in translator (the Translator API) the dictionary
+          definitions it shows, which are written in English, to show them in
+          your language. When a video has no subtitles in your language, Langle
+          also gives it the video's subtitle lines shortly before they play.
+          Chrome provides the translator on your device and downloads its
+          language models.
+        </li>
+        <li>
+          <strong>Read aloud.</strong> When you press “Play pronunciation”,
+          Langle gives the word or phrase to your browser's speech voice for
+          that language. Langle does not choose the voice; the browser uses its
+          default. Some voices run on your device; if the voice is an online
+          one, the browser sends the word to the service that provides it.
+        </li>
+        <li>
+          <strong>Dictionary sites.</strong> The dictionary window links to
+          Cambridge, Wiktionary, Reverso and WordReference. A site opens only
+          when you click its link, in a new tab, and receives the word, which is
+          in the link. Links that leave Langle send no referrer, so the site is
+          not told which page you were on. Each site's own policy applies.
+        </li>
+        <li>
+          <strong>Other links.</strong> Links such as “Buy me a coffee” (Ko-fi),
+          the Chrome Web Store page and this policy are plain links that open
+          only when you click them. If you support Langle on Ko-fi, what you
+          enter there is handled by Ko-fi and its payment provider; Langle
+          receives nothing from it.
+        </li>
+        <li>
+          <strong>Nothing else.</strong> Langle sends no analytics, crash
+          reports or usage data. Errors are written only to the browser's
+          console.
+        </li>
+      </ul>
+
+      <h2 class="h2">Limited Use</h2>
+      <p class="p">
+        Langle's use of the information it handles complies with the
+        <a
+          href="https://developer.chrome.com/docs/webstore/program-policies/limited-use"
+          rel="noreferrer"
+          >Chrome Web Store User Data Policy, including the Limited Use
+          requirements</a
+        >:
+      </p>
+      <ul class="p">
+        <li>
+          Langle uses your data only to provide its single purpose, learning
+          vocabulary on the pages and videos you read, and only the features
+          described here.
+        </li>
+        <li>
+          Langle does not sell your data. It transfers it only as described
+          here: to your own Chrome sync and Google Drive, which you control, and
+          the requests described under “Other services”.
+        </li>
+        <li>
+          Langle does not use or transfer your data for ads, to determine
+          credit-worthiness or for lending.
+        </li>
+        <li>No person reads your data. The developer never receives it.</li>
+      </ul>
+      <p class="p">
+        Langle's use and transfer of information received from Google APIs
+        adheres to the
+        <a
+          href="https://developers.google.com/terms/api-services-user-data-policy"
+          rel="noreferrer"
+          >Google API Services User Data Policy</a
+        >, including the Limited Use requirements. The Google data Langle
+        accesses is: the files Langle itself creates in its hidden app folder in
+        your Google Drive (<code>drive.appdata</code>), to save your words,
+        settings and history and read them on your other devices; and your
+        Google Account's email address, read from Drive, to show which account
+        is connected and to stay connected. Langle reads no other Drive files
+        and no other Google data. This data is used only for those purposes, is
+        not transferred to anyone, is not used for ads, is not read by any
+        person, and is not used to train AI models.
+      </p>
+
+      <h2 class="h2">Deleting your data</h2>
+      <ul class="p">
+        <li>
+          <strong>Sentence history:</strong> “Clear history” in Settings →
+          Sentence history removes the history and the kept AI explanations.
+          Your saved words and their sources stay.
+        </li>
+        <li>
+          <strong>One site:</strong> adding a site to “Never run on” in Settings
+          → Sites stops Langle there and removes that site's sentence history
+          and its kept AI explanations.
+        </li>
+        <li>
+          With Google Drive connected, “Clear history” and “Never run on” also
+          remove that history from your other connected devices and from Drive,
+          as each device next checks Drive.
+        </li>
+        <li>
+          <strong>A word:</strong> “Remove” in the dictionary window or the Word
+          list removes the word with its sentences and your meanings for it. A
+          small record that it was removed is kept, so your other devices remove
+          it too.
+        </li>
+        <li>
+          <strong>Language data:</strong> Settings → Languages removes the data
+          of a language pair you no longer use, with its kept translations and
+          AI explanations.
+        </li>
+        <li>
+          <strong>Everything on the device:</strong> uninstalling Langle removes
+          all it keeps in this browser. It does not remove what is in Chrome
+          sync or Google Drive.
+        </li>
+        <li>
+          <strong>Chrome sync:</strong> Chrome deletes the data it saved in your
+          Google Account, Langle's included, with “Delete data” at
+          <a href="https://chrome.google.com/data" rel="noreferrer"
+            >chrome.google.com/data</a
+          >. This deletes all of Chrome's saved data, not only Langle's.
+        </li>
+        <li>
+          <strong>Google Drive:</strong> turning off “Also save to Google Drive”
+          removes this device's history files from Drive. To delete all of
+          Langle's files, open
+          <a href="https://drive.google.com/" rel="noreferrer">Google Drive</a>
+          on a computer, then Settings → Manage apps, find Langle, and choose
+          Options → Delete hidden app data (Google's labels may change).
+        </li>
+        <li>
+          <strong>Google access:</strong> to remove Langle's access to your
+          Google Account, go to
+          <a href="https://myaccount.google.com/permissions" rel="noreferrer"
+            >myaccount.google.com/permissions</a
+          >
+          and remove Langle. Langle then saves nothing more to Drive on any of
+          your devices until you connect again.
+        </li>
+      </ul>
+
+      <h2 class="h2">Changes</h2>
+      <p class="p">
+        Changes to this policy are posted on this page with a new date at the
+        top. When a change in Langle affects what it reads, keeps or sends,
+        Langle shows its first-run screen again and asks you to agree before it
+        continues.
+      </p>
+
+      <h2 class="h2">Contact</h2>
+      <p class="p">
+        Questions about this policy:
+        <a href="mailto:kskt.dev@gmail.com">kskt.dev@gmail.com</a>
+      </p>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <span>© 2026 Langle</span>
+        <a href="../">Home</a>
+      </div>
+    </footer>
+  </body>
+</html>
