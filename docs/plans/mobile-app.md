@@ -246,7 +246,7 @@ A throwaway app in `mobile/prototypes/ios-host-spike/`. Start from `ios-wkwebvie
   - a report of the answers to 1-4.
 
 ## S2: Android spike (one agent, Opus; after S1's Simulator is shut down)
-A throwaway app in `mobile/prototypes/android-host-spike/`. Start from `android-webview`, bump androidx.webkit to 1.18.0 and use its setup in [development.md](../development.md) "Mobile app" (`source scripts/mobile/env.sh`; emulator and adb with the sandbox off).
+A throwaway app in `mobile/prototypes/android-host-spike/`. Start from `android-webview`, bump androidx.webkit to 1.18.0 and use its setup in [development.md](../development.md) "Mobile app" (`scripts/mobile/env.sh <command>`; emulator and adb with the sandbox off).
 
 - **Before booting**: check that no iOS Simulator runs (`xcrun simctl list devices booted`). If one does, stop and report. Kill the emulator when done.
 - Questions, answered on `Medium_Phone_API_37.0`:
@@ -331,7 +331,7 @@ Branch `claude/mobile-m2` from `main`. Read [notes/mobile.md](../notes/mobile.md
 - [ ] `npm run verify`, push, draft PR "Mobile app M2: iOS shell" based on `main`, then `gh pr ready`.
 
 ### M1: Android shell (one agent, Opus; after S2 answers 3–5)
-Branch `claude/mobile-m1` from `main`. Read [notes/mobile.md](../notes/mobile.md) "Android prototypes" and "Android extension host spike (S2)", and `mobile/prototypes/android-host-spike/`. Gradle and the SDK set up as in [development.md](../development.md) "Mobile app" (`source scripts/mobile/env.sh`).
+Branch `claude/mobile-m1` from `main`. Read [notes/mobile.md](../notes/mobile.md) "Android prototypes" and "Android extension host spike (S2)", and `mobile/prototypes/android-host-spike/`. Gradle and the SDK set up as in [development.md](../development.md) "Mobile app" (`scripts/mobile/env.sh <command>`).
 
 **Files**
 | Path | Responsibility |

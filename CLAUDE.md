@@ -32,6 +32,7 @@ Core features: highlights by category (New / Learning / Known), meaning on hover
 ## Rules
 - **Everything committed to git is in English** (code, comments, docs, commit messages, PRs). Chat with the user is in Japanese
 - **Before committing a UI change, render it and compare it with the mock** (layout, copy, colors, defaults)
+- **Bash in a worktree** (the guard refuses what it cannot verify, and each refusal costs a turn): write scripts with Write and run the file (no heredocs, `source`, `.` or `eval`; Android tools via `scripts/mobile/env.sh <command>`); git as its own one-line command from the worktree (never chained, `git -C`, or `cd <other checkout> && git`); no `sleep` polling (background runs notify)
 - Commit and push only when the user asks or an approved plan says so. Work on a branch per phase and open a **draft** PR; mark it ready for review only just before merging, which is when GitHub runs CI (Actions minutes are limited)
 - No Claude attribution in commit messages or PR bodies
 - **Fix the class, not the example**: find the root cause and fix it with the most general rule (page structure, measured behavior), not lists of special cases (site names, class-name words, per-site thresholds). Measure the fix beyond the reported example (other sites, videos, languages)
