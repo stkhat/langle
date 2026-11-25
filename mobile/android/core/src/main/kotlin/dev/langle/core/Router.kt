@@ -34,6 +34,9 @@ sealed interface RouterAction {
 
   data class ReloadTab(val id: Int) : RouterAction
 
+  /** `appHost.openPage`: a web page over Home, in the one browsing page. */
+  data class OpenPage(val url: String) : RouterAction
+
   /** `action.openPopup`: the Langle sheet. */
   data object OpenPopup : RouterAction
 
@@ -304,6 +307,12 @@ class Router(val options: Options = Options(), private val persistence: Persiste
       }
       "runtime.reload" -> {
         onAction?.invoke(RouterAction.ReloadHost)
+        done(Answer.Value(null))
+      }
+      "appHost.openPage" -> {
+        val url = first.string?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
+          ?: throw BridgeError("appHost.openPage needs an http(s) address.")
+        onAction?.invoke(RouterAction.OpenPage(url))
         done(Answer.Value(null))
       }
       "action.openPopup" -> {

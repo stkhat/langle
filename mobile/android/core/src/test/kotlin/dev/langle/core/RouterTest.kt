@@ -282,6 +282,21 @@ class RouterTest {
         h.actions,
       )
     }
+
+    // The shell opens the page over Home in its one browsing page (Shell.kt), so the router
+    // opens no tab of its own; only http(s) addresses are opened.
+    @Test
+    @DisplayName("appHost.openPage opens the web page in a tab and is logged")
+    fun `appHost_openPage opens the web page in a tab and is logged`() {
+      val h = Harness()
+      val home = h.connect(ContextSpec.Page("$ORIGIN/home.html"))
+      assertNull(home.call("appHost.openPage", ARTICLE).error)
+      assertEquals(
+        "appHost.openPage needs an http(s) address.",
+        home.call("appHost.openPage", "javascript:alert(1)").error,
+      )
+      assertEquals(listOf<RouterAction>(RouterAction.OpenPage(ARTICLE)), h.actions)
+    }
   }
 
   @Nested
