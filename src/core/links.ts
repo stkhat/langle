@@ -9,7 +9,8 @@ const KOFI_URL = "";
 /** "Send feedback": a short Google Form. */
 export const FEEDBACK_URL = "";
 /** The consent screen's "Privacy policy": the public policy, hidden while empty. */
-export const PRIVACY_POLICY_URL = "";
+/** Its source is `site/langle/privacy/` (docs/specs/ui.md "Website"). */
+export const PRIVACY_POLICY_URL = "https://kskt-dev.github.io/langle/privacy/";
 /** "Become a sponsor" / "Sponsor this spot": the page for would-be sponsors. */
 export const SPONSOR_PAGE_URL = "";
 
