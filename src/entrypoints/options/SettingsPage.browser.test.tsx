@@ -1,4 +1,12 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-preact";
 import type {
@@ -19,6 +27,7 @@ import { fakeExplanationProvider } from "../../testing/explain";
 import en from "../../i18n/locales/en.json";
 import { SettingsPage, type SettingsDeps } from "./SettingsPage";
 import { heldWrites, listeners, settingsListeners } from "../../testing/stubs";
+import { fixedTouchMode } from "../../testing/touch";
 
 const NOW = new Date(2026, 10, 10, 12, 0, 0).getTime();
 const MINUTE = 60_000;
@@ -67,6 +76,10 @@ interface FakeOptions {
   links?: Partial<SupportLinks>;
   /** Where the data is kept (default: Chrome sync). */
   place?: SyncPlace;
+  /** The phone layout (default: the page's own touch mode, off in tests). */
+  phone?: boolean;
+  /** The phone app's `appHost` exists (default: no). */
+  app?: boolean;
 }
 
 const MB = 1024 * 1024;
@@ -153,8 +166,9 @@ function fake(options: FakeOptions = {}) {
     env: {
       name: "Chrome",
       sync: options.place ?? { kind: "browser", name: "Chrome sync" },
-      features: { fileSystemAccess: true },
+      features: { fileSystemAccess: true, appHost: options.app ?? false },
     },
+    ...(options.phone && { touch: fixedTouchMode(true) }),
     ...(options.explainProvider && {
       explainProvider: options.explainProvider,
     }),
@@ -1074,9 +1088,12 @@ describe("SettingsPage", () => {
       expect(f.screen.getByText(/Synced/).query()).toBeNull();
     });
 
-    it("on a device that syncs nothing, leaves out browser sync and the cloud rows", async () => {
+    it("on a device that syncs nothing, is just Backup, with no browser sync or cloud rows", async () => {
       const f = await open({ place: { kind: "device" }, cloud: CAN_CONNECT });
-      const sync = section(f.screen, "Sync and backup");
+      const sync = section(f.screen, "Backup");
+      await expect
+        .element(f.screen.getByRole("link", { name: "Backup" }))
+        .toBeVisible();
       await expect
         .element(
           sync.getByText(
@@ -1545,5 +1562,173 @@ describe("SettingsPage", () => {
         await page.viewport(1200, 800);
       }
     });
+  });
+});
+
+describe("SettingsPage on a phone", () => {
+  beforeEach(() => page.viewport(390, 844));
+  afterEach(() => page.viewport(1200, 800));
+
+  const LINKS: SupportLinks = {
+    coffee: "https://ko-fi.example/langle",
+    review: "https://store.example/langle/reviews",
+    feedback: "https://forms.example/langle",
+    sponsor: "https://langle.example/sponsor",
+  };
+
+  /** The phone app: touch, nothing synced, its `appHost`. */
+  async function openPhone(options: FakeOptions = {}) {
+    const f = fake({
+      phone: true,
+      app: true,
+      place: { kind: "device" },
+      links: LINKS,
+      ...options,
+    });
+    const screen = await render(<SettingsPage deps={f.deps} />);
+    await expect
+      .element(screen.getByRole("heading", { name: "Settings", level: 1 }))
+      .toBeVisible();
+    return { ...f, screen };
+  }
+
+  const pushed = (screen: Awaited<ReturnType<typeof render>>, name: string) =>
+    screen
+      .getByRole("navigation", { name: "Settings sections" })
+      .getByRole("button", { name: new RegExp(`^${name}`) });
+
+  it("lists the sections with their values, Backup for Sync, and Support with Rate and feedback only", async () => {
+    const { screen } = await openPhone({
+      settings: { theme: "dark", knownLevel: 4000 },
+    });
+    const nav = screen.getByRole("navigation", { name: "Settings sections" });
+    expect(
+      nav
+        .getByRole("button")
+        .elements()
+        .map((b) => b.textContent),
+    ).toEqual([
+      "LanguagesEnglish → Japanese",
+      "AppearanceDark",
+      "New-word level4,000",
+      "Highlighting",
+      "Dictionaries and AI",
+      "Video subtitles",
+      "Sites",
+      "Sentence history",
+      "Backup",
+      "About",
+    ]);
+    const row = nav.getByRole("button").first().element();
+    expect(row.getBoundingClientRect().height).toBe(52);
+    expect(nav.element().getBoundingClientRect().width).toBe(350);
+    const box = screen.getByRole("region", { name: "Support Langle" });
+    expect(
+      box
+        .getByRole("link")
+        .elements()
+        .map((a) => [a.textContent, a.getAttribute("href")]),
+    ).toEqual([
+      ["Rate Langle", LINKS.review],
+      ["Send feedback", LINKS.feedback],
+    ]);
+    const rate = box.getByRole("link").first().element();
+    expect(rate.getBoundingClientRect().height).toBe(44);
+    // No section is on the page until one is pushed.
+    expect(
+      screen.getByRole("region", { name: "Languages" }).query(),
+    ).toBeNull();
+  });
+
+  it("pushes a section with ‹ Settings, its rows on a card in touch sizes", async () => {
+    const { screen } = await openPhone();
+    await pushed(screen, "Sites").click();
+    await expect
+      .element(screen.getByRole("heading", { name: "Sites", level: 1 }))
+      .toBeVisible();
+    const sites = screen.getByRole("region", { name: "Sites" });
+    // The phone app plays no Netflix.
+    expect(
+      sites
+        .getByRole("switch")
+        .elements()
+        .map((s) => s.getAttribute("aria-label")),
+    ).not.toContain("Run Langle on Netflix");
+    expect(sites.element().textContent).not.toContain("Netflix");
+    const toggle = sites.getByRole("switch").first().element();
+    const box = toggle.getBoundingClientRect();
+    expect([box.width, box.height]).toEqual([52, 32]);
+    const row = toggle.closest(".row")!;
+    expect(row.getBoundingClientRect().height).toBeGreaterThanOrEqual(64);
+    expect(getComputedStyle(row).backgroundColor).toBe("rgb(255, 255, 255)");
+    expect(
+      screen.getByRole("navigation", { name: "Settings sections" }).query(),
+    ).toBeNull();
+
+    await screen.getByRole("button", { name: "Settings" }).click();
+    await expect
+      .element(screen.getByRole("navigation", { name: "Settings sections" }))
+      .toBeVisible();
+    expect(screen.getByRole("region", { name: "Sites" }).query()).toBeNull();
+  });
+
+  it("sets the phone's own subtitle position and fullscreen transcript, with no keyboard shortcuts", async () => {
+    const { screen, sent } = await openPhone();
+    await pushed(screen, "Video subtitles").click();
+    const video = screen.getByRole("region", { name: "Video subtitles" });
+    await expect.element(video).toBeVisible();
+    expect(video.element().textContent).toContain("in the Langle sheet");
+    const positions = video
+      .getByRole("group", { name: "Subtitle position" })
+      .getByRole("button");
+    expect(positions.elements().map((b) => b.textContent)).toEqual([
+      "Below the video (default)Shown in a larger box under the player, so nothing covers the picture.",
+      "In the videoShown over the bottom of the video, like normal subtitles.",
+    ]);
+    expect(positions.first().element().getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    await positions.last().click();
+    await screen
+      .getByRole("radiogroup", { name: "Transcript in fullscreen" })
+      .getByRole("radio", { name: "Left" })
+      .click();
+    await expect
+      .poll(() => setSettingsPatches(sent))
+      .toEqual([
+        { phoneSubtitlePosition: "inVideo" },
+        { phoneFullscreenTranscript: "left" },
+      ]);
+    await expect
+      .element(screen.getByRole("radio", { name: "Left" }))
+      .toHaveAttribute("aria-checked", "true");
+    expect(video.element().textContent).not.toContain("Keyboard shortcuts");
+  });
+
+  it("calls Sync and backup just Backup in the app, with no sync rows", async () => {
+    const { screen } = await openPhone();
+    await pushed(screen, "Backup").click();
+    const backup = screen.getByRole("region", { name: "Backup" });
+    await expect.element(backup).toBeVisible();
+    expect(backup.getByRole("switch").query()).toBeNull();
+    expect(backup.element().textContent).not.toContain("space");
+    await expect
+      .element(backup.getByRole("button", { name: "Export" }))
+      .toBeVisible();
+  });
+
+  it("keeps Ko-fi, the sponsor page and Netflix on a computer", async () => {
+    await page.viewport(1200, 800);
+    const f = fake({ links: LINKS });
+    const screen = await render(<SettingsPage deps={f.deps} />);
+    const box = screen.getByRole("region", { name: "Support Langle" });
+    await expect.element(box).toBeVisible();
+    expect(box.getByRole("link").elements()).toHaveLength(4);
+    expect(
+      screen.getByRole("region", { name: "Sites" }).element().textContent,
+    ).toContain("Netflix");
+    expect(
+      screen.getByRole("link", { name: "Sync and backup" }).query(),
+    ).not.toBeNull();
   });
 });

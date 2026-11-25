@@ -1,9 +1,12 @@
+import type { JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+import type { TouchMode } from "../../content/touch/touch-mode";
 import type { BrowserEnv } from "../../core/browser-env";
 import type { ExplanationProvider } from "../../core/explain/provider";
 import type { SupportLinks } from "../../core/links";
 import type { Settings, SettingsPatch } from "../../core/settings";
 import { createSettingsView } from "../../core/settings-view";
+import { languagePair } from "../../i18n/languages";
 import { t, type MessageKey } from "../../i18n/t";
 import type { send } from "../../messaging/client";
 import {
@@ -20,9 +23,15 @@ import type {
 import type { BackupDeps } from "../../ui/backup/BackupButtons";
 import { BrandHeader } from "../../ui/BrandHeader";
 import { cloudView } from "../../ui/format/cloud";
+import { fmt } from "../../ui/format/format";
+import { ChevronRightIcon } from "../../ui/icons";
+import { usePhoneLayout } from "../../ui/phone-layout";
+import { PHONE_SCREEN, PhoneBackBar, PhoneTitle } from "../../ui/phone-screen";
+import { PhoneRows } from "../../ui/RowLabel";
 import { color, FONT, PAGE_BUTTON_CSS } from "../../ui/styles";
+import { PHONE_SETTINGS_CSS } from "./rows";
 import { AboutSection } from "./sections/About";
-import { AppearanceSection } from "./sections/Appearance";
+import { AppearanceSection, THEMES } from "./sections/Appearance";
 import { DictionariesSection } from "./sections/Dictionaries";
 import { HighlightingSection } from "./sections/Highlighting";
 import { HistorySection } from "./sections/History";
@@ -30,7 +39,11 @@ import { LanguagesSection } from "./sections/Languages";
 import { LevelSection } from "./sections/Level";
 import { SitesSection } from "./sections/Sites";
 import { SupportBox } from "./sections/Support";
-import { SyncSection, type CloudRequest } from "./sections/Sync";
+import {
+  syncSectionLabel,
+  SyncSection,
+  type CloudRequest,
+} from "./sections/Sync";
 import { VideoSection } from "./sections/Video";
 
 /** What the settings page works with; `main.tsx` passes the browser's, tests pass fakes. */
@@ -47,6 +60,8 @@ export interface SettingsDeps extends BackupDeps, PackStatusDeps {
   links: SupportLinks;
   /** How often the sync, cloud and history status and the relative times are refreshed. */
   refreshMs: number;
+  /** The page's touch mode but in tests (`usePhoneLayout`). */
+  touch?: TouchMode;
 }
 
 const SECTIONS = [
@@ -117,6 +132,9 @@ function useSectionInView(): SectionId {
 
 /** The settings page (mock Settings): every section, bound to the settings live. */
 export function SettingsPage({ deps }: { deps: SettingsDeps }) {
+  const phone = usePhoneLayout(deps.touch);
+  /** The section pushed over the phone layout's list. */
+  const [open, setOpen] = useState<SectionId>();
   const [settings, setSettings] = useState<Settings>();
   const [sync, setSync] = useState<SyncStatus>();
   const [cloud, setCloud] = useState<CloudStatus>();
@@ -179,6 +197,169 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
       .finally(() => void refreshSync());
   }
 
+  const sections: Record<SectionId, JSX.Element> = {
+    languages: (
+      <LanguagesSection
+        key="languages"
+        {...section}
+        packs={packs}
+        onRetry={() => {
+          deps.send({ type: "retryPacks" }).catch(warn);
+        }}
+        onRemove={(names) => {
+          void (async () => {
+            for (const pack of names)
+              await deps.send({ type: "removePack", pack });
+          })()
+            .catch(warn)
+            .finally(() => packStatus.current?.refresh());
+        }}
+      />
+    ),
+    appearance: <AppearanceSection key="appearance" {...section} />,
+    level: <LevelSection key="level" {...section} />,
+    highlighting: <HighlightingSection key="highlighting" {...section} />,
+    dictionaries: (
+      <DictionariesSection
+        key="dictionaries"
+        {...section}
+        env={deps.env}
+        explainProvider={deps.explainProvider}
+      />
+    ),
+    video: <VideoSection key="video" {...section} />,
+    sites: (
+      <SitesSection key="sites" {...section} app={deps.env.features.appHost} />
+    ),
+    history: (
+      <HistorySection
+        key="history"
+        {...section}
+        history={history}
+        cloud={view}
+        onClear={() =>
+          void deps.send({ type: "clearHistory" }).then(refreshHistory, warn)
+        }
+      />
+    ),
+    sync: (
+      <SyncSection
+        key="sync"
+        {...section}
+        deps={deps}
+        env={deps.env}
+        sync={sync}
+        cloud={view}
+        onCloud={cloudRequest}
+        now={now}
+        onExported={() => setNow(deps.now())}
+      />
+    ),
+    about: (
+      <AboutSection
+        key="about"
+        version={deps.version}
+        noticesUrl={deps.noticesUrl}
+      />
+    ),
+  };
+  const label = (id: SectionId, key: MessageKey) =>
+    t(id === "sync" ? syncSectionLabel(deps.env) : key);
+
+  if (phone) {
+    /** What a row of the sections' list shows beside its name (mock MobileSettings). */
+    const values: Partial<Record<SectionId, string>> = {
+      languages: languagePair(settings.learningLang, settings.nativeLang),
+      appearance: t(
+        THEMES.find((theme) => theme.id === settings.theme)?.label ??
+          "settings.appearance.system",
+      ),
+      level: fmt(settings.knownLevel),
+    };
+    function push(id: SectionId | undefined) {
+      setOpen(id);
+      scrollTo(0, 0);
+    }
+    return (
+      <div
+        class="ph"
+        style={{
+          ...PHONE_SCREEN,
+          minHeight: "100dvh",
+          gap: "18px",
+          ...(open && { paddingTop: 0, gap: "16px" }),
+        }}
+      >
+        <style>{CSS + PHONE_SETTINGS_CSS}</style>
+        {open ? (
+          <PhoneRows.Provider value>
+            <div style={{ margin: "0 -20px -12px" }}>
+              <PhoneBackBar
+                label={t("settings.title")}
+                onBack={() => push(undefined)}
+              />
+            </div>
+            {sections[open]}
+          </PhoneRows.Provider>
+        ) : (
+          <>
+            <PhoneTitle title={t("settings.title")} />
+            <nav
+              aria-label={t("settings.navLabel")}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                borderRadius: "12px",
+                background: color.card,
+                border: `1px solid ${color.line}`,
+                overflow: "hidden",
+                flex: "none",
+              }}
+            >
+              {SECTIONS.map(({ id, label: key }, i) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => push(id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    minHeight: "52px",
+                    padding: "0 12px 0 16px",
+                    margin: 0,
+                    border: 0,
+                    borderTop: i ? `1px solid ${color.soft}` : 0,
+                    background: "none",
+                    color: color.ink,
+                    font: "inherit",
+                    textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ flex: 1, fontSize: "16px" }}>
+                    {label(id, key)}
+                  </span>
+                  {values[id] && (
+                    <span style={{ fontSize: "14px", color: color.muted }}>
+                      {values[id]}
+                    </span>
+                  )}
+                  <ChevronRightIcon />
+                </button>
+              ))}
+            </nav>
+            <SupportBox
+              links={deps.links}
+              app={deps.env.features.appHost}
+              phone
+            />
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -233,11 +414,11 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
               href={`#${section.id}`}
               aria-current={active === section.id ? "true" : undefined}
             >
-              {t(section.label)}
+              {label(section.id, section.label)}
             </a>
           ))}
         </nav>
-        <SupportBox links={deps.links} />
+        <SupportBox links={deps.links} app={deps.env.features.appHost} />
       </div>
 
       <main
@@ -250,50 +431,7 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
           gap: "24px",
         }}
       >
-        <LanguagesSection
-          {...section}
-          packs={packs}
-          onRetry={() => {
-            deps.send({ type: "retryPacks" }).catch(warn);
-          }}
-          onRemove={(names) => {
-            void (async () => {
-              for (const pack of names)
-                await deps.send({ type: "removePack", pack });
-            })()
-              .catch(warn)
-              .finally(() => packStatus.current?.refresh());
-          }}
-        />
-        <AppearanceSection {...section} />
-        <LevelSection {...section} />
-        <HighlightingSection {...section} />
-        <DictionariesSection
-          {...section}
-          env={deps.env}
-          explainProvider={deps.explainProvider}
-        />
-        <VideoSection {...section} />
-        <SitesSection {...section} />
-        <HistorySection
-          {...section}
-          history={history}
-          cloud={view}
-          onClear={() =>
-            void deps.send({ type: "clearHistory" }).then(refreshHistory, warn)
-          }
-        />
-        <SyncSection
-          {...section}
-          deps={deps}
-          env={deps.env}
-          sync={sync}
-          cloud={view}
-          onCloud={cloudRequest}
-          now={now}
-          onExported={() => setNow(deps.now())}
-        />
-        <AboutSection version={deps.version} noticesUrl={deps.noticesUrl} />
+        {SECTIONS.map(({ id }) => sections[id])}
       </main>
     </div>
   );
