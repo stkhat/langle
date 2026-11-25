@@ -1,0 +1,6 @@
+{
+  "v": 1,
+  "kind": "event",
+  "api": "appHost.models.onProgress",
+  "args": [{ "pack": "mt-en-ja", "received": 9500000, "total": 19815000 }]
+}

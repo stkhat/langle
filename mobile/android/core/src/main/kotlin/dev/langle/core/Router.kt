@@ -117,6 +117,14 @@ class Router(val options: Options = Options(), private val persistence: Persiste
    */
   var onShareFile: ((file: SharedFile, done: (error: String?) -> Unit) -> Unit)? = null
 
+  /**
+   * The app's translation host and model downloads (docs/specs/mobile-translation.md "M5: the
+   * hosts"): the calls in [TRANSLATION_APIS], with the context that asked (the host answers a page
+   * not on screen with null at once) and the call's one argument; the app answers through `done`.
+   * Null until the app has a host: each such call fails with "<api> is not available here."
+   */
+  var onTranslation: ((from: ContextSpec, api: String, request: JsonElement?, done: (Answer) -> Unit) -> Unit)? = null
+
   private val contexts = mutableListOf<Connection>()
   private val forwards = linkedMapOf<String, Forward>()
   private val hostWaiters = mutableListOf<Waiter>()
@@ -139,6 +147,14 @@ class Router(val options: Options = Options(), private val persistence: Persiste
 
   /** A page the user opened (a web page in the browsing engine). */
   fun openTab(url: String, active: Boolean = true): Int = tabs.open(url, active).id
+
+  /**
+   * An event for the extension host (`appHost.models.onProgress`); dropped while it has not said
+   * hello (it asks again when it starts).
+   */
+  fun postToHost(api: String, args: List<JsonElement>) {
+    host?.let { postEvent(it, api, args) }
+  }
 
   // delivery
 
@@ -325,6 +341,10 @@ class Router(val options: Options = Options(), private val persistence: Persiste
         val file = SharedFile.from(first) ?: throw BridgeError(SharedFile.ERROR)
         val share = onShareFile ?: throw BridgeError(NO_SHARING)
         share(file) { error -> done(if (error == null) Answer.Value(null) else Answer.Failure(error)) }
+      }
+      in TRANSLATION_APIS -> {
+        val host = onTranslation ?: throw BridgeError(notAvailable(api))
+        host(context.spec, api, first, done)
       }
       "action.openPopup" -> {
         onAction?.invoke(RouterAction.OpenPopup)

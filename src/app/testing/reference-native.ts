@@ -1,9 +1,16 @@
+import type {
+  ModelPackRequest,
+  PairCodes,
+  TranslateRequest,
+  TranslatorStatus,
+} from "../../core/app-host";
 import { NO_RECEIVER, type Transport } from "../bridge/bridge";
 import {
   isParseError,
   parseEnvelope,
   PROTOCOL_VERSION,
   type Call,
+  type CallApi,
   type EventApi,
 } from "../bridge/protocol";
 
@@ -55,6 +62,11 @@ export interface ReferenceNativeOptions {
   local?: Store;
   sync?: Store;
   hostWaitMs?: number;
+  /**
+   * The app's translation host (M5c, M5d build the real ones). Without it every
+   * translation call fails with `notAvailable(api)`, as the native routers' do.
+   */
+  translator?: ReferenceTranslator;
   timers?: {
     now(): number;
     setTimeout(run: () => void, ms: number): unknown;
@@ -81,6 +93,30 @@ interface Alarm {
   scheduledTime: number;
   periodInMinutes?: number;
 }
+
+/**
+ * A stand-in for the app's translation host and model downloads (the boundary the bridge
+ * provider and the pack store are tested against). The router answers a translation
+ * for a page not on screen (its tab not active) with null at once, never asking it.
+ */
+export interface ReferenceTranslator {
+  status(pair: PairCodes): TranslatorStatus | Promise<TranslatorStatus>;
+  translate(request: TranslateRequest): string | null | Promise<string | null>;
+  /** iOS's consent sheet: the status once it closes. */
+  prepare?(pair: PairCodes): TranslatorStatus | Promise<TranslatorStatus>;
+  /**
+   * Brings a model pack's files to the phone; `progress` posts
+   * `appHost.models.onProgress` to the extension host. Rejects as the download fails.
+   */
+  ensure?(
+    request: ModelPackRequest,
+    progress: (received: number) => void,
+  ): void | Promise<void>;
+  remove?(pack: string): void | Promise<void>;
+}
+
+/** The error of a call the app cannot answer yet, the same text in all three routers. */
+export const notAvailable = (api: string) => `${api} is not available here.`;
 
 const HOST_WAIT_MS = 10_000;
 const MINUTE = 60_000;
@@ -295,6 +331,50 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
     alarms.set(alarm.name, { alarm, timer });
   };
 
+  /** A page whose tab is not the one on screen (the host serves that one only). */
+  const offScreen = ({ spec }: Context) =>
+    spec.kind !== "host" &&
+    spec.tabId !== undefined &&
+    tabs.get(spec.tabId)?.active === false;
+
+  const translation = (context: Context, api: CallApi, request: unknown) => {
+    const service = options.translator;
+    if (api === "appHost.translate") {
+      if (!service) throw new Error(notAvailable(api));
+      return offScreen(context)
+        ? null
+        : service.translate(request as TranslateRequest);
+    }
+    if (api === "appHost.translatorStatus") {
+      if (!service) throw new Error(notAvailable(api));
+      return service.status(request as PairCodes);
+    }
+    if (api === "appHost.prepareTranslator") {
+      if (!service?.prepare) throw new Error(notAvailable(api));
+      return service.prepare(request as PairCodes);
+    }
+    if (api === "appHost.models.ensure") {
+      if (!service?.ensure) throw new Error(notAvailable(api));
+      const model = request as ModelPackRequest;
+      const total = model.files.reduce((sum, file) => sum + file.size, 0);
+      return Promise.resolve(
+        service.ensure(model, (received) => {
+          const target = host();
+          if (target)
+            postEvent(target, "appHost.models.onProgress", {
+              pack: model.pack,
+              received,
+              total,
+            });
+        }),
+      ).then(() => undefined);
+    }
+    if (!service?.remove) throw new Error(notAvailable(api));
+    return Promise.resolve(
+      service.remove((request as { pack: string }).pack),
+    ).then(() => undefined);
+  };
+
   const handle = (context: Context, call: Call): unknown => {
     const { api, args } = call;
     switch (api) {
@@ -392,6 +472,12 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
         log.push(`appHost.shareFile ${file.name} ${file.mime} ${file.text}`);
         return undefined;
       }
+      case "appHost.translate":
+      case "appHost.translatorStatus":
+      case "appHost.prepareTranslator":
+      case "appHost.models.ensure":
+      case "appHost.models.remove":
+        return translation(context, api, args[0]);
       case "alarms.create": {
         const [name, info] = (
           typeof args[0] === "string" ? args : ["", args[0]]

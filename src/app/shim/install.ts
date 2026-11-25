@@ -31,6 +31,6 @@ export function installShim(bridge: Bridge, info: AppInfo) {
   };
   globals.browser = shim;
   globals.chrome = shim;
-  globals.appHost = createAppHost(bridge);
+  globals.appHost = createAppHost(bridge, info.translator);
   return shim;
 }

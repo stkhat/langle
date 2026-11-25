@@ -354,6 +354,39 @@ class RouterTest {
       }
       assertEquals(2, shared.size)
     }
+
+    // The hosts come in M5c and M5d; until the app sets one, each call fails at once.
+    @Test
+    @DisplayName("the translation calls go to the app's translation host, and are not available without one")
+    fun `the translation calls go to the app's translation host`() {
+      val h = Harness()
+      val host = h.connect(ContextSpec.Host)
+      host.call("bridge.hello", hello("host"))
+      val tab = h.router.openTab(ARTICLE)
+      val content = h.connect(ContextSpec.Content(tab))
+      val pair = mapOf("from" to "en", "to" to "ja")
+      val calls = listOf(
+        "appHost.translate" to pair + mapOf("text" to "A cat.", "start" to true),
+        "appHost.translatorStatus" to pair,
+        "appHost.prepareTranslator" to pair,
+        "appHost.models.ensure" to mapOf("pack" to "mt-en-ja"),
+        "appHost.models.remove" to mapOf("pack" to "mt-en-ja"),
+      )
+      for ((api, request) in calls) assertEquals("$api is not available here.", content.call(api, request).error)
+
+      val asked = mutableListOf<Triple<ContextSpec, String, kotlinx.serialization.json.JsonElement?>>()
+      h.router.onTranslation = { from, api, request, done ->
+        asked += Triple(from, api, request)
+        done(Answer.Value(if (api == "appHost.translate") j("猫。") else null))
+      }
+      assertEquals(j("猫。"), content.call("appHost.translate", calls[0].second).value)
+      assertEquals(listOf(Triple<ContextSpec, String, kotlinx.serialization.json.JsonElement?>(ContextSpec.Content(tab), "appHost.translate", j(calls[0].second))), asked)
+
+      val progress = host.record("appHost.models.onProgress")
+      h.router.postToHost("appHost.models.onProgress", listOf(j(mapOf("pack" to "mt-en-ja", "received" to 5, "total" to 10))))
+      h.settle()
+      assertEquals(listOf(listOf(j(mapOf("pack" to "mt-en-ja", "received" to 5, "total" to 10)))), progress)
+    }
   }
 
   @Nested

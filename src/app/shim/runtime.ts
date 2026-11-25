@@ -1,3 +1,4 @@
+import type { AppTranslator } from "../../core/app-host";
 import { NO_RECEIVER, type Bridge } from "../bridge/bridge";
 import { createEvent } from "./events";
 
@@ -7,6 +8,8 @@ export interface AppInfo {
   /** The app origin the build is served from (docs/specs/mobile-app.md "Contexts"). */
   origin: string;
   manifest: Record<string, unknown>;
+  /** How the app's translator gets its models (`appHost.translator`); none without a host. */
+  translator?: AppTranslator;
 }
 
 type SendResponse = (response?: unknown) => void;
