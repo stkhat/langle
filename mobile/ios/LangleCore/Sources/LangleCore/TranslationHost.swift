@@ -126,6 +126,12 @@ public final class TranslationHost {
   /// Whether the engine runs for the pair now.
   public func running(_ pair: TranslationPair) -> Bool { loaded.contains(pair) }
 
+  /// The pairs the engine runs for now, as "en>ja", sorted (check builds' `translate-state`).
+  public var loadedPairs: [String] { loaded.map { "\($0.from)>\($0.to)" }.sorted() }
+
+  /// Off after a second engine failure, until a page is opened again.
+  public var isOff: Bool { off }
+
   /// `Router.onTranslation`.
   public func handle(_ from: ContextSpec, _ api: String, _ request: JSONValue?, _ done: @escaping Done) {
     switch api {

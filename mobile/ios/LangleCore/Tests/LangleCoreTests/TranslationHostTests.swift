@@ -106,9 +106,11 @@ final class TranslationHostTests: XCTestCase {
     advance(59_000)
     XCTAssertEqual(engine.releases, 0)
     XCTAssertTrue(host.running(enJa))
+    XCTAssertEqual(host.loadedPairs, ["en>ja"])
     advance(1_000)
     XCTAssertEqual(engine.releases, 1)
     XCTAssertFalse(host.running(enJa))
+    XCTAssertEqual(host.loadedPairs, [])
 
     // The next sentence starts it again.
     _ = translate("A bird.")
@@ -172,8 +174,11 @@ final class TranslationHostTests: XCTestCase {
     let off = translate("A fish.")
     XCTAssertEqual(off.value, .some(.null))
     XCTAssertEqual(engine.loads.count, 2)
+    XCTAssertTrue(host.isOff)
+    XCTAssertEqual(host.loadedPairs, [])
 
     host.pageOpened()
+    XCTAssertFalse(host.isOff)
     _ = translate("A fish.")
     XCTAssertEqual(engine.loads.count, 3)
   }
