@@ -440,6 +440,7 @@ export function createNetflixAdapter(
       };
     },
     hideSiteCaptions: hideCaptions,
+    setPageGate: (open) => bridge.setGate(open),
     dispose() {
       for (const cleanup of cleanups.splice(0)) cleanup();
       titles.clear();

@@ -54,6 +54,8 @@ function start(
     idleMs: 200,
     ...adapterOptions,
   });
+  // As the session does while the site is on.
+  adapter.setPageGate(true);
 }
 
 beforeEach(() => {

@@ -154,7 +154,7 @@ The [UI mock](https://claude.ai/artifact/SMxhVni5DdE6cK8UazvqGS) is canonical: w
 - Then three rows, each an icon, a verb and at most two lines (Sends has a second part for Drive); the mock has the copy:
   - Reads: pages and subtitles, to explain and translate
   - Keeps: words and the history (sentences, web addresses, titles) on this device, to show where a word was met
-  - Sends: words and settings with the site choices to Chrome sync (the name follows the browser); a looked-up or played word to that service; on a second line of its own, what Google Drive gets if connected (those and the history) and that the account's email is kept
+  - Sends: words and settings with the site choices to Chrome sync (the name follows the browser); a looked-up or played word to the service that gives its meaning or sound ("A word you look up or play may go to the service that gives its meaning or sound."); on a second line of its own, what Google Drive gets if connected (those and the history) and that the account's email is kept
 - Under the rows: "Not now" and "Agree and continue" (primary, wide). Nothing is pre-selected. The whole card fits 1280×600 without scrolling
 - The screen holds only what the store requires to be prominent (the types of data, their use, the consent) and who else gets it in brief. The details go in the privacy policy, which must exist before this ships
 - Only Agree and continue is consent. Not now closes the tab; closing the tab is not consent either

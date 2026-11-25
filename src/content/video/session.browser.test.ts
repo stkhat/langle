@@ -91,6 +91,8 @@ function fakeSite(
   const listeners = new Set<() => void>();
   const log = {
     hidden: [] as boolean[],
+    /** What the page script's gate was told, in order. */
+    gate: [] as boolean[],
     seeks: [] as number[],
     playback: [] as ("pause" | "play")[],
     loads: 0,
@@ -132,6 +134,7 @@ function fakeSite(
       return () => listeners.delete(listener);
     },
     hideSiteCaptions: (hidden) => log.hidden.push(hidden),
+    setPageGate: (open) => log.gate.push(open),
     dispose() {},
   };
   return {
@@ -2513,6 +2516,7 @@ describe("where Langle runs", () => {
     });
     expect(state().status).toBe("idle");
     expect(site.log.loads).toBe(0);
+    expect(site.log.gate).toEqual([false]);
   });
 
   it("not on a site switched off in the popup, and again once it is back on", async () => {
@@ -2526,6 +2530,8 @@ describe("where Langle runs", () => {
     bg.changeSettings({ sites: { youtube: false } });
     expect(state().status).toBe("idle");
     expect(site.log.hidden.at(-1)).toBe(false);
+    // The page's hooks pass on nothing while the site is off.
+    expect(site.log.gate).toEqual([false, true, false]);
   });
 
   it("not while Langle is switched off, and again once it is back on", async () => {
@@ -2537,6 +2543,7 @@ describe("where Langle runs", () => {
     bg.changeSettings({ enabled: true });
     await ready(state);
     expect(site.log.hidden.at(-1)).toBe(true);
+    expect(site.log.gate).toEqual([true, false, true]);
   });
 });
 

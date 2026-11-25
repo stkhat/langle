@@ -1,3 +1,4 @@
+import { NEW_TAB } from "../../ui/external-link";
 import type { ComponentChildren, VNode } from "preact";
 import { useEffect, useId, useRef, useState } from "preact/hooks";
 import type { TouchMode } from "../../content/touch/touch-mode";
@@ -262,8 +263,7 @@ function Consent(props: {
               {" "}
               <a
                 href={deps.privacyPolicy}
-                target="_blank"
-                rel="noopener noreferrer"
+                {...NEW_TAB}
                 style={{ whiteSpace: "nowrap" }}
               >
                 {t("setup.consent.policy")}

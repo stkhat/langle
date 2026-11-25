@@ -74,7 +74,7 @@ describe("How Langle uses your data", () => {
       "Langle has no servers. It saves your data only on your device and in your own cloud services, nowhere else. The developer receives none of it.",
       "Pages you visit and subtitles, to explain and translate words.",
       "Your words and a history of sentences, web addresses and titles on this device, to show where you met a word.",
-      "Words and settings, including site choices, to Chrome sync. A word you look up or play may go to that service.",
+      "Words and settings, including site choices, to Chrome sync. A word you look up or play may go to the service that gives its meaning or sound.",
       "If you connect Google Drive, those and your history go there. Your Google email is kept to stay connected.",
     ])
       await expect.element(card).toMatchTextContent(text);

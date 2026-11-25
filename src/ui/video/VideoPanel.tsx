@@ -1,3 +1,4 @@
+import { NEW_TAB } from "../external-link";
 import { useRef } from "preact/hooks";
 import type { DataNote } from "../../core/packs/state";
 import { languageName } from "../../i18n/languages";
@@ -159,8 +160,7 @@ function FeedbackFooter(props: { url: string }) {
     >
       <a
         href={props.url}
-        target="_blank"
-        rel="noopener"
+        {...NEW_TAB}
         style={{
           display: "inline-flex",
           alignItems: "center",

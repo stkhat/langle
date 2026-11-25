@@ -1,3 +1,4 @@
+import { NEW_TAB } from "../../ui/external-link";
 import {
   LICENSES_FILE,
   type NoticePack,
@@ -22,7 +23,7 @@ pre{margin:0;white-space:pre-wrap;font-size:12px;line-height:1.5;color:${color.i
 function License(props: { license: { name: string; url?: string } }) {
   const { name, url } = props.license;
   return url ? (
-    <a href={url} target="_blank" rel="noopener noreferrer">
+    <a href={url} {...NEW_TAB}>
       {name}
     </a>
   ) : (
@@ -44,7 +45,7 @@ function Pack(props: { pack: NoticePack }) {
         {pack.sources.map((source) => (
           <li key={source.title}>
             <span>
-              <a href={source.url} target="_blank" rel="noopener noreferrer">
+              <a href={source.url} {...NEW_TAB}>
                 {source.title}
               </a>
               {" · "}
@@ -89,7 +90,7 @@ export function NoticesPage(props: { data: NoticesData }) {
       <p class="meta">{t("notices.lead")}</p>
       <p class="meta">
         {t("notices.code")}{" "}
-        <a href={`/${LICENSES_FILE}`} target="_blank" rel="noopener noreferrer">
+        <a href={`/${LICENSES_FILE}`} {...NEW_TAB}>
           {LICENSES_FILE}
         </a>
       </p>

@@ -1,4 +1,5 @@
 import { translationPair } from "../core/packs/pairs";
+import { hostnameOf, onHost } from "../core/url";
 import type { ExplanationKey, KeptExplanation } from "../messaging/protocol";
 import type { LangleDb } from "./db";
 
@@ -18,6 +19,13 @@ export interface ExplanationCache {
   put(key: ExplanationKey, kept: KeptExplanation): Promise<void>;
   /** Removes every answer of a pair (its packs were removed: the senses may change). */
   clearPair(pair: string): Promise<void>;
+  /** Removes every answer: "Clear history" (they hold pages and sentences too). */
+  clear(): Promise<void>;
+  /**
+   * Removes the answers given on pages of a host added to "Never run on", with its
+   * subdomains (as the history forgets it). Returns how many.
+   */
+  forgetHost(host: string): Promise<number>;
 }
 
 export interface ExplanationCacheOptions {
@@ -39,6 +47,18 @@ const keyOf = (k: ExplanationKey) =>
     k.provider,
     k.version,
   ]);
+
+/** The source URL in a row key (`keyOf`); empty when the key holds none. */
+function sourceUrlOf(key: string): string {
+  try {
+    const fields: unknown = JSON.parse(key);
+    return Array.isArray(fields) && typeof fields[2] === "string"
+      ? fields[2]
+      : "";
+  } catch {
+    return "";
+  }
+}
 
 export function createExplanationCache(
   db: LangleDb,
@@ -78,6 +98,24 @@ export function createExplanationCache(
 
     async clearPair(pair) {
       await db.explanations.where("pair").equals(pair).delete();
+    },
+
+    async clear() {
+      await db.explanations.clear();
+    },
+
+    forgetHost(entry) {
+      const site = entry.trim().toLowerCase();
+      // Reads the keys only: a few thousand at most, and a host is added rarely.
+      return db.transaction("rw", db.explanations, async () => {
+        const keys = await db.explanations.toCollection().primaryKeys();
+        const matching = keys.filter((key) => {
+          const host = hostnameOf(sourceUrlOf(key));
+          return host !== undefined && onHost(host, site);
+        });
+        await db.explanations.bulkDelete(matching);
+        return matching.length;
+      });
     },
   };
 }

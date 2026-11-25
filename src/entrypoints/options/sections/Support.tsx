@@ -1,3 +1,4 @@
+import { NEW_TAB } from "../../../ui/external-link";
 import type { ComponentChildren, CSSProperties } from "preact";
 import type { SupportLinks } from "../../../core/links";
 import { t } from "../../../i18n/t";
@@ -39,7 +40,7 @@ function Out(props: {
 }) {
   if (!props.href) return null;
   return (
-    <a href={props.href} target="_blank" rel="noopener" style={props.style}>
+    <a href={props.href} {...NEW_TAB} style={props.style}>
       {props.children}
     </a>
   );

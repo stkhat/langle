@@ -1,3 +1,4 @@
+import { NEW_TAB } from "../external-link";
 import { t } from "../../i18n/t";
 import { ChevronRightIcon, SourceIcon } from "../icons";
 import { color } from "../styles";
@@ -71,8 +72,7 @@ export function ElsewhereRow(props: {
   return href ? (
     <a
       href={href}
-      target="_blank"
-      rel="noopener"
+      {...NEW_TAB}
       style={style}
       onClick={
         onOpen &&

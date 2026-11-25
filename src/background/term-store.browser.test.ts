@@ -1292,6 +1292,61 @@ const choose = (
   return { term, meaning };
 };
 
+describe("saving without the source (a private window)", () => {
+  const without = { withoutSource: true };
+
+  /** Every row that could tell where the term was met. */
+  const placeRows = async () => ({
+    sources: await db.sources.count(),
+    occurrences: await db.occurrences.count(),
+    meanings: await db.meanings.count(),
+    meaningChoices: await db.meaningChoices.count(),
+  });
+  const NONE = { sources: 0, occurrences: 0, meanings: 0, meaningChoices: 0 };
+
+  it("saves the term and its status only", async () => {
+    const term = await store.saveTerm(dough(), without);
+    expect(term).toMatchObject({ id: "en:dough", status: "learning" });
+    clock.tick();
+    expect(
+      await store.saveTerm(dough({ status: "known" }), without),
+    ).toMatchObject({ status: "known", updatedAt: clock.time });
+    expect(await store.listTerms("en")).toHaveLength(1);
+    expect(await placeRows()).toEqual(NONE);
+  });
+
+  it("saves an unsaved term as Learning on a meaning choice, and keeps no choice", async () => {
+    expect(await store.chooseMeaning(choose(null), without)).toBeNull();
+    const term = await store.chooseMeaning(choose(PIECE), without);
+    expect(term).toMatchObject({ id: "en:dough", status: "learning" });
+    await store.setStatus("en:dough", "known");
+    expect(await store.chooseMeaning(choose(MASS), without)).toMatchObject({
+      status: "known",
+    });
+    expect(await store.chooseMeaning(choose(null), without)).toMatchObject({
+      status: "known",
+    });
+    expect(await placeRows()).toEqual(NONE);
+  });
+
+  it("keeps no source for save all", async () => {
+    expect(
+      await store.saveAll("en", ["yeast"], "learning", ARTICLE, without),
+    ).toMatchObject({ count: 1 });
+    expect(await store.listTerms("en")).toHaveLength(1);
+    expect(await placeRows()).toEqual(NONE);
+  });
+
+  it("leaves what a normal window saved before", async () => {
+    await store.saveTerm(dough());
+    await store.chooseMeaning(choose(PIECE));
+    const before = await placeRows();
+    await store.saveTerm(dough({ status: "known" }), without);
+    expect(await placeRows()).toEqual(before);
+    expect(await store.occurrencesOf("en:dough")).toHaveLength(1);
+  });
+});
+
 describe("chooseMeaning", () => {
   it("chooses a meaning for a saved term's sentence", async () => {
     await store.saveTerm(dough());

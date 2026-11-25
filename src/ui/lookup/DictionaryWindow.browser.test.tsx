@@ -435,7 +435,9 @@ describe("DictionaryWindow", () => {
         "https://dictionary.cambridge.org/dictionary/english/figure-out",
       );
     await expect.element(cambridge).toHaveAttribute("target", "_blank");
-    await expect.element(cambridge).toHaveAttribute("rel", "noopener");
+    await expect
+      .element(cambridge)
+      .toHaveAttribute("rel", "noopener noreferrer");
     await expect
       .element(screen.getByRole("link", { name: "Wiktionary" }))
       .toHaveAttribute("href", "https://en.wiktionary.org/wiki/figure%20out");
