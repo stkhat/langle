@@ -32,3 +32,15 @@ public struct SharedFile: Equatable, Sendable {
 
 /// `appHost.shareFile` in an app that has no share sheet (the router's tests).
 public let noSharing = "Sharing a file is not available here."
+
+/// The calls the app's translation host answers (`Router.onTranslation`).
+public let translationApis: Set<String> = [
+  "appHost.translate",
+  "appHost.translatorStatus",
+  "appHost.prepareTranslator",
+  "appHost.models.ensure",
+  "appHost.models.remove",
+]
+
+/// The error of a call the app cannot answer yet, the same text in all three routers.
+public func notAvailable(_ api: String) -> String { "\(api) is not available here." }

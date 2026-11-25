@@ -126,6 +126,75 @@ describe("installShim", () => {
     expect(native.calls).toEqual([{ api: "appHost.shareFile", args: [file] }]);
   });
 
+  test("appHost's translation calls pass their request to native code and read its answer", async () => {
+    const native = fakeBridge((api) =>
+      api === "appHost.translate"
+        ? "猫。"
+        : api === "appHost.translatorStatus"
+          ? "packs"
+          : api === "appHost.prepareTranslator"
+            ? "something else"
+            : undefined,
+    );
+    installShim(native.bridge, INFO);
+    const app = appHostOf()!;
+    const pair = { from: "en", to: "ja" };
+    const request = { ...pair, text: "A cat.", start: false };
+    await expect(app.translate(request)).resolves.toBe("猫。");
+    await expect(app.translatorStatus(pair)).resolves.toBe("packs");
+    // Anything but a known status is no translator.
+    await expect(app.prepareTranslator(pair)).resolves.toBe("unavailable");
+    const model = {
+      pack: "mt-en-ja",
+      version: "2026.1126.0",
+      files: [{ path: "model.bin", sha256: "ab", size: 2 }],
+      mirrors: ["https://cdn.test/{file}"],
+    };
+    await app.models.ensure(model);
+    await app.models.remove("mt-en-ja");
+    expect(native.calls).toEqual([
+      { api: "appHost.translate", args: [request] },
+      { api: "appHost.translatorStatus", args: [pair] },
+      { api: "appHost.prepareTranslator", args: [pair] },
+      { api: "appHost.models.ensure", args: [model] },
+      { api: "appHost.models.remove", args: [{ pack: "mt-en-ja" }] },
+    ]);
+  });
+
+  test("appHost.translate gives null for anything but a text", async () => {
+    installShim(fakeBridge(() => undefined).bridge, INFO);
+    await expect(
+      appHostOf()!.translate({
+        from: "en",
+        to: "ja",
+        text: "A cat.",
+        start: true,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("appHost.models.onProgress hears native code's progress events until unsubscribed", async () => {
+    const native = fakeBridge();
+    installShim(native.bridge, INFO);
+    const heard: unknown[] = [];
+    const stop = appHostOf()!.models.onProgress((p) => heard.push(p));
+    const progress = { pack: "mt-en-ja", received: 5, total: 10 };
+    await native.emit("appHost.models.onProgress", progress);
+    stop();
+    await native.emit("appHost.models.onProgress", progress);
+    expect(heard).toEqual([progress]);
+  });
+
+  test("appHost.translator is what the app said, and missing when it said nothing", () => {
+    installShim(fakeBridge().bridge, INFO);
+    expect(appHostOf()!.translator).toBeUndefined();
+    installShim(fakeBridge().bridge, {
+      ...INFO,
+      translator: { models: "packs" },
+    });
+    expect(appHostOf()!.translator).toEqual({ models: "packs" });
+  });
+
   test("leaves out what the app does not have", () => {
     const shim = installShim(fakeBridge().bridge, INFO) as Record<
       string,

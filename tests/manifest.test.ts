@@ -241,6 +241,8 @@ describe("check build", () => {
     expect(scripts).not.toContain("langle:check-settings");
     // Its refusal text, so a renamed message type cannot slip through.
     expect(scripts).not.toContain("is not an offered pair");
+    // Nor the switch that refuses YouTube's tlang (src/check/refuse-tlang.ts).
+    expect(scripts).not.toContain("checkRefuseTlang");
   });
 
   test("the check build answers settings requests in every content script", () => {
@@ -254,6 +256,14 @@ describe("check build", () => {
         readFileSync(`.output/langle-check/${file}`, "utf8"),
         file,
       ).toContain("langle:check-settings");
+    for (const file of [
+      "content-scripts/youtube.js",
+      "content-scripts/youtube-mobile.js",
+    ])
+      expect(
+        readFileSync(`.output/langle-check/${file}`, "utf8"),
+        file,
+      ).toContain("checkRefuseTlang");
   });
 
   test("the check build records errors in the worker, every content script and the pages", () => {

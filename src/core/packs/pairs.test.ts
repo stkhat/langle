@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { learningLanguages, nativeLanguages } from "../languages";
 import { readLock } from "./lock";
-import { fallbacksOf, packsFor, pairsOfPack } from "./pairs";
+import {
+  fallbacksOf,
+  modelPacksFor,
+  packsFor,
+  pairsOfPack,
+  type ModelPackName,
+} from "./pairs";
 
 describe("fallbacksOf", () => {
   it("is a dictionary's definitions written in another language than its native one", () => {
@@ -75,5 +81,56 @@ describe("pairsOfPack", () => {
   it("names none for a pack no offered pair uses", () => {
     expect(pairsOfPack("nl")[0]).toBeUndefined();
     expect(pairsOfPack("constructor")[0]).toBeUndefined();
+  });
+});
+
+describe("packsFor with the app's model packs", () => {
+  const models = (pack: ModelPackName) =>
+    ["mt-en-ja", "mt-de-en", "mt-en-fr", "mt-es-en"].includes(pack);
+
+  it("adds the models of learning → native and the definitions' en → native last", () => {
+    expect(packsFor("en", "ja", models)).toEqual([
+      ...packsFor("en", "ja"),
+      "mt-en-ja",
+    ]);
+    expect(packsFor("de", "fr", models)).toEqual([
+      ...packsFor("de", "fr"),
+      "mt-de-en",
+      "mt-en-fr",
+    ]);
+    expect(packsFor("es", "en", models)).toEqual([
+      ...packsFor("es", "en"),
+      "mt-es-en",
+    ]);
+  });
+
+  it("adds none without them (the extension, iOS)", () => {
+    expect(packsFor("en", "ja", undefined)).toEqual(packsFor("en", "ja"));
+    expect(packsFor("en", "ja").some((p) => p.startsWith("mt-"))).toBe(false);
+  });
+});
+
+describe("modelPacksFor", () => {
+  const having =
+    (...packs: string[]) =>
+    (pack: ModelPackName) =>
+      packs.includes(pack);
+
+  it("is the direct model, else two through English", () => {
+    const all = having("mt-en-ja", "mt-de-en", "mt-en-fr", "mt-de-fr");
+    expect(modelPacksFor("en", "ja", all)).toEqual(["mt-en-ja"]);
+    expect(modelPacksFor("de", "fr", all)).toEqual(["mt-de-fr"]);
+    expect(modelPacksFor("de", "fr", having("mt-de-en", "mt-en-fr"))).toEqual([
+      "mt-de-en",
+      "mt-en-fr",
+    ]);
+  });
+
+  it("is none for one language, or when a model on the way is missing", () => {
+    const some = having("mt-en-ja", "mt-de-en");
+    expect(modelPacksFor("en", "en", some)).toEqual([]);
+    expect(modelPacksFor("ja", "en", some)).toEqual([]);
+    expect(modelPacksFor("de", "fr", some)).toEqual([]);
+    expect(modelPacksFor("fr", "en", some)).toEqual([]);
   });
 });

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyOverrides, readLock, type PackLock } from "./lock";
+import {
+  applyOverrides,
+  modelPacksOf,
+  pairPacks,
+  readLock,
+  type PackLock,
+} from "./lock";
+import { packsFor } from "./pairs";
 
 const entry = (name: string) => ({
   package: `@langle/${name}`,
@@ -100,5 +107,38 @@ describe("readLock", () => {
       expect(pack.files.length).toBeGreaterThan(0);
       expect(pack).not.toHaveProperty("bundled");
     }
+  });
+});
+
+describe("pairPacks", () => {
+  const real = readLock();
+  // A hand-written lock with English → Japanese's model (M5b publishes the real ones).
+  const withModel = {
+    ...real,
+    packs: {
+      ...real.packs,
+      "mt-en-ja": { ...entry("mt-en-ja"), kind: "model" },
+      // A pack named like one that is not a model pack is not one.
+      "mt-en-es": entry("mt-en-es"),
+    },
+  } as PackLock;
+  const app = (models: string) => ({ appHost: { translator: { models } } });
+
+  it("adds the lock's model packs only where the app downloads them (Android)", () => {
+    expect(pairPacks("en", "ja", withModel, app("packs"))).toEqual([
+      ...packsFor("en", "ja"),
+      "mt-en-ja",
+    ]);
+    expect(pairPacks("en", "es", withModel, app("packs"))).toEqual(
+      packsFor("en", "es"),
+    );
+  });
+
+  it("adds none in the extension or where the system has the models (iOS)", () => {
+    expect(pairPacks("en", "ja", withModel, {})).toEqual(packsFor("en", "ja"));
+    expect(pairPacks("en", "ja", withModel, app("system"))).toEqual(
+      packsFor("en", "ja"),
+    );
+    expect(modelPacksOf(withModel, {})).toBeUndefined();
   });
 });

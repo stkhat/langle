@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "kind": "call",
+  "id": "c8",
+  "api": "appHost.models.ensure",
+  "args": [
+    {
+      "pack": "mt-en-ja",
+      "version": "2026.1126.0",
+      "files": [
+        {
+          "path": "model.enja.intgemm.alphas.bin.1",
+          "sha256": "3f1c0b6b0c1d2e9a8f7e6d5c4b3a29181716151413121110f0e0d0c0b0a09080",
+          "size": 19000000
+        },
+        {
+          "path": "vocab.enja.spm",
+          "sha256": "a0b1c2d3e4f5061728394a5b6c7d8e9f00112233445566778899aabbccddeeff",
+          "size": 815000
+        }
+      ],
+      "mirrors": [
+        "https://cdn.jsdelivr.net/npm/@langle/mt-en-ja@2026.1126.0/{file}",
+        "https://unpkg.com/@langle/mt-en-ja@2026.1126.0/{file}"
+      ]
+    }
+  ]
+}

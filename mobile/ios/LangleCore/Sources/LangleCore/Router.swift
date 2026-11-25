@@ -111,6 +111,17 @@ public final class Router {
   /// `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` with nil
   /// once it shows, or with why it could not.
   public var onShareFile: ((SharedFile, _ done: @escaping (String?) -> Void) -> Void)?
+  /// The app's translation host (docs/specs/mobile-translation.md "M5: the hosts"): the calls in
+  /// `translationApis`, with the context that asked (the host answers a page not on screen with
+  /// null at once) and the call's one argument; the app answers through `done`. Nil until the app
+  /// has a host: each such call fails with "<api> is not available here."
+  public var onTranslation:
+    (
+      (
+        _ from: ContextSpec, _ api: String, _ request: JSONValue?,
+        _ done: @escaping (Result<JSONValue?, BridgeError>) -> Void
+      ) -> Void
+    )?
 
   private let persistence: Persistence
   private let clock: Clock
@@ -292,6 +303,12 @@ public final class Router {
     tabs.open(url: url, active: active).id
   }
 
+  /// An event for the extension host (`appHost.models.onProgress`); dropped while it has not
+  /// said hello (it asks again when it starts).
+  public func postToHost(_ api: String, _ args: [JSONValue]) {
+    if let host { postEvent(host, api, args) }
+  }
+
   // MARK: alarms
 
   private func fire(_ alarm: Alarm) {
@@ -413,6 +430,9 @@ public final class Router {
       guard let file = SharedFile(args.first) else { throw BridgeError(SharedFile.error) }
       guard let share = onShareFile else { throw BridgeError(noSharing) }
       share(file) { error in done(error.map { .failure(BridgeError($0)) } ?? .success(nil)) }
+    case _ where translationApis.contains(api):
+      guard let host = onTranslation else { throw BridgeError(notAvailable(api)) }
+      host(context.spec, api, args.first, done)
     default:
       // storage.<area>.<get | set | remove | clear>
       let parts = api.split(separator: ".").map(String.init)

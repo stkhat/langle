@@ -48,6 +48,11 @@ public enum Envelope: Equatable, Sendable {
     "alarms.clear",
     "appHost.openPage",
     "appHost.shareFile",
+    "appHost.translate",
+    "appHost.translatorStatus",
+    "appHost.prepareTranslator",
+    "appHost.models.ensure",
+    "appHost.models.remove",
   ]
 
   /// What native code tells a script (protocol.ts `EVENT_APIS`).
@@ -57,6 +62,7 @@ public enum Envelope: Equatable, Sendable {
     "runtime.onStartup",
     "storage.onChanged",
     "alarms.onAlarm",
+    "appHost.models.onProgress",
   ]
 
   private static let callSet = Set(callApis)

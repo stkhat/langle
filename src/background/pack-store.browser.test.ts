@@ -11,6 +11,13 @@ import {
   type PackStore,
 } from "./pack-store";
 import { freshDb } from "../testing/db";
+import { createBridge } from "../app/bridge/bridge";
+import { createAppHost } from "../app/shim/app-host";
+import {
+  createReferenceNative,
+  type ReferenceTranslator,
+} from "../app/testing/reference-native";
+import type { AppModels, ModelPackRequest } from "../core/app-host";
 
 const MIRRORS = [
   "https://one.test/npm/{package}@{version}/{file}",
@@ -793,5 +800,152 @@ describe("pack store: removal and listing", () => {
     expect((await store.states(["es-en"]))["es-en"]).toMatchObject({
       state: "failed",
     });
+  });
+});
+
+/** A model pack in the lock (Android's, downloaded by native code). */
+const MODEL: PackLockEntry = {
+  package: "@langle-test/mt-en-ja",
+  version: "2026.1126.0",
+  format: 1,
+  kind: "model",
+  files: [
+    { path: "model.enja.intgemm8.bin", sha256: "aa", size: 600 },
+    { path: "vocab.enja.spm", sha256: "bb", size: 400 },
+  ],
+};
+
+async function lockWithModel(): Promise<PackLock> {
+  const lock = await testLock();
+  // Model packs are read by name (`own`): PackName does not list them.
+  const packs = { ...lock.packs, "mt-en-ja": MODEL } as PackLock["packs"];
+  return { ...lock, packs };
+}
+
+/**
+ * The app's background with native code downloading model packs (the reference
+ * native): each ensure is answered by `ensure`, which reports progress through it.
+ */
+async function appModels(ensure: ReferenceTranslator["ensure"]) {
+  const asked: ModelPackRequest[] = [];
+  const removed: string[] = [];
+  const native = createReferenceNative({
+    translator: {
+      status: () => "packs",
+      translate: () => null,
+      ensure: (request, progress) => {
+        asked.push(request);
+        return ensure?.(request, progress);
+      },
+      remove: (pack) => void removed.push(pack),
+    },
+  });
+  const bridge = createBridge(native.connect({ kind: "host" }).transport);
+  await bridge.call("bridge.hello", { context: "host" });
+  const models: AppModels = createAppHost(bridge, { models: "packs" }).models;
+  return { models, asked, removed };
+}
+
+const storeWithModels = (lock: PackLock, models: AppModels): PackStore =>
+  createPackStore({
+    db,
+    lock,
+    fetch: mirrors.fetch,
+    setState: (states) => {
+      written.push(states);
+    },
+    now: () => clock(),
+    models,
+  });
+
+describe("pack store: model packs", () => {
+  it("has the app download a model pack, keeping its state from the progress, and records it", async () => {
+    const lock = await lockWithModel();
+    const app = await appModels(async (_, progress) => {
+      progress(300);
+      progress(700);
+    });
+    clock = () => (time += 1000);
+    const store = storeWithModels(lock, app.models);
+    const switched = vi.fn();
+    store.onSwitch(switched);
+    expect(await store.ensure(["mt-en-ja"])).toEqual({
+      ready: ["mt-en-ja"],
+      failed: [],
+    });
+    expect(app.asked).toEqual([
+      {
+        pack: "mt-en-ja",
+        version: "2026.1126.0",
+        files: MODEL.files,
+        mirrors: [
+          "https://one.test/npm/@langle-test/mt-en-ja@2026.1126.0/{file}",
+          "https://two.test/@langle-test/mt-en-ja/2026.1126.0/{file}",
+        ],
+      },
+    ]);
+    expect(written.map((states) => states["mt-en-ja"])).toEqual([
+      { state: "downloading", received: 0, total: 1000 },
+      { state: "downloading", received: 300, total: 1000 },
+      { state: "downloading", received: 700, total: 1000 },
+      { state: "ready", received: 1000, total: 1000 },
+    ]);
+    expect(mirrors.requests).toEqual([]);
+    expect(switched).toHaveBeenCalledWith("mt-en-ja");
+    expect(await store.downloaded()).toEqual([
+      { pack: "mt-en-ja", version: "2026.1126.0", size: 1000 },
+    ]);
+    // The next worker finds it there without asking again.
+    const next = storeWithModels(lock, app.models);
+    expect(await next.states(["mt-en-ja"])).toEqual({
+      "mt-en-ja": { state: "ready", received: 1000, total: 1000 },
+    });
+    await next.ensure(["mt-en-ja"]);
+    expect(app.asked).toHaveLength(1);
+  });
+
+  it("never fetches a model pack itself: without the app's models it fails", async () => {
+    const lock = await lockWithModel();
+    const store = storeWith(lock);
+    expect(await store.ensure(["mt-en-ja"])).toEqual({
+      ready: [],
+      failed: ["mt-en-ja"],
+    });
+    expect(lastState()?.["mt-en-ja"]).toMatchObject({
+      state: "failed",
+      error: "Model packs are downloaded by the app",
+    });
+    expect(mirrors.requests).toEqual([]);
+  });
+
+  it("fails with what native code said, and is brought there by the retry", async () => {
+    const lock = await lockWithModel();
+    let offline = true;
+    const app = await appModels(async (_, progress) => {
+      progress(250);
+      if (offline) throw new Error("No mirror served model.enja.intgemm8.bin");
+    });
+    const store = storeWithModels(lock, app.models);
+    expect((await store.ensure(["mt-en-ja"])).failed).toEqual(["mt-en-ja"]);
+    expect(lastState()?.["mt-en-ja"]).toEqual({
+      state: "failed",
+      received: 250,
+      total: 1000,
+      error: "No mirror served model.enja.intgemm8.bin",
+    });
+    offline = false;
+    expect((await store.ensure(["mt-en-ja"])).ready).toEqual(["mt-en-ja"]);
+    expect(lastState()?.["mt-en-ja"]?.state).toBe("ready");
+  });
+
+  it("has the app delete a model pack's files when it is removed", async () => {
+    const lock = await lockWithModel();
+    const app = await appModels(async () => {});
+    const store = storeWithModels(lock, app.models);
+    await store.ensure(["mt-en-ja"]);
+    await store.remove("mt-en-ja");
+    expect(app.removed).toEqual(["mt-en-ja"]);
+    expect(await db.packVersions.get("mt-en-ja")).toBeUndefined();
+    expect(lastState()).toEqual({});
   });
 });

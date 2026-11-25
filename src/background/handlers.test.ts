@@ -629,6 +629,36 @@ describe("handlers: language data", () => {
     expect(packs.store.states).toHaveBeenCalledWith(["es", "es-en"]);
   });
 
+  it("lists the pair's model packs in the app on Android, which pages work without", async () => {
+    const model = {
+      package: "@langle/mt-en-ja",
+      version: "2026.1126.0",
+      format: 1,
+      kind: "model" as const,
+      files: [{ path: "model.bin", size: 900, sha256: "aa" }],
+    };
+    packs.lock = {
+      ...LOCK,
+      packs: { ...LOCK.packs, "mt-en-ja": model } as PackLock["packs"],
+    };
+    const g = globalThis as { appHost?: unknown };
+    g.appHost = { translator: { models: "packs" } };
+    try {
+      expect(await value({ type: "packStatus" })).toMatchObject({
+        pair: {
+          packs: [
+            { pack: "en" },
+            { pack: "en-ja" },
+            { pack: "en-defs", fallback: true },
+            { pack: "mt-en-ja", size: 900, fallback: true },
+          ],
+        },
+      });
+    } finally {
+      delete g.appHost;
+    }
+  });
+
   it("starts the current pair's downloads again for retryPacks", async () => {
     expect(await value({ type: "retryPacks" })).toBeNull();
     expect(packs.retry).toHaveBeenCalledTimes(1);

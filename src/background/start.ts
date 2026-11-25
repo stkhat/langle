@@ -67,12 +67,14 @@ export function startBackground(): void {
   });
 
   const lock = readLock();
+  const models = appHostOf()?.models;
   const packStore = createPackStore({
     db,
     lock,
     setState: (states) =>
       browser.storage.local.set({ [PACK_STATE_KEY]: states }),
     ...(checkLog && { onMirror: checkLog.onMirror }),
+    ...(models && { models }),
   });
   const loadPack = createPackLoader(createPackSource(packStore));
   const resources = createLanguageResources(loadPack);

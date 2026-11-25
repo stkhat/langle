@@ -1,0 +1,7 @@
+{
+  "v": 1,
+  "kind": "call",
+  "id": "c9",
+  "api": "appHost.models.remove",
+  "args": [{ "pack": "mt-en-ja" }]
+}
