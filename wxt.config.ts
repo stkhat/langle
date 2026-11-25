@@ -47,8 +47,12 @@ export default defineConfig({
       licenses.reset();
     },
     // Runs once every entrypoint is built: the licenses of all the packages they ship.
-    "build:publicAssets": (_wxt, files) => {
-      files.push({ relativeDest: LICENSES_FILE, contents: licenses.file() });
+    // The phone app's also lists the translation engine its APK ships.
+    "build:publicAssets": (wxt, files) => {
+      files.push({
+        relativeDest: LICENSES_FILE,
+        contents: licenses.file({ app: wxt.config.browser === "langle-app" }),
+      });
     },
   },
 });

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  engineLicenses,
   licensesFile,
   licenseTexts,
   packageDirOf,
@@ -154,6 +155,28 @@ describe("licensesFile", () => {
     expect(file.indexOf("@fontsource-variable/inter")).toBeLessThan(
       file.indexOf("preact "),
     );
+  });
+
+  it("lists the phone app's translation engine, each part with its repository's license", () => {
+    const file = licensesFile(
+      [join(modules, "preact")],
+      undefined,
+      engineLicenses(),
+    );
+    expect(file).toMatch(/^bergamot-translator 0\.6\.0 \(MPL-2\.0\)$/m);
+    expect(file).toMatch(/^marian \(bergamot-translator 0\.6\.0\) \(MIT\)$/m);
+    for (const part of [
+      "intgemm",
+      "sentencepiece",
+      "ssplit-cpp",
+      "pcre2",
+      "yaml-cpp",
+      "spdlog",
+      "zlib",
+    ])
+      expect(file).toMatch(new RegExp(`^${part} `, "m"));
+    expect(file).toContain("Mozilla Public License Version 2.0");
+    expect(file).toContain("Jean-loup Gailly and Mark Adler");
   });
 
   it("refuses a package with no license text", () => {
