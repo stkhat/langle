@@ -170,7 +170,7 @@ The iOS shell as the spec's "M4: the app's screens" ("The shells"): `Shell` in L
 - **L** opens `popup.html` in the sheet frame, over the dimmed page and the title bar, as in `MobileLangleSheet`. On the video, Subtitles → In video moved the subtitle into the video and Show transcript off removed the transcript (both put back afterwards). The sheet's word list button showed the Words tab and closed the sheet.
 - **Back**: ‹ shows Home and pauses the video; Continue's first row shows the kept page as it was (playing on from where it was); the edge swipe from the page's first entry shows Home.
 - **Error log**: 32 entries, all info (pack files served by the mirror); cleared.
-- **Not checked**: ⋮ (Forward, Share, Copy link, Open in another browser) and editing the title need taps; Words and Settings are still the desktop layouts (M4d).
+- **Not checked**: ⋮ (Forward, Share, Copy link, Open in another browser) and editing the title need taps; Words and Settings were still the desktop layouts (their phone layouts came in M4d).
 - **Found and fixed on the device**:
   - Continue names an m.youtube.com video by its canonical address (www.youtube.com), so it reloaded the kept page. The shell asks the page for `link[rel=canonical]` and shows the kept page when either address matches (`Shell.asksCanonical`, `handle(_:canonical:)`), as Android does.
   - The video kept playing after the sheet's word list button left the page: the page's media is now paused whenever another screen shows, not only on ‹ and the edge swipe.
@@ -180,7 +180,7 @@ The iOS shell as the spec's "M4: the app's screens" ("The shells"): `Shell` in L
 - The sheet frame is always at its full height (up to the status bar); the mock's `MobileLangleSheet` sizes it to its content. The page inside cannot tell the shell its height yet.
 - The title bar hides for Langle's in-page dictionary sheet in the mock (`MobileArticle`), but the shell hears only scrolling, so it stays.
 - Editing the title (a tap on it puts the address in an editable field) is not drawn in the mock; the field takes the title's place between ‹ and L, with the keyboard's Go.
-- The first run's "Not now" closes its tab with `tabs.getCurrent`, which the shim does not answer, so it does nothing in the app (M4d, with the first run's phone layout). Its "Sends" item still mentions connecting Google Drive, which the app does not offer yet (M4d).
+- The first run's "Not now" closed its tab with `tabs.getCurrent`, which the shim did not answer, so it did nothing in the app; M4d answers it in the shim and both shells (the page's own tab, `null` in the popup and Home), and the shell's existing `tabs.remove` of the first run's tab ends the first run. Its "Sends" item mentioned connecting Google Drive, which the app does not offer; with nothing synced it now names only the services a word is looked up or played with.
 - The bar follows the page's scroll offset, so a page that grows or shrinks above the view (YouTube's lists loading) can move the bar as a scroll would.
 
 ## Device checks (M3d, 2026-11-24)
@@ -240,7 +240,7 @@ The Android emulator (Android 17 image, WebView Dev 160), check build. Screens c
 - **Landscape**: YouTube's fullscreen button turns the screen with the system bars hidden; L on the video opens the sheet 520 dp wide (1,364 px at 2.625), centred (431 / 432 px each side). The scrim closes it; back leaves fullscreen.
 - **‹ and Continue**: ‹ pauses the video and shows Home; Continue's first row is the talk ("TED · 0:56 of 20:03") and shows it again without a reload (a mark set on the page was still there).
 - **Back**: through the page's history, then Home; on Words or Settings, Home; on Home, the app goes to the background.
-- **Tabs**: Home · Words · Settings switch the screen; Words and Settings still have their desktop layout (M4d).
+- **Tabs**: Home · Words · Settings switch the screen; Words and Settings still had their desktop layout (their phone layouts came in M4d).
 - **Article**: the E2E article under the title bar, laid out at desktop width and zoomed out (no viewport meta, as before).
 - **Error log**: two warnings, both before the fix below ("No answer from the page to getPlayerResponse"); the rest are info lines (packs served by the jsDelivr mirror). Cleared.
 - **Found and fixed on the device**:
@@ -250,7 +250,7 @@ The Android emulator (Android 17 image, WebView Dev 160), check build. Screens c
   - Four loads of the video in five showed no subtitles: the page script did not answer Langle's first `getPlayerResponse` within 5 s while YouTube was still loading on the emulator, and the adapter gave up. `captionInfo` now asks again until its 30 s deadline. Afterwards every load that was waited for had subtitles (five, the band within about 10 s); two more were looked at once only, before the page or its band had loaded.
 - **Open**:
   - The in-page dictionary sheet (a tapped word) does not hide the title bar; only the Langle sheet does.
-  - Welcome's "Not now" needs `tabs.getCurrent` in the shim (M4d).
+  - Welcome's "Not now" needed `tabs.getCurrent` in the shim (answered in M4d).
   - Home's search field keeps its text after a page opens.
   - The sheet's frame is 90% of the screen high; the mock's is about 94% (790 / 844).
   - The sheet's "On this site" says `www.youtube.com` on a watch page (the adapter's canonical address) and `m.youtube.com` on other YouTube pages.
