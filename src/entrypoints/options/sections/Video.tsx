@@ -196,7 +196,7 @@ function FullscreenRow(props: {
 }) {
   const title = t("settings.video.fullscreen");
   return (
-    <div class="row col">
+    <div class="row">
       <RowLabel title={title} desc={t("settings.video.fullscreenDesc")} />
       <div
         role="radiogroup"

@@ -85,8 +85,8 @@ export function ChoiceRow<T extends string>(props: {
 }) {
   const phone = useContext(PhoneRows);
   return (
-    // On a phone the options go under the title, across the row.
-    <div class={phone ? "row col" : "row"}>
+    // On a phone the options go under the title, across the row (`PHONE_SETTINGS_CSS`).
+    <div class="row">
       <RowLabel title={props.title} desc={props.desc} />
       <Segmented
         label={props.title}
@@ -117,7 +117,8 @@ export function LaterRow(props: { title: string; desc: string }) {
 
 /**
  * The phone layout's section styles, under `.ph` (mock MobileSettingsSection): the
- * title and lead on the page, and each run of rows on a white card.
+ * title and lead on the page, and each run of rows on a white card. A row whose
+ * control is not a switch puts it under the title, across the card.
  */
 export const PHONE_SETTINGS_CSS = `
 .ph .card{background:none;border:0;border-radius:0;padding:0;gap:0}
@@ -125,14 +126,14 @@ export const PHONE_SETTINGS_CSS = `
 .ph .card>.lead{margin-top:6px}
 .ph .h2{font-size:28px;font-weight:700;letter-spacing:-0.02em}
 .ph .lead{margin:0;font-size:14px}
-.ph :is(.row,.sub){min-height:64px;box-sizing:border-box;gap:14px;padding:12px 16px;background:${color.card};border:1px solid ${color.line};border-top-color:${color.soft};border-bottom:0}
+.ph .card>:is(.row,.sub){min-height:64px;box-sizing:border-box;gap:14px;padding:12px 16px;background:${color.card};border:1px solid ${color.line};border-top-color:${color.soft};border-bottom:0}
 .ph .card>:is(.row,.sub)+:is(.row,.sub){margin-top:0}
 .ph .card>:is(.row,.sub):not(:is(.row,.sub)+*){border-top-color:${color.line};border-radius:12px 12px 0 0}
 .ph .card>:is(.row,.sub):not(:has(+:is(.row,.sub))){border-bottom:1px solid ${color.line};border-bottom-left-radius:12px;border-bottom-right-radius:12px}
-.ph .sub{padding-left:28px}
+.ph .card>.sub{padding-left:28px}
 .ph :is(.row,.sub){flex-wrap:wrap}
-.ph .col{flex-direction:column;align-items:stretch;gap:10px}
-.ph .sel{height:44px;min-width:0;max-width:100%;font-size:16px}
+.ph :is(.row,.sub):not(:has([role=switch])){flex-direction:column;align-items:stretch;gap:10px}
+.ph .sel{height:44px;width:100%;min-width:0;font-size:16px}
 .ph .btn{height:44px;font-size:15px}
 .ph .st{min-width:0}
 `;

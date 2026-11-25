@@ -1705,6 +1705,21 @@ describe("SettingsPage on a phone", () => {
     expect(video.element().textContent).not.toContain("Keyboard shortcuts");
   });
 
+  it("puts a row's menu under its title, across the card", async () => {
+    const { screen } = await openPhone();
+    await pushed(screen, "Languages").click();
+    const select = screen
+      .getByRole("combobox", { name: /Learning language/ })
+      .element();
+    const row = select.closest(".row")!;
+    const title = row.querySelector("span")!.getBoundingClientRect();
+    const box = select.getBoundingClientRect();
+    expect(box.top).toBeGreaterThan(title.bottom);
+    // The card's width less its 16px sides and 1px borders.
+    expect(box.width).toBe(350 - 2 - 32);
+    expect(box.height).toBe(44);
+  });
+
   it("calls Sync and backup just Backup in the app, with no sync rows", async () => {
     const { screen } = await openPhone();
     await pushed(screen, "Backup").click();
