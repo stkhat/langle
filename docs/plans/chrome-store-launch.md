@@ -43,7 +43,7 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 - [ ] C5 Store icon: `icon/128.png` fills all 128 px; the store asks for about 96 px of artwork with transparent padding
 - [ ] C6 Rewrite the manifest description ("videos … you already read"); 132 characters at most
 - [ ] C7 Fill `KOFI_URL` in `src/core/links.ts`, and the feedback form if wanted (U makes the pages). `SPONSOR_PAGE_URL` stays empty and `SPONSOR_CARD` null, which hides the spot and both sponsor links
-- [ ] C8 Link the privacy policy from the consent screen and Settings
+- [ ] C8 Link the privacy policy from the consent screen and Settings. The consent screen's link is on since 2026-11-26 (`PRIVACY_POLICY_URL`); Settings has none yet (needs the mock first)
 - [ ] C9 Go through status "Known issues" and mark what blocks a launch. First candidates: PR 238 (draft, a settings change overwritten by an older echo), the first download (about 24 s for English → Japanese, one file at a time), no hover while a dictionary is missing
 - [x] C10 **Blocker**: correct the sync copy in Settings. It says only each word and its status are synced, but settings sync too (the hosts of Never run on and of switched-off sites among them), also with word sync off. Done 2026-11-24: the section's lead says settings, site lists included, are always saved to browser sync; the switch says it adds each word and its status
 - [x] C11 Language choice right after install (decided and built 2026-11-23): "Your languages" follows consent; Start downloads, returns to the page that was open before, reloads that tab if Langle isn't running in it, and opens the toolbar popup. Tested on headless Chromium. Left for G3, in Chrome itself: the popup opening by itself and across the reload, a page that asks before it is left, a page where extensions can't run, the translation model's download after the setup tab closes
@@ -51,8 +51,8 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 
 ## D. Public site (C writes, U publishes)
 
-- [ ] D1 **Blocker**: a public home page saying what Langle does, with support contact and a link to the policy
-- [ ] D2 **Blocker**: privacy policy
+- [x] D1 **Blocker**: a public home page saying what Langle does, with support contact and a link to the policy. Published 2026-11-26 at `https://kskt-dev.github.io/langle/` (mock page `Website`, [UI](../specs/ui.md) "Website"; source `site/`, copied to `kskt-dev/kskt-dev.github.io` by hand: see `site/README.md`)
+- [x] D2 **Blocker**: privacy policy. Published 2026-11-26 at `https://kskt-dev.github.io/langle/privacy/`, written from the [store data review](../notes/store-data-review.md) after C12 (PR #291); every bullet below is covered. Change it with any change to what Langle reads, keeps or sends
   - Stored on the device: terms, sentences, URLs and titles, sentence history, settings; retention and deletion
   - Browser sync: what goes there, the settings' host lists included
   - jsDelivr and unpkg: they see the IP address and the packs fetched
