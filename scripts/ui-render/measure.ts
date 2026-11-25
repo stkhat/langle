@@ -14,6 +14,10 @@ export interface Control {
   h: number;
   w: number;
   lines: number;
+  /** The most lines one of its text nodes takes: a label that wraps. */
+  wraps: number;
+  /** One of a row of sibling buttons (status buttons, segments, tabs). */
+  row: boolean;
   text: string;
 }
 
@@ -105,6 +109,44 @@ export function measure(scope: "page" | "langle"): Measured {
     }
     return tops.size;
   };
+  const wrapsOf = (el: Element) => {
+    const range = document.createRange();
+    let most = 0;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text;
+      if (!node.data.trim()) continue;
+      range.selectNodeContents(node);
+      const tops = new Set<number>();
+      for (const r of range.getClientRects())
+        if (r.width > 0) tops.add(Math.round(r.top / 4));
+      most = Math.max(most, tops.size);
+    }
+    return most;
+  };
+  const BUTTONS =
+    "button,[role=button],[role=tab],[role=radio],[role=menuitem]";
+  /**
+   * A one-label button among sibling buttons side by side (every visible child of its
+   * parent is one); not a card with a title and a description.
+   */
+  const inRow = (el: Element) => {
+    const parent = el.parentElement;
+    if (!parent || !el.matches(BUTTONS)) return false;
+    const label = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let runs = 0;
+    while (label.nextNode()) if (label.currentNode.textContent?.trim()) runs++;
+    if (runs !== 1) return false;
+    const kids = [...parent.children].filter((k) => {
+      if (k.localName === "style") return false;
+      return visible(k, getComputedStyle(k));
+    });
+    if (kids.length < 2 || !kids.every((k) => k.matches(BUTTONS))) return false;
+    const top = el.getBoundingClientRect().top;
+    return kids.some(
+      (k) => k !== el && Math.abs(k.getBoundingClientRect().top - top) < 2,
+    );
+  };
   const clips = (v: string) => v === "hidden" || v === "clip";
 
   const rtlUi =
@@ -191,6 +233,8 @@ export function measure(scope: "page" | "langle"): Measured {
           h: Math.round(r.height),
           w: Math.round(r.width),
           lines: lineCount(el),
+          wraps: wrapsOf(el),
+          row: inRow(el),
           text: label,
         });
       }

@@ -4,7 +4,7 @@ import type { DataNote } from "../../core/packs/state";
 import { languageName } from "../../i18n/languages";
 import { t, type MessageKey } from "../../i18n/t";
 import { LanguageDataNote } from "../packs/LanguageDataNote";
-import { segment, segmentGroup } from "../Segmented";
+import { segment, segmentGroup, useOptionRow } from "../Segmented";
 import { CloseIcon, MessageIcon } from "../icons";
 import { color, iconButton, root } from "../styles";
 import { LangleMark } from "../LangleMark";
@@ -235,6 +235,7 @@ function TabBody<R extends WordRow>(props: VideoPanelProps<R>) {
 /** The segmented control; the arrow keys move between the tabs (roving tabindex). */
 function Tabs(props: { tab: PanelTab; onTab: (tab: PanelTab) => void }) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const { ref, row, option } = useOptionRow(segmentGroup.gap);
   const move = (from: number, by: number) => {
     const next = (from + by + TABS.length) % TABS.length;
     props.onTab(TABS[next]!.id);
@@ -242,12 +243,12 @@ function Tabs(props: { tab: PanelTab; onTab: (tab: PanelTab) => void }) {
   };
   return (
     <div
+      ref={ref}
       role="tablist"
       aria-label={t("video.tabs")}
       style={{
         flex: 1,
-        display: "grid",
-        gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))`,
+        ...row,
         ...segmentGroup,
       }}
     >
@@ -273,9 +274,9 @@ function Tabs(props: { tab: PanelTab; onTab: (tab: PanelTab) => void }) {
               move(i, by);
             }}
             style={{
+              ...option,
               ...segment(selected),
               height: "32px",
-              minWidth: 0,
               padding: 0,
             }}
           >

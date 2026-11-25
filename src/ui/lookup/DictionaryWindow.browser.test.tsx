@@ -5,6 +5,8 @@ import {
   type DictionaryWindowProps,
 } from "./DictionaryWindow";
 import type { ExplainView } from "./InThisSentence";
+import de from "../../i18n/locales/de.json";
+import { setUiLocale, t } from "../../i18n/t";
 import { expectRightToLeft } from "../../testing/bidi";
 import {
   addPageStyle,
@@ -387,6 +389,76 @@ describe("DictionaryWindow", () => {
     await expect
       .element(group.getByRole("button", { name: "Remove" }))
       .not.toBeInTheDocument();
+  });
+
+  test("status buttons keep each label on one line, in a long translation too", async () => {
+    // Lines one text node takes: the label wrapped inside its button.
+    const linesOf = (button: Element) => {
+      const range = document.createRange();
+      range.selectNodeContents(button.firstChild!);
+      return new Set(
+        [...range.getClientRects()]
+          .filter((r) => r.width > 0)
+          .map((r) => Math.round(r.top)),
+      ).size;
+    };
+    const buttonsOf = (screen: Awaited<ReturnType<typeof mountInShadowRoot>>) =>
+      [
+        ...screen.getByRole("group", { name: t("dict.statusGroup") }).element()
+          .children,
+      ] as HTMLElement[];
+    const frames: DictionaryWindowProps[] = [
+      { ...figureOut, status: "new" },
+      { ...panel, status: "new" },
+      {
+        ...panel,
+        variant: "side",
+        frame: { top: 12, bottom: 12, right: 56, width: 300 },
+        status: "new",
+      },
+    ];
+
+    // English: three equal widths, as the mock draws them.
+    for (const props of frames) {
+      const screen = await mountInShadowRoot(<DictionaryWindow {...props} />);
+      const widths = buttonsOf(screen).map(
+        (b) => b.getBoundingClientRect().width,
+      );
+      expect(widths[1]).toBeCloseTo(widths[0]!, 1);
+      expect(widths[2]).toBeCloseTo(widths[0]!, 1);
+      cleanUpMounts();
+    }
+
+    // German, at the dictionary's real widths: "Nicht gespeichert" is wider than a
+    // third and takes the width it needs, on the same row in the window (360 px) and
+    // the panel (340 px). The touch panel's row (300 px, 14 px text) cannot hold all
+    // three: it wraps, and each label still keeps one line.
+    setUiLocale("de", de);
+    try {
+      for (const props of frames) {
+        const screen = await mountInShadowRoot(<DictionaryWindow {...props} />);
+        const buttons = buttonsOf(screen);
+        expect(buttons.map((b) => b.textContent)).toEqual([
+          "Lernen",
+          "Bekannt",
+          "Nicht gespeichert",
+        ]);
+        for (const b of buttons) {
+          expect(linesOf(b), b.textContent!).toBe(1);
+          expect(b.scrollWidth).toBeLessThanOrEqual(b.clientWidth);
+        }
+        const tops = buttons.map((b) => b.getBoundingClientRect().top);
+        if (props.variant !== "side") {
+          expect(new Set(tops).size).toBe(1);
+          const [a, b, c] = buttons.map((x) => x.getBoundingClientRect().width);
+          expect(b).toBeCloseTo(a!, 1);
+          expect(c).toBeGreaterThan(a!);
+        }
+        cleanUpMounts();
+      }
+    } finally {
+      setUiLocale("en");
+    }
   });
 
   test("the speaker button plays the pronunciation", async () => {
