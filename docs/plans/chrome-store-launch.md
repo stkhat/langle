@@ -20,7 +20,7 @@ Owner: **U** the user, **C** Claude, **U+C** Claude prepares and the user decide
 | A2 | Monetisation | **Decided 2026-11-23**: "Buy me a coffee" (Ko-fi) only; no affiliate card, no sponsor spot |
 | A3 | Trader or non-trader (EU) | **Decided 2026-11-23**: non-trader. The listing then tells EU users that consumer rights do not apply to contracts with the developer. Look at it again before earning more than donations (a sponsor, an affiliate card, sales) |
 | A4 | Repository visibility | **Decided 2026-11-23**: public while only testers can install. Before Public: decide again (private as first intended stops npm provenance and needs the site elsewhere) |
-| A5 | Publisher name, emails, site domain | **Contact email decided 2026-11-23**: the npm maintainer's address, already public, for the listing, the site, the policy and the OAuth consent screen. Open: the publisher name, the sign-in account (recommended: a separate Google account whose address is not published; it cannot be changed), the domain (one we can verify for Google: our own `github.io` host or a domain) |
+| A5 | Publisher name, emails, site domain | **Contact email decided 2026-11-23**: the npm maintainer's address, already public, for the listing, the site, the policy and the OAuth consent screen. **Sign-in account decided 2026-11-25**: another of the user's Google accounts, not the contact address (Google's identity check kept failing there, so its 2-Step Verification could not be turned on); its address is not published and stays out of this repository; it cannot be changed. The contact address is verified by mail and needs no sign-in. Open: the publisher name, the domain (one we can verify for Google: our own `github.io` host or a domain) |
 | A6 | The name "Langle" | **Decided 2026-11-23**: keep "Langle" |
 | A7 | First visibility | **Decided 2026-11-23**: Private to trusted testers. It gets the same review as Public |
 
@@ -28,10 +28,10 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 
 ## B. Account (U)
 
-- [ ] B1 **Blocker**: register the developer account and pay the one-time fee
+- [x] B1 **Blocker**: register the developer account and pay the one-time fee (2026-11-25, the sign-in account in A5)
 - [ ] B2 **Blocker**: 2-Step Verification; publisher name; verify the contact email (A5; it may differ from the sign-in account). Both the name and that email show on the listing
 - [ ] B3 **Blocker**: declare non-trader (A3)
-- [ ] B4 **Blocker**: upload a draft zip without submitting: this gives the item id, which the Google client needs (H1), and runs the store's installation test
+- [x] B4 **Blocker**: upload a draft zip without submitting: this gives the item id, which the Google client needs (H1), and runs the store's installation test. Item id `dldcjcapnikfmodbgnnlbkilbcepnbnf` (2026-11-25)
 - [ ] B5 **Blocker**: list the testers (Google accounts in the account settings, or a Google Group we own)
 
 ## C. Product (C)
@@ -91,7 +91,7 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 
 ## H. Google Drive (before the launch), then after it
 
-- [ ] H1 **Blocker** (U+C): production OAuth client with the redirect `https://<item id>.chromiumapp.org/`. Consent screen **In production even while only testers install**: in Testing only listed test users (100 at most) can connect and each has to agree again after 7 days. `drive.appdata` is non-sensitive, so no scope review; brand verification (needs D1, D2 and a verified domain) shows the name and logo. The support email there is public too (A5): that account, or a Google Group it manages, has to set it, so it needs access to the Cloud project. Risk to clear early: Google wants every authorized domain verified and `chromiumapp.org` cannot be ours; whether it is accepted is not confirmed
+- [ ] H1 **Blocker** (U+C): production OAuth client with the redirect `https://dldcjcapnikfmodbgnnlbkilbcepnbnf.chromiumapp.org/` (the item id, B4). Consent screen **In production even while only testers install**: in Testing only listed test users (100 at most) can connect and each has to agree again after 7 days. `drive.appdata` is non-sensitive, so no scope review; brand verification (needs D1, D2 and a verified domain) shows the name and logo. The support email there is public too (A5): that account, or a Google Group it manages, has to set it, so it needs access to the Cloud project. Risk to clear early: Google wants every authorized domain verified and `chromiumapp.org` cannot be ours; whether it is accepted is not confirmed
 - [ ] H2 `REVIEW_URLS.chromeWebStore`: it can go in as soon as B4 gives the id, but the page works only once public
 - [ ] H3 Watch reviews, the support email and policy mails (violations allow 7–30 days)
 
