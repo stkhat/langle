@@ -395,6 +395,7 @@ export function createYouTubeAdapter(
     fillsWindow: () => layout.fullscreenBox() !== null,
     narrowPlayer,
     hideSiteCaptions: hideCaptions,
+    setPageGate: (open) => bridge.setGate(open),
     dispose() {
       for (const cleanup of cleanups.splice(0)) cleanup();
       hideCaptions(false);

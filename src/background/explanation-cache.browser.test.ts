@@ -107,9 +107,50 @@ describe("explanation cache", () => {
     expect(await cache.get(KEY)).toBeUndefined();
     expect(await cache.get({ ...KEY, native: "es" })).toEqual(kept("orilla"));
   });
+
+  it("clears every answer", async () => {
+    await cache.put(KEY, kept("土手"));
+    await cache.put({ ...KEY, native: "es" }, kept("orilla"));
+    await cache.clear();
+    expect(await db.explanations.count()).toBe(0);
+  });
+
+  it("forgets the answers of a host and its subdomains, and only those", async () => {
+    const on = (sourceUrl: string) => ({ ...KEY, sourceUrl });
+    await cache.put(on("https://example.com/river"), kept("土手"));
+    await cache.put(on("https://news.example.com/a"), kept("銀行"));
+    await cache.put(on("https://notexample.com/b"), kept("岸"));
+    await cache.put(on("https://example.org/c"), kept("堤"));
+    expect(await cache.forgetHost(" Example.com ")).toBe(2);
+    expect(await cache.get(on("https://example.com/river"))).toBeUndefined();
+    expect(await cache.get(on("https://news.example.com/a"))).toBeUndefined();
+    expect(await cache.get(on("https://notexample.com/b"))).toEqual(kept("岸"));
+    expect(await cache.get(on("https://example.org/c"))).toEqual(kept("堤"));
+    expect(await cache.forgetHost("example.com")).toBe(0);
+  });
 });
 
 describe("explanation messages", () => {
+  it("are cleared with the sentence history", async () => {
+    const background = testBackground();
+    try {
+      await background.send({
+        type: "putExplanation",
+        explanation: KEY,
+        ...kept("土手"),
+      });
+      expect(
+        await background.send({ type: "getExplanation", explanation: KEY }),
+      ).toEqual(kept("土手"));
+      await background.send({ type: "clearHistory" });
+      expect(
+        await background.send({ type: "getExplanation", explanation: KEY }),
+      ).toBeNull();
+    } finally {
+      await background.close();
+    }
+  });
+
   it("keep answers by the source's normalized URL and drop them with the pair's packs", async () => {
     const background = testBackground(
       { learningLang: "es", nativeLang: "en" },

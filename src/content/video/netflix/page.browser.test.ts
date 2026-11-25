@@ -124,6 +124,22 @@ describe("reading manifests from JSON.parse", () => {
   });
 });
 
+describe("while the site is switched off", () => {
+  it("neither posts nor keeps what the page parses, and takes the next one once on", async () => {
+    await flush();
+    tellPage(CHANNEL, "wait");
+    await flush();
+    JSON.parse(testManifest());
+    await flush();
+    expect(posted).toEqual([]);
+    tellPage(CHANNEL, "on");
+    await flush();
+    expect(posted).toEqual([]);
+    JSON.parse(testManifest());
+    await expect.poll(() => posted.map((m) => m.movieId)).toEqual([MOVIE_ID]);
+  });
+});
+
 describe("answering the content script", () => {
   let page: TestPage;
   beforeEach(() => {

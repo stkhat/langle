@@ -101,14 +101,25 @@ type ChangeKind = "terms" | "occurrences";
 type ChangeOrigin = "local" | "sync";
 
 /**
+ * How a save is kept. `withoutSource`: the term and its status only, with no page,
+ * sentence or meaning choice (a save from a private window, architecture "Incognito").
+ */
+export interface SaveOptions {
+  withoutSource?: boolean;
+}
+
+/**
  * Local changes are timed after what they replace (architecture "Merge"): a term's
  * change at `max(now, its updatedAt + 1)`, a removal also after the term's rows and
  * choices, a choice after the one it replaces; a new row (`addedAt`) or choice is no
  * earlier than the term's `clearedAt`. Rows recorded here carry this device's id.
  */
 export interface TermStore {
-  /** Creates or updates a term and records where it was saved. */
-  saveTerm(input: SaveTermInput): Promise<TermRecord>;
+  /**
+   * Creates or updates a term and records where it was saved (not `withoutSource`:
+   * then the term and its status only).
+   */
+  saveTerm(input: SaveTermInput, options?: SaveOptions): Promise<TermRecord>;
   setStatus(id: string, status: TermStatus): Promise<TermRecord>;
   /** Leaves a tombstone and deletes the term's occurrences, choices and meanings. */
   removeTerm(id: string): Promise<void>;
@@ -117,9 +128,13 @@ export interface TermStore {
    * none (`meaning` null: an undo, which leaves the term saved). An unsaved term is
    * saved as Learning with the sentence (`saved`); a saved term without the sentence
    * gets it (`encountered`). A meaning no choice names any more is dropped. Returns the
-   * term; null for an undo with nothing to undo.
+   * term; null for an undo with nothing to undo. `withoutSource` keeps no choice: an
+   * unsaved term is saved as Learning without the sentence, a saved one is left as it is.
    */
-  chooseMeaning(input: ChooseMeaningInput): Promise<TermRecord | null>;
+  chooseMeaning(
+    input: ChooseMeaningInput,
+    options?: SaveOptions,
+  ): Promise<TermRecord | null>;
   /** A term's meanings and the choices that name one, each with its source's URL. */
   meaningsOf(
     termId: string,
@@ -145,12 +160,16 @@ export interface TermStore {
     termId: string,
     rows: readonly ImportedOccurrence[],
   ): Promise<number>;
-  /** Saves the keys that are not saved yet as `bulk` terms; saved ones keep their status. */
+  /**
+   * Saves the keys that are not saved yet as `bulk` terms; saved ones keep their status.
+   * The source is kept too, unless `withoutSource`.
+   */
   saveAll(
     lang: string,
     keys: readonly string[],
     status: TermStatus,
     source: SourceInput,
+    options?: SaveOptions,
   ): Promise<{ batchId: string; count: number }>;
   /** Removes the terms the batch created that nobody changed since. Returns how many. */
   undoSaveAll(batchId: string): Promise<number>;
@@ -549,12 +568,10 @@ export function createTermStore(
   }
 
   /**
-   * Writes the term with the input's status (timed after the version it replaces, whose
-   * `clearedAt` it keeps), and the sentence as one it was saved from: a copy already
-   * there stays when it wins the fixed order (`mergeCopy`: an earlier saved one). The
-   * caller trims its occurrences.
+   * Writes the term with the input's status, timed after the version it replaces (whose
+   * `clearedAt` it keeps). Returns the term and when it was written.
    */
-  async function writeSaved(input: SaveTermInput, now: number, device: string) {
+  async function writeTerm(input: SaveTermInput, now: number) {
     const id = termId(input.lang, input.key);
     const existing = await db.terms.get(id);
     const at = Math.max(now, existing ? existing.updatedAt + 1 : 0);
@@ -575,9 +592,18 @@ export function createTermStore(
       at,
     );
     await db.terms.put(term);
+    return { term, at };
+  }
 
+  /**
+   * `writeTerm`, and the sentence as one it was saved from: a copy already there stays
+   * when it wins the fixed order (`mergeCopy`: an earlier saved one). The caller trims
+   * its occurrences.
+   */
+  async function writeSaved(input: SaveTermInput, now: number, device: string) {
+    const { term, at } = await writeTerm(input, now);
     const occurrence = makeOccurrence(
-      id,
+      term.id,
       await upsertSource(input.source, at),
       input,
       at,
@@ -598,8 +624,14 @@ export function createTermStore(
   });
 
   return {
-    async saveTerm(input) {
+    async saveTerm(input, { withoutSource = false } = {}) {
       if (!input?.source) throw new Error("saveTerm needs a source");
+      if (withoutSource)
+        return mutate(async (changes) => {
+          const { term } = await writeTerm(input, now());
+          changes.add(input.lang, "terms");
+          return term;
+        });
       // Read before the transaction: only database work may be waited for inside it.
       const device = await deviceId();
       return mutate(async (changes) => {
@@ -610,11 +642,26 @@ export function createTermStore(
       });
     },
 
-    async chooseMeaning({ term: input, meaning }) {
+    async chooseMeaning(
+      { term: input, meaning },
+      { withoutSource = false } = {},
+    ) {
       if (!input?.source) throw new Error("chooseMeaning needs a source");
       if (meaning !== null && !isMeaning(meaning))
         throw new Error("chooseMeaning needs a meaning or null");
       const id = termId(input.lang, input.key);
+      if (withoutSource)
+        return mutate(async (changes) => {
+          const existing = await db.terms.get(id);
+          if (isLive(existing)) return existing;
+          if (meaning === null) return null;
+          const { term } = await writeTerm(
+            { ...input, status: "learning" },
+            now(),
+          );
+          changes.add(input.lang, "terms");
+          return term;
+        });
       // Read before the transaction: only database work may be waited for inside it.
       const [device, key] = await Promise.all([
         deviceId(),
@@ -768,7 +815,7 @@ export function createTermStore(
       });
     },
 
-    saveAll(lang, keys, status, source) {
+    saveAll(lang, keys, status, source, { withoutSource = false } = {}) {
       if (!source) return Promise.reject(new Error("saveAll needs a source"));
       return mutate(async (changes) => {
         const at = now();
@@ -801,7 +848,7 @@ export function createTermStore(
         await db.terms.bulkPut(created);
         const count = created.length;
         if (count > 0) {
-          await upsertSource(source, at);
+          if (!withoutSource) await upsertSource(source, at);
           changes.add(lang, "terms");
         }
         return { batchId, count };
