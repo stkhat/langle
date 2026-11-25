@@ -24,7 +24,7 @@ Langle on each page (subtitles, dictionary window, lists)
 
 - **Shared code**: what today calls Chrome's Translator API directly (creating a translator, `builtInTranslatorAvailable`, starting model downloads) moves behind one part, `TranslatorBackend` (`content/translate/backend.ts`). The page picks the bridge provider when the app's bridge exists, detected by the feature, not by platform name (architecture: "Browser differences").
 - **The host** translates one sentence at a time. Which sentence comes next is the page's queue's decision. Each request tells the host whether it may start the engine and whether it keeps the engine alive (both false for `list`).
-- **Android's hidden WebView** loads only files the app serves (`shouldInterceptRequest`), from the app's own origin, with no network. It sits behind the engine interface, so a switch to GeckoView changes only the host's inside (notes: "Android engine", boundary 1).
+- **Android's hidden WebView** loads only files the app serves (`shouldInterceptRequest`), from the app's own origin, with no network. It sits behind the engine interface, so a switch to GeckoView changes only the host's inside (notes: "Android engine", boundary 1). It has a profile of its own (`translate`), so it gets a renderer process of its own (renderers are per profile, notes: "Android extension host spike (S2)"): the engine's memory and a crash stay out of the pages and the extension host (M5, 2026-11-26).
 - **The bridge is reachable from Langle's scripts only**, never from the page's own scripts. How this holds on WebView older than 146 belongs to the extension API shim's design.
 - One engine for the app, not one per tab: Bergamot holds about 340 MB. The host serves the page on screen only; a page in the background gets no translation until it is shown again.
 
@@ -51,7 +51,7 @@ The queue serves, the most urgent first:
 ## Failures
 - **Engine error or Worker crash**: that request gets no translation; the next request restarts the engine once. If the restarted engine fails too, on-device translation stays off until the page or video is opened again (English shows).
 - **No answer**: loading gives up after 30 seconds, one sentence after 10 seconds, each as no translation. Both numbers are provisional and tuned on real phones.
-- **Android renderer gone**: the hidden WebView shares the renderer process with the pages, so both go. The app creates the host again and reloads the page, as a browser restores a crashed tab.
+- **Android renderer gone**: the hidden WebView has its own renderer (its own profile), so only the engine goes: waiting requests get no translation and the next one starts it again, as for a Worker crash. A page's renderer gone is the shell's existing rule (mobile-app.md "Engine boundary").
 - **iOS `notInstalled`**: the translator is not ready (see "Downloads").
 
 ## Downloads and what they show
@@ -80,3 +80,32 @@ Follows [testing.md](../testing.md).
 1. **Shared code, useful to the extension now**: `ahead` and cancelling in the queue, translate-ahead in the video session.
 2. **The translator part** that hides the Translator API (creating, availability, downloads) behind one interface, with the extension's implementation; no change in behaviour.
 3. **The app's hosts and bridge provider**, after the app's skeleton, the extension API shim and the engine boundary are designed (notes: "Next steps" 3).
+
+## M5: the hosts (approved with the user on 2026-11-26)
+"Build order" 3, with the user's choices of 2026-11-26: Android stays on Mozilla's models (not ML Kit); models for all 18 directions the 19 offered pairs need are published in M5; the early-load missing subtitles (notes "Open items for M4") are fixed in M5; ad blocking, own-cloud sync, Share / Open with and the checks before release are M6 or later.
+
+### The bridge
+- `appHost.translate` `{ from, to, text, start }` → the translation or `null`. `start` is false only for `list`: such a request neither starts the engine nor counts as a use for the 60-second release. The queue passes it to the provider (`TranslationProvider.translate(text, { start })`, an optional argument the built-in translator ignores).
+- `appHost.translatorStatus` `{ from, to }` → `ready` (can translate now), `download` (iOS: Apple's models to be downloaded, needs the consent sheet), `packs` (Android: the model packs are not on the phone yet) or `unavailable`.
+- `appHost.prepareTranslator` `{ from, to }` (iOS): shows Apple's consent sheet; resolves with the status after it closes.
+- `appHost.translator` (a value in the shim, no call): `{ models: "packs" | "system" }`. `packs` (Android) makes `packsFor` add the pair's model packs, only in the app; `system` (iOS) adds none. Detected by the feature, never the platform's name.
+- The native host answers a request from a page that is not on screen with `null` at once.
+
+### The bridge provider (shared TS)
+- `TranslatorBackend` picks it where `appHost` exists (`translatorBackend()`). `create` → a provider whose `open` asks `translatorStatus` (`download: false` never shows a sheet), `translate` calls `appHost.translate`, and `watchDownload` follows the model packs' `packState` (Android, with their share) or the sheet (iOS, no share).
+- `available` is `translatorStatus` other than `unavailable`. `downloadModels` calls `prepareTranslator` on iOS (right after the languages are chosen) and does nothing on Android (the packs download with the pair's). `downloadOnFirstActivation` does nothing in the app.
+
+### Model packs (Android)
+- One npm package per direction, `@langle/mt-<from>-<to>` (18: `en` to each of the 15 natives, `de`, `es` and `fr` to `en`), in the lock with `kind: "model"`, files split below the CDNs' per-file limit and each checked by SHA-256. A pair with no direct model uses two through English (`de`→`fr` = `mt-de-en` + `mt-en-fr`); the definitions' language (English) to the native one uses the same packs.
+- **Native code downloads them** into the app's files (boundary 2), from the lock's mirrors in order, checking each file: the background asks with `appHost.models.ensure` (`{ pack, files: [{ path, sha256, size }], mirrors }`), progress and the end come back as `appHost.models.onProgress` events, and the background keeps them in `packState` like any pack, so Settings' "Language data" row shows them with the states it has. `appHost.models.remove` deletes a pack's files. Nothing of the model crosses the bridge.
+- Bergamot's WebAssembly build and its glue are code: pinned by version and SHA-256, fetched by a script and shipped in the APK (never downloaded at run time). Mozilla's models and Bergamot: their licences are checked before anything is published, and their notices go on the app's notices page.
+
+### The Android host
+- A hidden WebView in the `translate` profile on the app origin loads `translate-host.html` (shared TS in the `langle-app` build): it runs Bergamot in a Worker, reads the model files the app serves from its files, and translates through English where the pair needs it. Native code relays requests, keeps the release rules (60 seconds, `TRIM_MEMORY_UI_HIDDEN`, one restart, 30- and 10-second limits) and serves the files.
+
+### The iOS host
+- `TranslationSession(installedSource:target:)` with `preferredStrategy` `highFidelity`; the status from `LanguageAvailability`; `prepareTranslator` presents a SwiftUI view with `translationTask` and `prepareTranslation()`. The same release rules (scene background in place of `TRIM_MEMORY_UI_HIDDEN`).
+- Settings' "Language data" row for the pair shows "Translator not downloaded" with "Download" while the status is `download` (mock first).
+
+### Checks on the devices
+- Check builds get a switch through `langle:check-settings` that treats YouTube's translation as refused, so a video that would get `tlang` (the TED baseline) shows on-device translated subtitles. Production builds leave it out.

@@ -1,4 +1,4 @@
-# Mobile app: implementation plan (M0, spikes S1 and S2, M1, M2, M3 and M4)
+# Mobile app: implementation plan (M0, spikes S1 and S2, M1 to M5)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -666,3 +666,105 @@ M4e found that Words ⋮ (Anki, CSV, Backup, Import) and Settings › Backup (Ex
 - **iOS**: the file goes to the temporary folder's `shared/`, then `UIActivityViewController` from the top view controller (on iPad a popover in the middle, no arrow). WKWebView answers a file input with its own picker; nothing in the shell's setup blocks it.
 - **Tests**: `save-file.browser.test.ts` (the download, and the share sheet where `appHost` exists), Words' phone test exporting each format through a stand-in `appHost`, the routers' `appHost.shareFile` tests, core's `pickerTypes`.
 - **Device checks** (Android, then iOS, check build): each export from Words ⋮ and Settings › Backup opens the share sheet with the right file; saved, its contents are right; Import of that backup through the picker brings the words back; the error log read and cleared.
+## M5: the translation hosts (planned 2026-11-26)
+
+Spec [mobile-translation.md](../specs/mobile-translation.md) "M5: the hosts" (the user's choices of 2026-11-26 are at its top). Every M5 branch starts from `main` and runs `npm run verify -- --skip-firefox` before every push; the known flaky "No dictionary from en to en" is run again, not fixed.
+
+**Progress**
+
+- [x] M5 designed (2026-11-26, with the user): spec "M5: the hosts"
+- [ ] M5-0: the iOS row state in the mock and ui.md (the parent session)
+- [ ] M5a: the bridge and the bridge provider (shared TS) (branch `claude/mobile-m5a`)
+- [ ] M5b: the model packs' pipeline, the engine files, `mt-en-ja` (branch `claude/mobile-m5b`)
+- [ ] M5c: the Android host (branch `claude/mobile-m5c`)
+- [ ] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`)
+- [ ] M5e: the other 17 model packs (branch `claude/mobile-m5e`)
+- [ ] M5f: subtitles missing on an early load (branch `claude/mobile-m5f`)
+- [ ] M5g: device checks, Android then iOS (branches `claude/mobile-m5g-android`, `claude/mobile-m5g-ios`)
+
+**Running order** (at most three agents at once; one agent per step; a device check is one agent per device; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`):
+
+- Wave 1: M5-0 (the parent, in the mock), M5a, M5b, M5f.
+- Wave 2: M5c (after M5a and M5b are merged), M5e (after M5b is merged; the user taps once for npm trust).
+- Wave 3: M5d (after M5a is merged, M5-0 reviewed, and M5c's emulator shut down).
+- M5g last, Android first, then iOS, after every other M5 branch is merged.
+- **Devices**: before booting, check outside the sandbox that the other one is off (`pgrep -fl qemu-system`, `xcrun simctl list devices booted`); shut it down when done. After an iOS agent ends, the parent checks `booted` again (the Simulator panel can boot it again). Agents that need a device and are not the only one running **stop and report "ready for the device"**; the parent resumes them when it is free.
+- **Every agent**: "Before you start (every agent)" above. Each step ends with a draft PR, the body read back, `gh pr ready`; the parent merges with `~/.claude/scripts/merge-when-green.sh <n> --cleanup`.
+
+### M5-0: the mock (the parent session)
+
+- On the mock's `Mobile app` page, Settings → Language data: the pair's row with "Translator not downloaded" and "Download" (iOS, after the consent sheet was declined), as an `initial` state of `MobileSettingsSection`. Android's model row needs nothing new (a pack row).
+- ui.md "Mobile app" to match; the user reviews before M5d.
+
+### M5a: the bridge and the bridge provider (one agent, Opus)
+
+Branch `claude/mobile-m5a`.
+
+**Files**: `src/app/bridge/protocol.ts` (+ test), `mobile/protocol/` (new golden files), `src/app/shim/app-host.ts`, `src/core/app-host.ts`, `src/app/testing/reference-native.ts` (+ test), `src/content/translate/` (`translator.ts`, `queue.ts`, `backend.ts`, a new `bridge-backend.ts`, tests), `src/core/packs/pairs.ts` (`packsFor` with model packs) and the lock's types (`kind: "model"`), `src/background/pack-store.ts` (model packs go to `appHost.models`), `src/check/settings-channel.ts` and the YouTube adapter's caption loading (the check-only "refuse `tlang`" switch), both routers' API lists (Kotlin `Router.kt`, Swift `Router.swift`: the new calls are routed to an app-service slot that answers "not available" until M5c / M5d).
+
+**Tasks**
+
+- [ ] **Protocol**: calls `appHost.translate`, `appHost.translatorStatus`, `appHost.prepareTranslator`, `appHost.models.ensure`, `appHost.models.remove`; event `appHost.models.onProgress`. Golden files, parsed and produced by TS, JUnit and XCTest (the routers' golden tests). Commit.
+- [ ] **`start`**: the queue passes `{ start: rank !== list }` to `translate`; the built-in provider ignores it. Unit tests: `list` gets `start: false`, the others true. Commit.
+- [ ] **The bridge provider** (`bridge-backend.ts`) and its choice in `translatorBackend()` where `appHost` exists, with a fake host (`reference-native.ts`'s translator: statuses, a page not on screen answered with `null`, aborts). Unit tests for every spec bullet of "The bridge provider". Commit.
+- [ ] **Model packs in the store**: `packsFor` adds the pair's model packs (direct or through English) only where `appHost.translator.models` is `packs`; `PackStore` hands `kind: "model"` packs to `appHost.models.ensure` and keeps their `packState` from the progress events; Remove calls `appHost.models.remove`. Tests with the reference native: the extension and `system` never fetch a model pack; the row's states (share, failed, Retry). Commit.
+- [ ] **The check switch**: a check-build setting that makes the YouTube adapter treat `tlang` as refused (the recorded 429 path); left out of production (`npm run test:manifest` or the production-build check covers it). Unit test. Commit.
+- [ ] **Docs**: architecture.md ("Browser differences", packs), development.md (the switch), status.md, tick M5a. Draft PR "Mobile app M5a: the translation bridge", `gh pr ready`.
+
+### M5b: the model packs' pipeline and the engine files (one agent, Opus)
+
+Branch `claude/mobile-m5b`. No device.
+
+**Files**: a new `scripts/data/mt-models.ts` (+ test), `scripts/data/formats.ts` (`LICENSES`), `scripts/data/publish.ts`, `src/core/packs/packs.lock.json`, `pack-sizes.test.ts`, a new `scripts/mobile/bergamot.ts` (engine files into a git-ignored folder the Android build reads), `mobile/android/app/build.gradle.kts`, `.gitignore`, the notices page's data.
+
+**Tasks**
+
+- [ ] **Licences first**: Mozilla's translation models and the Bergamot WebAssembly build: their licences and terms, recorded in notes/mobile.md with links. If either forbids redistribution through npm or in the APK, stop and report.
+- [ ] **The source**: Mozilla's released models (the model registry), pinned per direction by version and SHA-256; the script fetches, checks, splits each file below the CDNs' per-file limit (find jsDelivr's and unpkg's limits and record them) and writes `data/packs/mt-<from>-<to>/`. Unit tests for splitting and joining. Commit.
+- [ ] **The lock**: `kind: "model"` packs, their sizes in `pack-sizes.test.ts`, `LICENSES` and README per package. Only `mt-en-ja` in this branch. Commit.
+- [ ] **Placeholder and trust**: `@langle/mt-en-ja@0.0.0` and `npm trust` as the memory's default way; the agent **stops and reports** before the trust step so the parent asks the user for the tap.
+- [ ] **The engine files**: `scripts/mobile/bergamot.ts` fetches the pinned WebAssembly build and glue, checks SHA-256, writes them where the Android build copies them into its assets; `mobile/android` fails its build with a clear message when they are missing. Commit.
+- [ ] **Docs**: architecture.md (model packs), development.md (the scripts), notes/mobile.md (licences, sizes), status.md, tick M5b. Draft PR "Mobile app M5b: model packs", `gh pr ready`. The parent runs packs.yml after the merge.
+
+### M5c: the Android host (one agent, Opus)
+
+Branch `claude/mobile-m5c`, from `main` with M5a and M5b merged.
+
+**Files**: a new `src/entrypoints/translate-host/` (`index.html`, `main.ts`, the Worker; `langle-app` only) + browser test with a fake engine; `mobile/android/core/` (a `TranslationHost` with the release rules and limits on an injected clock, the model downloader with SHA checks and mirrors, + JUnit); `mobile/android/app/` (the `translate` profile's WebView, serving the model files from the app's files, `TRIM_MEMORY_UI_HIDDEN`, renderer gone).
+
+**Tasks**
+
+- [ ] **JUnit first** (fake clock, fake engine): the 60-second release, the release when the UI is hidden, one restart then off until the page is opened again, the 30- and 10-second limits, `start: false` never starting the engine, a page not on screen answered with `null`. Commit.
+- [ ] **The downloader** (JUnit with a fake server): mirrors in order, SHA-256 per file, progress events, a failed file → failed, remove. Commit.
+- [ ] **`translate-host.html`** and its Worker: Bergamot from the app's files, pivot through English; browser test with a fake Bergamot module. Commit.
+- [ ] **The WebView** in the `translate` profile, wired to the host and the router. Build. **Report "ready for the device"**. On the emulator: the model downloads from Settings' row; a tapped word's English definition is translated; the memory given back on release (~300 MB); killing the `translate` renderer leaves the page and the extension host. Error log read, fixed or explained, cleared. Shut the emulator down.
+- [ ] **Docs**: notes/mobile.md (what the emulator showed), development.md, status.md, tick M5c. Draft PR "Mobile app M5c: the Android translation host", `gh pr ready`.
+
+### M5d: the iOS host and the Settings row (one agent, Opus)
+
+Branch `claude/mobile-m5d`, from `main` with M5a merged, M5-0 reviewed, and the emulator off.
+
+**Files**: `mobile/ios/LangleCore/` (the host's release rules and limits on an injected clock, + XCTest), `mobile/ios/Langle/` (`TranslationSession`, `LanguageAvailability`, the consent view with `translationTask`, scene phase), `src/entrypoints/options/sections/` (the Language data row's "Translator not downloaded" / "Download" where the status is `download`) + browser test, `src/i18n/locales/en.json`.
+
+**Tasks**
+
+- [ ] **XCTest first** (fake clock, fake session): the same cases as M5c's JUnit. Commit.
+- [ ] **The host** on Apple Translation; `prepareTranslator` from the first run's Start and from the row's Download. Commit.
+- [ ] **The row** as the mock's state; render at 390 × 844 against it. Commit.
+- [ ] Build. **Report "ready for the device"**. On the Simulator: the sheet, a tapped word's definition translated, the release. If the Simulator cannot translate, record it and leave the rest to the real-iPhone check (spec "Testing"). Error log read, fixed or explained, cleared. Shut the Simulator down.
+- [ ] **Docs**: notes/mobile.md, ui.md if anything differs (mock first), status.md, tick M5d. Draft PR "Mobile app M5d: the iOS translation host", `gh pr ready`.
+
+### M5e: the other 17 model packs (one agent, Sonnet)
+
+Branch `claude/mobile-m5e`, from `main` with M5b merged. M5b's script for the 17 other directions, the lock, sizes, licences; placeholders and `npm trust` for all 17 in one run (**stop and report** before the trust step for the user's one tap). Draft PR "Mobile app M5e: model packs for every pair", `gh pr ready`. The parent runs packs.yml after the merge.
+
+### M5f: subtitles missing on an early load (one agent, Opus)
+
+Branch `claude/mobile-m5f`. notes/mobile.md "Open items for M4": on Android, two loads in three while the emulator was overloaded. superpowers:systematic-debugging: reproduce first in desktop Chromium with a phone viewport and a player that answers late (the adapter's tries before the player answers), then on the emulator only if it does not reproduce there (report "ready for the device" first). Fix the class (when the adapter stops trying), with a test that fails before the fix. Draft PR "Mobile app M5f: subtitles on an early load", `gh pr ready`.
+
+### M5g: device checks (two agents, Opus, one after the other)
+
+From `main` with every M5 branch merged; check build, fresh install, the muted TED video (`iG9CE55wbtY`) and the E2E article.
+
+- **Android** (`claude/mobile-m5g-android`), then **iOS** (`claude/mobile-m5g-ios`), each with real taps (adb; the Simulator tool): the model download (Android's row; iOS's sheet, declined once for the row's state, then accepted), a tapped word's hover meaning, the dictionary window, the subtitles translated on the device with the check switch on (and with it off: `tlang` or on-device, whichever the video gets), translate-ahead (cards translated before they play), the cards, the lists without starting the engine, the release after 60 s and on leaving the app, and the early-load subtitles over several loads.
+- Error log read, every entry fixed or explained, cleared. Fixes go in the branch. notes/mobile.md, status.md, tick M5g. Draft PR "Mobile app M5g: device checks (Android|iOS)", `gh pr ready`.
