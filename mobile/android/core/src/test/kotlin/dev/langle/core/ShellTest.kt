@@ -85,6 +85,16 @@ class ShellTest {
     }
 
     @Test
+    fun `the kept page's canonical address shows it again too`() {
+      shell.openPage("https://m.youtube.com/watch?v=abc")
+      shell.home()
+      val canonical = "https://www.youtube.com/watch?v=abc"
+      assertEquals(listOf(CloseSheet, Show(Screen.Page)), shell.openPage(canonical, canonical))
+      shell.home()
+      assertEquals(listOf(CloseSheet, Load(Screen.Page, canonical), Show(Screen.Page)), shell.openPage(canonical, null))
+    }
+
+    @Test
     fun `a web page from tabs_create opens over Home in the one page, and its tab goes`() {
       val count = tabs.all.size
       assertEquals(listOf(CloseSheet, Load(Screen.Page, ARTICLE), Show(Screen.Page)), created(ARTICLE))

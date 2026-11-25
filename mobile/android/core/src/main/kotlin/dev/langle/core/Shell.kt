@@ -96,9 +96,15 @@ class Shell(private val origin: String, private val tabs: Tabs) {
       RouterAction.ReloadHost -> emptyList()
     }
 
-  /** Home's search, Continue, a site, a link from Words: the page over Home, in the one page. */
-  fun openPage(url: String): List<ShellEffect> {
-    val load = if (PageText.samePage(pageUrl, url)) emptyList() else listOf(load(Screen.Page, url))
+  /**
+   * Home's search, Continue, a site, a link from Words: the page over Home, in the one page. The
+   * kept page is shown as it is when [url] is its address or [canonical], its `rel=canonical`
+   * address (what Langle records for it: a video's is `www.youtube.com` while the phone is on
+   * `m.youtube.com`).
+   */
+  fun openPage(url: String, canonical: String? = null): List<ShellEffect> {
+    val same = PageText.samePage(pageUrl, url) || PageText.samePage(canonical, url)
+    val load = if (same) emptyList() else listOf(load(Screen.Page, url))
     return listOf(ShellEffect.CloseSheet) + load + show(Screen.Page)
   }
 

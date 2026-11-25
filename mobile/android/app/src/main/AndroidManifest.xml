@@ -3,6 +3,15 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- ⋮ Open in another browser lists the browsers: apps that open any https address. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
     <!-- A browser: http pages load too (the E2E article is http://10.0.2.2:4719 on the emulator).
          Portrait, as on iOS; a page in fullscreen turns the activity to landscape (MainActivity). -->
     <application

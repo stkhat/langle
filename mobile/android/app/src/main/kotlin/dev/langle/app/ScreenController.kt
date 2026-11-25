@@ -2,8 +2,8 @@ package dev.langle.app
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.SystemClock
@@ -11,6 +11,7 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -69,6 +70,7 @@ class ScreenController(
   private var barShown = true
   private var pageTitle: String? = null
   private var ogSite: String? = null
+  private var shownScreen: Screen? = null
 
   /** Called after anything that can change what the system back does. */
   var onChanged: (() -> Unit)? = null
@@ -160,6 +162,7 @@ class ScreenController(
       action is RouterAction.NavigateTab && action.tab.id == sheetTab -> sheet.context.load(action.tab.url)
       action is RouterAction.CloseTab && action.tab.id == sheetTab -> sheet.frame.dismiss()
       action is RouterAction.ReloadTab && action.id == sheetTab -> sheet.context.page.reload()
+      action is RouterAction.OpenPage -> openPage(action.url)
       else -> apply(shell.handle(action))
     }
   }
@@ -199,6 +202,12 @@ class ScreenController(
 
   private fun showScreen(screen: Screen) {
     if (screen != Screen.Page) titleBar.stopEditing()
+    if (screen != shownScreen) {
+      // The keyboard a field on the screen going away opened (Home's search) would stay up.
+      activity.currentFocus?.clearFocus()
+      activity.getSystemService(InputMethodManager::class.java)?.hideSoftInputFromWindow(root.windowToken, 0)
+    }
+    shownScreen = screen
     pageArea.visibility = if (screen == Screen.Page) View.VISIBLE else View.GONE
     firstRun?.page?.view?.visibility = if (screen == Screen.FirstRun) View.VISIBLE else View.GONE
     val tab = (screen as? Screen.OnTab)?.tab
@@ -254,8 +263,20 @@ class ScreenController(
   private fun appPage(tabId: Int?): ContextPage {
     val context = ContextPage(engine, PageProfile.APP, router, injector?.appPageScripts().orEmpty()) { ContextSpec.Page(it, tabId) }
     context.onProcessGone = activity::appProfileGone
-    context.onLeaveApp = { link -> apply(shell.openPage(link)) }
+    context.onLeaveApp = ::openPage
     return context
+  }
+
+  /**
+   * A page an app page opened (Home, a link from Words): the kept page when it is that page, by
+   * its address or its canonical one, which the page is asked for now (it changes as it navigates).
+   */
+  private fun openPage(url: String) {
+    if (shell.pageUrl == null) return apply(shell.openPage(url))
+    browsing.page.evaluate(ScriptWorld.PAGE, CANONICAL) { result ->
+      val canonical = result.trim().takeIf { it.isNotEmpty() && !it.startsWith("error ") }
+      apply(shell.openPage(url, canonical))
+    }
   }
 
   // the sheet
@@ -364,13 +385,29 @@ class ScreenController(
     menu.show()
   }
 
+  /**
+   * Opens [url] in a browser the user picks. Only browsers (apps that open any https address)
+   * are offered: a site's own app (YouTube's for a video) would otherwise take the link.
+   */
   private fun openElsewhere(url: String) {
     val view = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)
-    val chooser =
-      Intent.createChooser(view, null)
-        .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(ComponentName(activity, MainActivity::class.java)))
+    val probe = Intent(Intent.ACTION_VIEW, Uri.parse("https://")).addCategory(Intent.CATEGORY_BROWSABLE)
+    val browsers =
+      activity.packageManager
+        .queryIntentActivities(probe, PackageManager.MATCH_ALL)
+        .map { it.activityInfo.packageName }
+        .distinct()
+        .filter { it != activity.packageName }
+        .map { Intent(view).setPackage(it) }
     try {
-      activity.startActivity(chooser)
+      when (browsers.size) {
+        0 -> Toast.makeText(activity, R.string.no_browser, Toast.LENGTH_SHORT).show()
+        1 -> activity.startActivity(browsers[0])
+        else ->
+          activity.startActivity(
+            Intent.createChooser(browsers[0], null).putExtra(Intent.EXTRA_INITIAL_INTENTS, browsers.drop(1).toTypedArray()),
+          )
+      }
     } catch (_: android.content.ActivityNotFoundException) {
       Toast.makeText(activity, R.string.no_browser, Toast.LENGTH_SHORT).show()
     }
@@ -408,6 +445,7 @@ class ScreenController(
 
     /** Named commands (the page's world): the page's own site name, and pausing its media. */
     const val SITE_NAME = """return document.querySelector('meta[property="og:site_name"]')?.content ?? "";"""
+    const val CANONICAL = """return document.querySelector('link[rel="canonical"]')?.href ?? "";"""
     const val PAUSE_MEDIA = """for (const m of document.querySelectorAll("video, audio")) m.pause(); return "paused";"""
   }
 }
