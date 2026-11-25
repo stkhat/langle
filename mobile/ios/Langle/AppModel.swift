@@ -255,6 +255,16 @@ final class AppModel: ObservableObject {
     case .startFirstRun(let address, let tabId):
       firstRun?.close()
       firstRun = URL(string: address).flatMap { appPage(url: $0, tabId: tabId) }
+    case .firstRunFromTab(let tab, let address, let tabId):
+      // The tab's page goes after the commit that asked for it; `page(for:)` makes it again.
+      if let page = tabPages.removeValue(forKey: tab) {
+        page.onCommit = nil
+        DispatchQueue.main.async { page.close() }
+      }
+      if let tabId {
+        firstRun?.close()
+        firstRun = URL(string: address).flatMap { appPage(url: $0, tabId: tabId) }
+      }
     case .endFirstRun:
       break
     case .appSheet(let address, let tabId):
