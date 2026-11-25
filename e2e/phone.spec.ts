@@ -199,6 +199,25 @@ test("m.youtube.com: the subtitle pinned under the player, the transcript under 
   await expect(transcript.getByRole("button", { name: LINE })).toHaveCount(0);
 });
 
+test("m.youtube.com: the subtitles on a load whose player lists its caption tracks late", async ({
+  context,
+  extensionId,
+}) => {
+  // A busy phone: the player takes a track only once its captions module lists the
+  // tracks, here after Langle's first ask and its whole wait for an answer.
+  test.setTimeout(60_000);
+  await showNewWords(context, extensionId);
+  await routeMobileYouTube(context, { tracksListedAfterMs: 15_000 });
+  const page = await context.newPage();
+  await page.goto(YOUTUBE_MOBILE_WATCH);
+  await expect(
+    page
+      .locator("langle-transcript")
+      .getByRole("region", { name: en["video.transcript"] })
+      .getByRole("button", { name: LINE }),
+  ).toBeVisible({ timeout: 40_000 });
+});
+
 test("m.youtube.com: a tap on a word opens its sheet under the subtitle and pauses", async ({
   context,
   extensionId,

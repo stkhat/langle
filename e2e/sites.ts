@@ -133,8 +133,13 @@ export const YOUTUBE_MOBILE_WATCH = `https://m.youtube.com/watch?v=${FIXTURE_VID
  * Serves m.youtube.com from fixtures: the measured watch-page skeleton
  * (tests/fixtures/m-youtube-watch.html) with Trusted Types enforced, the local clip,
  * the recorded /api/timedtext answers, and the fake player API on `#movie_player`.
+ * With `tracksListedAfterMs`, the player takes a caption track only that long after the
+ * page loads (`FakePlayerOptions.tracksListedAfterMs`).
  */
-export async function routeMobileYouTube(context: BrowserContext) {
+export async function routeMobileYouTube(
+  context: BrowserContext,
+  options: { tracksListedAfterMs?: number } = {},
+) {
   await context.route("https://m.youtube.com/**", (route) =>
     route.fulfill({ status: 404, body: "" }),
   );
@@ -162,6 +167,7 @@ export async function routeMobileYouTube(context: BrowserContext) {
     videoId: FIXTURE_VIDEO_ID,
     title: "A lantern for the lighthouse",
     playerResponse: fixturePlayerResponse(),
+    ...options,
   });
 }
 

@@ -23,6 +23,13 @@ export interface FakePlayerOptions {
   captionsOn?: boolean;
   /** The player element's id. Default: `shorts-player` on a Short's URL, else `movie_player`. */
   playerId?: string;
+  /**
+   * The player's captions module lists the video's tracks only this long after the
+   * player is set up; until then `getOption("captions", "tracklist")` answers undefined
+   * and a track set is dropped, as youtube.com's player did on a slowed load
+   * (docs/notes/mobile.md "Subtitles missing on an early load (M5f)").
+   */
+  tracksListedAfterMs?: number;
 }
 
 /** The localStorage keys where the fake keeps the caption track set (as YouTube's player does). */
@@ -138,6 +145,11 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
 
     const captionTracks = () =>
       response.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+    let listed = options.tracksListedAfterMs === undefined;
+    if (!listed)
+      setTimeout(() => {
+        listed = true;
+      }, options.tracksListedAfterMs);
 
     function request(option: TrackOption) {
       if (refreshed) {
@@ -172,6 +184,8 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
     function setOption(module: string, key: string, value: TrackOption) {
       log.setOption.push([module, key, value]);
       if (module !== "captions" || key !== "track") return;
+      // Before its captions module lists the tracks, the player drops the track set.
+      if (!listed) return;
       // The track already on: nothing to load.
       if (sameTrack(value, track)) return;
       track = value;
@@ -205,6 +219,7 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
       getOption(module: string, key: string) {
         if (module !== "captions") return undefined;
         if (key === "track") return track;
+        if (key === "tracklist" && !listed) return undefined;
         if (key === "tracklist")
           return captionTracks().map((t) => ({
             languageCode: t.languageCode,

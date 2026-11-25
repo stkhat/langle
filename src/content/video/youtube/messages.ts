@@ -32,9 +32,16 @@ export type PageCall = PlayerChoice &
     | { type: "videoId" }
     /**
      * Makes the player load a caption track (it then requests it from /api/timedtext).
-     * Answers the track that was on before, for `restoreCaptions`.
+     * Answers the track that was on before, for `restoreCaptions`; or null, having set
+     * nothing, while the player lists no caption tracks (it would drop the track),
+     * unless `evenUnlisted`.
      */
-    | { type: "loadTrack"; languageCode: string; asr: boolean }
+    | {
+        type: "loadTrack";
+        languageCode: string;
+        asr: boolean;
+        evenUnlisted?: boolean;
+      }
     /** Puts back the track `loadTrack` answered (captions off when it was none). */
     | { type: "restoreCaptions"; previous: unknown }
     /** Fetches a same-origin /api/timedtext URL from the page and answers its body. */
@@ -47,7 +54,7 @@ export type PageCall = PlayerChoice &
 export interface PageCallResults {
   getPlayerResponse: unknown;
   videoId: string | null;
-  loadTrack: { previous: unknown };
+  loadTrack: { previous: unknown } | null;
   restoreCaptions: null;
   fetchTimedtext: string;
   seek: null;
@@ -66,7 +73,12 @@ export function isCall(call: Record<string, unknown>): boolean {
     case "play":
       return true;
     case "loadTrack":
-      return isString(call.languageCode) && typeof call.asr === "boolean";
+      return (
+        isString(call.languageCode) &&
+        typeof call.asr === "boolean" &&
+        (call.evenUnlisted === undefined ||
+          typeof call.evenUnlisted === "boolean")
+      );
     case "fetchTimedtext":
       return isString(call.url);
     case "seek":

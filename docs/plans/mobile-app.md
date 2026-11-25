@@ -679,7 +679,7 @@ Spec [mobile-translation.md](../specs/mobile-translation.md) "M5: the hosts" (th
 - [ ] M5c: the Android host (branch `claude/mobile-m5c`)
 - [ ] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`)
 - [ ] M5e: the other 17 model packs (branch `claude/mobile-m5e`)
-- [ ] M5f: subtitles missing on an early load (branch `claude/mobile-m5f`)
+- [x] M5f: subtitles missing on an early load (branch `claude/mobile-m5f`): the player drops a track set before it lists its caption tracks; `captureFor` now waits for the list (notes/mobile.md "Subtitles missing on an early load (M5f)")
 - [ ] M5g: device checks, Android then iOS (branches `claude/mobile-m5g-android`, `claude/mobile-m5g-ios`)
 
 **Running order** (at most three agents at once; one agent per step; a device check is one agent per device; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`):
