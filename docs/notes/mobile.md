@@ -198,11 +198,39 @@ The check build (`bundle-build.sh check`, `check.sh build check`), logged out, v
   - Two loads of about five showed no subtitles and no warning: Langle's wait for the player's own request ended, and its own request for the track got no answer, while a pre-roll ad played (the player asks for no captions of the video during an ad; asked by hand after the ad it did at once). A wait an ad was part of is now tried again once the ad has ended (`captureFor`, at most three times). Four fresh loads afterwards all had subtitles within 3 s of the check.
   - In fullscreen with the transcript column, YouTube's controls (`#player-control-container`, a fixed layer over the whole screen beside `#player`, not inside it) stayed full width: the time and the progress bar ran under the column. The fullscreen element's other children that cover the whole screen (the controls, the thumbnail, the ambient glow; not Langle's) are now narrowed with the player's box.
 - **Open**:
-  - The Langle sheet in landscape spans the screen, its content in a column at the left.
+  - ~~The Langle sheet in landscape spans the screen, its content in a column at the left.~~ At most 520 dp wide and centred since M4c ("Device checks (M4c, Android)").
   - Langle's L at the top right of the video covers YouTube's settings gear while the controls show.
   - With YouTube's controls showing in fullscreen, Langle's subtitle sits over the progress bar and the bottom row (the controls hide after a few seconds).
   - Pages without a viewport meta are shown scaled down here as on the iPhone, Langle's sheet with them.
   - Once, the transcript column showed empty for a moment after it opened in fullscreen (its cards were there and painted on the next frame looked at).
+
+## Device checks (M4c, Android; 2026-11-25)
+
+The Android emulator (Android 17 image, WebView Dev 160), check build. Screens compared with the mock's `MobileStart`, `Main` (title bar), `MobileArticle` and the sheet boards.
+
+- **First run**: `welcome.html` full screen, no tab bar; Agree, the languages step (en → ja), Start shows Home under the tab bar; the packs download while Home shows.
+- **Home → a page**: the search ("ted", "Ken") opens YouTube's results over Home; the tab bar hides and the title bar shows (‹, title and site on two lines, L, ⋮). The keyboard goes when the page shows. A tap on the title edits the address (selected); an address and Go opened the TED talk.
+  - The site line: "YouTube" on a watch page (its `og:site_name`), "youtube.com" on the results page (no `og:site_name`), "en.wikipedia.org", "localhost" (the E2E article). The mock's watch board says "youtube.com"; the spec's rule (site name first) is kept.
+- **Scrolling**: down hides the title bar, up shows it again.
+- **⋮**: Forward greyed without forward history and enabled after a back; Share opens the system's share sheet; Copy link copies; Open in another browser opened Chrome (the only browser; with several, a chooser of browsers).
+- **L**: `popup.html` in the sheet frame (rounded top, grabber, dim scrim), the title bar hidden while it is open. The Subtitles rows change the page at once (In video: the band under the player goes and the Background row shows; Show transcript off: the transcript goes; both put back). A drag down on the grabber or a tap on the scrim closes it and the title bar comes back. The word-list button shows the Words tab and the settings button the Settings tab, and the sheet closes.
+- **Landscape**: YouTube's fullscreen button turns the screen with the system bars hidden; L on the video opens the sheet 520 dp wide (1,364 px at 2.625), centred (431 / 432 px each side). The scrim closes it; back leaves fullscreen.
+- **‹ and Continue**: ‹ pauses the video and shows Home; Continue's first row is the talk ("TED · 0:56 of 20:03") and shows it again without a reload (a mark set on the page was still there).
+- **Back**: through the page's history, then Home; on Words or Settings, Home; on Home, the app goes to the background.
+- **Tabs**: Home · Words · Settings switch the screen; Words and Settings still have their desktop layout (M4d).
+- **Article**: the E2E article under the title bar, laid out at desktop width and zoomed out (no viewport meta, as before).
+- **Error log**: two warnings, both before the fix below ("No answer from the page to getPlayerResponse"); the rest are info lines (packs served by the jsDelivr mirror). Cleared.
+- **Found and fixed on the device**:
+  - Home's search left the keyboard up over the page: the shell hides it whenever the screen changes.
+  - Open in another browser offered the YouTube app (the link's own app): it now lists only browsers (apps that open a plain `https://` link), without Langle; the manifest's `<queries>` lets the app see them.
+  - Continue reloaded the kept page: Home lists a video by its canonical address (`www.youtube.com/watch?v=…`) while the page is on `m.youtube.com`. The shell reads the page's `link[rel=canonical]` and takes either address as the kept page (`Shell.openPage(url, canonical)`).
+  - Four loads of the video in five showed no subtitles: the page script did not answer Langle's first `getPlayerResponse` within 5 s while YouTube was still loading on the emulator, and the adapter gave up. `captionInfo` now asks again until its 30 s deadline. Afterwards every load that was waited for had subtitles (five, the band within about 10 s); two more were looked at once only, before the page or its band had loaded.
+- **Open**:
+  - The in-page dictionary sheet (a tapped word) does not hide the title bar; only the Langle sheet does.
+  - Welcome's "Not now" needs `tabs.getCurrent` in the shim (M4d).
+  - Home's search field keeps its text after a page opens.
+  - The sheet's frame is 90% of the screen high; the mock's is about 94% (790 / 844).
+  - The sheet's "On this site" says `www.youtube.com` on a watch page (the adapter's canonical address) and `m.youtube.com` on other YouTube pages.
 
 ## iOS prototype (2026-11-22)
 `mobile/prototypes/ios-wkwebview` (SwiftUI shell, a hand-written Xcode project with a synchronized folder; no generator), on the Simulator (iPhone 17, iOS 27.2), logged out, the same video and the same `probe.js`. Driven from the shell by `check.sh` (`simctl launch` arguments, Darwin notifications for commands, results in the unified log).
