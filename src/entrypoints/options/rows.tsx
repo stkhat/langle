@@ -132,7 +132,7 @@ export const PHONE_SETTINGS_CSS = `
 .ph .card>:is(.row,.sub)+:is(.row,.sub){margin-top:0}
 .ph .card>:is(.row,.sub):not(:is(.row,.sub)+*){border-top-color:${color.line};border-radius:12px 12px 0 0}
 .ph .card>:is(.row,.sub):not(:has(+:is(.row,.sub))){border-bottom:1px solid ${color.line};border-bottom-left-radius:12px;border-bottom-right-radius:12px}
-.ph .card>.sub{padding-left:28px}
+.ph .card>.sub{padding-inline-start:28px}
 .ph :is(.row,.sub){flex-wrap:wrap}
 .ph :is(.row,.sub):not(:has([role=switch])){flex-direction:column;align-items:stretch;gap:10px}
 .ph .sub.data{flex-direction:row;align-items:center}.ph .sel{height:44px;width:100%;min-width:0;font-size:16px}

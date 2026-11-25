@@ -303,7 +303,7 @@ export function DictionaryWindow(props: DictionaryWindowProps) {
           <span
             style={{
               flex: 1,
-              paddingLeft: back ? "4px" : "12px",
+              paddingInlineStart: back ? "4px" : "12px",
               fontSize: "13px",
               fontWeight: 600,
               color: color.muted,
@@ -706,9 +706,7 @@ function SenseRow(props: {
                   whiteSpace: "nowrap",
                 }}
               >
-                {chosen === 1
-                  ? t("dict.sentences.one")
-                  : t("dict.sentences", { count: chosen })}
+                {t("dict.sentences", { count: chosen })}
               </span>
             )}
             {sense.fits && <span style={FITS_TAG}>{t("dict.fitsHere")}</span>}
@@ -824,7 +822,7 @@ const HERE_ROW: Record<"video" | "page", Style> = {
     alignItems: "flex-start",
     width: "100%",
     boxSizing: "border-box",
-    textAlign: "left",
+    textAlign: "start",
     padding: "8px 10px",
     margin: 0,
     border: 0,
@@ -839,7 +837,7 @@ const HERE_ROW: Record<"video" | "page", Style> = {
     display: "block",
     width: "100%",
     boxSizing: "border-box",
-    textAlign: "left",
+    textAlign: "start",
     padding: "8px 10px",
     margin: 0,
     border: 0,

@@ -300,7 +300,9 @@ function AnswerCard(
         >
           {t(props.usedHere ? "dict.usedHere" : "dict.explain.use")}
         </button>
-        <span style={{ ...META, marginLeft: "auto", whiteSpace: "nowrap" }}>
+        <span
+          style={{ ...META, marginInlineStart: "auto", whiteSpace: "nowrap" }}
+        >
           {t("dict.explain.meta")}
         </span>
       </div>

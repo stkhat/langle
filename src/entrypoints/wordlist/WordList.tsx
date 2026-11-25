@@ -54,7 +54,7 @@ const CSS = `
 body{margin:0;background:${color.surface}}
 ${PAGE_BUTTON_CSS}
 .sel{height:40px;padding:0 12px;border:1px solid ${color.lineStrong};border-radius:8px;background:${color.card};color:${color.ink};font:inherit;font-size:14px}
-.th{font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:${color.muted};font-weight:600;text-align:left;padding:0 12px 10px}
+.th{font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:${color.muted};font-weight:600;text-align:start;padding:0 12px 10px}
 .rowb:hover{background:${color.surface} !important}
 .ib:hover{background:${color.surfaceGray} !important}
 .chip{display:inline-flex;align-items:center;height:40px;padding:0 13px;border-radius:999px;border:1px solid ${color.lineStrong};background:${color.card};color:${color.ink3};font:inherit;font-size:14px;cursor:pointer;white-space:nowrap}

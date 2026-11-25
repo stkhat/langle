@@ -3,7 +3,7 @@ import { errorText } from "../../core/util";
 import type { ImportResult } from "../../messaging/protocol";
 import { t } from "../../i18n/t";
 import type { send } from "../../messaging/client";
-import { backupFileName, fmt } from "../format/format";
+import { backupFileName } from "../format/format";
 import { ChevronDownIcon, MoreIcon } from "../icons";
 import { usePressAway } from "../press-away";
 import { color } from "../styles";
@@ -50,7 +50,7 @@ export interface MoreExports {
   items: readonly ExportItem[];
 }
 
-const MENU_CSS = `.mi{display:flex;align-items:center;width:100%;height:36px;padding:0 10px;border:0;border-radius:6px;background:none;color:${color.ink};font:inherit;font-size:14px;text-align:left;cursor:pointer}.mi:hover:not(:disabled),.mi:focus-visible{background:${color.surfaceGray}}.mi:disabled{color:${color.muted};cursor:default}`;
+const MENU_CSS = `.mi{display:flex;align-items:center;width:100%;height:36px;padding:0 10px;border:0;border-radius:6px;background:none;color:${color.ink};font:inherit;font-size:14px;text-align:start;cursor:pointer}.mi:hover:not(:disabled),.mi:focus-visible{background:${color.surfaceGray}}.mi:disabled{color:${color.muted};cursor:default}`;
 const PHONE_MENU_CSS = `.mi{height:44px;padding:0 12px;border-radius:8px;font-size:15px}.kb{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;padding:0;border-radius:22px;background:none;color:${color.ink};cursor:pointer}`;
 
 /**
@@ -89,10 +89,7 @@ export function BackupButtons(props: {
       const count = await item.run();
       props.onNote({
         ok: true,
-        text:
-          count === 1
-            ? t("backup.exported.one")
-            : t("backup.exported", { count: fmt(count) }),
+        text: t("backup.exported", { count }),
       });
     } catch (error) {
       props.onNote({
@@ -125,10 +122,7 @@ export function BackupButtons(props: {
       });
       props.onNote({
         ok: true,
-        text:
-          result.terms === 1
-            ? t("backup.imported.one")
-            : t("backup.imported", { count: fmt(result.terms) }),
+        text: t("backup.imported", { count: result.terms }),
       });
       props.onImported?.(result);
     } catch (error) {
@@ -158,7 +152,7 @@ export function BackupButtons(props: {
       ref={menuBox}
       style={{
         position: "relative",
-        ...(phone && { flex: "none", marginRight: "-10px" }),
+        ...(phone && { flex: "none", marginInlineEnd: "-10px" }),
       }}
     >
       <style>{phone ? MENU_CSS + PHONE_MENU_CSS : MENU_CSS}</style>
@@ -192,7 +186,7 @@ export function BackupButtons(props: {
           style={{
             position: "absolute",
             top: phone ? "48px" : "46px",
-            right: phone ? "2px" : 0,
+            insetInlineEnd: phone ? "2px" : 0,
             zIndex: 5,
             width: phone ? "240px" : "220px",
             boxSizing: "border-box",
@@ -212,7 +206,7 @@ export function BackupButtons(props: {
               color: color.muted,
             }}
           >
-            {t("backup.shownWords", { count: fmt(more.count) })}
+            {t("backup.shownWords", { count: more.count })}
           </div>
           {more.items.map((item) => (
             <button

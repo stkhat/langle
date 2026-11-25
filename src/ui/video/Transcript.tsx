@@ -138,9 +138,9 @@ const LOOKS: Record<
     card: COLUMN_CARD,
     now: {
       ...COLUMN_CARD,
-      paddingLeft: "9px",
+      paddingInlineStart: "9px",
       background: "rgba(15,159,126,0.16)",
-      borderLeft: "3px solid #6FE3C3",
+      borderInlineStart: "3px solid #6FE3C3",
     },
     time: () => ({
       flex: "none",
@@ -163,7 +163,7 @@ const CARD: Style = {
   gap: "4px",
   width: "100%",
   boxSizing: "border-box",
-  textAlign: "left",
+  textAlign: "start",
   padding: "10px 12px",
   margin: 0,
   border: "1px solid transparent",
