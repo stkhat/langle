@@ -93,4 +93,23 @@ describe("the background on the app's shim", () => {
       enabled: false,
     });
   });
+
+  test("keeps the recent pages content reports (the shim sets appHost)", async () => {
+    const visit = await content.runtime.sendMessage({
+      type: "recentsVisit",
+      page: {
+        url: ARTICLE,
+        title: "An article",
+        site: "example.com",
+        kind: "page",
+      },
+    });
+    expect(visit).toEqual({ ok: true, value: null });
+    await expect(
+      content.runtime.sendMessage({ type: "recentsList", limit: 10 }),
+    ).resolves.toMatchObject({
+      ok: true,
+      value: [{ url: ARTICLE, title: "An article", opens: 1 }],
+    });
+  });
 });

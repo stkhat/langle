@@ -371,6 +371,11 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
       case "tabs.reload":
         log.push(`tabs.reload ${String(args[0])}`);
         return undefined;
+      // The shells open the page over Home; here it is a tab like any other.
+      case "appHost.openPage":
+        openTab(new URL(String(args[0])).href);
+        log.push(`appHost.openPage ${String(args[0])}`);
+        return undefined;
       case "alarms.create": {
         const [name, info] = (
           typeof args[0] === "string" ? args : ["", args[0]]

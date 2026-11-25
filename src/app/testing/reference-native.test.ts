@@ -314,6 +314,16 @@ describe("tabs", () => {
       "tabs.reload 1",
     ]);
   });
+
+  test("appHost.openPage opens the web page in a tab and is logged", async () => {
+    const { connect, native } = setup();
+    const { bridge } = connect({ kind: "page", url: `${ORIGIN}/home.html` });
+    await bridge.call("appHost.openPage", ARTICLE);
+    expect(native.tabs()).toContainEqual(
+      expect.objectContaining({ url: ARTICLE, active: true }),
+    );
+    expect(native.log).toEqual([`appHost.openPage ${ARTICLE}`]);
+  });
 });
 
 describe("alarms", () => {

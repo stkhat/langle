@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { fakeBridge } from "../testing/fake-bridge";
+import { appHostOf } from "../../core/app-host";
 import { installShim } from "./install";
 
 const INFO = {
@@ -8,15 +9,20 @@ const INFO = {
   manifest: { manifest_version: 3, name: "Langle", version: "0.1.0" },
 };
 
-type Globals = { browser?: unknown; chrome?: unknown };
+type Globals = { browser?: unknown; chrome?: unknown; appHost?: unknown };
 const globals = globalThis as Globals;
 let saved: Globals;
 beforeEach(() => {
-  saved = { browser: globals.browser, chrome: globals.chrome };
+  saved = {
+    browser: globals.browser,
+    chrome: globals.chrome,
+    appHost: globals.appHost,
+  };
 });
 afterEach(() => {
   globals.browser = saved.browser;
   globals.chrome = saved.chrome;
+  globals.appHost = saved.appHost;
 });
 
 describe("installShim", () => {
@@ -99,6 +105,17 @@ describe("installShim", () => {
       isReliable: false,
       languages: [],
     });
+  });
+
+  test("sets appHost, whose openPage is a call native code answers", async () => {
+    const native = fakeBridge();
+    installShim(native.bridge, INFO);
+    const appHost = appHostOf();
+    expect(appHost).toBeDefined();
+    await appHost?.openPage("https://example.com/");
+    expect(native.calls).toEqual([
+      { api: "appHost.openPage", args: ["https://example.com/"] },
+    ]);
   });
 
   test("leaves out what the app does not have", () => {
