@@ -20,13 +20,23 @@ export interface PackLockEntry {
   /** The data format of the files; a stored version in another format is not used. */
   readonly format: number;
   readonly files: readonly PackLockFile[];
+  /**
+   * "model": one of Mozilla's translation models for the phone app's on-device
+   * translator (`model-manifest.ts`), downloaded by the app's native code into its own
+   * files, never by the extension. A data pack has no kind.
+   */
+  readonly kind?: "model";
 }
+
+/** A model pack: the translation model from one language to another (`mt-en-ja`). */
+export type ModelPackName = `mt-${string}-${string}`;
 
 export interface PackLock {
   readonly v: 1;
   /** URL templates with {package}, {version} and {file}, tried in order. */
   readonly mirrors: readonly string[];
-  readonly packs: Readonly<Record<PackName, PackLockEntry>>;
+  readonly packs: Readonly<Record<PackName, PackLockEntry>> &
+    Readonly<Partial<Record<ModelPackName, PackLockEntry>>>;
   /**
    * The language pairs offered (those passing the quality gate): learning language →
    * native languages, the default first.

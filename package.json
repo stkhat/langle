@@ -47,6 +47,7 @@
     "data:fr": "node scripts/data/fr-frequency.ts && node scripts/data/fr-treebank.ts && node scripts/data/fr-kaikki.ts && node scripts/data/fr-tagger.ts",
     "data:de": "node scripts/data/de-frequency.ts && node scripts/data/de-treebank.ts && node scripts/data/de-kaikki.ts && node scripts/data/de-tagger.ts",
     "data:stats": "node scripts/data/stats.ts",
+    "data:mt-models": "node scripts/data/mt-models.ts",
     "data:publish": "node scripts/data/publish.ts",
     "data:npm-publish": "node scripts/data/npm-publish.ts",
     "prepare": "simple-git-hooks",

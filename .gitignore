@@ -7,6 +7,10 @@ playwright-report
 reports
 data/raw
 data/publish
+# The model packs' parts, made again from their pins (npm run data:mt-models); only
+# their manifest is committed
+data/packs/mt-*/*
+!data/packs/mt-*/manifest.json
 .stryker-tmp
 .vitest
 
