@@ -114,18 +114,24 @@ export function addedHosts(
   );
 }
 
+/** A store that keeps pages by host (the history, the explanation cache). */
+interface ForgetsHosts {
+  forgetHost(host: string): Promise<unknown>;
+}
+
 /**
- * Removes the kept pages of each host added to "Never run on" (here or on another
- * device), with its subdomains. Only changes count: nothing is removed on start.
- * Changes made before this device is set up are caught up on when the setup ends:
- * every host listed by then is forgotten.
+ * Removes what each store keeps of each host added to "Never run on" (here or on
+ * another device), with its subdomains. Only changes count: nothing is removed on
+ * start. Changes made before this device is set up are caught up on when the setup
+ * ends: every host listed by then is forgotten.
  */
 export function forgetNeverRunOnHosts(
-  history: Pick<HistoryStore, "forgetHost">,
+  ...stores: readonly ForgetsHosts[]
 ): () => void {
   const report = (error: unknown) => console.error(error);
   const forget = (hosts: readonly string[]) => {
-    for (const entry of hosts) history.forgetHost(entry).catch(report);
+    for (const entry of hosts)
+      for (const store of stores) store.forgetHost(entry).catch(report);
   };
   const unwatchSetup = watchSetupStage((stage) => {
     if (stage !== "ready") return;
