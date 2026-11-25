@@ -67,7 +67,8 @@ export function PageWordsPanel<R extends WordRow>(
     >
       <div
         style={{
-          padding: "12px 10px 12px 16px",
+          paddingBlock: "12px",
+          paddingInline: "16px 10px",
           borderBottom: `1px solid ${color.line}`,
           display: "flex",
           flexDirection: "column",

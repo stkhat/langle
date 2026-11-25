@@ -2,6 +2,7 @@ import { render, type JSX } from "preact";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { useState } from "preact/hooks";
 import { userEvent } from "vitest/browser";
+import { setUiLocale } from "../../i18n/t";
 import { cleanUpMounts, mountInShadowRoot } from "../../testing/shadow-root";
 import { LangleMenu, type LangleMenuProps } from "./LangleMenu";
 import { PlayerButtons } from "./PlayerButtons";
@@ -100,8 +101,14 @@ describe("LangleMenu", () => {
   test("the rows from the top, as in mock Main", async () => {
     const screen = await mountInShadowRoot(<LangleMenu {...base} />);
     const menu = screen.getByRole("dialog", { name: "Langle menu" }).element();
+    // The sliders' rows share a grid (data-rows).
+    const rows = [...menu.children].flatMap((row) =>
+      row instanceof HTMLElement && row.dataset.rows !== undefined
+        ? [...row.children]
+        : [row],
+    );
     expect(
-      [...menu.children].map(
+      rows.map(
         (row) =>
           row
             .querySelector("[aria-label]:not(a)")
@@ -263,6 +270,31 @@ describe("LangleMenu", () => {
     await userEvent.keyboard("{ArrowRight}");
     expect(onPreview).toHaveBeenLastCalledWith({ opacity: 45 });
     expect(onOpacity).toHaveBeenCalledWith(45);
+  });
+
+  test("slider labels longer than English's stay on one line, the sliders lined up after them", async () => {
+    const labels = () =>
+      [...screen.container.querySelectorAll("label")].filter((l) =>
+        l.htmlFor ? l.nextElementSibling?.matches("[type=range]") : false,
+      );
+    setUiLocale("es", {
+      "video.menu.size": "Tamaño del texto",
+      "video.menu.opacity": "Fondo",
+    });
+    cleanups.push(() => setUiLocale("en"));
+    const screen = await mountInShadowRoot(<LangleMenu {...base} />);
+    const [size, opacity] = labels();
+    // One line: shorter than two lines of its 14px text.
+    const font = parseFloat(getComputedStyle(size!).fontSize);
+    expect(size!.getBoundingClientRect().height).toBeLessThan(font * 2);
+    const sliders = [
+      ...screen.container.querySelectorAll("input[type=range]"),
+    ].map((s) => s.getBoundingClientRect());
+    expect(sliders[0]!.left).toBe(sliders[1]!.left);
+    expect(sliders[0]!.left).toBeGreaterThanOrEqual(
+      size!.getBoundingClientRect().right,
+    );
+    expect(opacity!.textContent).toBe("Fondo");
   });
 
   test("closes with Escape and on a click outside it", async () => {

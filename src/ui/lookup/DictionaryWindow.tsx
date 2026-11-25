@@ -218,7 +218,8 @@ export function DictionaryWindow(props: DictionaryWindowProps) {
               alignItems: "center",
               justifyContent: "space-between",
               gap: "8px",
-              padding: "0 8px 0 20px",
+              paddingBlock: "0",
+              paddingInline: "20px 8px",
             }}
           >
             <span
@@ -288,7 +289,8 @@ export function DictionaryWindow(props: DictionaryWindowProps) {
                 width: "auto",
                 height: "44px",
                 minWidth: "44px",
-                padding: "0 8px 0 4px",
+                paddingBlock: "0",
+                paddingInline: "4px 8px",
                 borderRadius: "22px",
                 gap: "2px",
                 color: color.greenText,
@@ -365,7 +367,8 @@ export function DictionaryWindow(props: DictionaryWindowProps) {
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            padding: "0 4px 0 10px",
+            paddingBlock: "0",
+            paddingInline: "10px 4px",
             borderBottom: `1px solid ${color.line}`,
             background: color.surface,
           }}

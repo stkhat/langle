@@ -1,5 +1,11 @@
 import type { CSSProperties } from "preact";
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "preact/hooks";
 import type { TouchMode } from "../../content/touch/touch-mode";
 import { sendStatus } from "../../content/lookup/status";
 import { warn } from "../../content/lookup/warn";
@@ -24,7 +30,7 @@ import { PHONE_SCREEN, PhoneBackBar, PhoneTitle } from "../../ui/phone-screen";
 import { Segmented } from "../../ui/Segmented";
 import { color, FONT, PAGE_BUTTON_CSS } from "../../ui/styles";
 import { DetailsPanel, savedFrom, type Details } from "./DetailsPanel";
-import { COLUMNS, Rows } from "./Rows";
+import { fitColumns, HEADER_COLUMNS, Rows } from "./Rows";
 import { exportWords, type WordFormat } from "./export-words";
 import { useWordListData } from "./useWordListData";
 
@@ -54,7 +60,7 @@ const CSS = `
 body{margin:0;background:${color.surface}}
 ${PAGE_BUTTON_CSS}
 .sel{height:40px;padding:0 12px;border:1px solid ${color.lineStrong};border-radius:8px;background:${color.card};color:${color.ink};font:inherit;font-size:14px}
-.th{font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:${color.muted};font-weight:600;text-align:start;padding:0 12px 10px}
+.th{font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:${color.muted};font-weight:600;text-align:start;padding:0 12px 10px;white-space:nowrap}
 .rowb:hover{background:${color.surface} !important}
 .ib:hover{background:${color.surfaceGray} !important}
 .chip{display:inline-flex;align-items:center;height:40px;padding:0 13px;border-radius:999px;border:1px solid ${color.lineStrong};background:${color.card};color:${color.ink3};font:inherit;font-size:14px;cursor:pointer;white-space:nowrap}
@@ -125,7 +131,14 @@ function FilterChips<T extends string>(props: {
     <div
       role="group"
       aria-label={props.label}
-      style={{ display: "flex", gap: "8px", flex: "none" }}
+      // Chips that do not fit wrap to a new row (a long translation, a narrow phone).
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "8px",
+        flex: "0 1 auto",
+        minWidth: 0,
+      }}
     >
       {props.tabs.map((tab) => (
         <button
@@ -365,6 +378,13 @@ export function WordList({ deps }: { deps: WordListDeps }) {
       onOpen={deps.openPage}
     />
   );
+  const header = useRef<HTMLDivElement>(null);
+  const listSection = useRef<HTMLElement>(null);
+  // After every render: the headings change with the interface language.
+  useLayoutEffect(() => {
+    if (header.current && listSection.current)
+      fitColumns(header.current, listSection.current);
+  });
   const sortSelect = (style?: CSSProperties) => (
     <select
       id="sort"
@@ -442,6 +462,7 @@ export function WordList({ deps }: { deps: WordListDeps }) {
             style={{
               display: "flex",
               alignItems: "center",
+              flexWrap: "wrap",
               gap: "8px",
               marginTop: "-4px",
               flex: "none",
@@ -456,7 +477,7 @@ export function WordList({ deps }: { deps: WordListDeps }) {
             <span style={{ flex: 1 }}></span>
             {sortSelect({
               height: "44px",
-              maxWidth: "124px",
+              maxWidth: "100%",
               padding: "0 2px",
               border: 0,
               background: "none",
@@ -587,14 +608,18 @@ export function WordList({ deps }: { deps: WordListDeps }) {
           onPick={setKind}
         />
         <span style={{ flex: 1 }}></span>
-        <label for="sort" style={{ fontSize: "13px", color: color.muted }}>
-          {t("wordlist.sort")}
-        </label>
-        {sortSelect()}
+        {/* One item: a wrapping row keeps the label beside its select. */}
+        <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <label for="sort" style={{ fontSize: "13px", color: color.muted }}>
+            {t("wordlist.sort")}
+          </label>
+          {sortSelect()}
+        </span>
       </div>
 
       <div style={{ flex: 1, minHeight: 0, display: "flex", gap: "20px" }}>
         <section
+          ref={listSection}
           aria-label={t("wordlist.list")}
           style={{
             flex: 1,
@@ -608,7 +633,10 @@ export function WordList({ deps }: { deps: WordListDeps }) {
             minHeight: 0,
           }}
         >
-          <div style={{ display: "grid", gridTemplateColumns: COLUMNS }}>
+          <div
+            ref={header}
+            style={{ display: "grid", gridTemplateColumns: HEADER_COLUMNS }}
+          >
             <span class="th">{t("kind.word")}</span>
             <span class="th">{t("wordlist.col.meaning")}</span>
             <span class="th">{t("wordlist.status")}</span>

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "preact";
 import { useId } from "preact/hooks";
 import {
   SUBTITLE_OPACITY_MAX,
@@ -84,8 +85,9 @@ function MenuSlider(props: {
   const id = useId();
   const [min, max, step] = props.range;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-      <label for={id} style={{ flex: "none", width: "84px", fontSize: "14px" }}>
+    // A row of SLIDER_ROWS' grid: the labels share a column.
+    <div style={{ display: "contents" }}>
+      <label for={id} style={{ maxWidth: "160px", fontSize: "14px" }}>
         {props.label}
       </label>
       <input
@@ -99,7 +101,6 @@ function MenuSlider(props: {
         onInput={(e) => props.onInput(Number(e.currentTarget.value))}
         onChange={(e) => props.onChange(Number(e.currentTarget.value))}
         style={{
-          flex: 1,
           minWidth: 0,
           margin: 0,
           accentColor: color.green,
@@ -109,6 +110,17 @@ function MenuSlider(props: {
     </div>
   );
 }
+
+/**
+ * The sliders' rows: their labels in one column, 84px or as wide as the longest label
+ * (up to 160px, then it wraps), the sliders lined up after it.
+ */
+const SLIDER_ROWS: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(84px, max-content) minmax(0, 1fr)",
+  alignItems: "center",
+  gap: "14px 10px",
+};
 
 /** Elements marked `data-langle-menu` (the menu and its buttons) are inside. */
 const isMenuElement = (n: EventTarget) =>
@@ -182,7 +194,8 @@ export function LangleMenu(props: LangleMenuProps) {
             width: "32px",
             height: "32px",
             // The 32px button sits in the 24px row without making it taller.
-            margin: "-4px -6px -4px 0",
+            marginBlock: "-4px",
+            marginInline: "0 -6px",
             padding: 0,
             borderRadius: "8px",
             border: 0,
@@ -201,24 +214,26 @@ export function LangleMenu(props: LangleMenuProps) {
           onToggle={() => props.onToggleTranscript?.()}
         />
       )}
-      <MenuSlider
-        label={t("video.menu.size")}
-        value={props.size}
-        range={[SUBTITLE_SIZE_MIN, SUBTITLE_SIZE_MAX, SUBTITLE_SIZE_STEP]}
-        onInput={(size) => props.onPreview({ size })}
-        onChange={props.onSize}
-      />
-      <MenuSlider
-        label={t("video.menu.opacity")}
-        value={props.opacity}
-        range={[
-          SUBTITLE_OPACITY_MIN,
-          SUBTITLE_OPACITY_MAX,
-          SUBTITLE_OPACITY_STEP,
-        ]}
-        onInput={(opacity) => props.onPreview({ opacity })}
-        onChange={props.onOpacity}
-      />
+      <div data-rows style={SLIDER_ROWS}>
+        <MenuSlider
+          label={t("video.menu.size")}
+          value={props.size}
+          range={[SUBTITLE_SIZE_MIN, SUBTITLE_SIZE_MAX, SUBTITLE_SIZE_STEP]}
+          onInput={(size) => props.onPreview({ size })}
+          onChange={props.onSize}
+        />
+        <MenuSlider
+          label={t("video.menu.opacity")}
+          value={props.opacity}
+          range={[
+            SUBTITLE_OPACITY_MIN,
+            SUBTITLE_OPACITY_MAX,
+            SUBTITLE_OPACITY_STEP,
+          ]}
+          onInput={(opacity) => props.onPreview({ opacity })}
+          onChange={props.onOpacity}
+        />
+      </div>
       <MenuSwitch
         label={t("video.menu.dualSubtitles")}
         checked={props.showTranslation}
