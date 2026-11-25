@@ -25,6 +25,8 @@ export default tseslint.config(
       "mobile/**/.gradle",
       // The langle-app build copied into the Android and iOS apps (git-ignored).
       "mobile/android/app/src/main/assets/langle-app",
+      // The Bergamot engine files (npm run mobile:bergamot; git-ignored).
+      "mobile/android/app/engine",
       "mobile/ios/build-output",
       // SwiftPM's build folder (swift test in mobile/ios/LangleCore; git-ignored).
       "mobile/**/.build",

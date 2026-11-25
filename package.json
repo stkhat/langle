@@ -13,6 +13,7 @@
     "build:check": "wxt build --mode check && node scripts/build-check.ts",
     "build:check-download": "wxt build --mode check-download",
     "build:app": "wxt build -b langle-app",
+    "mobile:bergamot": "node scripts/mobile/bergamot.ts",
     "zip": "wxt zip",
     "typecheck": "wxt prepare && tsc --noEmit",
     "lint": "eslint .",

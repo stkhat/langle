@@ -5,7 +5,8 @@
 #   bundle-build.sh check    check build (wxt --mode check): the error log, the settings channel
 #
 # The build lands in mobile/android/app/src/main/assets/langle-app/ (git-ignored); the app serves
-# it on its origin (AppOrigin.kt). Run `./gradlew :app:assembleDebug` after it.
+# it on its origin (AppOrigin.kt). It also fetches the Bergamot engine files when they are
+# missing (npm run mobile:bergamot). Run `./gradlew :app:assembleDebug` after it.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -32,3 +33,4 @@ rm -rf "$dest"
 mkdir -p "$dest"
 cp -R "$out/." "$dest/"
 echo "bundled $out -> $dest"
+(cd "$repo" && npm run --silent mobile:bergamot)
