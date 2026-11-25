@@ -33,12 +33,13 @@ function fake(
     }) as WelcomeDeps["send"],
     watchSettings,
     uiLanguage: "ja",
-    sync: { kind: "browser", name: "Chrome sync" },
+    sync: { kind: "browser", browser: "Chrome" },
     drive: true,
     privacyPolicy: "https://example.com/privacy",
     startModels: vi.fn(async () => {
       order.push("startModels");
     }),
+    showLanguage: vi.fn(),
     close: vi.fn(),
     alreadySetUp: vi.fn(),
     ...over,
@@ -171,6 +172,18 @@ describe("Your languages", () => {
     const offered = labels.slice(1);
     expect(offered).toContain("Japanese (日本語)");
     expect(offered).toEqual([...new Set(offered)].sort());
+  });
+
+  it("shows itself in the language for I speak as it is chosen", async () => {
+    const { deps } = fake(LANGUAGES);
+    const screen = await show(deps);
+    await expect
+      .poll(() => vi.mocked(deps.showLanguage).mock.calls.at(-1))
+      .toEqual(["ja"]);
+    await screen.getByLabelText("I speak").selectOptions("de");
+    await expect
+      .poll(() => vi.mocked(deps.showLanguage).mock.calls.at(-1))
+      .toEqual(["de"]);
   });
 
   it("guesses nothing to learn for an English browser", async () => {

@@ -75,7 +75,7 @@ export function root(style: Style): Style {
     lineHeight: "normal",
     fontWeight: 400,
     color: color.ink,
-    textAlign: "left",
+    textAlign: "start",
     ...style,
   } as Style;
 }

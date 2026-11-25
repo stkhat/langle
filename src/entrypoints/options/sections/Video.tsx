@@ -104,7 +104,7 @@ export function VideoSection(props: SectionProps) {
                 borderRadius: "12px",
                 font: "inherit",
                 color: color.ink,
-                textAlign: "left",
+                textAlign: "start",
                 cursor: "pointer",
                 background: on && !phone ? color.greenPale : color.card,
                 border: `2px solid ${on ? color.green : color.line}`,

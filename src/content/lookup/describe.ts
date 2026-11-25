@@ -13,6 +13,7 @@ import type {
 } from "../../core/lexicon/dictionary";
 import { lacksSenseOf } from "../../core/lexicon/sense-order";
 import { bidiIsolated } from "../../core/natives";
+import { uiLocale } from "../../i18n/t";
 import {
   MAX_SHORT_LINES,
   translatedLine,
@@ -286,7 +287,7 @@ function wordLine(
 ): string | undefined {
   if (!entry || (pos !== undefined && lacksSenseOf(entry.senses, pos)))
     return undefined;
-  return `${word} — ${bidiIsolated(entry.lines[0] ?? entry.short, entry.glossLang ?? nativeLang)}`;
+  return `${word} — ${bidiIsolated(entry.lines[0] ?? entry.short, entry.glossLang ?? nativeLang, uiLocale())}`;
 }
 
 const startsCapital = (text: string) => /^\p{Lu}/u.test(text);

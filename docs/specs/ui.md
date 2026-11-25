@@ -204,7 +204,7 @@ The [UI mock](https://claude.ai/artifact/SMxhVni5DdE6cK8UazvqGS) is canonical: w
 ## Settings page (the extension's options page, opens in a new tab)
 - Three ways to open it: ① the gear in the toolbar popup, ② right-click the extension icon → "Options", ③ chrome://extensions → Langle "Details" → "Extension options". Also from the gear in the menu next to L in the video player bar
 - Sections
-  - **Languages**: learning language, native language, interface language (English only for now). The choices list only the pairs the lock file offers (those passing the quality gate)
+  - **Languages**: learning language, native language, interface language. The interface language menu starts with "Same as your language" (the default: the interface follows Your language where Langle has it, else English), then every native language Langle has a locale for, each by its own name ("日本語", "Deutsch"), English last; a language picked stays. The choices list only the pairs the lock file offers (those passing the quality gate)
     - **Language data** (mock `LanguageData`): "Words and dictionaries Langle keeps on this device." Nested under it:
       - the chosen pair ("Spanish → English"): its size ("6.4 MB") and "Downloaded" with a check, "Downloading · 45%" with a bar, or "Couldn't download" (red) with Retry
       - downloaded data the chosen pair does not use, grouped by the pair it belongs to ("English → Korean", "Not used by your languages now · 9.1 MB") with Remove, which deletes that data and its cached translations

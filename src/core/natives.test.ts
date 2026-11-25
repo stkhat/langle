@@ -7,6 +7,7 @@ import {
   arabicSpelling,
   arabicWritten,
   bidiIsolated,
+  NATIVE_LANGUAGES,
   nativeLanguage,
   recipeNatives,
   writtenRightToLeft,
@@ -186,5 +187,17 @@ describe("Arabic text", () => {
   it("is isolated right to left inside a line of English", () => {
     expect(bidiIsolated("رقم، شكل…", "ar")).toBe("\u2067رقم، شكل…\u2069");
     expect(bidiIsolated("数字", "ja")).toBe("数字");
+  });
+
+  it("is isolated left to right inside a line of an Arabic interface", () => {
+    expect(bidiIsolated("数字", "ja", "ar")).toBe("⁦数字⁩");
+    expect(bidiIsolated("رقم", "ar", "ar")).toBe("رقم");
+  });
+
+  it("has every language's name in itself", () => {
+    for (const code of Object.keys(NATIVE_LANGUAGES))
+      expect(nativeLanguage(code)!.endonym).not.toBe("");
+    expect(nativeLanguage("ja")!.endonym).toBe("日本語");
+    expect(nativeLanguage("ar")!.endonym).toBe("العربية");
   });
 });

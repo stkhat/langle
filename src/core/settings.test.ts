@@ -13,7 +13,7 @@ describe("DEFAULT_SETTINGS", () => {
       enabled: true,
       learningLang: "en",
       nativeLang: "ja",
-      uiLocale: "en",
+      interfaceLanguage: "",
       knownLevel: 3000,
       highlight: { new: false, learning: true, known: false },
       unsavedAtEnd: "keep",
@@ -55,6 +55,22 @@ describe("DEFAULT_SETTINGS", () => {
 });
 
 describe("mergeSettings", () => {
+  it("drops the uiLocale of before, so those settings follow Your language", () => {
+    expect(mergeSettings({ uiLocale: "en" })).not.toHaveProperty("uiLocale");
+    expect(mergeSettings({ uiLocale: "en" }).interfaceLanguage).toBe("");
+  });
+
+  it("keeps an interface language picked, English too", () => {
+    expect(mergeSettings({ interfaceLanguage: "en" }).interfaceLanguage).toBe(
+      "en",
+    );
+    expect(
+      mergeSettings({ interfaceLanguage: "ja", uiLocale: "en" })
+        .interfaceLanguage,
+    ).toBe("ja");
+    expect(mergeSettings({ interfaceLanguage: 3 }).interfaceLanguage).toBe("");
+  });
+
   it("keeps step keys that are single characters, all different, in lower case", () => {
     expect(
       mergeSettings({ stepKeys: { previous: "Q", replay: "w", next: "e" } })

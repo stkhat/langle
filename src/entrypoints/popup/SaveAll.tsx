@@ -26,19 +26,12 @@ const SCOPE = {
 
 function unsavedLine(count: number): string {
   if (count === 0) return t("saveAll.allSaved");
-  return count === 1
-    ? t("saveAll.unsaved.one")
-    : t("saveAll.unsaved", { count });
+  return t("saveAll.unsaved", { count });
 }
 
 function doneLine(done: NonNullable<SaveAllProps["done"]>): string {
-  const one = done.count === 1;
-  if (done.target === "learning")
-    return one
-      ? t("saveAll.done.learning.one")
-      : t("saveAll.done.learning", { count: done.count });
-  return one
-    ? t("saveAll.done.known.one")
+  return done.target === "learning"
+    ? t("saveAll.done.learning", { count: done.count })
     : t("saveAll.done.known", { count: done.count });
 }
 

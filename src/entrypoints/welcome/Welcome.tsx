@@ -11,7 +11,8 @@ import {
 import type { SyncPlace } from "../../core/browser-env";
 import type { Settings } from "../../core/settings";
 import { languageOption } from "../../i18n/languages";
-import { t } from "../../i18n/t";
+import { t, uiLocale } from "../../i18n/t";
+import { browserSyncName } from "../../ui/format/sync";
 import type { send as Send } from "../../messaging/client";
 import type { LanguagePair, SetupStatus } from "../../messaging/protocol";
 import { LangleMark } from "../../ui/LangleMark";
@@ -33,6 +34,11 @@ export interface WelcomeDeps {
   privacyPolicy: string;
   /** Resolves once the translator's downloads are asked for (in the click). */
   startModels(learning: string, native: string): Promise<void>;
+  /**
+   * Shows the page in the interface language for "I speak" (`native`; "": none chosen
+   * yet, the browser's), as Langle will be once set up.
+   */
+  showLanguage(native: string): void;
   /** "Not now". */
   close(): void;
   /** The page was opened on a device that is set up. */
@@ -283,7 +289,9 @@ function Consent(props: {
         </Row>
         <Row icon="arrow" phone={phone} verb={t("setup.consent.sends")}>
           {deps.sync.kind === "browser"
-            ? t("setup.consent.sendsWhat", { syncName: deps.sync.name })
+            ? t("setup.consent.sendsWhat", {
+                syncName: browserSyncName(deps.sync.browser),
+              })
             : t("setup.consent.sendsWhatDevice")}
           {/* Drive is offered beside browser sync only (Settings "Sync and backup"). */}
           {deps.drive && !device && (
@@ -334,10 +342,10 @@ function Choice(props: {
   );
 }
 
-/** "I speak"'s languages, by their English names. */
+/** "I speak"'s languages, by their names in the interface language. */
 const spoken = () =>
   spokenLanguages().sort((a, b) =>
-    languageOption(a).localeCompare(languageOption(b), "en"),
+    languageOption(a).localeCompare(languageOption(b), uiLocale()),
   );
 
 function Languages(props: {
@@ -352,6 +360,11 @@ function Languages(props: {
   );
   const [busy, setBusy] = useState(false);
   const touched = useRef(false);
+  const { showLanguage } = deps;
+  useEffect(
+    () => showLanguage(pair.nativeLang),
+    [showLanguage, pair.nativeLang],
+  );
 
   // A pair that browser sync brings late fills in until the user chooses.
   useEffect(

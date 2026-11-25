@@ -339,7 +339,7 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
                     background: "none",
                     color: color.ink,
                     font: "inherit",
-                    textAlign: "left",
+                    textAlign: "start",
                     cursor: "pointer",
                   }}
                 >

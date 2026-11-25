@@ -1,5 +1,6 @@
 // The real background (handlers, TermStore on IndexedDB, classifier and dictionary)
 // over a small stub pack, answering in-process instead of through messaging.
+import type { LocaleMessages } from "../i18n/t";
 import { createHandlers } from "../background/handlers";
 import { createLanguageResources } from "../background/language-resources";
 import { openLangleDb } from "../background/db";
@@ -240,6 +241,21 @@ export interface TestBackgroundOptions {
   storedPacks?: readonly PackName[];
 }
 
+/** The locale files, as the build ships them (`locales/<code>.json`, scripts/locales.ts). */
+const LOCALE_FILES = import.meta.glob<LocaleMessages>(
+  "../i18n/locales/*.json",
+  {
+    import: "default",
+  },
+);
+
+/** A locale's messages, read from its file as the background reads the shipped one. */
+async function testLocale(locale: string): Promise<LocaleMessages> {
+  const file = LOCALE_FILES[`../i18n/locales/${locale}.json`];
+  if (!file) throw new Error(`no locale ${locale}`);
+  return file();
+}
+
 /**
  * A background for content-script tests. `send` answers like the real one (and
  * `send` in messaging/client.ts) and records every request; `settings` can be changed
@@ -329,6 +345,7 @@ export function testBackground(
       disconnect: async () => {},
     },
     openPopup: async () => {},
+    loadLocale: testLocale,
     openOptionsPage: async () => {
       optionsOpened++;
     },

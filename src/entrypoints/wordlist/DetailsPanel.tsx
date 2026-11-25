@@ -118,7 +118,7 @@ export function DetailsPanel(props: {
                 ...iconButton,
                 width: "44px",
                 height: "44px",
-                marginRight: "-8px",
+                marginInlineEnd: "-8px",
                 borderRadius: "22px",
               }
             : iconButton

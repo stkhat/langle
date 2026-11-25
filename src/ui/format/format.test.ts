@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setUiLocale } from "../../i18n/t";
 import {
   backupFileName,
   fmt,
@@ -116,5 +117,20 @@ describe("formatTime", () => {
 describe("fmt", () => {
   it("groups thousands", () => {
     expect(fmt(12_345)).toBe("12,345");
+  });
+});
+
+describe("in another interface language", () => {
+  afterEach(() => setUiLocale("en"));
+
+  it("writes counts, sizes, dates and times as the language does", () => {
+    setUiLocale("de", { "time.today": "Heute" });
+    expect(fmt(12345)).toBe("12.345");
+    expect(megabytesTenths(6.4 * 1024 * 1024)).toBe("6,4");
+    expect(relativeTime(NOW - 2 * MINUTE, NOW)).toBe("vor 2 Minuten");
+    expect(relativeTime(NOW - DAY, NOW)).toBe("gestern");
+    const now = new Date(2026, 10, 10, 9, 30).getTime();
+    expect(shortDate(new Date(2026, 10, 9).getTime(), now)).toBe("9. Nov.");
+    expect(shortDate(now, now)).toBe("Heute");
   });
 });

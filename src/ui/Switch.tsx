@@ -45,7 +45,7 @@ export function Switch(props: SwitchProps) {
         style={{
           position: "absolute",
           top: `${inset}px`,
-          left: `${props.checked ? size.width - size.knob - inset : inset}px`,
+          insetInlineStart: `${props.checked ? size.width - size.knob - inset : inset}px`,
           width: `${size.knob}px`,
           height: `${size.knob}px`,
           borderRadius: `${size.knob / 2}px`,

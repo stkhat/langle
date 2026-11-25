@@ -47,6 +47,7 @@ import {
   type SettingsPatch,
 } from "../core/settings";
 import { termId } from "../core/term-id";
+import { UI_LOCALES, type LoadLocale } from "../i18n/ui-locale";
 import {
   hostnameOf,
   occurrenceLink,
@@ -113,6 +114,8 @@ export interface HandlerDeps {
     "status" | "requestCheck" | "connect" | "disconnect"
   >;
   openOptionsPage(): Promise<void>;
+  /** A locale's interface messages from the build's files (`fetchLocale`). */
+  loadLocale: LoadLocale;
   /** The toolbar popup; does nothing where the browser cannot open it. */
   openPopup(): Promise<void>;
 }
@@ -243,6 +246,7 @@ export function createHandlers({
   recents,
   cloud,
   openOptionsPage,
+  loadLocale,
   openPopup,
 }: HandlerDeps): Handle {
   /**
@@ -417,6 +421,12 @@ export function createHandlers({
   const handlers: Handlers = {
     getSettings: () => settings.get(),
     setSettings: ({ patch }) => settings.set(patch),
+    async uiMessages({ locale }) {
+      // Only the build's own locale files are read.
+      if (locale === "en" || !UI_LOCALES.includes(locale))
+        throw new Error(`no interface messages for ${locale}`);
+      return loadLocale(locale);
+    },
     async openOptions() {
       await openOptionsPage();
       return null;

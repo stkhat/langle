@@ -9,6 +9,11 @@ export interface NativeLanguage {
   /** Its name in a sentence ("Japanese"). */
   readonly name: MessageKey;
   /**
+   * Its name in itself ("日本語"), the same in every interface language: the interface
+   * language menu offers each language so, for a reader of it to find.
+   */
+  readonly endonym: string;
+  /**
    * Written with spaces between words and sentences (Latin, Cyrillic, Korean …): two
    * translated subtitle lines are joined with a space. Japanese, Chinese and Thai are not.
    */
@@ -114,6 +119,7 @@ export const NATIVE_LANGUAGES = {
   ja: {
     option: "language.ja",
     name: "languageName.ja",
+    endonym: "日本語",
     spaces: false,
     dense: true,
     scripts: ["Han", "Hiragana", "Katakana"],
@@ -123,6 +129,7 @@ export const NATIVE_LANGUAGES = {
   es: {
     option: "language.es",
     name: "languageName.es",
+    endonym: "Español",
     spaces: true,
     dense: false,
     scripts: ["Latin"],
@@ -137,6 +144,7 @@ export const NATIVE_LANGUAGES = {
   pt: {
     option: "language.pt",
     name: "languageName.pt",
+    endonym: "Português",
     spaces: true,
     dense: false,
     scripts: ["Latin"],
@@ -153,6 +161,7 @@ export const NATIVE_LANGUAGES = {
   ru: {
     option: "language.ru",
     name: "languageName.ru",
+    endonym: "Русский",
     spaces: true,
     dense: false,
     scripts: ["Cyrillic"],
@@ -163,6 +172,7 @@ export const NATIVE_LANGUAGES = {
   fr: {
     option: "language.fr",
     name: "languageName.fr",
+    endonym: "Français",
     spaces: true,
     dense: false,
     scripts: ["Latin"],
@@ -177,6 +187,7 @@ export const NATIVE_LANGUAGES = {
   de: {
     option: "language.de",
     name: "languageName.de",
+    endonym: "Deutsch",
     spaces: true,
     dense: false,
     scripts: ["Latin"],
@@ -194,6 +205,7 @@ export const NATIVE_LANGUAGES = {
   zh: {
     option: "language.zh",
     name: "languageName.zh",
+    endonym: "简体中文",
     spaces: false,
     dense: true,
     scripts: ["Han"],
@@ -204,6 +216,7 @@ export const NATIVE_LANGUAGES = {
   it: {
     option: "language.it",
     name: "languageName.it",
+    endonym: "Italiano",
     spaces: true,
     dense: false,
     scripts: ["Latin"],
@@ -214,6 +227,7 @@ export const NATIVE_LANGUAGES = {
   pl: {
     option: "language.pl",
     name: "languageName.pl",
+    endonym: "Polski",
     spaces: true,
     dense: false,
     scripts: ["Latin"],
@@ -229,6 +243,7 @@ export const NATIVE_LANGUAGES = {
   th: {
     option: "language.th",
     name: "languageName.th",
+    endonym: "ภาษาไทย",
     spaces: false,
     dense: false,
     scripts: ["Thai"],
@@ -247,6 +262,7 @@ export const NATIVE_LANGUAGES = {
   hi: {
     option: "language.hi",
     name: "languageName.hi",
+    endonym: "हिन्दी",
     spaces: true,
     dense: false,
     scripts: ["Devanagari"],
@@ -266,6 +282,7 @@ export const NATIVE_LANGUAGES = {
   ar: {
     option: "language.ar",
     name: "languageName.ar",
+    endonym: "العربية",
     spaces: true,
     dense: false,
     scripts: ["Arabic"],
@@ -286,6 +303,7 @@ export const NATIVE_LANGUAGES = {
   id: {
     option: "language.id",
     name: "languageName.id",
+    endonym: "Bahasa Indonesia",
     spaces: true,
     dense: false,
     scripts: ["Latin"],
@@ -304,6 +322,7 @@ export const NATIVE_LANGUAGES = {
   tr: {
     option: "language.tr",
     name: "languageName.tr",
+    endonym: "Türkçe",
     spaces: true,
     dense: false,
     scripts: ["Latin"],
@@ -322,6 +341,7 @@ export const NATIVE_LANGUAGES = {
   ko: {
     option: "language.ko",
     name: "languageName.ko",
+    endonym: "한국어",
     spaces: true,
     dense: true,
     scripts: ["Hangul"],
@@ -336,6 +356,7 @@ export const NATIVE_LANGUAGES = {
   en: {
     option: "languageName.en",
     name: "languageName.en",
+    endonym: "English",
     spaces: true,
     dense: false,
     scripts: ["Latin"],
@@ -368,13 +389,17 @@ export const writtenRightToLeft = (lang: string) =>
   nativeLanguage(lang.split("-")[0]!)?.rtl === true;
 
 /**
- * `text` in `lang` set inside a line of English (the card's "figure — …"): a language
- * written right to left (`NativeLanguage.rtl`) between a right-to-left isolate (U+2067)
- * and its end (U+2069), so its punctuation and an ellipsis stay at its own end. Text
- * in other languages as it is.
+ * `text` in `lang` set inside a line of the interface (the card's "figure — …"; `ui`:
+ * the interface language): text written in the other direction than the interface's
+ * between a right-to-left (U+2067) or left-to-right (U+2066) isolate and its end
+ * (U+2069), so its punctuation and an ellipsis stay at its own end. Text written the
+ * interface's way as it is.
  */
-export const bidiIsolated = (text: string, lang: string) =>
-  writtenRightToLeft(lang) ? `\u2067${text}\u2069` : text;
+export const bidiIsolated = (text: string, lang: string, ui = "en") => {
+  const rtl = writtenRightToLeft(lang);
+  if (rtl === writtenRightToLeft(ui)) return text;
+  return `${rtl ? "\u2067" : "\u2066"}${text}\u2069`;
+};
 
 /** The native languages whose English pair pack a recipe builds, in registry order. */
 export const recipeNatives = () =>

@@ -1,7 +1,7 @@
 import { t } from "../../../i18n/t";
 import type { HistoryStatus } from "../../../messaging/protocol";
 import type { CloudView } from "../../../ui/format/cloud";
-import { fmt, megabytes } from "../../../ui/format/format";
+import { megabytes } from "../../../ui/format/format";
 import { Meter } from "../../../ui/Meter";
 import { RowLabel } from "../../../ui/RowLabel";
 import { color } from "../../../ui/styles";
@@ -11,7 +11,7 @@ function pagesLine(pages: number): string {
   if (pages === 0) return t("settings.history.empty");
   return pages === 1
     ? t("settings.history.onePage")
-    : t("settings.history.pages", { count: fmt(pages) });
+    : t("settings.history.pages", { count: pages });
 }
 
 export function HistorySection(

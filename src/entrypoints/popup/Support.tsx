@@ -82,7 +82,7 @@ export function RateNudge(props: { onDismiss: () => void }) {
         aria-hidden="true"
         style={{
           position: "absolute",
-          left: "14px",
+          insetInlineStart: "14px",
           bottom: "-6px",
           width: "12px",
           height: "12px",

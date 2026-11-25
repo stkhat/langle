@@ -93,7 +93,7 @@ export function HighlightChips(props: HighlightChipsProps) {
       }}
     >
       <span
-        style={{ fontSize: "12px", color: color.muted, marginRight: "2px" }}
+        style={{ fontSize: "12px", color: color.muted, marginInlineEnd: "2px" }}
       >
         {t("card.highlight")}
       </span>
