@@ -40,6 +40,9 @@ final class AppModel: ObservableObject {
   private(set) var router: Router!
   private(set) var shell: Shell!
   private(set) var host: ExtensionHost?
+  /// Apple Translation and the host that answers the pages' translation calls with it.
+  let translation = AppleTranslation()
+  private var translationHost: TranslationHost?
   private(set) var browsing: ContextPage!
   @Published private(set) var firstRun: ContextPage?
   @Published private(set) var tabPages: [AppTab: ContextPage] = [:]
@@ -83,6 +86,13 @@ final class AppModel: ObservableObject {
     router.onAction = { [weak self] in self?.perform($0) }
     router.onShareFile = { file, done in FileShare.present(file, done: done) }
     shell = Shell(origin: AppSchemeHandler.origin, tabs: router.tabs)
+    let translationHost = TranslationHost(engine: translation, clock: DispatchClock()) {
+      [weak self] spec in self?.onScreen(spec) ?? false
+    }
+    self.translationHost = translationHost
+    router.onTranslation = { from, api, request, done in
+      translationHost.handle(from, api, request, done)
+    }
 
     if let manifest {
       let injector = ContentInjector(manifest: manifest, read: handler.file)
@@ -117,7 +127,10 @@ final class AppModel: ObservableObject {
       shell.committed(tab: tabId, url: url.absoluteString)
       // The new document's own site name: an ask made when the address changed (a back or
       // forward changes it before the commit) may have read the document it replaced.
-      if url.absoluteString != "about:blank" { askSiteName(url) }
+      if url.absoluteString != "about:blank" {
+        askSiteName(url)
+        translationHost?.pageOpened()
+      }
       barScroll.reset()
       barShown = true
     }
@@ -329,7 +342,11 @@ final class AppModel: ObservableObject {
     canGoForward = forward
     guard let url, url.absoluteString != "about:blank" else { return }
     router.tabs.setURL(shell.browsingTab, url.absoluteString)
-    if url != siteAskedFor { askSiteName(url) }
+    if url != siteAskedFor {
+      askSiteName(url)
+      // Another video in the same document (YouTube) is a page opened too.
+      translationHost?.pageOpened()
+    }
     self.title = title.isEmpty ? SiteName.of(url: url.absoluteString, ogSiteName: nil) : title
     site = SiteName.of(url: url.absoluteString, ogSiteName: ogSiteName)
   }
@@ -347,6 +364,30 @@ final class AppModel: ObservableObject {
       guard ask == siteAsks, browsing.page.url == url else { return }
       ogSiteName = named.hasPrefix("error:") ? nil : named
       site = SiteName.of(url: url.absoluteString, ogSiteName: ogSiteName)
+    }
+  }
+
+  // MARK: translation
+
+  /// The app left the screen (scene background): the translator's memory goes back at once.
+  func leftScreen() { translationHost?.leftScreen() }
+
+  /// Whether a context's page shows now: only that page gets translations (others get null).
+  private func onScreen(_ spec: ContextSpec) -> Bool {
+    guard UIApplication.shared.applicationState != .background else { return false }
+    switch spec {
+    case .host:
+      return true
+    case .content(let tabId, _):
+      return tabId == shell.browsingTab && screen == .page
+    case .page(_, let tabId):
+      // No tab: the Langle sheet.
+      guard let tabId else { return sheet != nil && sheet?.tabId == nil }
+      if sheet?.tabId == tabId { return true }
+      if let tab = AppTab.allCases.first(where: { shell.tabId($0) == tabId }) {
+        return screen == .tab(tab)
+      }
+      return screen == .firstRun
     }
   }
 
