@@ -13,3 +13,7 @@ data/publish
 # macOS Finder metadata
 .DS_Store
 
+
+# Local notes at the repo root, never committed (prettier skips ignored files)
+MANUAL-TASKS.md
+HANDOFF.md
