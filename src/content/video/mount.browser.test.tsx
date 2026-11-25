@@ -306,6 +306,28 @@ describe("mountVideoUi", () => {
     expect(text("langle-video-below")).not.toContain("The yeast");
   });
 
+  it("in touch mode, shows the transcript under the video by Show transcript", async () => {
+    const fake = fakeApp(readyState());
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: fixedTouchMode(true),
+    });
+    await expect
+      .poll(() => text("langle-transcript"))
+      .toContain("Knead the dough.");
+    fake.store.set({
+      settings: mergeSettings(
+        { transcriptShown: false },
+        fake.store.get().settings,
+      ),
+    });
+    await expect
+      .poll(() => text("langle-transcript"))
+      .not.toContain("Knead the dough.");
+    expect(text("langle-video-below")).toContain("The yeast smells tangy.");
+  });
+
   it("in touch mode, under a player fixed at the top, the subtitle is pinned under the player and keeps its room", async () => {
     const fake = fakeApp(readyState());
     page.player.style.cssText +=

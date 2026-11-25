@@ -564,11 +564,14 @@ export function TranscriptUi(props: {
     props.layout,
   );
   const { cues, lines, spans, summaries, settings } = state;
-  // A phone has its own fold, and its own setting for the column in fullscreen.
+  // A phone has its own setting for the column in fullscreen; under the video it
+  // follows Show transcript (the Langle sheet's switch), as the desktop's does.
   const shown =
     showing(state) &&
     (touch
-      ? !fillsWindow || sidebar
+      ? fillsWindow
+        ? sidebar
+        : settings.transcriptShown
       : settings.transcriptShown && !(state.fullscreen && !sidebar));
   // Only the Words tab shows the words.
   const listed = shown && state.panelTab === "words";
