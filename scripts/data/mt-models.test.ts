@@ -209,6 +209,7 @@ describe("MT_MODELS", () => {
     const names = MT_MODELS.map(modelPackName);
     expect(new Set(names).size).toBe(names.length);
     expect(names).toContain("mt-en-ja");
+    expect(names).toHaveLength(18);
     for (const pin of MT_MODELS) {
       expect(pin.files.model?.sha256).toMatch(/^[0-9a-f]{64}$/);
       expect(pin.files.lex?.sha256).toMatch(/^[0-9a-f]{64}$/);
