@@ -1,3 +1,4 @@
+import { tlangRefused } from "../check/refuse-tlang";
 import { startContentCheck } from "../check/start";
 import { runWhenSetUp } from "../content/setup";
 import { tellPage } from "../content/video/page-channel";
@@ -20,7 +21,17 @@ export default defineContentScript({
     if (import.meta.env.MODE === "check") startContentCheck("youtube-mobile");
     runWhenSetUp(
       ctx,
-      () => runVideoSite(ctx, createYouTubeAdapter({ layout: mobileLayout() })),
+      () =>
+        runVideoSite(
+          ctx,
+          createYouTubeAdapter({
+            layout: mobileLayout(),
+            // `npm run build:check` only (src/check/refuse-tlang.ts).
+            ...(import.meta.env.MODE === "check" && {
+              refuseTlang: tlangRefused,
+            }),
+          }),
+        ),
       { needsPageLoad: true, waiting: () => tellPage(CHANNEL, "wait") },
     );
   },

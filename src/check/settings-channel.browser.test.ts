@@ -45,6 +45,7 @@ function askFromPage(
   action: string,
   settings?: unknown,
   win: Window = window,
+  extra: Record<string, unknown> = {},
 ): Promise<SettingsPageReply> {
   return new Promise((resolve) => {
     const id = String(Math.random());
@@ -56,7 +57,10 @@ function askFromPage(
       resolve(data);
     };
     win.addEventListener("message", onMessage);
-    win.postMessage({ type: SETTINGS_MESSAGE_TYPE, action, id, settings }, "*");
+    win.postMessage(
+      { type: SETTINGS_MESSAGE_TYPE, action, id, settings, ...extra },
+      "*",
+    );
   });
 }
 
@@ -168,6 +172,30 @@ describe("answerSettingsRequests", () => {
       error: "remove needs a pack name",
     });
     expect(removed).toEqual(["en-fr"]);
+  });
+
+  it("turns the refuseTlang switch on and off, and reads it", async () => {
+    let on = false;
+    const refuseTlang = {
+      get: async () => on,
+      set: vi.fn(async (value: boolean) => void (on = value)),
+    };
+    stops.push(
+      answerSettingsRequests({ window, ...background().deps, refuseTlang }),
+    );
+    const ask = (extra: Record<string, unknown>) =>
+      askFromPage("refuseTlang", undefined, window, extra);
+    expect(await ask({ on: true })).toMatchObject({
+      ok: true,
+      refuseTlang: true,
+    });
+    expect(await ask({})).toMatchObject({ ok: true, refuseTlang: true });
+    expect(await ask({ on: "yes" })).toMatchObject({ ok: false });
+    expect(await ask({ on: false })).toMatchObject({
+      ok: true,
+      refuseTlang: false,
+    });
+    expect(refuseTlang.set.mock.calls).toEqual([[true], [false]]);
   });
 
   it("answers with the error when the background cannot be reached", async () => {

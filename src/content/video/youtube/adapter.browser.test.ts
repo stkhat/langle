@@ -470,6 +470,25 @@ describe("loading captions", () => {
     );
   });
 
+  it("chooses the on-device translator when the check build refuses tlang, never asking YouTube", async () => {
+    start(
+      { playerResponse: responseWithout((t) => t.vssId === ".ja") },
+      { refuseTlang: () => true },
+    );
+    const captions = await adapter.loadCaptions({
+      ...REQUEST,
+      translatorAvailable: true,
+    });
+    expect(captions?.translation).toEqual({
+      source: "builtIn",
+      lang: "ja",
+      cues: [],
+    });
+    expect(timedtextRequests().map((u) => u.searchParams.get("tlang"))).toEqual(
+      [null],
+    );
+  });
+
   it("falls back to the built-in translator or none", async () => {
     const noJa = responseWithout((t) => t.vssId === ".ja");
     noJa.captions.playerCaptionsTracklistRenderer.translationLanguages = [];

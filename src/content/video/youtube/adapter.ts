@@ -53,6 +53,12 @@ export interface YouTubeAdapterOptions {
   /** How long to wait for the page script's answer to any other call. */
   callTimeoutMs?: number;
   pollMs?: number;
+  /**
+   * Check builds only (`langle:check-settings` `refuseTlang`): treats YouTube's
+   * auto-translation (`tlang`) as refused, as a 429 answer is, so videos show the
+   * on-device translation.
+   */
+  refuseTlang?: () => boolean | Promise<boolean>;
 }
 
 /** How long to wait for the player response of the current video. */
@@ -264,6 +270,7 @@ export function createYouTubeAdapter(
     const fetched: string[] = [];
     /** The cues of `track` (or of its auto-translation into `tlang`), from the capture or fetched. */
     const cuesOf = async (track: YouTubeTrack, tlang?: string) => {
+      if (tlang !== undefined && (await options.refuseTlang?.())) return [];
       const same =
         capture.lang === track.lang &&
         (capture.kind === "asr") === (track.kind === "asr") &&

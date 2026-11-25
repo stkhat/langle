@@ -1,3 +1,4 @@
+import { tlangRefused } from "../check/refuse-tlang";
 import { startContentCheck } from "../check/start";
 import { runWhenSetUp } from "../content/setup";
 import { tellPage } from "../content/video/page-channel";
@@ -19,7 +20,9 @@ export default defineContentScript({
     runWhenSetUp(
       ctx,
       () => {
-        const adapter = createYouTubeAdapter();
+        const adapter = createYouTubeAdapter(
+          import.meta.env.MODE === "check" ? { refuseTlang: tlangRefused } : {},
+        );
         return startYouTubeParts(
           (hooks) => runYouTubeComments(ctx, adapter, hooks),
           (hooks) => runVideoSite(ctx, adapter, hooks),
