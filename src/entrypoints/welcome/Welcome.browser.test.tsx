@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { page } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-preact";
 import { mergeSettings, type Settings } from "../../core/settings";
 import type { Request, SetupStatus } from "../../messaging/protocol";
 import { settingsListeners } from "../../testing/stubs";
+import { fixedTouchMode } from "../../testing/touch";
 import { Welcome, type WelcomeDeps } from "./Welcome";
 
 afterEach(cleanup);
@@ -82,15 +84,20 @@ describe("How Langle uses your data", () => {
   });
 
   it("says the words and settings stay on a device that syncs nothing", async () => {
+    // Drive stays out where nothing syncs, as in Settings, whatever the build has.
     const screen = await show(
-      fake(undefined, { sync: { kind: "device" }, drive: false }).deps,
+      fake(undefined, { sync: { kind: "device" }, drive: true }).deps,
     );
-    await expect
-      .element(screen.getByRole("region"))
-      .toMatchTextContent(
-        "Your words and settings stay on this phone. A word you look up or play may go to the phone’s speech and translation services.",
-      );
+    const region = screen.getByRole("region");
+    for (const text of [
+      "Langle has no servers. It saves your data only on this phone, nowhere else. The developer receives none of it.",
+      "Your words, settings and a history of sentences, web addresses and titles on this phone, to show where you met a word.",
+      "Only a word you look up or play, to the service that gives its meaning or sound. Your words and settings stay on this phone.",
+    ])
+      await expect.element(region).toMatchTextContent(text);
     expect(screen.container.textContent).not.toContain("Chrome sync");
+    expect(screen.container.textContent).not.toContain("Google");
+    expect(screen.container.textContent).not.toContain("cloud");
   });
 
   it("leaves out Drive in a build without it, and a policy without an address", async () => {
@@ -241,5 +248,53 @@ describe("Your languages", () => {
     await vi.waitFor(() => expect(error).toHaveBeenCalledOnce());
     await expect.element(start).toBeEnabled();
     error.mockRestore();
+  });
+});
+
+describe("on a phone", () => {
+  const phone = (status?: SetupStatus) =>
+    fake(status, {
+      sync: { kind: "device" },
+      drive: false,
+      touch: fixedTouchMode(true),
+    });
+  const box = (element: Element) => element.getBoundingClientRect();
+
+  beforeEach(() => page.viewport(390, 844));
+
+  it("fills the screen, with Agree above Not now in a bar at the bottom", async () => {
+    const f = phone();
+    const screen = await show(f.deps);
+    const heading = screen.getByRole("heading");
+    await expect
+      .element(heading)
+      .toHaveTextContent("How Langle uses your data");
+    expect(getComputedStyle(heading.element()).fontSize).toBe("26px");
+    expect(screen.container.querySelector(".card")).toBeNull();
+    const agree = box(
+      screen.getByRole("button", { name: "Agree and continue" }).element(),
+    );
+    const notNow = box(
+      screen.getByRole("button", { name: "Not now" }).element(),
+    );
+    expect(agree.bottom).toBeLessThanOrEqual(notNow.top);
+    for (const button of [agree, notNow]) {
+      expect(button.height).toBe(50);
+      expect(button.width).toBe(390 - 48);
+    }
+    expect(box(screen.container.querySelector(".bar")!).bottom).toBe(844);
+    await screen.getByRole("button", { name: "Not now" }).click();
+    expect(f.deps.close).toHaveBeenCalledOnce();
+  });
+
+  it("puts Start in the bar under the languages", async () => {
+    const screen = await show(phone(LANGUAGES).deps);
+    await expect
+      .element(screen.getByRole("heading"))
+      .toHaveTextContent("Your languages");
+    const start = screen.getByRole("button", { name: "Start" }).element();
+    expect(start.closest(".bar")).not.toBeNull();
+    expect(box(start).height).toBe(50);
+    expect(box(screen.getByLabelText("I speak").element()).height).toBe(50);
   });
 });

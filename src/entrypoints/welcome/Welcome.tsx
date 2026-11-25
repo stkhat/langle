@@ -1,5 +1,6 @@
 import type { ComponentChildren, VNode } from "preact";
 import { useEffect, useId, useRef, useState } from "preact/hooks";
+import type { TouchMode } from "../../content/touch/touch-mode";
 import {
   learnableFrom,
   learningFor,
@@ -13,6 +14,7 @@ import { t } from "../../i18n/t";
 import type { send as Send } from "../../messaging/client";
 import type { LanguagePair, SetupStatus } from "../../messaging/protocol";
 import { LangleMark } from "../../ui/LangleMark";
+import { usePhoneLayout } from "../../ui/phone-layout";
 import { color, FONT, PAGE_BUTTON_CSS } from "../../ui/styles";
 import { palettes } from "../../ui/theme";
 
@@ -24,7 +26,7 @@ export interface WelcomeDeps {
   uiLanguage: string;
   /** `BrowserEnv.sync`: the browser's sync, or this device only (the phone app). */
   sync: SyncPlace;
-  /** This build can connect Google Drive. */
+  /** This build can connect Google Drive (offered only beside browser sync, as in Settings). */
   drive: boolean;
   /** The policy's address; empty: the link is left out. */
   privacyPolicy: string;
@@ -34,6 +36,8 @@ export interface WelcomeDeps {
   close(): void;
   /** The page was opened on a device that is set up. */
   alreadySetUp(): void;
+  /** The page's touch mode but in tests (`usePhoneLayout`). */
+  touch?: TouchMode;
 }
 
 const CSS = `
@@ -55,6 +59,17 @@ ${PAGE_BUTTON_CSS}
 .go{border-color:${color.greenFill};background:${color.greenFill};color:${color.white}}
 .go:hover{background:${palettes.light.greenDark}}
 .btn:disabled,.btn:disabled:hover{border-color:${color.line};background:${color.line};color:${color.muted};cursor:default}
+.ph .h1{font-size:26px;line-height:1.25;letter-spacing:-0.01em}
+.ph .row{padding:14px 0;border-top-color:${color.line}}
+.ph .ic{width:40px;height:40px;border-radius:12px}
+.ph .what{font-size:15px}
+.ph .lt{font-size:16px}
+.ph .what .lt{margin-bottom:2px}
+.ph .field{gap:8px}
+.ph .sel{height:50px;padding:0 14px;border-radius:12px;font-size:16px}
+.ph .sel:disabled{background:${color.surfaceGray}}
+.ph .btn{width:100%;height:50px;border-radius:12px;font-size:16px}
+.bar{position:sticky;bottom:0;display:flex;flex-direction:column;gap:10px;padding:14px 24px max(14px,env(safe-area-inset-bottom));background:${color.surface};border-top:1px solid ${color.line}}
 `;
 
 const ICONS = {
@@ -65,15 +80,17 @@ const ICONS = {
 
 function Row(props: {
   icon: keyof typeof ICONS;
+  phone: boolean;
   verb: string;
   children: ComponentChildren;
 }) {
+  const size = props.phone ? 22 : 20;
   return (
     <li class="row">
       <span class="ic">
         <svg
-          width="20"
-          height="20"
+          width={size}
+          height={size}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -95,13 +112,81 @@ function Row(props: {
 
 const report = (error: unknown) => console.error(error);
 
+function Brand(props: { phone: boolean }) {
+  const { phone } = props;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: phone ? "10px" : "8px",
+      }}
+    >
+      <LangleMark size={phone ? 34 : 28} />
+      <span
+        style={{
+          fontSize: phone ? "20px" : "15px",
+          fontWeight: 700,
+          letterSpacing: phone ? "-0.01em" : undefined,
+        }}
+      >
+        {t("app.name")}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * One step: a card on a computer; on a phone the whole screen, with the step's buttons
+ * in a bar along the bottom (mock `First run on a phone`).
+ */
+function Step(props: {
+  phone: boolean;
+  /** The step's heading's id. */
+  title: string;
+  /** Between the phone screen's parts. */
+  gap: number;
+  actions: ComponentChildren;
+  children: ComponentChildren;
+}) {
+  if (!props.phone)
+    return (
+      <section class="card" aria-labelledby={props.title}>
+        {props.children}
+        {props.actions}
+      </section>
+    );
+  return (
+    <section
+      aria-labelledby={props.title}
+      style={{ flex: 1, display: "flex", flexDirection: "column" }}
+    >
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: `${props.gap}px`,
+          padding: "calc(16px + env(safe-area-inset-top)) 24px 16px",
+        }}
+      >
+        <Brand phone />
+        {props.children}
+      </div>
+      <div class="bar">{props.actions}</div>
+    </section>
+  );
+}
+
 function Consent(props: {
   deps: WelcomeDeps;
+  phone: boolean;
   agreed(status: SetupStatus): void;
 }) {
-  const { deps } = props;
+  const { deps, phone } = props;
   const title = useId();
   const [busy, setBusy] = useState(false);
+  const device = deps.sync.kind === "device";
 
   async function agree() {
     setBusy(true);
@@ -115,16 +200,55 @@ function Consent(props: {
     }
   }
 
+  const notNow = (
+    <button type="button" class="btn" onClick={() => deps.close()}>
+      {t("setup.consent.notNow")}
+    </button>
+  );
+  const agreeButton = (
+    <button
+      type="button"
+      class="btn go"
+      style={phone ? undefined : { flex: 1 }}
+      disabled={busy}
+      onClick={() => void agree()}
+    >
+      {t("setup.consent.agree")}
+    </button>
+  );
   return (
-    <section class="card" aria-labelledby={title}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+    <Step
+      phone={phone}
+      title={title}
+      gap={20}
+      actions={
+        phone ? (
+          <>
+            {agreeButton}
+            {notNow}
+          </>
+        ) : (
+          <div style={{ display: "flex", gap: "12px" }}>
+            {notNow}
+            {agreeButton}
+          </div>
+        )
+      }
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: phone ? "8px" : "6px",
+        }}
+      >
         <h1 id={title} class="h1">
           {t("setup.consent.title")}
         </h1>
         <p
           style={{
             margin: 0,
-            fontSize: "14px",
+            fontSize: phone ? "15px" : "14px",
             lineHeight: 1.5,
             color: color.ink2,
           }}
@@ -132,7 +256,7 @@ function Consent(props: {
           <strong style={{ fontWeight: 600, color: color.ink }}>
             {t("setup.consent.noServers")}
           </strong>{" "}
-          {t("setup.consent.where")}
+          {device ? t("setup.consent.whereDevice") : t("setup.consent.where")}
           {deps.privacyPolicy && (
             <>
               {" "}
@@ -149,38 +273,27 @@ function Consent(props: {
         </p>
       </div>
       <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-        <Row icon="book" verb={t("setup.consent.reads")}>
+        <Row icon="book" phone={phone} verb={t("setup.consent.reads")}>
           {t("setup.consent.readsWhat")}
         </Row>
-        <Row icon="bookmark" verb={t("setup.consent.keeps")}>
-          {t("setup.consent.keepsWhat")}
+        <Row icon="bookmark" phone={phone} verb={t("setup.consent.keeps")}>
+          {device
+            ? t("setup.consent.keepsWhatDevice")
+            : t("setup.consent.keepsWhat")}
         </Row>
-        <Row icon="arrow" verb={t("setup.consent.sends")}>
+        <Row icon="arrow" phone={phone} verb={t("setup.consent.sends")}>
           {deps.sync.kind === "browser"
             ? t("setup.consent.sendsWhat", { syncName: deps.sync.name })
             : t("setup.consent.sendsWhatDevice")}
-          {deps.drive && (
+          {/* Drive is offered beside browser sync only (Settings "Sync and backup"). */}
+          {deps.drive && !device && (
             <span style={{ display: "block", marginTop: "4px" }}>
               {t("setup.consent.sendsDrive")}
             </span>
           )}
         </Row>
       </ul>
-      <div style={{ display: "flex", gap: "12px" }}>
-        <button type="button" class="btn" onClick={() => deps.close()}>
-          {t("setup.consent.notNow")}
-        </button>
-        <button
-          type="button"
-          class="btn go"
-          style={{ flex: 1 }}
-          disabled={busy}
-          onClick={() => void agree()}
-        >
-          {t("setup.consent.agree")}
-        </button>
-      </div>
-    </section>
+    </Step>
   );
 }
 
@@ -227,7 +340,11 @@ const spoken = () =>
     languageOption(a).localeCompare(languageOption(b), "en"),
   );
 
-function Languages(props: { deps: WelcomeDeps; status: SetupStatus }) {
+function Languages(props: {
+  deps: WelcomeDeps;
+  phone: boolean;
+  status: SetupStatus;
+}) {
   const { deps } = props;
   const title = useId();
   const [pair, setPair] = useState<LanguagePair>(() =>
@@ -267,7 +384,21 @@ function Languages(props: { deps: WelcomeDeps; status: SetupStatus }) {
   }
 
   return (
-    <section class="card" aria-labelledby={title}>
+    <Step
+      phone={props.phone}
+      title={title}
+      gap={24}
+      actions={
+        <button
+          type="button"
+          class="btn go"
+          disabled={busy || !pair.nativeLang || !pair.learningLang}
+          onClick={() => void start()}
+        >
+          {t("setup.languages.start")}
+        </button>
+      }
+    >
       <h1 id={title} class="h1">
         {t("setup.languages.title")}
       </h1>
@@ -289,25 +420,18 @@ function Languages(props: { deps: WelcomeDeps; status: SetupStatus }) {
         disabled={pair.nativeLang === ""}
         choose={(learningLang) => choose({ ...pair, learningLang })}
       />
-      <button
-        type="button"
-        class="btn go"
-        disabled={busy || !pair.nativeLang || !pair.learningLang}
-        onClick={() => void start()}
-      >
-        {t("setup.languages.start")}
-      </button>
-    </section>
+    </Step>
   );
 }
 
 /**
  * "Set up Langle" (ui.md "First-run consent"; mock `First run — your data and consent`,
- * `— your languages`): the disclosure, then the languages, in one tab. Only "Agree and
- * continue" is consent.
+ * `— your languages`, and on a phone `First run on a phone`): the disclosure, then the
+ * languages, in one tab. Only "Agree and continue" is consent.
  */
 export function Welcome(props: { deps: WelcomeDeps }) {
   const { deps } = props;
+  const phone = usePhoneLayout(deps.touch);
   const [status, setStatus] = useState<SetupStatus>();
 
   useEffect(() => {
@@ -317,12 +441,29 @@ export function Welcome(props: { deps: WelcomeDeps }) {
     }, report);
   }, [deps]);
 
-  let card: VNode | null = null;
+  let step: VNode | null = null;
   if (status?.stage === "consent")
-    card = <Consent deps={deps} agreed={setStatus} />;
+    step = <Consent deps={deps} phone={phone} agreed={setStatus} />;
   else if (status?.stage === "languages")
-    card = <Languages deps={deps} status={status} />;
+    step = <Languages deps={deps} phone={phone} status={status} />;
 
+  if (phone)
+    return (
+      <main
+        class="ph"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100dvh",
+          fontFamily: FONT,
+          fontSize: "15px",
+          color: color.ink,
+        }}
+      >
+        <style>{CSS}</style>
+        {step}
+      </main>
+    );
   return (
     <main
       style={{
@@ -344,13 +485,8 @@ export function Welcome(props: { deps: WelcomeDeps }) {
           gap: "16px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <LangleMark size={28} />
-          <span style={{ fontSize: "15px", fontWeight: 700 }}>
-            {t("app.name")}
-          </span>
-        </div>
-        {card}
+        <Brand phone={false} />
+        {step}
       </div>
     </main>
   );
