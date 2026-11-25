@@ -9,6 +9,8 @@ export function createTabs(bridge: Bridge) {
   return {
     query: (query: unknown) => bridge.call("tabs.query", query),
     get: (tabId: number) => bridge.call("tabs.get", tabId),
+    /** The calling page's own tab; undefined where it has none (the popup, Home's sheet). */
+    getCurrent: () => bridge.call("tabs.getCurrent"),
     create: (properties: unknown) => bridge.call("tabs.create", properties),
     update: (...args: unknown[]) => bridge.call("tabs.update", ...args),
     remove: (tabIds: number | number[]) => bridge.call("tabs.remove", tabIds),

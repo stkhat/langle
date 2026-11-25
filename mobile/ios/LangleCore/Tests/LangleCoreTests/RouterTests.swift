@@ -220,6 +220,21 @@ final class TabsTests: XCTestCase {
     )
   }
 
+  func test_getCurrent_is_the_calling_pages_own_tab_and_nothing_without_one() {
+    let h = Harness()
+    let host = h.connect(.host)
+    let welcome = host.call("tabs.create", ["url": .string("\(origin)/welcome.html")]).value??["id"]
+    let id = Int(welcome!.number!)
+    let page = h.connect(.page(url: "\(origin)/welcome.html", tabId: id))
+    let current = page.call("tabs.getCurrent").value ?? nil
+    XCTAssertEqual(current?["id"], welcome)
+    XCTAssertEqual(current?["url"], .string("\(origin)/welcome.html"))
+    let popup = h.connect(.page(url: "\(origin)/popup.html"))
+    XCTAssertNil(popup.call("tabs.getCurrent").error)
+    XCTAssertEqual((popup.call("tabs.getCurrent").value ?? nil) ?? .null, .null)
+    XCTAssertEqual((host.call("tabs.getCurrent").value ?? nil) ?? .null, .null)
+  }
+
   func test_openOptionsPage_opens_Settings_openPopup_reload_and_tabs_reload_are_logged() {
     let h = Harness()
     let host = h.connect(.host)

@@ -324,6 +324,11 @@ class Router(val options: Options = Options(), private val persistence: Persiste
         done(Answer.Value(JsonArray(found.map { it.value })))
       }
       "tabs.get" -> done(Answer.Value(tab(first).value))
+      // As Chrome: an app page's own tab; nothing for the host, content or a page without one.
+      "tabs.getCurrent" -> {
+        val id = (context.spec as? ContextSpec.Page)?.tabId
+        done(Answer.Value(id?.let(tabs::get)?.value))
+      }
       "tabs.create" -> {
         val created = openAppTab(appUrl(first.obj?.get("url").string), first.obj?.get("active").bool ?: true)
         done(Answer.Value(created.value))

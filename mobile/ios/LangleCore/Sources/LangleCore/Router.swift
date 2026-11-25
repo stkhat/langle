@@ -346,6 +346,13 @@ public final class Router {
       done(.success(.array(found.map(\.value))))
     case "tabs.get":
       done(.success(try tab(args.first).value))
+    case "tabs.getCurrent":
+      // As Chrome: an app page's own tab; nothing for the host, content or a page without one.
+      if case .page(_, let id?) = context.spec, let current = tabs.get(id) {
+        done(.success(current.value))
+      } else {
+        done(.success(nil))
+      }
     case "tabs.create":
       let properties = args.first
       let created = openTab(

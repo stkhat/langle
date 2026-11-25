@@ -342,6 +342,16 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
       }
       case "tabs.get":
         return { ...tabOf(args[0]) };
+      // As Chrome: an app page's own tab; nothing from the host, a content script or a
+      // page without a tab (the popup in its sheet).
+      case "tabs.getCurrent": {
+        const { spec } = context;
+        const tab =
+          spec.kind === "page" && spec.tabId !== undefined
+            ? tabs.get(spec.tabId)
+            : undefined;
+        return tab && { ...tab };
+      }
       case "tabs.create": {
         const { url = `${origin}/`, active = true } = (args[0] ?? {}) as {
           url?: string;
