@@ -5,9 +5,9 @@
 #                                   scripts/bundle-build.sh [check])
 #   check.sh install                installs the built app on the booted Simulator
 #   check.sh launch [args…]         relaunches the app; args: -url <url>, -reset 1 (a first run)
-#   check.sh cmd <name>             errors | clear-errors | state, or a native control: home |
-#                                   words | settings | back-home | edge-back | langle | close-sheet;
-#                                   the result goes to the log
+#   check.sh cmd <name>             errors | clear-errors | state | translate-state, or a native
+#                                   control: home | words | settings | back-home | edge-back |
+#                                   langle | close-sheet; the result goes to the log
 #   check.sh js <target> <js|@file>  runs <js> (an async function body) in host | page | langle |
 #                                   sheet | first (the first run) | tab (the shown tab's page)
 #   check.sh fullscreen             the page's fullscreen, the screen and a test element in the

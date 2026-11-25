@@ -13,6 +13,9 @@
   /// - `state`: the screen, the title bar's text, whether it shows, the tabs, the sheet and whether
   ///   the host said hello, and whether the page is in fullscreen, the orientation and the window
   ///   size;
+  /// - `translate-state`: whether the translation engine runs and for which pairs, whether it is
+  ///   off after failures, and the pages' translation calls since the launch by kind (`translate`,
+  ///   `translate-list` for `start: false`, `translatorStatus`, `prepareTranslator`);
   /// - `home`, `words`, `settings`, `back-home` (‹), `edge-back` (the edge swipe), `langle` (L),
   ///   `close-sheet`: the shell's native controls, for checks without taps.
   @MainActor
@@ -20,8 +23,8 @@
     static let shared = CheckCommands()
     private weak var model: AppModel?
     private static let names = [
-      "errors", "clear-errors", "eval", "state", "home", "words", "settings", "back-home", "edge-back",
-      "langle", "close-sheet",
+      "errors", "clear-errors", "eval", "state", "translate-state", "home", "words", "settings",
+      "back-home", "edge-back", "langle", "close-sheet",
     ]
 
     func start(model: AppModel) {
@@ -64,6 +67,8 @@
           say(
             "state screen=\(model.screen) title=\"\(model.title)\" site=\"\(model.site)\" bar=\(model.barShown) back=\(model.canGoBack) host=\(model.host?.isReady ?? false) tabs=[\(tabs.joined(separator: ", "))] sheet=\(model.sheet?.context.page.url?.absoluteString ?? "none") page=\(model.browsing.page.url?.absoluteString ?? "none") fullscreen=\(model.fullscreen) \(Orientation.current)"
           )
+        case "translate-state":
+          say("translate-state \(model.translationState)")
         // The shell's native controls, for checks without taps.
         case "home", "words", "settings":
           model.select(AppTab(rawValue: command)!)

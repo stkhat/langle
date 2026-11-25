@@ -90,7 +90,10 @@ final class AppModel: ObservableObject {
       [weak self] spec in self?.onScreen(spec) ?? false
     }
     self.translationHost = translationHost
-    router.onTranslation = { from, api, request, done in
+    router.onTranslation = { [weak self] from, api, request, done in
+      #if DEBUG
+        self?.countTranslationCall(api, request)
+      #endif
       translationHost.handle(from, api, request, done)
     }
 
@@ -371,6 +374,28 @@ final class AppModel: ObservableObject {
 
   /// The app left the screen (scene background): the translator's memory goes back at once.
   func leftScreen() { translationHost?.leftScreen() }
+
+  #if DEBUG
+    /// The pages' translation calls since the launch, by kind (check builds' `translate-state`):
+    /// "translate" (a sentence that may start the engine), "translate-list" (`start: false`),
+    /// "translatorStatus", "prepareTranslator".
+    private(set) var translationCalls: [String: Int] = [:]
+
+    private func countTranslationCall(_ api: String, _ request: JSONValue?) {
+      var kind = String(api.dropFirst("appHost.".count))
+      if kind == "translate", request?["start"]?.bool == false { kind = "translate-list" }
+      translationCalls[kind, default: 0] += 1
+    }
+
+    /// `translate-state`: whether the engine runs and for which pairs, whether it is off after
+    /// failures, and the calls counted so far.
+    var translationState: String {
+      let calls = translationCalls.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }
+      let loaded = translationHost?.loadedPairs ?? []
+      return
+        "running=\(!loaded.isEmpty) loaded=[\(loaded.joined(separator: ", "))] off=\(translationHost?.isOff ?? false) calls=[\(calls.joined(separator: ", "))]"
+    }
+  #endif
 
   /// Whether a context's page shows now: only that page gets translations (others get null).
   private func onScreen(_ spec: ContextSpec) -> Bool {
