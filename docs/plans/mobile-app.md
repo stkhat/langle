@@ -27,7 +27,7 @@
 - [x] M3e designed (2026-11-24, with the user): the page's element fullscreen stood in for on the iPhone ("M3e" below)
 - [x] M3e: the app's own fullscreen on the iPhone (branch `claude/mobile-m3e`), notes/mobile.md "The app's own fullscreen (M3e)"
 - [x] M4 designed (2026-11-25, with the user): spec [mobile-app.md](../specs/mobile-app.md) "M4: the app's screens"
-- [ ] M4-0: Words, Settings and the first run drawn in the mock; reviewed by the user
+- [x] M4-0: Words, Settings and the first run drawn in the mock (2026-11-25); reviewed by the user (2026-11-25)
 - [x] M4a: the Langle sheet's phone layout and "Saved on this phone" (branch `claude/mobile-m4a`)
 - [x] M4b: Home and the recents store (branch `claude/mobile-m4b`)
 - [x] M4c-ios: the tab bar, the title bar and the page over Home (branch `claude/mobile-m4c-ios`), notes/mobile.md "The app's screens on iOS (M4c)"
@@ -599,6 +599,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M4: the app's screens". Every M4 b
   - `MobileSettings` (the list of sections) and `MobileSettingsSection` (one section, ‹ Settings);
   - `MobileFirstRun` (consent), `MobileFirstRunLanguages`, `MobileFirstRunPending`;
   - the "Saved on this phone" state on `MobileStart` and `MobileLangleSheet` (no Drive connected).
+- Drawn (2026-11-25), also: `MobileWordsExport` (⋮ open), `MobileFirstRunStarted` (Home right after Start), `MobileStartDevice` and `MobileLangleSheetDevice` (the saved-on-phone states, as `initial` options of their boards).
 - Fix the `mAppScope` note, update ui.md "Mobile app", and ask the user to review. Their comments are handled before M4d starts.
 
 ### M4a: the Langle sheet's phone layout and "Saved on this phone" (one agent, Opus)
