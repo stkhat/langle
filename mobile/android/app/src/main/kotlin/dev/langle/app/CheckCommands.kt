@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.util.Base64
 import android.util.Log
+import dev.langle.core.AppTab
 import dev.langle.core.KeyValueStore
 import dev.langle.core.jsonOf
 import dev.langle.core.toJsonText
@@ -15,9 +16,9 @@ import dev.langle.core.toJsonText
  * - `errors`: the check build's error log (`checkErrorLog` in `storage.local`), read from the store;
  * - `clear-errors`: clears it through the extension host's `browser.storage`, so its listeners hear;
  * - `eval`: runs `source64` (base64 of an async function body) in `target`: host | page | langle |
- *   sheet, and logs what it returns;
- * - `state`: the tabs, the sheet, the page and whether the host said hello, and
- *   whether the page is in fullscreen, the orientation and the window size.
+ *   sheet | home | words | settings | firstrun, and logs what it returns;
+ * - `state`: the screen, the tabs, the sheet, the page and whether the host said hello, whether
+ *   the title bar shows, whether the page is in fullscreen, the orientation and the window size.
  */
 object CheckCommands {
   const val TAG = "LangleCheck"
@@ -54,21 +55,29 @@ object CheckCommands {
           return true
         }
         val done = { result: String -> say("eval $result") }
+        val screens = activity.screens
         when (intent.getStringExtra("target")) {
           "host" -> activity.host?.evaluate(source, done) ?: done("no host")
-          "page" -> activity.browsing.page.evaluate(ScriptWorld.PAGE, source, done)
-          "langle" -> activity.browsing.page.evaluate(ScriptWorld.LANGLE, source, done)
-          "sheet" -> activity.sheet?.context?.page?.evaluate(ScriptWorld.PAGE, source, done) ?: done("no sheet")
+          "page" -> screens.browsing.page.evaluate(ScriptWorld.PAGE, source, done)
+          "langle" -> screens.browsing.page.evaluate(ScriptWorld.LANGLE, source, done)
+          "sheet" -> screens.sheet?.context?.page?.evaluate(ScriptWorld.PAGE, source, done) ?: done("no sheet")
+          "firstrun" -> screens.firstRunPage?.page?.evaluate(ScriptWorld.PAGE, source, done) ?: done("no first run")
+          "home", "words", "settings" -> {
+            val tab = AppTab.valueOf(intent.getStringExtra("target")!!.uppercase())
+            screens.tabPage(tab)?.page?.evaluate(ScriptWorld.PAGE, source, done) ?: done("no $tab page yet")
+          }
           else -> done("unknown target")
         }
       }
       "state" -> {
         val tabs = activity.router.tabs.all.joinToString(", ") { "${it.id}${if (it.active) "*" else ""} ${it.url}" }
+        val screens = activity.screens
         val landscape = activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         val window = activity.window.decorView
         say(
-          "state host=${activity.host?.isReady ?: false} tabs=[$tabs] sheet=${activity.sheet?.context?.page?.url ?: "none"} " +
-            "page=${activity.browsing.page.url ?: "none"} fullscreen=${activity.isFullscreen} " +
+          "state screen=${screens.shell.screen} host=${activity.host?.isReady ?: false} tabs=[$tabs] " +
+            "sheet=${screens.sheet?.context?.page?.url ?: "none"} page=${screens.browsing.page.url ?: "none"} " +
+            "bar=${screens.isBarShown} fullscreen=${activity.isFullscreen} " +
             "orientation=${if (landscape) "landscape" else "portrait"} " +
             "window=${window.width}x${window.height}",
         )

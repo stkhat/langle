@@ -50,6 +50,8 @@ export interface YouTubeAdapterOptions {
   captureTimeoutMs?: number;
   /** How long to wait for one fetch of a track through the page script. */
   fetchTimeoutMs?: number;
+  /** How long to wait for the page script's answer to any other call. */
+  callTimeoutMs?: number;
   pollMs?: number;
 }
 
@@ -88,6 +90,9 @@ export function createYouTubeAdapter(
   const bridge = createPageBridge<PageCall, PageCallResults, TimedtextMessage>({
     channel: CHANNEL,
     isEvent: isTimedtextMessage,
+    ...(options.callTimeoutMs !== undefined && {
+      timeoutMs: options.callTimeoutMs,
+    }),
   });
   // The site's caption window, and the caption track the browser draws in the video
   // itself (YouTube turns one on when its video is in fullscreen on an iPhone, for the
@@ -138,16 +143,24 @@ export function createYouTubeAdapter(
       call({ type: "fetchTimedtext", url }, fetchTimeoutMs),
     );
 
-  /** The player response once it is the current video's (it lags behind SPA navigation). */
+  /**
+   * The player response once it is the current video's (it lags behind SPA navigation).
+   * A call the page leaves unanswered is asked again until the deadline: a page still
+   * loading can keep its script busy past one call's wait (the Android emulator, docs/notes/mobile.md
+   * "Device checks (M4c, Android)").
+   */
   async function captionInfo(
     id: string,
     signal?: AbortSignal,
   ): Promise<YouTubeCaptionInfo> {
     const deadline = Date.now() + PLAYER_RESPONSE_TIMEOUT_MS;
     for (;;) {
-      const response = (await call({ type: "getPlayerResponse" })) as {
-        videoDetails?: { videoId?: unknown };
-      } | null;
+      const response = (await call({ type: "getPlayerResponse" }).catch(
+        (error: unknown) => {
+          if (Date.now() >= deadline) throw error;
+          return null;
+        },
+      )) as { videoDetails?: { videoId?: unknown } } | null;
       if (response?.videoDetails?.videoId === id)
         return youtubeCaptionInfo(response);
       if (Date.now() >= deadline)

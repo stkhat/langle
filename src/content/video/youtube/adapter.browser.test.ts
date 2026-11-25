@@ -599,6 +599,26 @@ describe("loading captions", () => {
     });
   });
 
+  it("asks for the player response again when the page does not answer in time", async () => {
+    start({ captionsOn: true }, { callTimeoutMs: 200 });
+    await page.video.play();
+    await expect.poll(() => page.player.fake.requests.length).toBe(1);
+    const dropped = holdBackPageCalls({
+      toPage: CHANNEL.toPage,
+      type: "getPlayerResponse",
+      count: 1,
+      reinstall() {
+        uninstall();
+        uninstall = installYouTubeHooks();
+      },
+    });
+    cleanups.push(dropped.remove);
+
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(dropped.held()).toBe(1);
+    expect(captions?.cues.length).toBeGreaterThan(0);
+  });
+
   it("fails after the second unanswered fetch", async () => {
     start({ captionsOn: true }, { fetchTimeoutMs: 200 });
     await page.video.play();

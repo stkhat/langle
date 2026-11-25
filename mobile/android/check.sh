@@ -8,7 +8,8 @@
 #   check.sh reset                  clears the app's data: the next launch is a first run
 #   check.sh cmd <name>             errors | clear-errors | state, and prints the result
 #   check.sh js <target> <js>       runs <js> (an async function body) in host | page | langle |
-#                                   sheet, and prints what it returns
+#                                   sheet | home | words | settings | firstrun, and prints what
+#                                   it returns
 #   check.sh fullscreen             the page's fullscreen, the screen and a test element in the
 #                                   player (mobile/check/fullscreen.js), then the shell's state
 #   check.sh log                    the app's log lines so far (check results, console errors and

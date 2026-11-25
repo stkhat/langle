@@ -79,6 +79,15 @@ interface PageDelegate {
   /** The page's URL changed (a new document, or the history API). */
   fun onNavigate(page: Page, url: String)
 
+  /** The top document finished loading. */
+  fun onLoaded(page: Page, url: String)
+
+  /** The document's title changed. */
+  fun onTitle(page: Page, title: String)
+
+  /** The page scrolled by [dy] to [scrollY] (CSS px times the density: the view's pixels). */
+  fun onScroll(page: Page, dy: Int, scrollY: Int)
+
   /** An app page followed a link off the app origin. */
   fun onLeaveApp(page: Page, url: String)
 
