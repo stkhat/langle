@@ -738,7 +738,9 @@ describe("mountVideoUi", () => {
           "[data-span]",
         ),
       ].find((el) => el.textContent === name)!;
-    const line = inside("langle-video-player")!.querySelector("[lang=en]")!;
+    const line = inside("langle-video-player")!.querySelector(
+      "[role=region] [lang=en]",
+    )!;
     const at = line.getBoundingClientRect();
     const yeast = word("yeast").getBoundingClientRect();
     // From the middle of "yeast" to just inside its line's end (the narrow test page

@@ -3,6 +3,12 @@ import { googleClients } from "../../background/sync/google-clients";
 import { translatorBackend } from "../../content/translate/backend";
 import { createBrowserEnv } from "../../core/browser-env";
 import { PRIVACY_POLICY_URL } from "../../core/links";
+import {
+  fetchLocale,
+  interfaceLocale,
+  localeOfTag,
+  showUiLocale,
+} from "../../i18n/ui-locale";
 import { send } from "../../messaging/client";
 import { isSetupPing } from "../../messaging/page-protocol";
 import { watchSettings } from "../../messaging/storage";
@@ -20,10 +26,11 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 mountPage(() => {
+  const uiLanguage = browser.i18n.getUILanguage();
   const deps: WelcomeDeps = {
     send,
     watchSettings,
-    uiLanguage: browser.i18n.getUILanguage(),
+    uiLanguage,
     sync: createBrowserEnv().sync,
     drive: googleClients() !== undefined,
     privacyPolicy: PRIVACY_POLICY_URL,
@@ -34,6 +41,13 @@ mountPage(() => {
           .then(() => {}),
         new Promise<void>((resolve) => setTimeout(resolve, MODELS_WAIT_MS)),
       ]),
+    showLanguage: (native) =>
+      void showUiLocale(
+        native === ""
+          ? localeOfTag(uiLanguage)
+          : interfaceLocale({ interfaceLanguage: "", nativeLang: native }),
+        fetchLocale,
+      ),
     close() {
       browser.tabs
         .getCurrent()

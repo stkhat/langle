@@ -32,6 +32,7 @@ const REPEATABLE: Record<RequestType, boolean> = {
   startLangle: false,
   getSettings: true,
   setSettings: true,
+  uiMessages: true,
   analyze: true,
   matchSelection: true,
   checkPhrase: true,

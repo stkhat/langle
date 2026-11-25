@@ -67,6 +67,7 @@ beforeEach(() => {
     },
     openOptionsPage: async () => {},
     openPopup: async () => {},
+    loadLocale: () => Promise.reject(new Error("not used")),
   });
 });
 

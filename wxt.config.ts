@@ -1,10 +1,23 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { defineConfig } from "wxt";
 import preact from "@preact/preset-vite";
 import pkg from "./package.json" with { type: "json" };
 import { bundledLicenses } from "./scripts/licenses.ts";
+import { localeFiles, localesPlugin } from "./scripts/locales.ts";
 import { noticesPlugin } from "./scripts/notices.ts";
 import { DEVELOPMENT_EXTENSION_KEY } from "./src/background/sync/google-clients.ts";
 import { LICENSES_FILE } from "./src/core/notices.ts";
+
+/** The store listing's English summary, as public/_locales/en/messages.json has it. */
+const STORE_DESCRIPTION = (
+  JSON.parse(
+    readFileSync(
+      join(import.meta.dirname, "public/_locales/en/messages.json"),
+      "utf8",
+    ),
+  ) as { description: { message: string } }
+).description.message;
 
 // The packages each build ships, found in its output, for THIRD_PARTY_LICENSES.txt.
 const licenses = bundledLicenses(import.meta.dirname);
@@ -18,15 +31,24 @@ export default defineConfig({
     plugins: [
       preact(),
       noticesPlugin({ models: browser === "langle-app" }),
+      // The codes of the interface's locales; the locales themselves are files.
+      localesPlugin(),
       licenses.plugin(),
     ],
   }),
-  manifest: ({ mode }) => {
+  manifest: ({ mode, browser }) => {
     return {
-      name: "Langle",
+      // The store listing in the browser's language (public/_locales/<locale>/
+      // messages.json). The phone app reads the manifest itself and knows no
+      // default_locale (docs/specs/mobile-app.md "The langle-app build target").
+      ...(browser === "langle-app"
+        ? { name: "Langle", description: STORE_DESCRIPTION }
+        : {
+            name: "__MSG_name__",
+            description: "__MSG_description__",
+            default_locale: "en",
+          }),
       version: pkg.version,
-      description:
-        "Learn languages on the videos and articles you already read.",
       // alarms: retries of language data downloads (src/background/pack-downloads.ts);
       // it shows no warning at install in Chrome. identity: signing in to the user's
       // own cloud storage (src/background/sync/google-auth.ts); no warning either.
@@ -49,6 +71,8 @@ export default defineConfig({
     // Runs once every entrypoint is built: the licenses of all the packages they ship.
     // The phone app's also lists the translation engine its APK ships.
     "build:publicAssets": (wxt, files) => {
+      // The interface's locales other than English, loaded when chosen.
+      files.push(...localeFiles());
       files.push({
         relativeDest: LICENSES_FILE,
         contents: licenses.file({ app: wxt.config.browser === "langle-app" }),

@@ -12,6 +12,7 @@ import type { ArticleApp } from "../../article/state";
 import { WHOLE_ROOT, type PageSurface } from "../../article/surface";
 import type { LookupHooks } from "../../lookup/lookup";
 import { createShadowHost } from "../../shadow-host";
+import { UiRoot } from "../../../ui/locale-root";
 import { contentDeps } from "../../wiring";
 import type { PlatformAdapter } from "../platform";
 import { isShortsUrl } from "./desktop-layout";
@@ -222,7 +223,12 @@ export function mountCommentsUi(app: ArticleApp): () => void {
     "langle-comments",
     "position: static;",
   );
-  render(<ArticleUi app={app} panelFrame={shortsFrame} />, root);
+  render(
+    <UiRoot>
+      <ArticleUi app={app} panelFrame={shortsFrame} />
+    </UiRoot>,
+    root,
+  );
   document.body.append(host);
   return () => {
     render(null, root);

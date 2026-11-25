@@ -4,7 +4,9 @@ import { modelPacksOf, readLock } from "../../../core/packs/lock";
 import { pairsOfPack } from "../../../core/packs/pairs";
 import { combinedState } from "../../../core/packs/state";
 import { translatorBackend } from "../../../content/translate/backend";
+import { nativeLanguage } from "../../../core/natives";
 import { languageOption, languagePair } from "../../../i18n/languages";
+import { interfaceLanguages } from "../../../i18n/ui-locale";
 import { t, type MessageKey } from "../../../i18n/t";
 import type { PackStatus } from "../../../messaging/protocol";
 import { megabytesTenths } from "../../../ui/format/format";
@@ -20,8 +22,15 @@ function LanguageSelect(props: {
   desc: MessageKey;
   value: string;
   options: readonly string[];
+  /** An option's text and language; the default: as a menu offers the language. */
+  label?: (code: string) => { text: string; lang?: string };
   onPick: (code: string) => void;
 }) {
+  const label =
+    props.label ??
+    ((code: string): { text: string; lang?: string } => ({
+      text: languageOption(code),
+    }));
   return (
     <div class="row">
       <RowLabel for={props.id} title={t(props.title)} desc={t(props.desc)} />
@@ -31,14 +40,28 @@ function LanguageSelect(props: {
         value={props.value}
         onChange={(e) => props.onPick(e.currentTarget.value)}
       >
-        {props.options.map((code) => (
-          <option key={code} value={code}>
-            {languageOption(code)}
-          </option>
-        ))}
+        {props.options.map((code) => {
+          const { text, lang } = label(code);
+          return (
+            <option key={code} value={code} lang={lang}>
+              {text}
+            </option>
+          );
+        })}
       </select>
     </div>
   );
+}
+
+/**
+ * An interface language as its menu offers it: following Your language first, then
+ * each language by its own name, in its own language.
+ */
+function interfaceOption(code: string): { text: string; lang?: string } {
+  const language = nativeLanguage(code);
+  return language
+    ? { text: language.endonym, lang: code }
+    : { text: t("settings.languages.uiSame") };
 }
 
 /** Downloaded packs the chosen pair does not use, together by the pair they are for. */
@@ -281,9 +304,10 @@ export function LanguagesSection(
         id="lang-ui"
         title="settings.languages.ui"
         desc="settings.languages.uiDesc"
-        value={s.uiLocale}
-        options={["en"]}
-        onPick={(uiLocale) => props.change({ uiLocale })}
+        value={s.interfaceLanguage}
+        options={["", ...interfaceLanguages()]}
+        label={interfaceOption}
+        onPick={(interfaceLanguage) => props.change({ interfaceLanguage })}
       />
       {props.packs && (
         <LanguageData

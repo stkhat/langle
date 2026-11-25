@@ -26,6 +26,8 @@ import type { ExplanationProvider } from "../../core/explain/provider";
 import type { LanguagePair } from "../../core/packs/pairs";
 import { fakeExplanationProvider } from "../../testing/explain";
 import en from "../../i18n/locales/en.json";
+import { interfaceLanguages } from "../../i18n/ui-locale";
+import { nativeLanguage } from "../../core/natives";
 import { SettingsPage, type SettingsDeps } from "./SettingsPage";
 import { heldWrites, listeners, settingsListeners } from "../../testing/stubs";
 import { fixedTouchMode } from "../../testing/touch";
@@ -166,7 +168,7 @@ function fake(options: FakeOptions = {}) {
     watchPackState: packWatchers.watch,
     env: {
       name: "Chrome",
-      sync: options.place ?? { kind: "browser", name: "Chrome sync" },
+      sync: options.place ?? { kind: "browser", browser: "Chrome" },
       features: { fileSystemAccess: true, appHost: options.app ?? false },
     },
     ...(options.phone && { touch: fixedTouchMode(true) }),
@@ -329,8 +331,25 @@ describe("SettingsPage", () => {
       "Korean (한국어)",
     ]);
     const ui = screen.getByRole("combobox", { name: /Interface language/ });
+    await expect.element(ui).toHaveDisplayValue("Same as your language");
+    // Following Your language first, then each language Langle has by its own name.
+    expect(optionLabels(ui.element())).toEqual([
+      "Same as your language",
+      ...interfaceLanguages().map((code) => nativeLanguage(code)!.endonym),
+    ]);
+    expect(optionLabels(ui.element()).at(-1)).toBe("English");
+  });
+
+  it("keeps the interface language picked, English too", async () => {
+    const f = await open();
+    const ui = f.screen.getByRole("combobox", { name: /Interface language/ });
+    await userEvent.selectOptions(ui, "English");
     await expect.element(ui).toHaveDisplayValue("English");
-    expect(optionLabels(ui.element())).toEqual(["English"]);
+    await userEvent.selectOptions(ui, "Same as your language");
+    expect(setSettingsPatches(f.sent)).toEqual([
+      { interfaceLanguage: "en" },
+      { interfaceLanguage: "" },
+    ]);
   });
 
   it("offers as your language only those with a dictionary for the learning language", async () => {

@@ -16,6 +16,7 @@ import type { Meaning } from "../core/meanings";
 import type { PackState } from "../core/packs/state";
 import type { DocumentCasing } from "../core/text/casing";
 import type { Settings, SettingsPatch } from "../core/settings";
+import type { LocaleMessages } from "../i18n/t";
 import type { SetupStage } from "../core/setup";
 import type { Platform, Position } from "../core/url";
 
@@ -199,6 +200,8 @@ export type Request =
   | ({ type: "startLangle" } & LanguagePair)
   | { type: "getSettings" }
   | { type: "setSettings"; patch: SettingsPatch }
+  /** A locale's interface messages (not English's: they are bundled), for content scripts. */
+  | { type: "uiMessages"; locale: string }
   /**
    * Classifies blocks of text (paragraphs, subtitle lines) of one language. `casing` is
    * the casing of the whole document the blocks belong to (a caption track, an
@@ -585,6 +588,7 @@ export interface PackStatus {
 interface ResponseMap {
   getSettings: Settings;
   setSettings: Settings;
+  uiMessages: LocaleMessages;
   analyze: AnalyzeResult;
   /**
    * The pattern's key ("make up one's mind") and where its words are in `text`, gap

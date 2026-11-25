@@ -6,9 +6,11 @@ import { leaveWhenOrphaned } from "../../content/orphan";
 import { reportPageVisit } from "../../content/recents";
 import { runWhenSetUp } from "../../content/setup";
 import { shadowRootMode } from "../../content/shadow-host";
+import { inUiLocale } from "../../content/ui-locale";
 import { isVideoSite } from "../../content/video/platform";
 import { answerPageRequests, contentDeps } from "../../content/wiring";
 import { guardShadowRoot } from "../../ui/from-user";
+import { UiRoot } from "../../ui/locale-root";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -20,33 +22,41 @@ export default defineContentScript({
     if (isVideoSite(location.hostname)) return;
     // `npm run build:check` only: the error log and the settings channel (src/check/).
     if (import.meta.env.MODE === "check") startContentCheck("article");
-    runWhenSetUp(ctx, () => {
-      const deps = contentDeps(ctx);
-      // The phone app's recent pages: nothing elsewhere.
-      reportPageVisit({ send: deps.send });
-      const runner = runArticle({
-        ...deps,
-        async mountUi(app) {
-          const ui = await createShadowRootUi(ctx, {
-            name: "langle-article",
-            mode: shadowRootMode(),
-            position: "inline",
-            anchor: "body",
-            onMount(container, shadow) {
-              guardShadowRoot(shadow);
-              render(<ArticleUi app={app} />, container);
-            },
-            onRemove(container) {
-              if (container) render(null, container);
-            },
-          });
-          ui.mount();
-          return () => ui.remove();
-        },
-      });
-      ctx.onInvalidated(() => runner.stop());
-      leaveWhenOrphaned(ctx);
-      answerPageRequests(ctx, runner.handlePageRequest);
-    });
+    runWhenSetUp(
+      ctx,
+      inUiLocale(ctx, () => {
+        const deps = contentDeps(ctx);
+        // The phone app's recent pages: nothing elsewhere.
+        reportPageVisit({ send: deps.send });
+        const runner = runArticle({
+          ...deps,
+          async mountUi(app) {
+            const ui = await createShadowRootUi(ctx, {
+              name: "langle-article",
+              mode: shadowRootMode(),
+              position: "inline",
+              anchor: "body",
+              onMount(container, shadow) {
+                guardShadowRoot(shadow);
+                render(
+                  <UiRoot>
+                    <ArticleUi app={app} />
+                  </UiRoot>,
+                  container,
+                );
+              },
+              onRemove(container) {
+                if (container) render(null, container);
+              },
+            });
+            ui.mount();
+            return () => ui.remove();
+          },
+        });
+        ctx.onInvalidated(() => runner.stop());
+        leaveWhenOrphaned(ctx);
+        answerPageRequests(ctx, runner.handlePageRequest);
+      }),
+    );
   },
 });
