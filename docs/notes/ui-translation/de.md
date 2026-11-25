@@ -58,3 +58,6 @@ Changed keys:
 | `setup.consent.keepsWhat` | Ihre Wörter und einen Verlauf von Sätzen, Webadressen und Titeln auf diesem Gerät, um zu zeigen, wo Ihnen ein Wort begegnet ist. | Ihre gespeicherten Wörter und einen Verlauf von Sätzen, Webadressen und Titeln auf diesem Gerät, um zu zeigen, wo Ihnen ein Wort begegnet ist. | consent text names the saved words |
 | `setup.consent.keepsWhatDevice` | Ihre Wörter, Einstellungen und einen Verlauf von Sätzen, Webadressen und Titeln auf diesem Smartphone, um zu zeigen, wo Ihnen ein Wort begegnet ist. | Ihre gespeicherten Wörter, Einstellungen und einen Verlauf von Sätzen, Webadressen und Titeln auf diesem Smartphone, um zu zeigen, wo Ihnen ein Wort begegnet ist. | same as keepsWhat |
 | `setup.consent.sendsWhatDevice` | Nur ein Wort, das Sie nachschlagen oder abspielen, an den Dienst, der seine Bedeutung oder Aussprache liefert. Ihre Wörter und Einstellungen bleiben auf diesem Smartphone. | Nur ein Wort, das Sie nachschlagen oder abspielen, an den Dienst, der seine Bedeutung oder Aussprache liefert. Ihre gespeicherten Wörter und Einstellungen bleiben auf diesem Smartphone. | same as keepsWhat |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "{browser}-Synchronisierung", with the browser's name filled in. Feminine: „in der / an die / der Speicher der {syncName}“. The switch says „speichern“.

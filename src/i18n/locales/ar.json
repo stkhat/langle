@@ -227,7 +227,7 @@
   "settings.sync.lead": "ليس لدى Langle خادم. يُحفظ كل شيء في هذا المتصفح، وتُحفظ إعداداتك أيضًا، بما فيها المواقع التي أوقفت Langle عليها، في {syncName}.",
   "settings.sync.leadCloud": "ليس لدى Langle خادم. يُحفظ كل شيء في هذا المتصفح، وفي {provider} الخاص بك إن أردت، وتُحفظ إعداداتك أيضًا، بما فيها المواقع التي أوقفت Langle عليها، في {syncName}.",
   "settings.sync.leadDevice": "ليس لدى Langle خادم. يُحفظ كل شيء، بما في ذلك إعداداتك، على هذا الهاتف.",
-  "settings.sync.switch": "مزامنة حالة الكلمات عبر {syncName}",
+  "settings.sync.switch": "حفظ حالة الكلمات في {syncName}",
   "settings.sync.switchDesc": "تُزامَن الكلمات وحالاتها فقط، دون المصادر والجمل، وتصل إلى أجهزتك الأخرى عند تسجيل الدخول إلى {browser} مع تفعيل المزامنة.",
   "settings.sync.space": "مساحة المزامنة",
   "settings.sync.spaceUsed": "{used} من {quota} كيلوبايت",
@@ -248,7 +248,6 @@
     "many": "تم استيراد {count} كلمة",
     "other": "تم استيراد {count} كلمة"
   },
-  "backup.imported.one": "تم استيراد كلمة واحدة",
   "backup.importFailed": "تعذّر الاستيراد: {error}",
   "backup.exportFailed": "تعذّر التصدير: {error}",
   "backup.exportBackup": "نسخة احتياطية (JSON)",
@@ -262,7 +261,6 @@
     "many": "تم تصدير {count} كلمة",
     "other": "تم تصدير {count} كلمة"
   },
-  "backup.exported.one": "تم تصدير كلمة واحدة",
   "export.anki": "Anki (.txt)",
   "export.csv": "CSV",
   "export.deck": "Langle – {language}",
@@ -334,7 +332,6 @@
     "many": "{count} جملة",
     "other": "{count} جملة"
   },
-  "dict.sentences.one": "جملة واحدة",
   "dict.fitsHere": "مناسب هنا",
   "dict.inSentence": "في هذه الجملة",
   "dict.explain": "الشرح في السياق",
@@ -376,7 +373,6 @@
     "many": "{count} كلمة لم تُحفظ بعد",
     "other": "{count} كلمة لم تُحفظ بعد"
   },
-  "saveAll.unsaved.one": "كلمة واحدة لم تُحفظ بعد",
   "saveAll.allSaved": "كل الكلمات محفوظة",
   "saveAll.addLearning": "وضع الكل في «قيد التعلّم»",
   "saveAll.markKnown": "وضع الكل في «معروفة»",
@@ -388,7 +384,6 @@
     "many": "تم وضع {count} كلمة في «قيد التعلّم»",
     "other": "تم وضع {count} كلمة في «قيد التعلّم»"
   },
-  "saveAll.done.learning.one": "تم وضع كلمة واحدة في «قيد التعلّم»",
   "saveAll.done.known": {
     "zero": "لم يتم وضع أي كلمة في «معروفة»",
     "one": "تم وضع كلمة واحدة في «معروفة»",
@@ -397,7 +392,6 @@
     "many": "تم وضع {count} كلمة في «معروفة»",
     "other": "تم وضع {count} كلمة في «معروفة»"
   },
-  "saveAll.done.known.one": "تم وضع كلمة واحدة في «معروفة»",
   "saveAll.undo": "تراجع",
   "saveAll.note": "تحتفظ الكلمات التي حفظتها سابقًا بحالتها. ولا تُحتسب الكلمات التي تقع ضمن حصيلة كلماتك.",
   "video.subtitle": "الترجمة المصاحبة",
@@ -430,7 +424,6 @@
     "many": "عرض {count} موضعًا آخر",
     "other": "عرض {count} موضع آخر"
   },
-  "video.words.more.one": "عرض موضع آخر",
   "page.words.title": "الكلمات في هذه الصفحة",
   "page.words.panel": "كلمات Langle",
   "page.words.close": "إغلاق الكلمات",
@@ -444,7 +437,6 @@
     "many": "عرض {count} موضعًا آخر",
     "other": "عرض {count} موضع آخر"
   },
-  "page.words.more.one": "عرض موضع آخر",
   "popup.showWords": "عرض الكلمات في هذه الصفحة",
   "popup.subtitles": "الترجمة المصاحبة",
   "popup.subtitles.transcript": "عرض النص",
@@ -525,5 +517,6 @@
   "setup.languages.native": "لغتك",
   "setup.languages.learning": "اللغة التي تتعلّمها",
   "setup.languages.choose": "اختر لغة",
-  "setup.languages.start": "البدء"
+  "setup.languages.start": "البدء",
+  "env.syncName": "مزامنة {browser}"
 }

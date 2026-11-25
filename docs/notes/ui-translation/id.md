@@ -66,3 +66,6 @@ Changed keys:
 | `setup.languages.title` | Bahasa Anda | Atur bahasa | «Bahasa Anda» is now the row below it (no plural in Indonesian to tell them apart) |
 | `setup.languages.native` | Bahasa saya | Bahasa Anda | same name as the Settings row it sets |
 | `setup.languages.learning` | Saya belajar | Bahasa yang dipelajari | same name as the Settings row it sets |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "sinkronisasi {browser}", with the browser's name filled in. The switch says Simpan so it does not repeat sinkronisasi.

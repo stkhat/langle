@@ -35,7 +35,7 @@
   "popup.langleSwitch": "Usa Langle",
   "popup.site": "Su questo sito",
   "popup.siteSwitch": "Usa Langle su questo sito",
-  "popup.sync.saved": "Salvato su {syncName} · {when}",
+  "popup.sync.saved": "Salvato nella {syncName} · {when}",
   "popup.sync.savedDevice": "Salvato su questo telefono · {when}",
   "popup.sync.space": "Spazio di sincronizzazione: {used} KB usati su {quota} KB",
   "popup.cloud.lastSaved": "Ultimo salvataggio su {provider}: {when}",
@@ -211,10 +211,10 @@
   "settings.history.clear": "Cancella cronologia",
   "settings.history.clearDesc": "Le parole salvate e le loro fonti restano.",
   "settings.history.clearButton": "Cancella",
-  "settings.sync.lead": "Langle non ha un server. Tutto resta in questo browser; le tue impostazioni, inclusi i siti su cui Langle è disattivato, vengono salvate anche su {syncName}.",
-  "settings.sync.leadCloud": "Langle non ha un server. Tutto resta in questo browser e, se vuoi, nel tuo {provider}; le tue impostazioni, inclusi i siti su cui Langle è disattivato, vengono salvate anche su {syncName}.",
+  "settings.sync.lead": "Langle non ha un server. Tutto resta in questo browser; le tue impostazioni, inclusi i siti su cui Langle è disattivato, vengono salvate anche nella {syncName}.",
+  "settings.sync.leadCloud": "Langle non ha un server. Tutto resta in questo browser e, se vuoi, nel tuo {provider}; le tue impostazioni, inclusi i siti su cui Langle è disattivato, vengono salvate anche nella {syncName}.",
   "settings.sync.leadDevice": "Langle non ha un server. Tutto, comprese le impostazioni, resta su questo telefono.",
-  "settings.sync.switch": "Sincronizza lo stato delle parole con {syncName}",
+  "settings.sync.switch": "Salva lo stato delle parole nella {syncName}",
   "settings.sync.switchDesc": "Sincronizza ogni parola e il suo stato, ma non le fonti né le frasi. Arriva agli altri tuoi dispositivi quando hai eseguito l'accesso a {browser} con la sincronizzazione attiva.",
   "settings.sync.space": "Spazio di sincronizzazione",
   "settings.sync.spaceUsed": "{used} KB su {quota} KB",
@@ -232,7 +232,6 @@
     "many": "{count} parole importate",
     "other": "{count} parole importate"
   },
-  "backup.imported.one": "1 parola importata",
   "backup.importFailed": "Impossibile importare: {error}",
   "backup.exportFailed": "Impossibile esportare: {error}",
   "backup.exportBackup": "Backup (JSON)",
@@ -243,7 +242,6 @@
     "many": "{count} parole esportate",
     "other": "{count} parole esportate"
   },
-  "backup.exported.one": "1 parola esportata",
   "export.anki": "Anki (.txt)",
   "export.csv": "CSV",
   "export.deck": "Langle {language}",
@@ -260,9 +258,9 @@
   "export.col.saved": "Salvata",
   "export.col.learned": "Imparata",
   "settings.cloud.title": "Il tuo spazio cloud",
-  "settings.cloud.desc": "Sincronizza tutto tramite Google Drive, Dropbox, OneDrive, una cartella su questo computer o WebDAV, per quando lo spazio di {syncName} non basta più.",
-  "settings.cloud.descNoFolder": "Sincronizza tutto tramite Google Drive, Dropbox, OneDrive o WebDAV, per quando lo spazio di {syncName} non basta più.",
-  "settings.cloud.offer": "Salva tutto, comprese fonti e frasi, nel tuo {provider}, per quando lo spazio di {syncName} non basta più.",
+  "settings.cloud.desc": "Sincronizza tutto tramite Google Drive, Dropbox, OneDrive, una cartella su questo computer o WebDAV, per quando lo spazio della {syncName} non basta più.",
+  "settings.cloud.descNoFolder": "Sincronizza tutto tramite Google Drive, Dropbox, OneDrive o WebDAV, per quando lo spazio della {syncName} non basta più.",
+  "settings.cloud.offer": "Salva tutto, comprese fonti e frasi, nel tuo {provider}, per quando lo spazio della {syncName} non basta più.",
   "settings.cloud.connectButton": "Collega {provider}",
   "settings.cloud.connected": "Collegato a {provider}. Tutto viene salvato lì, in una cartella che solo Langle può aprire.",
   "settings.cloud.connectedAccount": "Collegato a {provider} ({account}). Tutto viene salvato lì, in una cartella che solo Langle può aprire.",
@@ -312,7 +310,6 @@
     "many": "{count} frasi",
     "other": "{count} frasi"
   },
-  "dict.sentences.one": "1 frase",
   "dict.fitsHere": "Si adatta qui",
   "dict.inSentence": "In questa frase",
   "dict.explain": "Spiega nel contesto",
@@ -351,7 +348,6 @@
     "many": "{count} parole non ancora salvate",
     "other": "{count} parole non ancora salvate"
   },
-  "saveAll.unsaved.one": "1 parola non ancora salvata",
   "saveAll.allSaved": "Tutte le parole sono salvate",
   "saveAll.addLearning": "Segna tutte come Da imparare",
   "saveAll.markKnown": "Segna tutte come Conosciute",
@@ -360,13 +356,11 @@
     "many": "{count} parole segnate come Da imparare",
     "other": "{count} parole segnate come Da imparare"
   },
-  "saveAll.done.learning.one": "1 parola segnata come Da imparare",
   "saveAll.done.known": {
     "one": "{count} parola segnata come Conosciuta",
     "many": "{count} parole segnate come Conosciute",
     "other": "{count} parole segnate come Conosciute"
   },
-  "saveAll.done.known.one": "1 parola segnata come Conosciuta",
   "saveAll.undo": "Annulla",
   "saveAll.note": "Le parole già salvate mantengono il loro stato. Le parole entro il tuo livello di vocabolario non vengono contate.",
   "video.subtitle": "Sottotitolo",
@@ -396,7 +390,6 @@
     "many": "Mostra altre {count} occorrenze",
     "other": "Mostra altre {count} occorrenze"
   },
-  "video.words.more.one": "Mostra un'altra occorrenza",
   "page.words.title": "Parole in questa pagina",
   "page.words.panel": "Parole di Langle",
   "page.words.close": "Chiudi parole",
@@ -407,7 +400,6 @@
     "many": "Mostra altri {count}",
     "other": "Mostra altri {count}"
   },
-  "page.words.more.one": "Mostra un altro",
   "popup.showWords": "Mostra le parole di questa pagina",
   "popup.subtitles": "Sottotitoli",
   "popup.subtitles.transcript": "Mostra trascrizione",
@@ -476,7 +468,7 @@
   "setup.consent.keepsWhat": "Le tue parole salvate e una cronologia di frasi, indirizzi web e titoli su questo dispositivo, per mostrarti dove hai incontrato una parola.",
   "setup.consent.keepsWhatDevice": "Le tue parole salvate, le impostazioni e una cronologia di frasi, indirizzi web e titoli su questo telefono, per mostrarti dove hai incontrato una parola.",
   "setup.consent.sends": "Invia",
-  "setup.consent.sendsWhat": "Parole e impostazioni, comprese le scelte sui siti, a {syncName}. Una parola che cerchi o ascolti può arrivare al servizio che ne fornisce il significato o la pronuncia.",
+  "setup.consent.sendsWhat": "Parole e impostazioni, comprese le scelte sui siti, alla {syncName}. Una parola che cerchi o ascolti può arrivare al servizio che ne fornisce il significato o la pronuncia.",
   "setup.consent.sendsWhatDevice": "Solo una parola che cerchi o ascolti, al servizio che ne fornisce il significato o la pronuncia. Le tue parole salvate e le impostazioni restano su questo telefono.",
   "setup.consent.sendsDrive": "Se colleghi Google Drive, questi dati e la tua cronologia finiscono lì. La tua email Google viene conservata per mantenere il collegamento.",
   "setup.consent.notNow": "Non ora",
@@ -485,5 +477,6 @@
   "setup.languages.native": "Parlo",
   "setup.languages.learning": "Sto imparando",
   "setup.languages.choose": "Scegli una lingua",
-  "setup.languages.start": "Inizia"
+  "setup.languages.start": "Inizia",
+  "env.syncName": "sincronizzazione di {browser}"
 }

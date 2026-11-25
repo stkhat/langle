@@ -133,4 +133,14 @@ describe("in another interface language", () => {
     expect(shortDate(new Date(2026, 10, 9).getTime(), now)).toBe("9. Nov.");
     expect(shortDate(now, now)).toBe("Heute");
   });
+
+  it("writes digits 0–9 in Arabic, as Chrome's Arabic interface does", () => {
+    // Egyptian Arabic's default digits are Arabic-Indic ("٢").
+    setUiLocale("ar-EG");
+    expect(fmt(12345)).toMatch(/^12.345$/);
+    expect(relativeTime(NOW - 3 * DAY, NOW)).toMatch(/3/);
+    const now = new Date(2026, 10, 10, 9, 30).getTime();
+    expect(shortDate(new Date(2026, 10, 9).getTime(), now)).toMatch(/9/);
+    expect(megabytesTenths(6.4 * 1024 * 1024)).toMatch(/^6.4$/);
+  });
 });

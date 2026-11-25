@@ -35,7 +35,7 @@
   "popup.langleSwitch": "Utiliser Langle",
   "popup.site": "Sur ce site",
   "popup.siteSwitch": "Utiliser Langle sur ce site",
-  "popup.sync.saved": "Enregistré dans {syncName} · {when}",
+  "popup.sync.saved": "Enregistré dans la {syncName} · {when}",
   "popup.sync.savedDevice": "Enregistré sur ce téléphone · {when}",
   "popup.sync.space": "Espace de synchronisation : {used} Ko utilisés sur {quota} Ko",
   "popup.cloud.lastSaved": "Dernier enregistrement dans {provider} : {when}",
@@ -211,10 +211,10 @@
   "settings.history.clear": "Effacer l'historique",
   "settings.history.clearDesc": "Les mots enregistrés et leurs sources sont conservés.",
   "settings.history.clearButton": "Effacer",
-  "settings.sync.lead": "Langle n'a pas de serveur. Tout est conservé dans ce navigateur ; vos paramètres, y compris les sites où Langle est désactivé, sont aussi enregistrés dans {syncName}.",
-  "settings.sync.leadCloud": "Langle n'a pas de serveur. Tout est conservé dans ce navigateur et, si vous le souhaitez, dans votre propre {provider} ; vos paramètres, y compris les sites où Langle est désactivé, sont aussi enregistrés dans {syncName}.",
+  "settings.sync.lead": "Langle n'a pas de serveur. Tout est conservé dans ce navigateur ; vos paramètres, y compris les sites où Langle est désactivé, sont aussi enregistrés dans la {syncName}.",
+  "settings.sync.leadCloud": "Langle n'a pas de serveur. Tout est conservé dans ce navigateur et, si vous le souhaitez, dans votre propre {provider} ; vos paramètres, y compris les sites où Langle est désactivé, sont aussi enregistrés dans la {syncName}.",
   "settings.sync.leadDevice": "Langle n'a pas de serveur. Tout, y compris vos paramètres, est conservé sur ce téléphone.",
-  "settings.sync.switch": "Synchroniser le statut des mots avec {syncName}",
+  "settings.sync.switch": "Enregistrer le statut des mots dans la {syncName}",
   "settings.sync.switchDesc": "Synchronise chaque mot et son statut, mais pas les sources ni les phrases. Vos autres appareils les reçoivent si vous êtes connecté à {browser} avec la synchronisation activée.",
   "settings.sync.space": "Espace de synchronisation",
   "settings.sync.spaceUsed": "{used} Ko sur {quota} Ko",
@@ -232,7 +232,6 @@
     "many": "{count} mots importés",
     "other": "{count} mots importés"
   },
-  "backup.imported.one": "1 mot importé",
   "backup.importFailed": "Importation impossible : {error}",
   "backup.exportFailed": "Exportation impossible : {error}",
   "backup.exportBackup": "Sauvegarde (JSON)",
@@ -243,7 +242,6 @@
     "many": "{count} mots exportés",
     "other": "{count} mots exportés"
   },
-  "backup.exported.one": "1 mot exporté",
   "export.anki": "Anki (.txt)",
   "export.csv": "CSV",
   "export.deck": "Langle {language}",
@@ -260,9 +258,9 @@
   "export.col.saved": "Enregistré le",
   "export.col.learned": "Appris le",
   "settings.cloud.title": "Votre propre stockage cloud",
-  "settings.cloud.desc": "Synchronisez tout via Google Drive, Dropbox, OneDrive, un dossier sur cet ordinateur ou WebDAV, au cas où l'espace de {syncName} viendrait à manquer.",
-  "settings.cloud.descNoFolder": "Synchronisez tout via Google Drive, Dropbox, OneDrive ou WebDAV, au cas où l'espace de {syncName} viendrait à manquer.",
-  "settings.cloud.offer": "Enregistrez tout, y compris les sources et les phrases, dans votre {provider}, au cas où l'espace de {syncName} viendrait à manquer.",
+  "settings.cloud.desc": "Synchronisez tout via Google Drive, Dropbox, OneDrive, un dossier sur cet ordinateur ou WebDAV, au cas où l'espace de la {syncName} viendrait à manquer.",
+  "settings.cloud.descNoFolder": "Synchronisez tout via Google Drive, Dropbox, OneDrive ou WebDAV, au cas où l'espace de la {syncName} viendrait à manquer.",
+  "settings.cloud.offer": "Enregistrez tout, y compris les sources et les phrases, dans votre {provider}, au cas où l'espace de la {syncName} viendrait à manquer.",
   "settings.cloud.connectButton": "Connecter {provider}",
   "settings.cloud.connected": "Connecté à {provider}. Tout y est enregistré, dans un dossier que seul Langle peut ouvrir.",
   "settings.cloud.connectedAccount": "Connecté à {provider} ({account}). Tout y est enregistré, dans un dossier que seul Langle peut ouvrir.",
@@ -312,7 +310,6 @@
     "many": "{count} phrases",
     "other": "{count} phrases"
   },
-  "dict.sentences.one": "1 phrase",
   "dict.fitsHere": "Convient ici",
   "dict.inSentence": "Dans cette phrase",
   "dict.explain": "Expliquer en contexte",
@@ -351,7 +348,6 @@
     "many": "{count} mots pas encore enregistrés",
     "other": "{count} mots pas encore enregistrés"
   },
-  "saveAll.unsaved.one": "1 mot pas encore enregistré",
   "saveAll.allSaved": "Tous les mots sont enregistrés",
   "saveAll.addLearning": "Tout mettre en « À apprendre »",
   "saveAll.markKnown": "Tout marquer comme connus",
@@ -360,13 +356,11 @@
     "many": "{count} mots mis en « À apprendre »",
     "other": "{count} mots mis en « À apprendre »"
   },
-  "saveAll.done.learning.one": "1 mot mis en « À apprendre »",
   "saveAll.done.known": {
     "one": "{count} mot marqué comme connu",
     "many": "{count} mots marqués comme connus",
     "other": "{count} mots marqués comme connus"
   },
-  "saveAll.done.known.one": "1 mot marqué comme connu",
   "saveAll.undo": "Annuler",
   "saveAll.note": "Les mots déjà enregistrés gardent leur statut. Les mots compris dans votre niveau de vocabulaire ne sont pas comptés.",
   "video.subtitle": "Sous-titre",
@@ -396,7 +390,6 @@
     "many": "Afficher {count} autres passages",
     "other": "Afficher {count} autres passages"
   },
-  "video.words.more.one": "Afficher 1 autre passage",
   "page.words.title": "Mots de cette page",
   "page.words.panel": "Mots Langle",
   "page.words.close": "Fermer les mots",
@@ -407,7 +400,6 @@
     "many": "Afficher {count} autres",
     "other": "Afficher {count} autres"
   },
-  "page.words.more.one": "Afficher 1 autre",
   "popup.showWords": "Afficher les mots de cette page",
   "popup.subtitles": "Sous-titres",
   "popup.subtitles.transcript": "Afficher la transcription",
@@ -476,7 +468,7 @@
   "setup.consent.keepsWhat": "Vos mots enregistrés et un historique des phrases, adresses web et titres sur cet appareil, pour montrer où vous avez rencontré un mot.",
   "setup.consent.keepsWhatDevice": "Vos mots enregistrés, vos paramètres et un historique des phrases, adresses web et titres sur ce téléphone, pour montrer où vous avez rencontré un mot.",
   "setup.consent.sends": "Envoie",
-  "setup.consent.sendsWhat": "Les mots et les paramètres, y compris vos choix de sites, à {syncName}. Un mot que vous recherchez ou écoutez peut être envoyé au service qui fournit son sens ou sa prononciation.",
+  "setup.consent.sendsWhat": "Les mots et les paramètres, y compris vos choix de sites, à la {syncName}. Un mot que vous recherchez ou écoutez peut être envoyé au service qui fournit son sens ou sa prononciation.",
   "setup.consent.sendsWhatDevice": "Seulement un mot que vous recherchez ou écoutez, au service qui fournit son sens ou sa prononciation. Vos mots enregistrés et vos paramètres restent sur ce téléphone.",
   "setup.consent.sendsDrive": "Si vous connectez Google Drive, ces données et votre historique y sont envoyés. Votre adresse e-mail Google est conservée pour maintenir la connexion.",
   "setup.consent.notNow": "Plus tard",
@@ -485,5 +477,6 @@
   "setup.languages.native": "Je parle",
   "setup.languages.learning": "J'apprends",
   "setup.languages.choose": "Choisir une langue",
-  "setup.languages.start": "Commencer"
+  "setup.languages.start": "Commencer",
+  "env.syncName": "synchronisation {browser}"
 }

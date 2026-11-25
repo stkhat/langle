@@ -45,6 +45,13 @@ export function onUiLocaleChange(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+/**
+ * The tag Intl writes the interface's numbers, dates and times with: the locale with
+ * Western digits 0–9, as Chrome's own interface writes them in every language Langle
+ * has (in Arabic too, where Intl may default to Arabic-Indic digits).
+ */
+export const formatTag = (locale: string) => `${locale}-u-nu-latn`;
+
 /** A locale's plural rules and number format, made once. */
 const formats = new Map<
   string,
@@ -55,7 +62,7 @@ function formatsOf(locale: string) {
   if (!made) {
     made = {
       plural: new Intl.PluralRules(locale),
-      number: new Intl.NumberFormat(locale),
+      number: new Intl.NumberFormat(formatTag(locale)),
     };
     formats.set(locale, made);
   }

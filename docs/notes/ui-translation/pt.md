@@ -61,3 +61,6 @@ Changed keys:
 | `setup.consent.keepsWhatDevice` | Suas palavras, configurações e um histórico de frases, endereços da web e títulos neste celular, para mostrar onde você encontrou uma palavra. | Suas palavras salvas, configurações e um histórico de frases, endereços da web e títulos neste celular, para mostrar onde você encontrou uma palavra. | same as keepsWhat |
 | `setup.consent.sendsWhat` | Palavras e configurações, incluindo as escolhas de sites, para o {syncName}. Uma palavra que você pesquisa ou ouve pode ir para o serviço que fornece o significado ou o som dela. | Palavras e configurações, incluindo as escolhas de sites, para o {syncName}. Uma palavra que você pesquisa ou ouve pode ir para o serviço que fornece o significado ou a pronúncia dela. | 'sound' is the pronunciation |
 | `setup.consent.sendsWhatDevice` | Só uma palavra que você pesquisa ou ouve, para o serviço que fornece o significado ou o som dela. Suas palavras e configurações ficam neste celular. | Só uma palavra que você pesquisa ou ouve, para o serviço que fornece o significado ou a pronúncia dela. Suas palavras salvas e configurações ficam neste celular. | saved words; pronunciation, as sendsWhat |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "sincronização do {browser}", with the browser's name filled in. Feminine, with its article: "na / da / para a {syncName}".

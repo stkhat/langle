@@ -69,3 +69,6 @@ Changed keys:
 | `setup.consent.keepsWhatDevice` | Le tue parole, le impostazioni e una cronologia di frasi, indirizzi web e titoli su questo telefono, per mostrarti dove hai incontrato una parola. | Le tue parole salvate, le impostazioni e una cronologia di frasi, indirizzi web e titoli su questo telefono, per mostrarti dove hai incontrato una parola. | same as keepsWhat |
 | `setup.consent.sendsWhatDevice` | Solo una parola che cerchi o ascolti, al servizio che ne fornisce il significato o la pronuncia. Le tue parole e le impostazioni restano su questo telefono. | Solo una parola che cerchi o ascolti, al servizio che ne fornisce il significato o la pronuncia. Le tue parole salvate e le impostazioni restano su questo telefono. | same as keepsWhat |
 | `setup.consent.sendsDrive` | Se colleghi Google Drive, questi dati e la tua cronologia finiscono lì. La tua email Google viene conservata per restare collegato. | Se colleghi Google Drive, questi dati e la tua cronologia finiscono lì. La tua email Google viene conservata per mantenere il collegamento. | « per restare collegato » had the email as subject |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "sincronizzazione di {browser}", with the browser's name filled in. Feminine, with its article: «nella / della / alla {syncName}».

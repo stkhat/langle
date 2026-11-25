@@ -70,3 +70,6 @@ Changed keys:
 | `setup.consent.sendsWhatDevice` | Seulement un mot que vous recherchez ou écoutez, au service qui fournit son sens ou sa prononciation. Vos mots et vos paramètres restent sur ce téléphone. | Seulement un mot que vous recherchez ou écoutez, au service qui fournit son sens ou sa prononciation. Vos mots enregistrés et vos paramètres restent sur ce téléphone. | same as keepsWhat |
 | `setup.consent.sendsDrive` | Si vous connectez Google Drive, ces données et votre historique y sont envoyés. Votre adresse e-mail Google est conservée pour rester connecté. | Si vous connectez Google Drive, ces données et votre historique y sont envoyés. Votre adresse e-mail Google est conservée pour maintenir la connexion. | « pour rester connecté » had the e-mail address as subject |
 | store `description` | Apprenez des langues avec les vidéos et les articles que vous lisez déjà. | Apprenez des langues avec les vidéos que vous regardez déjà et les articles que vous lisez. | videos are watched, not read (« lisez » covered both) |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "synchronisation {browser}", with the browser's name filled in. Feminine, with its article: « dans la / de la / à la {syncName} ».

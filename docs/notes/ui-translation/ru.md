@@ -31,7 +31,7 @@ Register: **вы** (lowercase), as Chrome's Russian UI ("Войдите в ак�
 
 Placeholders and case:
 - `languageName.*` are lowercase adjectives in the nominative, as Google's Russian UI writes language names («английский → японский»); options in menus are capitalized («Японский (日本語)»). A name stands only where the nominative or the (identical) inanimate accusative fits («кто изучает {language}») or in parentheses («языковые данные ({language})»).
-- `{syncName}` may be English («Chrome sync») now and Russian later, so it stands in parentheses after «облако браузера» or after a colon, never where a case ending is needed.
+- `{syncName}` is «синхронизация Chrome» (nominative), so it stands in parentheses after «облако браузера» or after a colon, never where a case ending is needed.
 - `{provider}`, `{browser}`, `{site}` are brand names or domains, which stay uninflected after prepositions («в Dropbox», «на YouTube»).
 - `{when}` is a relative time («2 минуты назад», «только что»); «Последнее сохранение: {when}» takes either a relative time or a date.
 - Plural forms one / few / many / other («1 слово», «2 слова», «5 слов»); the `other` form is the fractional one.
@@ -72,4 +72,7 @@ Changed keys:
 | `setup.languages.native` | Мой язык | Ваш язык | same name as the Settings row it sets |
 | `setup.languages.learning` | Я изучаю | Изучаемый язык | same name as the Settings row it sets; pairs with «Ваш язык» |
 | store `description` | Учите языки на видео и статьях, которые вы и так смотрите и читаете. | Учите языки по видео и статьям, которые вы и так смотрите и читаете. | «учить по» is the idiom for learning from material; «на видео и статьях» was ungrammatical |
-| `settings.level.label` | one: Считать известным {count} самое частое слово ({language}) / few: Считать известными {count} самых частых слова ({language}) / many: Считать известными {count} самых частых слов ({language}) / other: Считать известными {count} самых частых слова ({language}) | one: Считать известным {count} самое частое слово ({language}) / few: Считать известными {count} самых частых слова ({language}) / many: Считать известными {count} самых частых слов ({language}) / other: Считать известными {count} самых частых слов ({language}) | the caller passes {count} formatted ("5 000"), which can only resolve to `other`; levels are whole thousands and hundreds, which take the many form |
+| `settings.level.label` | one: Считать известным {count} самое частое слово ({language}) / few: Считать известными {count} самых частых слова ({language}) / many: Считать известными {count} самых частых слов ({language}) / other: Считать известными {count} самых частых слова ({language}) | one: Считать известным {count} самое частое слово ({language}) / few: Считать известными {count} самых частых слова ({language}) / many: Считать известными {count} самых частых слов ({language}) / other: Считать известными {count} самых частых слов ({language}) | the caller passed {count} formatted ("5 000"), which only resolved to `other`; t() now picks the form from the number, so `other` is again the fraction form («слова»), never shown for whole levels |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "синхронизация {browser}", with the browser's name filled in. Nominative only: it stands after a colon or in parentheses after «облако браузера», never where a case ending is needed.

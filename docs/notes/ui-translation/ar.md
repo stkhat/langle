@@ -79,3 +79,6 @@ Changed keys:
 | `setup.consent.sendsWhatDevice` | الكلمة التي تبحث عنها أو تستمع إليها فقط، إلى الخدمة التي توفّر معناها أو نطقها. وتبقى كلماتك وإعداداتك على هذا الهاتف. | الكلمة التي تبحث عنها أو تستمع إليها فقط، إلى الخدمة التي توفّر معناها أو نطقها. وتبقى كلماتك المحفوظة وإعداداتك على هذا الهاتف. | same as keepsWhat |
 | `setup.languages.native` | أتحدّث | لغتك | same name as the Settings row it sets |
 | `setup.languages.learning` | أتعلّم | اللغة التي تتعلّمها | same name as the Settings row it sets |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "مزامنة {browser}", with the browser's name filled in. An idafa: «مساحة {syncName}», «في {syncName}». The switch says حفظ so it does not repeat مزامنة.

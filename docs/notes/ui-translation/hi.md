@@ -54,3 +54,6 @@ Changed keys:
 | `dict.explain.thinking` | सोचा जा रहा है… | सोच रहा है… | the passive सोचा जा रहा है reads oddly for a progress line |
 | `video.toggle.on` | Langle चालू है — बंद करने के लिए क्लिक करें | Langle चालू है। बंद करने के लिए क्लिक करें | the dash is English punctuation |
 | `video.toggle.off` | Langle बंद है — चालू करने के लिए क्लिक करें | Langle बंद है। चालू करने के लिए क्लिक करें | same as toggle.on |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "{browser} सिंक", with the browser's name filled in. The switch says सेव करें so it does not repeat सिंक.

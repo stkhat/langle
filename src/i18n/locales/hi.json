@@ -206,7 +206,7 @@
   "settings.sync.lead": "Langle का कोई सर्वर नहीं है। सब कुछ इसी ब्राउज़र में रहता है; आपकी सेटिंग, जिनमें वे साइटें भी शामिल हैं जिन पर Langle बंद है, {syncName} में भी सेव होती हैं।",
   "settings.sync.leadCloud": "Langle का कोई सर्वर नहीं है। सब कुछ इसी ब्राउज़र में और, अगर आप चाहें, आपके अपने {provider} में रहता है; आपकी सेटिंग, जिनमें वे साइटें भी शामिल हैं जिन पर Langle बंद है, {syncName} में भी सेव होती हैं।",
   "settings.sync.leadDevice": "Langle का कोई सर्वर नहीं है। आपकी सेटिंग समेत सब कुछ इसी फ़ोन पर रहता है।",
-  "settings.sync.switch": "{syncName} के साथ शब्दों की स्थिति सिंक करें",
+  "settings.sync.switch": "शब्दों की स्थिति {syncName} में सेव करें",
   "settings.sync.switchDesc": "सिर्फ़ हर शब्द और उसकी स्थिति सिंक होती है, सोर्स या वाक्य नहीं। जब आप {browser} में साइन इन हों और सिंक चालू हो, तो यह आपके दूसरे डिवाइस तक पहुंचती है।",
   "settings.sync.space": "सिंक स्पेस",
   "settings.sync.spaceUsed": "{quota} KB में से {used} KB",
@@ -219,15 +219,19 @@
   "backup.menu": "एक्सपोर्ट और इंपोर्ट",
   "backup.import": "इंपोर्ट करें",
   "backup.file": "इंपोर्ट करने के लिए बैकअप फ़ाइल",
-  "backup.imported": "{count} शब्द इंपोर्ट किए गए",
-  "backup.imported.one": "1 शब्द इंपोर्ट किया गया",
+  "backup.imported": {
+    "one": "{count} शब्द इंपोर्ट किया गया",
+    "other": "{count} शब्द इंपोर्ट किए गए"
+  },
   "backup.importFailed": "इंपोर्ट नहीं हो सका: {error}",
   "backup.exportFailed": "एक्सपोर्ट नहीं हो सका: {error}",
   "backup.exportBackup": "बैकअप (JSON)",
   "backup.shownWords": "दिख रहे शब्द · {count}",
   "backup.exporting": "एक्सपोर्ट हो रहा है…",
-  "backup.exported": "{count} शब्द एक्सपोर्ट किए गए",
-  "backup.exported.one": "1 शब्द एक्सपोर्ट किया गया",
+  "backup.exported": {
+    "one": "{count} शब्द एक्सपोर्ट किया गया",
+    "other": "{count} शब्द एक्सपोर्ट किए गए"
+  },
   "export.anki": "Anki (.txt)",
   "export.csv": "CSV",
   "export.deck": "Langle {language}",
@@ -292,7 +296,6 @@
   "dict.yourMeaning": "आपका मतलब",
   "dict.ai": "AI",
   "dict.sentences": "{count} वाक्य",
-  "dict.sentences.one": "1 वाक्य",
   "dict.fitsHere": "यहां सही बैठता है",
   "dict.inSentence": "इस वाक्य में",
   "dict.explain": "संदर्भ में समझाएं",
@@ -326,15 +329,21 @@
   "platform.netflix": "Netflix",
   "saveAll.scope.page": "यह पेज",
   "saveAll.scope.video": "यह वीडियो",
-  "saveAll.unsaved": "{count} शब्द अभी सेव नहीं हुए",
-  "saveAll.unsaved.one": "1 शब्द अभी सेव नहीं हुआ",
+  "saveAll.unsaved": {
+    "one": "{count} शब्द अभी सेव नहीं हुआ",
+    "other": "{count} शब्द अभी सेव नहीं हुए"
+  },
   "saveAll.allSaved": "सभी शब्द सेव हैं",
   "saveAll.addLearning": "सभी को 'सीख रहे' में डालें",
   "saveAll.markKnown": "सभी को जाना-पहचाना मानें",
-  "saveAll.done.learning": "{count} शब्द 'सीख रहे' में डाले गए",
-  "saveAll.done.learning.one": "1 शब्द 'सीख रहे' में डाला गया",
-  "saveAll.done.known": "{count} शब्द जाने-पहचाने माने गए",
-  "saveAll.done.known.one": "1 शब्द जाना-पहचाना माना गया",
+  "saveAll.done.learning": {
+    "one": "{count} शब्द 'सीख रहे' में डाला गया",
+    "other": "{count} शब्द 'सीख रहे' में डाले गए"
+  },
+  "saveAll.done.known": {
+    "one": "{count} शब्द जाना-पहचाना माना गया",
+    "other": "{count} शब्द जाने-पहचाने माने गए"
+  },
   "saveAll.undo": "पहले जैसा करें",
   "saveAll.note": "जो शब्द आप पहले से सेव कर चुके हैं, उनकी स्थिति नहीं बदलती। आम शब्दों के लेवल के अंदर आने वाले शब्द गिने नहीं जाते।",
   "video.subtitle": "सबटाइटल",
@@ -360,14 +369,12 @@
   "words.placesNone": "जहां कोई मतलब नहीं चुना, {meaning}",
   "words.placesNoneBare": "जहां कोई मतलब नहीं चुना",
   "video.words.more": "{count} बार और दिखाएं",
-  "video.words.more.one": "1 बार और दिखाएं",
   "page.words.title": "इस पेज के शब्द",
   "page.words.panel": "Langle शब्द",
   "page.words.close": "शब्द बंद करें",
   "page.words.jump": "{head} पर जाएं, {count} में से {n}",
   "page.words.places": "{head} कहां-कहां है",
   "page.words.more": "{count} और दिखाएं",
-  "page.words.more.one": "1 और दिखाएं",
   "popup.showWords": "इस पेज के शब्द दिखाएं",
   "popup.subtitles": "सबटाइटल",
   "popup.subtitles.transcript": "ट्रांसक्रिप्ट दिखाएं",
@@ -441,5 +448,6 @@
   "setup.languages.native": "मेरी भाषा",
   "setup.languages.learning": "जो भाषा सीखनी है",
   "setup.languages.choose": "कोई भाषा चुनें",
-  "setup.languages.start": "शुरू करें"
+  "setup.languages.start": "शुरू करें",
+  "env.syncName": "{browser} सिंक"
 }

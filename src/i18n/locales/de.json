@@ -34,7 +34,7 @@
   "popup.langleSwitch": "Langle verwenden",
   "popup.site": "Auf dieser Website",
   "popup.siteSwitch": "Langle auf dieser Website verwenden",
-  "popup.sync.saved": "In {syncName} gespeichert · {when}",
+  "popup.sync.saved": "In der {syncName} gespeichert · {when}",
   "popup.sync.savedDevice": "Auf diesem Smartphone gespeichert · {when}",
   "popup.sync.space": "Sync-Speicher: {used} KB von {quota} KB belegt",
   "popup.cloud.lastSaved": "Zuletzt in {provider} gespeichert: {when}",
@@ -209,10 +209,10 @@
   "settings.history.clear": "Verlauf löschen",
   "settings.history.clearDesc": "Gespeicherte Wörter und ihre Quellen bleiben erhalten.",
   "settings.history.clearButton": "Löschen",
-  "settings.sync.lead": "Langle hat keinen Server. Alles bleibt in diesem Browser. Ihre Einstellungen, auch die Websites, auf denen Langle aus ist, werden zusätzlich in {syncName} gespeichert.",
-  "settings.sync.leadCloud": "Langle hat keinen Server. Alles bleibt in diesem Browser und auf Wunsch in Ihrem eigenen {provider}. Ihre Einstellungen, auch die Websites, auf denen Langle aus ist, werden zusätzlich in {syncName} gespeichert.",
+  "settings.sync.lead": "Langle hat keinen Server. Alles bleibt in diesem Browser. Ihre Einstellungen, auch die Websites, auf denen Langle aus ist, werden zusätzlich in der {syncName} gespeichert.",
+  "settings.sync.leadCloud": "Langle hat keinen Server. Alles bleibt in diesem Browser und auf Wunsch in Ihrem eigenen {provider}. Ihre Einstellungen, auch die Websites, auf denen Langle aus ist, werden zusätzlich in der {syncName} gespeichert.",
   "settings.sync.leadDevice": "Langle hat keinen Server. Alles, auch Ihre Einstellungen, bleibt auf diesem Smartphone.",
-  "settings.sync.switch": "Wortstatus mit {syncName} synchronisieren",
+  "settings.sync.switch": "Wortstatus in der {syncName} speichern",
   "settings.sync.switchDesc": "Überträgt jedes Wort und seinen Status, aber keine Quellen oder Sätze. Erreicht Ihre anderen Geräte, wenn Sie in {browser} angemeldet sind und die Synchronisierung aktiviert ist.",
   "settings.sync.space": "Sync-Speicher",
   "settings.sync.spaceUsed": "{used} KB von {quota} KB",
@@ -229,7 +229,6 @@
     "one": "{count} Wort importiert",
     "other": "{count} Wörter importiert"
   },
-  "backup.imported.one": "1 Wort importiert",
   "backup.importFailed": "Import fehlgeschlagen: {error}",
   "backup.exportFailed": "Export fehlgeschlagen: {error}",
   "backup.exportBackup": "Sicherung (JSON)",
@@ -239,7 +238,6 @@
     "one": "{count} Wort exportiert",
     "other": "{count} Wörter exportiert"
   },
-  "backup.exported.one": "1 Wort exportiert",
   "export.anki": "Anki (.txt)",
   "export.csv": "CSV",
   "export.deck": "Langle {language}",
@@ -256,9 +254,9 @@
   "export.col.saved": "Gespeichert",
   "export.col.learned": "Gelernt",
   "settings.cloud.title": "Ihr eigener Cloud-Speicher",
-  "settings.cloud.desc": "Synchronisieren Sie alles über Google Drive, Dropbox, OneDrive, einen Ordner auf diesem Computer oder WebDAV – für den Fall, dass der Speicher von {syncName} nicht reicht.",
-  "settings.cloud.descNoFolder": "Synchronisieren Sie alles über Google Drive, Dropbox, OneDrive oder WebDAV – für den Fall, dass der Speicher von {syncName} nicht reicht.",
-  "settings.cloud.offer": "Speichern Sie alles, auch Quellen und Sätze, in Ihrem {provider} – für den Fall, dass der Speicher von {syncName} nicht reicht.",
+  "settings.cloud.desc": "Synchronisieren Sie alles über Google Drive, Dropbox, OneDrive, einen Ordner auf diesem Computer oder WebDAV – für den Fall, dass der Speicher der {syncName} nicht reicht.",
+  "settings.cloud.descNoFolder": "Synchronisieren Sie alles über Google Drive, Dropbox, OneDrive oder WebDAV – für den Fall, dass der Speicher der {syncName} nicht reicht.",
+  "settings.cloud.offer": "Speichern Sie alles, auch Quellen und Sätze, in Ihrem {provider} – für den Fall, dass der Speicher der {syncName} nicht reicht.",
   "settings.cloud.connectButton": "Mit {provider} verbinden",
   "settings.cloud.connected": "Mit {provider} verbunden. Alles wird dort in einem Ordner gespeichert, den nur Langle öffnen kann.",
   "settings.cloud.connectedAccount": "Mit {provider} verbunden ({account}). Alles wird dort in einem Ordner gespeichert, den nur Langle öffnen kann.",
@@ -307,7 +305,6 @@
     "one": "{count} Satz",
     "other": "{count} Sätze"
   },
-  "dict.sentences.one": "1 Satz",
   "dict.fitsHere": "Passt hier",
   "dict.inSentence": "In diesem Satz",
   "dict.explain": "Im Kontext erklären",
@@ -345,7 +342,6 @@
     "one": "{count} Wort noch nicht gespeichert",
     "other": "{count} Wörter noch nicht gespeichert"
   },
-  "saveAll.unsaved.one": "1 Wort noch nicht gespeichert",
   "saveAll.allSaved": "Alle Wörter sind gespeichert",
   "saveAll.addLearning": "Alle auf „Lernen“ setzen",
   "saveAll.markKnown": "Alle als bekannt markieren",
@@ -353,12 +349,10 @@
     "one": "{count} Wort auf „Lernen“ gesetzt",
     "other": "{count} Wörter auf „Lernen“ gesetzt"
   },
-  "saveAll.done.learning.one": "1 Wort auf „Lernen“ gesetzt",
   "saveAll.done.known": {
     "one": "{count} Wort als bekannt markiert",
     "other": "{count} Wörter als bekannt markiert"
   },
-  "saveAll.done.known.one": "1 Wort als bekannt markiert",
   "saveAll.undo": "Rückgängig",
   "saveAll.note": "Bereits gespeicherte Wörter behalten ihren Status. Wörter innerhalb Ihres Wortschatzniveaus werden nicht mitgezählt.",
   "video.subtitle": "Untertitel",
@@ -387,14 +381,12 @@
     "one": "{count} weitere Stelle anzeigen",
     "other": "{count} weitere Stellen anzeigen"
   },
-  "video.words.more.one": "1 weitere Stelle anzeigen",
   "page.words.title": "Wörter auf dieser Seite",
   "page.words.panel": "Langle-Wörter",
   "page.words.close": "Wörter schließen",
   "page.words.jump": "Zu {head}, {n} von {count}",
   "page.words.places": "Stellen mit {head}",
   "page.words.more": "{count} weitere anzeigen",
-  "page.words.more.one": "1 weitere anzeigen",
   "popup.showWords": "Wörter auf dieser Seite anzeigen",
   "popup.subtitles": "Untertitel",
   "popup.subtitles.transcript": "Transkript anzeigen",
@@ -462,7 +454,7 @@
   "setup.consent.keepsWhat": "Ihre gespeicherten Wörter und einen Verlauf von Sätzen, Webadressen und Titeln auf diesem Gerät, um zu zeigen, wo Ihnen ein Wort begegnet ist.",
   "setup.consent.keepsWhatDevice": "Ihre gespeicherten Wörter, Einstellungen und einen Verlauf von Sätzen, Webadressen und Titeln auf diesem Smartphone, um zu zeigen, wo Ihnen ein Wort begegnet ist.",
   "setup.consent.sends": "Sendet",
-  "setup.consent.sendsWhat": "Wörter und Einstellungen, auch die Auswahl der Websites, an {syncName}. Ein Wort, das Sie nachschlagen oder abspielen, kann an den Dienst gehen, der seine Bedeutung oder Aussprache liefert.",
+  "setup.consent.sendsWhat": "Wörter und Einstellungen, auch die Auswahl der Websites, an die {syncName}. Ein Wort, das Sie nachschlagen oder abspielen, kann an den Dienst gehen, der seine Bedeutung oder Aussprache liefert.",
   "setup.consent.sendsWhatDevice": "Nur ein Wort, das Sie nachschlagen oder abspielen, an den Dienst, der seine Bedeutung oder Aussprache liefert. Ihre gespeicherten Wörter und Einstellungen bleiben auf diesem Smartphone.",
   "setup.consent.sendsDrive": "Wenn Sie Google Drive verbinden, gehen diese Daten und Ihr Verlauf dorthin. Ihre Google-E-Mail-Adresse wird gespeichert, damit die Verbindung bestehen bleibt.",
   "setup.consent.notNow": "Jetzt nicht",
@@ -471,5 +463,6 @@
   "setup.languages.native": "Ich spreche",
   "setup.languages.learning": "Ich lerne",
   "setup.languages.choose": "Sprache wählen",
-  "setup.languages.start": "Starten"
+  "setup.languages.start": "Starten",
+  "env.syncName": "{browser}-Synchronisierung"
 }

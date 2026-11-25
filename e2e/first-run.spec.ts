@@ -4,7 +4,6 @@
 // Langle does not run there, and downloads the pair's data from the lock's mirrors
 // (routed to data/packs/, pack-mirrors.ts), while the popup and Settings show it.
 import type { BrowserContext, Page } from "@playwright/test";
-import en from "../src/i18n/locales/en.json" with { type: "json" };
 import lock from "../src/core/packs/packs.lock.json" with { type: "json" };
 import {
   openPopupFor,
@@ -15,6 +14,7 @@ import {
 } from "./fixtures";
 import { mirrorRequests, releasePackMirrors } from "./pack-mirrors";
 import { COLD_LOAD, highlighted, showNewWords } from "./page";
+import { browserUiLocale, pageUiLocale, uiText } from "./ui-text";
 import {
   NETFLIX_WATCH,
   routeNetflix,
@@ -71,17 +71,22 @@ const marked = (page: Page) =>
     // Between two documents.
     .catch(() => undefined);
 
+/** The interface after "I speak: Japanese": it follows Your language. */
+const ja = uiText("ja");
+
+/** Consent and Start with English → Japanese; the setup is in Japanese from "I speak". */
 async function setUp(setup: Page) {
-  await setup.getByRole("button", { name: en["setup.consent.agree"] }).click();
+  const ui = uiText(await pageUiLocale(setup));
+  await setup.getByRole("button", { name: ui("setup.consent.agree") }).click();
   await setup
-    .getByLabel(en["setup.languages.native"])
+    .getByLabel(ui("setup.languages.native"))
     .selectOption({ value: "ja" });
   await setup
-    .getByLabel(en["setup.languages.learning"])
+    .getByLabel(ja("setup.languages.learning"))
     .selectOption({ value: "en" });
   const closed = setup.waitForEvent("close");
   await setup
-    .getByRole("button", { name: en["setup.languages.start"] })
+    .getByRole("button", { name: ja("setup.languages.start") })
     .click();
   await closed;
 }
@@ -103,38 +108,42 @@ test.describe("a page that was open before the install", () => {
     const setup = await setupPage(context);
     const page = context.pages().find((p) => p.url().includes("/article-en"))!;
     await mark(page);
+    // Before "I speak", the setup and the popup are in the browser's language.
+    const ui = uiText(await pageUiLocale(setup));
     await expect(setup.getByRole("heading")).toHaveText(
-      en["setup.consent.title"],
+      ui("setup.consent.title"),
     );
 
     const popup = await openPopupFor(context, extensionId, page);
-    await expect(popup.getByText(en["popup.setup.consent"])).toBeVisible();
+    await expect(popup.getByText(ui("popup.setup.consent"))).toBeVisible();
     expect(
       await sendToBackground(context, extensionId, { type: "getSettings" }),
     ).toMatchObject({ ok: false });
 
     // Agreeing starts nothing either: the languages are not chosen yet.
     await setup
-      .getByRole("button", { name: en["setup.consent.agree"] })
+      .getByRole("button", { name: ui("setup.consent.agree") })
       .click();
     await expect(setup.getByRole("heading")).toHaveText(
-      en["setup.languages.title"],
+      ui("setup.languages.title"),
     );
-    await expect(popup.getByText(en["popup.setup.languages"])).toBeVisible();
+    await expect(popup.getByText(ui("popup.setup.languages"))).toBeVisible();
     expect(await stored(context)).toEqual({});
     expect(mirrorRequests(context)).toEqual([]);
     expect(await highlighted(page, "langle-new")).toEqual([]);
     expect(await marked(page)).toBe(true);
 
     await setup
-      .getByLabel(en["setup.languages.native"])
+      .getByLabel(ui("setup.languages.native"))
       .selectOption({ value: "ja" });
+    // From here on, Japanese: the setup switches with "I speak", and the interface
+    // follows Your language.
     await setup
-      .getByLabel(en["setup.languages.learning"])
+      .getByLabel(ja("setup.languages.learning"))
       .selectOption({ value: "en" });
     const closed = setup.waitForEvent("close");
     await setup
-      .getByRole("button", { name: en["setup.languages.start"] })
+      .getByRole("button", { name: ja("setup.languages.start") })
       .click();
     await closed;
 
@@ -145,23 +154,27 @@ test.describe("a page that was open before the install", () => {
     });
     await showNewWords(context, extensionId);
     await expect(popup.getByRole("status")).toContainText(
-      en["data.downloading"]
-        .replace("{language}", "English")
-        .replace("{percent}", "0"),
+      ja("data.downloading", {
+        language: ja("languageName.en"),
+        percent: "0",
+      }),
     );
     const options = await context.newPage();
     await options.goto(`chrome-extension://${extensionId}/options.html`);
-    const row = options
-      .locator("div.sub")
-      .filter({ hasText: "English → Japanese" });
+    const row = options.locator("div.sub").filter({
+      hasText: ja("app.languagePair", {
+        learning: ja("languageName.en"),
+        native: ja("languageName.ja"),
+      }),
+    });
     await expect(row).toContainText(JAPANESE_SIZE);
     await expect(row).toContainText(
-      en["settings.languages.dataDownloading"].replace("{percent}", "0"),
+      ja("settings.languages.dataDownloading", { percent: "0" }),
     );
     expect(await highlighted(page, "langle-new")).toEqual([]);
     releasePackMirrors(context);
     await expect(row).toContainText(
-      en["settings.languages.dataDownloaded"],
+      ja("settings.languages.dataDownloaded"),
       COLD_LOAD,
     );
     await expect(popup.getByRole("status")).toHaveCount(0);
@@ -209,8 +222,8 @@ test("the store listing names Langle from _locales, and the setup is in the brow
   expect(found.defaultLocale).toBe("en");
   // The locale files go to content scripts through the background, not to pages.
   expect(found.accessible).not.toContain("locales");
-  // The test browser speaks English, which is the setup's language then.
-  expect(found.lang).toBe("en");
+  // The setup is in the browser's language where Langle has it, else English.
+  expect(found.lang).toBe(await browserUiLocale(page));
 });
 
 test("Not now leaves Langle off; the popup opens the setup again, and a page that has Langle is not reloaded", async ({
@@ -218,8 +231,10 @@ test("Not now leaves Langle off; the popup opens the setup again, and a page tha
   extensionId,
 }) => {
   const first = await setupPage(context);
+  // Before the setup ends, the setup and the popup are in the browser's language.
+  const ui = uiText(await pageUiLocale(first));
   const closed = first.waitForEvent("close");
-  await first.getByRole("button", { name: en["setup.consent.notNow"] }).click();
+  await first.getByRole("button", { name: ui("setup.consent.notNow") }).click();
   await closed;
 
   const page = await context.newPage();
@@ -227,7 +242,7 @@ test("Not now leaves Langle off; the popup opens the setup again, and a page tha
   await mark(page);
   const popup = await openPopupFor(context, extensionId, page);
   const popupClosed = popup.waitForEvent("close");
-  await popup.getByRole("button", { name: en["popup.setup.review"] }).click();
+  await popup.getByRole("button", { name: ui("popup.setup.review") }).click();
   await popupClosed;
   expect(await stored(context)).toEqual({});
 
@@ -275,7 +290,8 @@ for (const [site, route, url] of [
     await mark(page);
     await expect(page.locator("langle-video-player")).toHaveCount(0);
     const popup = await openPopupFor(context, extensionId, page);
-    await popup.getByRole("button", { name: en["popup.setup.review"] }).click();
+    const ui = uiText(await pageUiLocale(popup));
+    await popup.getByRole("button", { name: ui("popup.setup.review") }).click();
     releasePackMirrors(context);
     await setUp(await setupPage(context));
     await expect.poll(() => marked(page)).toBe(false);

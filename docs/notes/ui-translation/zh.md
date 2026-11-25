@@ -74,3 +74,6 @@ Changed keys:
 | `sponsor.sponsored` | 赞助 | 赞助内容 | the usual zh-CN label for sponsored content |
 | `video.toggle.on` | Langle 已开启 — 点击关闭 | Langle 已开启，点击即可关闭 | the dash is English punctuation |
 | `video.toggle.off` | Langle 已关闭 — 点击开启 | Langle 已关闭，点击即可开启 | same as toggle.on |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "{browser} 同步", with the browser's name filled in. No space before a following Chinese word (「Chrome 同步空间」). The switch says 保存到, not 通过…同步.

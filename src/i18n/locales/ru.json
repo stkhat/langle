@@ -130,7 +130,7 @@
     "one": "Считать известным {count} самое частое слово ({language})",
     "few": "Считать известными {count} самых частых слова ({language})",
     "many": "Считать известными {count} самых частых слов ({language})",
-    "other": "Считать известными {count} самых частых слов ({language})"
+    "other": "Считать известными {count} самых частых слова ({language})"
   },
   "settings.level.min": "{count} · начальный",
   "settings.level.max": "{count} · продвинутый",
@@ -221,7 +221,7 @@
   "settings.sync.lead": "У Langle нет сервера. Всё хранится в этом браузере, а настройки, включая сайты, где Langle отключён, сохраняются ещё и в облаке браузера ({syncName}).",
   "settings.sync.leadCloud": "У Langle нет сервера. Всё хранится в этом браузере и, если хотите, в вашем {provider}; настройки, включая сайты, где Langle отключён, сохраняются ещё и в облаке браузера ({syncName}).",
   "settings.sync.leadDevice": "У Langle нет сервера. Всё, включая настройки, хранится на этом телефоне.",
-  "settings.sync.switch": "Синхронизировать статус слов ({syncName})",
+  "settings.sync.switch": "Сохранять статус слов в облаке браузера ({syncName})",
   "settings.sync.switchDesc": "Синхронизируются слова и их статус, но не источники и предложения. На другие ваши устройства они попадут, если вы вошли в {browser} и включили синхронизацию.",
   "settings.sync.space": "Место для синхронизации",
   "settings.sync.spaceUsed": "{used} КБ из {quota} КБ",
@@ -240,7 +240,6 @@
     "many": "Импортировано {count} слов",
     "other": "Импортировано {count} слова"
   },
-  "backup.imported.one": "Импортировано 1 слово",
   "backup.importFailed": "Не удалось импортировать: {error}",
   "backup.exportFailed": "Не удалось экспортировать: {error}",
   "backup.exportBackup": "Резервная копия (JSON)",
@@ -252,7 +251,6 @@
     "many": "Экспортировано {count} слов",
     "other": "Экспортировано {count} слова"
   },
-  "backup.exported.one": "Экспортировано 1 слово",
   "export.anki": "Anki (.txt)",
   "export.csv": "CSV",
   "export.deck": "Langle — {language}",
@@ -322,7 +320,6 @@
     "many": "{count} предложений",
     "other": "{count} предложения"
   },
-  "dict.sentences.one": "1 предложение",
   "dict.fitsHere": "Подходит здесь",
   "dict.inSentence": "В этом предложении",
   "dict.explain": "Объяснить в контексте",
@@ -362,7 +359,6 @@
     "many": "{count} слов ещё не сохранено",
     "other": "{count} слова ещё не сохранено"
   },
-  "saveAll.unsaved.one": "1 слово ещё не сохранено",
   "saveAll.allSaved": "Все слова сохранены",
   "saveAll.addLearning": "Все в «Изучаю»",
   "saveAll.markKnown": "Все в «Знаю»",
@@ -372,14 +368,12 @@
     "many": "{count} слов перенесено в «Изучаю»",
     "other": "{count} слова перенесено в «Изучаю»"
   },
-  "saveAll.done.learning.one": "1 слово перенесено в «Изучаю»",
   "saveAll.done.known": {
     "one": "{count} слово перенесено в «Знаю»",
     "few": "{count} слова перенесены в «Знаю»",
     "many": "{count} слов перенесено в «Знаю»",
     "other": "{count} слова перенесено в «Знаю»"
   },
-  "saveAll.done.known.one": "1 слово перенесено в «Знаю»",
   "saveAll.undo": "Отменить",
   "saveAll.note": "У уже сохранённых слов статус не меняется. Слова в пределах вашего словарного запаса не учитываются.",
   "video.subtitle": "Субтитры",
@@ -410,14 +404,12 @@
     "many": "Показать ещё {count} моментов",
     "other": "Показать ещё {count} момента"
   },
-  "video.words.more.one": "Показать ещё 1 момент",
   "page.words.title": "Слова на этой странице",
   "page.words.panel": "Слова Langle",
   "page.words.close": "Закрыть список слов",
   "page.words.jump": "Перейти: {head}, {n} из {count}",
   "page.words.places": "{head}: места на странице",
   "page.words.more": "Показать ещё {count}",
-  "page.words.more.one": "Показать ещё 1",
   "popup.showWords": "Показать слова на этой странице",
   "popup.subtitles": "Субтитры",
   "popup.subtitles.transcript": "Показать расшифровку",
@@ -496,5 +488,6 @@
   "setup.languages.native": "Ваш язык",
   "setup.languages.learning": "Изучаемый язык",
   "setup.languages.choose": "Выберите язык",
-  "setup.languages.start": "Начать"
+  "setup.languages.start": "Начать",
+  "env.syncName": "синхронизация {browser}"
 }

@@ -77,3 +77,6 @@ Changed keys:
 | `video.toggle.on` | Langle はオンです — クリックでオフ | Langle はオンです。クリックするとオフになります | a dash between clauses is not Japanese punctuation |
 | `video.toggle.off` | Langle はオフです — クリックでオン | Langle はオフです。クリックするとオンになります | same as toggle.on |
 | `support.coffeeIfYouEnjoy` | Langle が気に入ったら{coffee} | Langle が気に入ったら、{coffee} | a comma before the bold call to action, as Japanese writes it |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "{browser} の同期", with the browser's name filled in. No space between it and a following particle (「Chrome の同期に」); the switch says 保存, not 同期で同期.

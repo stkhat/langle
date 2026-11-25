@@ -1,16 +1,17 @@
-import { t, uiLocale } from "../../i18n/t";
+import { formatTag, t, uiLocale } from "../../i18n/t";
 
 /**
  * A formatter for the interface language, made once per language: dates, times and
- * numbers read as the interface around them (architecture "Interface language").
+ * numbers read as the interface around them, in digits 0–9 (architecture "Interface
+ * language"). `make` gets the Intl tag (`formatTag`).
  */
-function perLocale<F>(make: (locale: string) => F): () => F {
+function perLocale<F>(make: (tag: string) => F): () => F {
   const made = new Map<string, F>();
   return () => {
     const locale = uiLocale();
     let formatter = made.get(locale);
     if (!formatter) {
-      formatter = make(locale);
+      formatter = make(formatTag(locale));
       made.set(locale, formatter);
     }
     return formatter;

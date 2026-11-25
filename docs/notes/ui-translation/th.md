@@ -69,3 +69,6 @@ Changed keys:
 | `settings.sites.never` | ไม่ใช้งานบน | เว็บไซต์ที่ไม่ใช้ Langle | ไม่ใช้งานบน ended on a dangling preposition |
 | `settings.history.switchDesc` | ไม่มีการซิงค์ หน้าเว็บในรายการ “ไม่ใช้งานบน” จะไม่ถูกเก็บ | ไม่มีการซิงค์ หน้าเว็บในรายการ “เว็บไซต์ที่ไม่ใช้ Langle” จะไม่ถูกเก็บ | quotes the list by its new name |
 | `settings.history.switchDescCloud` | หน้าเว็บในรายการ “ไม่ใช้งานบน” จะไม่ถูกเก็บ | หน้าเว็บในรายการ “เว็บไซต์ที่ไม่ใช้ Langle” จะไม่ถูกเก็บ | quotes the list by its new name |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "การซิงค์ของ {browser}", with the browser's name filled in. Written straight after ใน / ไปยัง, with a space after it (it ends in the browser's Latin name).

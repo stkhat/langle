@@ -130,7 +130,7 @@
     "one": "Traktuj {count} najczęstsze słowo ({language}) jako znane",
     "few": "Traktuj {count} najczęstsze słowa ({language}) jako znane",
     "many": "Traktuj {count} najczęstszych słów ({language}) jako znane",
-    "other": "Traktuj {count} najczęstszych słów ({language}) jako znane"
+    "other": "Traktuj jako znane najczęstsze słowa ({language}): {count}"
   },
   "settings.level.min": "{count} · początkujący",
   "settings.level.max": "{count} · zaawansowany",
@@ -221,7 +221,7 @@
   "settings.sync.lead": "Langle nie ma serwera. Wszystko jest przechowywane w tej przeglądarce, a ustawienia, w tym strony, na których Langle jest wyłączony, są też zapisywane w chmurze przeglądarki ({syncName}).",
   "settings.sync.leadCloud": "Langle nie ma serwera. Wszystko jest przechowywane w tej przeglądarce i, jeśli chcesz, w Twojej usłudze {provider}; ustawienia, w tym strony, na których Langle jest wyłączony, są też zapisywane w chmurze przeglądarki ({syncName}).",
   "settings.sync.leadDevice": "Langle nie ma serwera. Wszystko, łącznie z ustawieniami, jest przechowywane na tym telefonie.",
-  "settings.sync.switch": "Synchronizuj status słów ({syncName})",
+  "settings.sync.switch": "Zapisuj status słów w chmurze przeglądarki ({syncName})",
   "settings.sync.switchDesc": "Synchronizowane są słowa i ich status, bez źródeł i zdań. Trafiają na Twoje inne urządzenia po zalogowaniu się w przeglądarce {browser} z włączoną synchronizacją.",
   "settings.sync.space": "Miejsce na synchronizację",
   "settings.sync.spaceUsed": "{used} KB z {quota} KB",
@@ -240,7 +240,6 @@
     "many": "Zaimportowano {count} słów",
     "other": "Zaimportowane słowa: {count}"
   },
-  "backup.imported.one": "Zaimportowano 1 słowo",
   "backup.importFailed": "Nie udało się zaimportować: {error}",
   "backup.exportFailed": "Nie udało się wyeksportować: {error}",
   "backup.exportBackup": "Kopia zapasowa (JSON)",
@@ -252,7 +251,6 @@
     "many": "Wyeksportowano {count} słów",
     "other": "Wyeksportowane słowa: {count}"
   },
-  "backup.exported.one": "Wyeksportowano 1 słowo",
   "export.anki": "Anki (.txt)",
   "export.csv": "CSV",
   "export.deck": "Langle – {language}",
@@ -322,7 +320,6 @@
     "many": "{count} zdań",
     "other": "{count} zdania"
   },
-  "dict.sentences.one": "1 zdanie",
   "dict.fitsHere": "Pasuje tutaj",
   "dict.inSentence": "W tym zdaniu",
   "dict.explain": "Wyjaśnij w kontekście",
@@ -362,7 +359,6 @@
     "many": "{count} słów jeszcze niezapisanych",
     "other": "Jeszcze niezapisane słowa: {count}"
   },
-  "saveAll.unsaved.one": "1 słowo jeszcze niezapisane",
   "saveAll.allSaved": "Wszystkie słowa są zapisane",
   "saveAll.addLearning": "Wszystkie do „Uczę się”",
   "saveAll.markKnown": "Wszystkie do „Znam”",
@@ -372,14 +368,12 @@
     "many": "{count} słów przeniesiono do „Uczę się”",
     "other": "Przeniesiono do „Uczę się”: {count}"
   },
-  "saveAll.done.learning.one": "1 słowo przeniesiono do „Uczę się”",
   "saveAll.done.known": {
     "one": "{count} słowo przeniesiono do „Znam”",
     "few": "{count} słowa przeniesiono do „Znam”",
     "many": "{count} słów przeniesiono do „Znam”",
     "other": "Przeniesiono do „Znam”: {count}"
   },
-  "saveAll.done.known.one": "1 słowo przeniesiono do „Znam”",
   "saveAll.undo": "Cofnij",
   "saveAll.note": "Słowa już zapisane zachowują swój status. Słowa mieszczące się w Twoim zasobie słów nie są liczone.",
   "video.subtitle": "Napisy",
@@ -410,14 +404,12 @@
     "many": "Pokaż jeszcze {count} momentów",
     "other": "Pokaż więcej momentów: {count}"
   },
-  "video.words.more.one": "Pokaż jeszcze 1 moment",
   "page.words.title": "Słowa na tej stronie",
   "page.words.panel": "Słowa Langle",
   "page.words.close": "Zamknij listę słów",
   "page.words.jump": "Przejdź do: {head}, {n} z {count}",
   "page.words.places": "{head}: miejsca na stronie",
   "page.words.more": "Pokaż jeszcze {count}",
-  "page.words.more.one": "Pokaż jeszcze 1",
   "popup.showWords": "Pokaż słowa na tej stronie",
   "popup.subtitles": "Napisy",
   "popup.subtitles.transcript": "Pokaż transkrypcję",
@@ -496,5 +488,6 @@
   "setup.languages.native": "Twój język",
   "setup.languages.learning": "Język nauki",
   "setup.languages.choose": "Wybierz język",
-  "setup.languages.start": "Zacznij"
+  "setup.languages.start": "Zacznij",
+  "env.syncName": "synchronizacja {browser}"
 }

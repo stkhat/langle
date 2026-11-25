@@ -69,3 +69,6 @@ Changed keys:
 | `setup.consent.sendsWhatDevice` | Yalnızca aradığınız veya dinlediğiniz kelimeyi, anlamını ya da sesini sağlayan hizmete. Kelimeleriniz ve ayarlarınız bu telefonda kalır. | Yalnızca aradığınız veya dinlediğiniz kelimeyi, anlamını ya da sesini sağlayan hizmete. Kayıtlı kelimeleriniz ve ayarlarınız bu telefonda kalır. | same as keepsWhat |
 | `setup.languages.native` | Konuştuğum dil | Diliniz | same name as the Settings row it sets |
 | `setup.languages.learning` | Öğrendiğim dil | Öğrendiğiniz dil | same name as the Settings row it sets; pairs with «Diliniz» |
+
+## The browser's sync (`{syncName}`)
+`env.syncName` is "{browser} senkronizasyonu", with the browser's name filled in. Ends in the possessive -u, so suffixes take the buffer n: {syncName}na, {syncName}ndaki.
