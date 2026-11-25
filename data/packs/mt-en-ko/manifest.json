@@ -1,0 +1,77 @@
+{
+  "v": 1,
+  "from": "en",
+  "to": "ko",
+  "gemmPrecision": "int8shiftAlphaAll",
+  "files": {
+    "lex": {
+      "size": 6449612,
+      "sha256": "96efba97d4bb93ab362e5569bea0f115184d2f68d63b67305ee663c18e32fbeb",
+      "parts": [
+        {
+          "path": "lex.50.50.enko.s2t.bin",
+          "size": 6449612,
+          "sha256": "96efba97d4bb93ab362e5569bea0f115184d2f68d63b67305ee663c18e32fbeb"
+        }
+      ]
+    },
+    "model": {
+      "size": 43849787,
+      "sha256": "ffe5ef2ce3f2e944055e35310bab186f6a70d533a0ee4394adf716a0e383afbb",
+      "parts": [
+        {
+          "path": "model.enko.intgemm.alphas.bin.1",
+          "size": 8388608,
+          "sha256": "fa9e8ffda98df36e7cc9d38c6d798862185b7f2d192eba3e1287b24648f35868"
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.2",
+          "size": 8388608,
+          "sha256": "a65ce798eaa16347131cf7572fe45dd457aa74228644e679a43ef5a2c95c3630"
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.3",
+          "size": 8388608,
+          "sha256": "792e6b9526e7b4a24322fed958bea2d105a9fb492dda818a16a0440b38e81572"
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.4",
+          "size": 8388608,
+          "sha256": "093a100648b31c9c77a156e8c2a3e6f40c8f17d063b823e478bad1dff3fe3e79"
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.5",
+          "size": 8388608,
+          "sha256": "7a7f242ec1eb8258bc3d0a728fe5c3bc6da91db6507a7f822fb0698ba3eae518"
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.6",
+          "size": 1906747,
+          "sha256": "7c07db55bd81a2a6ea5d19a9c119a3792d2c1f758758b8dbc7a816d1a252052e"
+        }
+      ]
+    },
+    "srcvocab": {
+      "size": 791280,
+      "sha256": "8d4e3141868efd410eb86c2b60d41aa6bc6b46e4c4b2c0b85e3792493c69d802",
+      "parts": [
+        {
+          "path": "srcvocab.enko.spm",
+          "size": 791280,
+          "sha256": "8d4e3141868efd410eb86c2b60d41aa6bc6b46e4c4b2c0b85e3792493c69d802"
+        }
+      ]
+    },
+    "trgvocab": {
+      "size": 815353,
+      "sha256": "2ece21b28dd7022d36127d17423a74dabf544787dfc1cf614f7b565f93a4a1d3",
+      "parts": [
+        {
+          "path": "trgvocab.enko.spm",
+          "size": 815353,
+          "sha256": "2ece21b28dd7022d36127d17423a74dabf544787dfc1cf614f7b565f93a4a1d3"
+        }
+      ]
+    }
+  }
+}
