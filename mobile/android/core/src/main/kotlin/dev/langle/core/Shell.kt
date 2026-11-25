@@ -40,6 +40,9 @@ sealed interface ShellEffect {
 
   data object CloseFirstRun : ShellEffect
 
+  /** The tab's page goes; it is made again, at the tab's address, when the tab is next shown. */
+  data class DropTabPage(val tab: AppTab) : ShellEffect
+
   /** An app page in the sheet frame: the Langle sheet (no tab), or another app page a tab opened. */
   data class PresentSheet(val url: String, val tabId: Int?) : ShellEffect
 
@@ -136,7 +139,13 @@ class Shell(private val origin: String, private val tabs: Tabs) {
   fun navigated(on: Screen, url: String): List<ShellEffect> {
     when (on) {
       Screen.Page -> if (url != "about:blank") pageUrl = url
-      is Screen.OnTab -> tabUrls[on.tab] = url
+      is Screen.OnTab -> {
+        // Words or Settings before setup goes to the first run in its place: the first run
+        // shows full screen in its own tab, and the tab's page is made again when next shown
+        // (docs/notes/mobile.md "Device checks of M4 (M4e, Android)").
+        if (appPath(url) == WELCOME) return firstRunFrom(on, url)
+        tabUrls[on.tab] = url
+      }
       Screen.FirstRun -> {
         // The first run's page going to a tab's page (it was set up already): that tab.
         val tab = appPath(url)?.let(AppTab::of)
@@ -171,6 +180,18 @@ class Shell(private val origin: String, private val tabs: Tabs) {
       }
       else -> listOf(ShellEffect.PresentSheet(tab.url, tab.id))
     }
+  }
+
+  private fun firstRunFrom(on: Screen.OnTab, url: String): List<ShellEffect> {
+    tabUrls[on.tab] = origin + on.tab.path
+    tabs.setUrl(tabIds.getValue(on.tab), origin + on.tab.path)
+    val effects = mutableListOf<ShellEffect>(ShellEffect.DropTabPage(on.tab))
+    if (firstRunTab == null) {
+      val id = tabs.open(url, active = false).id
+      firstRunTab = id
+      effects += ShellEffect.OpenFirstRun(url, id)
+    }
+    return effects + show(Screen.FirstRun)
   }
 
   private fun activate(id: Int): List<ShellEffect> {

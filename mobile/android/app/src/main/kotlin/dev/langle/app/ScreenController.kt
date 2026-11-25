@@ -146,6 +146,7 @@ class ScreenController(
         is ShellEffect.GoBack -> pageOf(effect.screen)?.page?.goBack()
         is ShellEffect.OpenFirstRun -> openFirstRun(effect.url, effect.tabId)
         ShellEffect.CloseFirstRun -> closeFirstRun()
+        is ShellEffect.DropTabPage -> dropTabPage(effect.tab)
         is ShellEffect.PresentSheet -> present(effect.url, effect.tabId)
         ShellEffect.CloseSheet -> sheet?.frame?.dismiss()
         ShellEffect.PauseMedia -> browsing.page.evaluate(ScriptWorld.PAGE, PAUSE_MEDIA) {}
@@ -239,6 +240,16 @@ class ScreenController(
     tabPages[tab] = context
     if (load) context.load(shell.url(tab))
     return context
+  }
+
+  /** The tab's page goes, after the navigation that asked for it (its own callback). */
+  private fun dropTabPage(tab: AppTab) {
+    val context = tabPages.remove(tab) ?: return
+    context.onNavigate = {}
+    stage.post {
+      stage.removeView(context.page.view)
+      context.close()
+    }
   }
 
   private fun openFirstRun(url: String, tabId: Int) {

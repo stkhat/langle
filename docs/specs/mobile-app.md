@@ -264,7 +264,7 @@ What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` 
   - The bar slides away when the page scrolls down (`onScroll(dy)`) or a Langle sheet opens, and comes back when it scrolls up.
 - **One browsing page.** ‹ shows Home and keeps the page (its media paused by a named command); Continue's first row is that page and shows it again at once (Home lists a page by its canonical address, so either address counts as the kept page). Opening another page loads it into the same page. Back (the edge swipe on iOS, system back on Android) goes back in the page's history, and from its first entry to Home.
 - **L** opens the Langle sheet (`popup.html`) in the native sheet frame. In landscape the frame is at most 520 px wide, centred (M3's open item). The sheet's word list and settings buttons switch to the Words and Settings tabs (`tabs.create` with `wordlist.html`, `runtime.openOptionsPage`), and the sheet closes.
-- **First run**: `runtime.onInstalled` opens `welcome.html` full screen, without the tab bar; when setup is done it shows Home.
+- **First run**: `runtime.onInstalled` opens `welcome.html` full screen, without the tab bar; when setup is done it shows Home. Before setup, Words and Settings send their page to `welcome.html`: the shell opens the first run in its own tab in place of it (full screen, as from Home's "Review and agree") and makes the tab's page again the next time the tab shows.
 - M1/M2's address row and Langle button go.
 
 ### Testing
