@@ -651,6 +651,37 @@ describe("SettingsPage", () => {
       ).toEqual(["es", "es-en"]);
     });
 
+    it("lists a translation model pack with its pair's other data, and Remove deletes both (Android)", async () => {
+      vi.stubGlobal("appHost", {
+        translator: { models: "packs" },
+        translatorStatus: async () => "ready",
+        prepareTranslator: async () => "ready",
+      });
+      const f = await open({
+        app: true,
+        settings: SPANISH,
+        packStatus: () =>
+          spanish(ready(3 * MB_), ready(3.4 * MB_), [
+            { pack: "en-ja", size: 9.1 * MB_ },
+            { pack: "mt-en-ja", size: 47.3 * MB_ },
+          ]),
+      });
+      const languages = section(f.screen, "Languages");
+      await expect
+        .element(
+          languages.getByText("Not used by your languages now · 56.4 MB"),
+        )
+        .toBeVisible();
+      expect(languages.getByText("mt-en-ja").query()).toBeNull();
+
+      await languages
+        .getByRole("button", { name: "Remove English → Japanese data" })
+        .click();
+      expect(
+        f.sent.flatMap((r) => (r.type === "removePack" ? [r.pack] : [])),
+      ).toEqual(["en-ja", "mt-en-ja"]);
+    });
+
     it("lists other data under the chosen pair's", async () => {
       const f = await open({
         settings: SPANISH,

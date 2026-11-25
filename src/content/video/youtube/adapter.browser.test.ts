@@ -590,6 +590,28 @@ describe("loading captions", () => {
     );
   });
 
+  it("asks again when the player's request comes after the wait, and takes the late one", async () => {
+    // m.youtube.com on the Android emulator: the player took the track, but its request
+    // came after Langle's whole wait (docs/notes/mobile.md "Device checks (M5g, Android)").
+    start({ requestDelayMs: 1500 });
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(page.player.fake.setOption.length).toBeGreaterThan(1);
+  });
+
+  it("warns when the player makes no request after every ask", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => warn.mockRestore());
+    start({ requestDelayMs: 60_000 }, { captureTimeoutMs: 200 });
+    expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
+    expect(page.player.fake.setOption).toHaveLength(3);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `made no caption request for ${VIDEO_ID} after 3 asks`,
+      ),
+    );
+  });
+
   it("follows SPA navigation and returns nothing when YouTube sends empty captions", async () => {
     start();
     // Another video whose timedtext answers are empty (as under automation).

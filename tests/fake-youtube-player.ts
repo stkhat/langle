@@ -30,6 +30,12 @@ export interface FakePlayerOptions {
    * (docs/notes/mobile.md "Subtitles missing on an early load (M5f)").
    */
   tracksListedAfterMs?: number;
+  /**
+   * The player sends each caption request only this long after the track is set, as
+   * m.youtube.com's player sometimes did on an early load on the Android emulator
+   * (docs/notes/mobile.md "Device checks (M5g, Android)").
+   */
+  requestDelayMs?: number;
 }
 
 /** The localStorage keys where the fake keeps the caption track set (as YouTube's player does). */
@@ -175,10 +181,14 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
         url.searchParams.set("tlang", option.translationLanguage.languageCode);
       url.searchParams.set("c", "WEB");
       url.searchParams.set("cplayer", "UNIPLAYER");
-      log.requests.push(url.href);
-      const xhr = new XMLHttpRequest();
-      xhr.open("GET", url.href);
-      xhr.send();
+      const send = () => {
+        log.requests.push(url.href);
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", url.href);
+        xhr.send();
+      };
+      if (options.requestDelayMs) setTimeout(send, options.requestDelayMs);
+      else send();
     }
 
     function setOption(module: string, key: string, value: TrackOption) {

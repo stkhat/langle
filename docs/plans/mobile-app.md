@@ -680,7 +680,8 @@ Spec [mobile-translation.md](../specs/mobile-translation.md) "M5: the hosts" (th
 - [x] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`): the Simulator cannot translate (`unsupported` for every strategy), so the sheet and translation wait for M5g's real iPhone (notes/mobile.md "The iOS translation host (M5d)")
 - [x] M5e: the other 17 model packs (branch `claude/mobile-m5e`)
 - [x] M5f: subtitles missing on an early load (branch `claude/mobile-m5f`): the player drops a track set before it lists its caption tracks; `captureFor` now waits for the list (notes/mobile.md "Subtitles missing on an early load (M5f)")
-- [ ] M5g: device checks, Android then iOS (branches `claude/mobile-m5g-android`, `claude/mobile-m5g-ios`)
+- [x] M5g (Android): device checks on the emulator (branch `claude/mobile-m5g-android`): every check passed after two fixes, a model pack listed under its pair in Settings and YouTube asked again when its player makes no caption request (notes/mobile.md "Device checks (M5g, Android)")
+- [ ] M5g (iOS): device checks on a real iPhone (branch `claude/mobile-m5g-ios`)
 
 **Running order** (at most three agents at once; one agent per step; a device check is one agent per device; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`):
 

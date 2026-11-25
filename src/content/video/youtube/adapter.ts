@@ -69,6 +69,8 @@ const PLAYER_RESPONSE_TIMEOUT_MS = 30_000;
 const KEEP_CAPTURES = 4;
 /** How many times the player is asked again after an ad kept it from answering. */
 const AD_TRIES = 3;
+/** How many times in all the player is asked for a track it took without a request in time. */
+const ASK_TRIES = 3;
 /**
  * How long the player may take to list the video's caption tracks, ads not counted,
  * before it is asked anyway. A busy page took over 10 s (docs/notes/mobile.md
@@ -141,12 +143,19 @@ export function createYouTubeAdapter(
   cleanups.push(() => narrowPlayer(0));
 
   const captures = createRecent<TimedtextMessage>(KEEP_CAPTURES);
+  /** Videos whose player answered a caption request with an empty body (true). */
+  const answeredEmpty = createRecent<true>(KEEP_CAPTURES);
   const offTimedtext = bridge.onEvent((message) => {
     // Ads make their own requests: they are kept under their own video id.
-    if (message.videoId && message.body.trim() !== "")
-      captures.set(message.videoId, message);
+    if (!message.videoId) return;
+    if (message.body.trim() !== "") captures.set(message.videoId, message);
+    else answeredEmpty.set(message.videoId, true);
   });
-  cleanups.push(offTimedtext, () => captures.clear());
+  cleanups.push(
+    offTimedtext,
+    () => captures.clear(),
+    () => answeredEmpty.clear(),
+  );
   const adShowing = () => player()?.classList.contains("ad-showing") ?? false;
   /** Sends a call to the page script, for the player this page shows. */
   const call = <T extends PageCall["type"]>(
@@ -194,7 +203,12 @@ export function createYouTubeAdapter(
    * part of is tried again once the ad has ended. Nor does it take a track before its
    * captions module lists the video's tracks, which on a busy page came after the whole
    * wait (docs/notes/mobile.md "Subtitles missing on an early load (M5f)"): until then
-   * Langle keeps waiting, up to `tracksListedTimeoutMs`, then asks anyway.
+   * Langle keeps waiting, up to `tracksListedTimeoutMs`, then asks anyway. And a player
+   * that took the track can still make no request within the wait, or make it only
+   * after (an early load on the Android emulator, docs/notes/mobile.md "Device checks
+   * (M5g, Android)"): it is asked again, up to ASK_TRIES times in all, and a request
+   * that came late is taken then; after the last, Langle warns. A request answered with
+   * an empty body is an answer: nothing is asked again.
    */
   async function captureFor(
     id: string,
@@ -204,6 +218,8 @@ export function createYouTubeAdapter(
     const seen = captures.get(id);
     if (seen) return seen;
     let adTries = 0;
+    /** Asks the player took without a request in time, ads not counted. */
+    let unanswered = 0;
     /** How long the player has listed no caption tracks, ads not counted. */
     let unlisted = 0;
     for (;;) {
@@ -223,12 +239,21 @@ export function createYouTubeAdapter(
           unlisted += Date.now() - since;
           continue;
         }
-        if (!asked && (ad || adShowing()) && ++adTries <= AD_TRIES) continue;
-        if (!asked && anyway)
+        if (asked) return asked;
+        if ((ad || adShowing()) && ++adTries <= AD_TRIES) continue;
+        if (anyway) {
           console.warn(
             `Langle: YouTube's player listed no caption tracks for ${id} in ${tracksListedTimeoutMs / 1000} s`,
           );
-        return asked;
+          return undefined;
+        }
+        // An empty answer is an answer (YouTube gives it to automation): no use asking again.
+        if (answeredEmpty.get(id)) return undefined;
+        if (++unanswered < ASK_TRIES) continue;
+        console.warn(
+          `Langle: YouTube's player made no caption request for ${id} after ${ASK_TRIES} asks`,
+        );
+        return undefined;
       } finally {
         clearInterval(watch);
       }
@@ -275,6 +300,7 @@ export function createYouTubeAdapter(
     if (loaded !== AGAIN) return loaded;
     // Once more, with a request the player makes now and the response it makes it from.
     captures.delete(id);
+    answeredEmpty.delete(id);
     const retried = await loadFrom(id, request, true);
     return retried === AGAIN ? undefined : retried;
   }

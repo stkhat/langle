@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { learningLanguages, nativeLanguages } from "../../../core/languages";
+import { modelPacksOf, readLock } from "../../../core/packs/lock";
 import { pairsOfPack } from "../../../core/packs/pairs";
 import { combinedState } from "../../../core/packs/state";
 import { translatorBackend } from "../../../content/translate/backend";
@@ -50,8 +51,10 @@ interface OtherData {
 
 function otherData(others: PackStatus["others"]): OtherData[] {
   const groups = new Map<string, OtherData>();
+  // The app's translation model packs (Android) belong to their pair's data too.
+  const models = modelPacksOf(readLock());
   for (const { pack, size } of others) {
-    const pair = pairsOfPack(pack)[0];
+    const pair = pairsOfPack(pack, models)[0];
     const label = pair ? languagePair(pair.learning, pair.native) : pack;
     const group = groups.get(label);
     if (group) {
