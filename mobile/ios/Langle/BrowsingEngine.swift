@@ -66,4 +66,6 @@ protocol PageDelegate: AnyObject {
   func pageProcessGone(_ page: Page)
   /// The page put an element in fullscreen (true), or left it (false).
   func page(_ page: Page, fullscreen: Bool)
+  /// The page scrolled: its top is `y` points down the document.
+  func page(_ page: Page, scrolledTo y: Double)
 }

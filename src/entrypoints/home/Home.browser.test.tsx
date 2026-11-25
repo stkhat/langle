@@ -159,6 +159,7 @@ describe("Home", () => {
     expect(f.deps.openPage).toHaveBeenLastCalledWith(
       "https://example.com/news",
     );
+    await expect.element(search).toHaveValue("");
     await userEvent.fill(search, "sourdough starter");
     await userEvent.keyboard("{Enter}");
     expect(f.deps.openPage).toHaveBeenLastCalledWith(

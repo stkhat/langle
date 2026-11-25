@@ -247,7 +247,10 @@ function Search(props: { openPage(url: string): void }) {
       onSubmit={(event) => {
         event.preventDefault();
         const url = pageForSearch(text);
-        if (url) props.openPage(url);
+        if (!url) return;
+        props.openPage(url);
+        // Home shows again with an empty field when the page is left.
+        setText("");
       }}
     >
       <label

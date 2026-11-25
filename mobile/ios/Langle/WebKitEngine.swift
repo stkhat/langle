@@ -103,6 +103,14 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
       webView.observe(\.fullscreenState) { [weak self] view, _ in
         MainActor.assumeIsolated { self?.fullscreenChanged(view.fullscreenState) }
       },
+      // The title bar slides with the page's scrolling (the shell's `onScroll(dy)`).
+      webView.scrollView.observe(\.contentOffset) { [weak self] scroll, _ in
+        MainActor.assumeIsolated {
+          guard let self else { return }
+          let y = Double(scroll.contentOffset.y + scroll.adjustedContentInset.top)
+          self.delegate?.page(self, scrolledTo: y)
+        }
+      },
     ]
   }
 

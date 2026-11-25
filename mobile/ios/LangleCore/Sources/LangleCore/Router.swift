@@ -391,6 +391,14 @@ public final class Router {
       done(.success(alarms.get(args.first?.string ?? "")?.value))
     case "alarms.clear":
       done(.success(.bool(alarms.clear(args.first?.string ?? ""))))
+    case "appHost.openPage":
+      // A web page from an app page (Home's search, Continue, a link in Words): the shell
+      // opens it over Home.
+      guard let text = args.first?.string, let url = URL(string: text), url.scheme != nil else {
+        throw BridgeError("appHost.openPage needs an address")
+      }
+      openTab(url.absoluteString)
+      done(.success(nil))
     default:
       // storage.<area>.<get | set | remove | clear>
       let parts = api.split(separator: ".").map(String.init)

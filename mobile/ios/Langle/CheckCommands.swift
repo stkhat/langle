@@ -7,15 +7,22 @@
   /// check), as the prototypes did.
   /// - `errors`, `clear-errors`: the check build's error log (`checkErrorLog` in `storage.local`),
   ///   read and cleared through the extension host's `browser.storage`;
-  /// - `eval`: runs `Documents/eval.json` (`{ "target": "host" | "page" | "langle" | "sheet",
-  ///   "source": "<function body>" }`) and logs what it returns;
-  /// - `state`: the tabs, the sheet and whether the host said hello, and whether the page is in
-  ///   fullscreen, the orientation and the window size.
+  /// - `eval`: runs `Documents/eval.json` (`{ "target": "host" | "page" | "langle" | "sheet" |
+  ///   "first" | "tab", "source": "<function body>" }`) and logs what it returns; `first` is the
+  ///   first run's page, `tab` the shown tab's page;
+  /// - `state`: the screen, the title bar's text, whether it shows, the tabs, the sheet and whether
+  ///   the host said hello, and whether the page is in fullscreen, the orientation and the window
+  ///   size;
+  /// - `home`, `words`, `settings`, `back-home` (‹), `edge-back` (the edge swipe), `langle` (L),
+  ///   `close-sheet`: the shell's native controls, for checks without taps.
   @MainActor
   final class CheckCommands {
     static let shared = CheckCommands()
     private weak var model: AppModel?
-    private static let names = ["errors", "clear-errors", "eval", "state"]
+    private static let names = [
+      "errors", "clear-errors", "eval", "state", "home", "words", "settings", "back-home", "edge-back",
+      "langle", "close-sheet",
+    ]
 
     func start(model: AppModel) {
       self.model = model
@@ -55,8 +62,24 @@
         case "state":
           let tabs = model.router.tabs.all.map { "\($0.id)\($0.active ? "*" : "") \($0.url)" }
           say(
-            "state host=\(model.host?.isReady ?? false) tabs=[\(tabs.joined(separator: ", "))] sheet=\(model.sheet?.context.page.url?.absoluteString ?? "none") page=\(model.browsing.page.url?.absoluteString ?? "none") fullscreen=\(model.fullscreen) \(Orientation.current)"
+            "state screen=\(model.screen) title=\"\(model.title)\" site=\"\(model.site)\" bar=\(model.barShown) back=\(model.canGoBack) host=\(model.host?.isReady ?? false) tabs=[\(tabs.joined(separator: ", "))] sheet=\(model.sheet?.context.page.url?.absoluteString ?? "none") page=\(model.browsing.page.url?.absoluteString ?? "none") fullscreen=\(model.fullscreen) \(Orientation.current)"
           )
+        // The shell's native controls, for checks without taps.
+        case "home", "words", "settings":
+          model.select(AppTab(rawValue: command)!)
+          say("\(command) done")
+        case "back-home":
+          model.goHome()
+          say("back-home done")
+        case "edge-back":
+          model.back()
+          say("edge-back done")
+        case "langle":
+          model.openLangle()
+          say("langle \(model.sheet != nil)")
+        case "close-sheet":
+          model.closeSheet()
+          say("close-sheet done")
         default:
           say("unknown command \(command)")
         }
@@ -73,6 +96,11 @@
       case "host": return await model.host?.evaluate(source) ?? "no host"
       case "page": return await model.browsing.page.evaluate(world: .page, source: source)
       case "langle": return await model.browsing.page.evaluate(world: .langle, source: source)
+      case "first":
+        return await model.firstRun?.page.evaluate(world: .page, source: source) ?? "no first run"
+      case "tab":
+        guard case .tab(let tab) = model.screen else { return "no tab screen" }
+        return await model.tabPages[tab]?.page.evaluate(world: .page, source: source) ?? "no tab page"
       case "sheet":
         return await model.sheet?.context.page.evaluate(world: .page, source: source) ?? "no sheet"
       default: return "unknown target"
