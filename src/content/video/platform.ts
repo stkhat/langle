@@ -29,6 +29,12 @@ export interface VideoCaptions {
 }
 
 /** Where Langle puts an element: inside `parent`, before `before` (at the end when null). */
+export interface VideoDetails {
+  id: string;
+  title?: string;
+  channel?: string;
+}
+
 export interface InsertionPoint {
   parent: Element;
   before: Element | null;
@@ -103,6 +109,11 @@ export interface PlatformAdapter {
   holdBackControlBar?(mode: ControlBarMode): void;
   /** An ad plays instead of the video. */
   adShowing(): boolean;
+  /**
+   * The site's own title and channel of the video its player holds, with that video's id
+   * (it can lag behind navigation): the phone app's recent pages (`content/recents.ts`).
+   */
+  details?(): Promise<VideoDetails | undefined>;
   tracks(): Promise<Track[]>;
   /**
    * The current video's original subtitles in the learning language and its translation

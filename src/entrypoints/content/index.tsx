@@ -3,6 +3,7 @@ import { startContentCheck } from "../../check/start";
 import { ArticleUi } from "../../content/article/ArticleUi";
 import { runArticle } from "../../content/article/article";
 import { leaveWhenOrphaned } from "../../content/orphan";
+import { reportPageVisit } from "../../content/recents";
 import { runWhenSetUp } from "../../content/setup";
 import { shadowRootMode } from "../../content/shadow-host";
 import { isVideoSite } from "../../content/video/platform";
@@ -20,8 +21,11 @@ export default defineContentScript({
     // `npm run build:check` only: the error log and the settings channel (src/check/).
     if (import.meta.env.MODE === "check") startContentCheck("article");
     runWhenSetUp(ctx, () => {
+      const deps = contentDeps(ctx);
+      // The phone app's recent pages: nothing elsewhere.
+      reportPageVisit({ send: deps.send });
       const runner = runArticle({
-        ...contentDeps(ctx),
+        ...deps,
         async mountUi(app) {
           const ui = await createShadowRootUi(ctx, {
             name: "langle-article",

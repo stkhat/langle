@@ -3,6 +3,7 @@ import { unsupportedPage } from "../../messaging/page-protocol";
 import type { LookupHooks } from "../lookup/lookup";
 import { warn } from "../lookup/warn";
 import { leaveWhenOrphaned } from "../orphan";
+import { followVideoRecents } from "../recents";
 import { createTouchMode } from "../touch/touch-mode";
 import { answerPageRequests, contentDeps } from "../wiring";
 import { mountVideoUi } from "./mount";
@@ -22,8 +23,11 @@ export async function runVideoSite(
 ): Promise<VideoSession | undefined> {
   leaveWhenOrphaned(ctx);
   const touchMode = createTouchMode();
+  const deps = contentDeps(ctx);
+  // The phone app's recent pages: nothing elsewhere.
+  ctx.onInvalidated(followVideoRecents(adapter, { send: deps.send }));
   const started = startVideo({
-    ...contentDeps(ctx),
+    ...deps,
     adapter,
     touchMode,
     ...hooks,

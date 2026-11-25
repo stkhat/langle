@@ -177,6 +177,13 @@ describe("the watch page", () => {
     expect(adapter.videoId()).toBeUndefined();
   });
 
+  it("gives the player's video id and title (the phone app's recent pages)", async () => {
+    await expect(adapter.details?.()).resolves.toMatchObject({
+      id: VIDEO_ID,
+      title: expect.any(String),
+    });
+  });
+
   it("knows when an ad plays", () => {
     expect(adapter.adShowing()).toBe(false);
     page.player.classList.add("ad-showing");
