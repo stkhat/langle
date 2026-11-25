@@ -93,7 +93,7 @@ ${PAGE_BUTTON_CSS}
 .nav[aria-current="true"]{background:${color.greenPale};color:${color.greenDark};font-weight:600}
 .chk{width:18px;height:18px;accent-color:${color.green};margin:0}
 .soon{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:${color.muted};background:${color.surfaceGray};border-radius:999px;padding:3px 8px}
-.sub{display:flex;align-items:center;gap:16px;padding:10px 0 10px 20px;border-top:1px solid ${color.soft}}
+.sub{display:flex;align-items:center;gap:16px;padding-block:10px;padding-inline:20px 0;border-top:1px solid ${color.soft}}
 .st{display:inline-flex;align-items:center;gap:8px;min-width:220px;justify-content:flex-end;font-size:14px;color:${color.ink}}
 `;
 
@@ -332,7 +332,8 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
                     alignItems: "center",
                     gap: "10px",
                     minHeight: "52px",
-                    padding: "0 12px 0 16px",
+                    paddingBlock: "0",
+                    paddingInline: "16px 12px",
                     margin: 0,
                     border: 0,
                     borderTop: i ? `1px solid ${color.soft}` : 0,

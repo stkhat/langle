@@ -77,6 +77,27 @@ describe("UiRoot", () => {
     expect(getComputedStyle(next).display).toBe("contents");
   });
 
+  it("breaks Korean between words and Japanese between phrases, wherever the text sits", async () => {
+    const el = mount(
+      <UiRoot>
+        <p data-ui>{t("settings.languages.uiSame")}</p>
+        <p data-ko lang="ko">
+          클라우드
+        </p>
+        <p data-ja lang="ja">
+          一切ありません
+        </p>
+      </UiRoot>,
+    );
+    const breaking = (selector: string) =>
+      getComputedStyle(el.querySelector(selector)!).wordBreak;
+    expect(breaking("[data-ui]")).toBe("normal");
+    expect(breaking("[data-ko]")).toBe("keep-all");
+    expect(breaking("[data-ja]")).toBe("auto-phrase");
+    setUiLocale("ko", {});
+    await expect.poll(() => breaking("[data-ui]")).toBe("keep-all");
+  });
+
   it("mirrors the layout for Arabic and keeps it for English", async () => {
     const el = mount(
       <UiRoot>

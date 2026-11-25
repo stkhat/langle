@@ -32,6 +32,10 @@ describe("HoverCard", () => {
       .toBeVisible();
     await expect.element(screen.getByText("figure out")).toBeVisible();
     await expect.element(screen.getByText("/ˈfɪɡjər ˈaʊt/")).toBeVisible();
+    // Left to right in an Arabic interface too: the stress marks stay before their syllables.
+    await expect
+      .element(screen.getByText("/ˈfɪɡjər ˈaʊt/"))
+      .toHaveAttribute("dir", "ltr");
     await expect
       .element(screen.getByText("（答え・方法を）見つけ出す、理解する"))
       .toHaveAttribute("lang", "ja");

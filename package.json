@@ -52,7 +52,8 @@
     "data:publish": "node scripts/data/publish.ts",
     "data:npm-publish": "node scripts/data/npm-publish.ts",
     "prepare": "simple-git-hooks",
-    "check:dead": "knip"
+    "check:dead": "knip",
+    "ui-render": "playwright test -c scripts/ui-render/playwright.config.ts; node scripts/ui-render/summarize.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

@@ -32,9 +32,12 @@ export function BrandHeader(props: {
       {props.title}
     </Title>
   );
-  const pair = (extra: object = {}) =>
+  const pair = (extra: object = {}, full?: string) =>
     props.pair !== undefined && (
-      <span style={{ fontSize: size.pair, color: color.muted, ...extra }}>
+      <span
+        title={full}
+        style={{ fontSize: size.pair, color: color.muted, ...extra }}
+      >
         {props.pair}
       </span>
     );
@@ -51,11 +54,15 @@ export function BrandHeader(props: {
           }}
         >
           {title}
-          {pair({
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          })}
+          {pair(
+            {
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            },
+            // A pair cut with "…" reads in full on hover.
+            props.pair || undefined,
+          )}
         </span>
       ) : (
         <>

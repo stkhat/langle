@@ -133,7 +133,8 @@ export function HoverCard(props: HoverCardProps) {
             marginTop: "1px",
           }}
         >
-          {props.ipa}
+          {/* IPA runs left to right in any interface: its marks keep their places. */}
+          <span dir="ltr">{props.ipa}</span>
         </div>
       )}
       {(props.yours ?? []).map((mine, i) => (

@@ -16,7 +16,7 @@ a{color:${color.greenText}}a:hover{color:${color.greenDark}}
 .src{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
 .src li{display:flex;flex-direction:column;gap:2px;padding-top:12px;border-top:1px solid ${color.soft};font-size:14px;line-height:1.5}
 .src .d{color:${color.muted};font-size:13px}
-pre{margin:0;white-space:pre-wrap;font-size:12px;line-height:1.5;color:${color.ink2}}
+pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.5;color:${color.ink2}}
 `;
 
 /** A license's name, linked to its text when it has one. */

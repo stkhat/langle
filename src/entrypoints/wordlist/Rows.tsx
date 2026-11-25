@@ -10,7 +10,25 @@ import { langAttrs } from "../../ui/text-direction";
 
 type Style = CSSProperties;
 
-export const COLUMNS = "220px minmax(0, 1fr) 110px 70px 110px";
+/** The fixed columns' widths: Status, Seen, Last seen. */
+const FIXED = [110, 70, 110];
+/**
+ * The header's columns: a fixed column widens to its heading where a translation is
+ * longer than the column (the rows follow through `--fixed-columns`, `fitColumns`).
+ */
+export const HEADER_COLUMNS = `220px minmax(0, 1fr) ${FIXED.map((px) => `minmax(${px}px, max-content)`).join(" ")}`;
+/** A row's columns: the header's fixed widths, as `fitColumns` measured them. */
+const COLUMNS = `220px minmax(0, 1fr) var(--fixed-columns, ${FIXED.map((px) => `${px}px`).join(" ")})`;
+
+/** Gives the rows under `list` the fixed column widths `header` (on HEADER_COLUMNS) took. */
+export function fitColumns(header: HTMLElement, list: HTMLElement): void {
+  const tracks = getComputedStyle(header)
+    .gridTemplateColumns.split(" ")
+    .slice(2)
+    .join(" ");
+  if (list.style.getPropertyValue("--fixed-columns") !== tracks)
+    list.style.setProperty("--fixed-columns", tracks);
+}
 /** A row's height plus the gap under it (px). */
 const ROW_STRIDE = 50;
 /** The phone layout's row (mock MobileWords): 64px, a line between rows, no gap. */
@@ -199,7 +217,8 @@ function PhoneRow(props: {
         height: `${PHONE_ROW_STRIDE}px`,
         flex: "none",
         boxSizing: "border-box",
-        padding: "10px 12px 10px 16px",
+        paddingBlock: "10px",
+        paddingInline: "16px 12px",
         margin: 0,
         border: 0,
         borderTop: props.first ? 0 : `1px solid ${color.soft}`,

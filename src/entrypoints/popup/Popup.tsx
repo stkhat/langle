@@ -434,7 +434,8 @@ export function Popup({ deps }: { deps: PopupDeps }) {
           display: "flex",
           alignItems: "center",
           gap: phone ? "6px" : "8px",
-          padding: phone ? "10px 16px 12px 20px" : "12px 8px 12px 16px",
+          paddingBlock: phone ? "10px 12px" : "12px",
+          paddingInline: phone ? "20px 16px" : "16px 8px",
           borderBottom: `1px solid ${color.line}`,
         }}
       >
@@ -448,13 +449,16 @@ export function Popup({ deps }: { deps: PopupDeps }) {
               : ""
           }
         />
-        <span style={{ flex: 1 }}></span>
+        {/* Pushed to the end by its margin, not a spacer: one gap more for the pair. */}
         <button
           type="button"
           aria-label={t("wordlist.title")}
           title={t("wordlist.title")}
           onClick={deps.openWordList}
-          style={phone ? phoneHeaderButton : headerButton}
+          style={{
+            ...(phone ? phoneHeaderButton : headerButton),
+            marginInlineStart: "auto",
+          }}
         >
           <WordListIcon size={phone ? 22 : 20} />
         </button>

@@ -27,7 +27,20 @@ const uiLangAttrs = (locale = uiLocale()) => ({
   dir: uiDirection(locale),
 });
 
-/** Puts the interface language on `<html>` of an extension page, now and on each change. */
+/**
+ * Line breaking by the text's own language, wherever it sits in the UI: Korean breaks
+ * between words (at spaces) as it is written, Japanese between phrases rather than
+ * after any character; a word longer than its line still wraps instead of overflowing.
+ * Other languages keep the browser's default.
+ */
+const LINE_BREAK_CSS =
+  ":lang(ko){word-break:keep-all;overflow-wrap:break-word}" +
+  ":lang(ja){word-break:auto-phrase}";
+
+/**
+ * Puts the interface language on `<html>` of an extension page, now and on each change,
+ * and the page's line breaking by language.
+ */
 export function followDocumentLocale(root = document.documentElement): void {
   const apply = () => {
     const { lang, dir } = uiLangAttrs();
@@ -36,6 +49,9 @@ export function followDocumentLocale(root = document.documentElement): void {
   };
   apply();
   onUiLocaleChange(apply);
+  const style = document.createElement("style");
+  style.textContent = LINE_BREAK_CSS;
+  document.head.append(style);
 }
 
 /**
@@ -57,6 +73,7 @@ export function UiRoot(props: { children: ComponentChildren }) {
   const locale = useUiLocale();
   return (
     <div key={locale} {...uiLangAttrs(locale)} style={{ display: "contents" }}>
+      <style>{LINE_BREAK_CSS}</style>
       {props.children}
     </div>
   );

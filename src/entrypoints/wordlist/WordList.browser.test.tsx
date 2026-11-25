@@ -27,6 +27,7 @@ import { fixedTouchMode } from "../../testing/touch";
 import type { SharedFile } from "../../core/app-host";
 import { saveFile } from "../../ui/backup/save-file";
 import { WordList, type WordListDeps } from "./WordList";
+import { setUiLocale } from "../../i18n/t";
 
 const NOW = new Date(2026, 10, 10, 12, 0, 0).getTime();
 const HOUR = 60 * 60_000;
@@ -1143,6 +1144,35 @@ describe("the sponsor spot", () => {
     expect(
       again.details.getByRole("link", { name: "Become a sponsor" }).query(),
     ).toBeNull();
+  });
+});
+
+describe("the word list in another language", () => {
+  it("widens a column to a heading longer than English's, the rows with it", async () => {
+    setUiLocale("ru", {
+      "wordlist.col.seen": "Встречалось",
+      "wordlist.col.lastSeen": "Последний раз",
+    });
+    try {
+      const { screen, row } = await open();
+      const seen = screen.getByText("Встречалось").element() as HTMLElement;
+      const last = screen.getByText("Последний раз").element() as HTMLElement;
+      for (const heading of [seen, last])
+        expect(heading.scrollWidth).toBeLessThanOrEqual(heading.clientWidth);
+      expect(seen.getBoundingClientRect().right).toBeLessThanOrEqual(
+        last.getBoundingClientRect().left,
+      );
+      // The count under its heading.
+      const count = row("tedious").element().children[3]!;
+      expect(
+        Math.abs(
+          count.getBoundingClientRect().left -
+            seen.getBoundingClientRect().left,
+        ),
+      ).toBeLessThan(2);
+    } finally {
+      setUiLocale("en");
+    }
   });
 });
 

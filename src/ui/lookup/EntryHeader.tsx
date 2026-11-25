@@ -83,7 +83,8 @@ export function EntryHeader(props: {
         <span
           style={{ fontFamily: IPA_FONT, fontSize: "16px", color: color.ink3 }}
         >
-          {props.ipa}
+          {/* IPA runs left to right in any interface: its marks keep their places. */}
+          <span dir="ltr">{props.ipa}</span>
         </span>
       )}
       {props.sub && (
