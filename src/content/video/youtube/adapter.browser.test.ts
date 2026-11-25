@@ -548,6 +548,27 @@ describe("loading captions", () => {
     expect(page.player.fake.requests.length).toBeGreaterThan(0);
   });
 
+  it("asks the player for a track only once it lists its caption tracks (a slow first load)", async () => {
+    // youtube.com's player drops a track set before its captions module lists the
+    // tracks; on a busy page that came after Langle's whole wait (docs/notes/mobile.md).
+    start({ tracksListedAfterMs: 1500 });
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(page.player.fake.setOption).toHaveLength(1);
+  });
+
+  it("asks anyway, and warns, when the player lists no caption tracks in time", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => warn.mockRestore());
+    start({ tracksListedAfterMs: 60_000 }, { tracksListedTimeoutMs: 300 });
+    expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
+    // The one ask, which the player dropped.
+    expect(page.player.fake.setOption).toHaveLength(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(`listed no caption tracks for ${VIDEO_ID}`),
+    );
+  });
+
   it("follows SPA navigation and returns nothing when YouTube sends empty captions", async () => {
     start();
     // Another video whose timedtext answers are empty (as under automation).

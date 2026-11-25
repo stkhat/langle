@@ -296,7 +296,7 @@ The iPhone 18 Pro Simulator (iOS 27.2), the check build on a fresh install (`-re
 ### Open items for M4 (both platforms)
 - ~~**Export, backup and import do nothing in the app.**~~ Done in M4f: the share sheet (with Save to device on Android) and the system's file picker; see "Device checks (M4f, Android)" and "Device checks (M4f, iOS)".
 - **"Last export: just now" is set when the share sheet opens**, also when the user closes it without sharing or saving. Android's chooser does not say whether the file went anywhere, so both shells keep it this way (iOS could tell through `completionWithItemsHandler`).
-- **Subtitles sometimes missing on an early load** (Android, 2 loads in 3 while the emulator was overloaded, one with two pre-roll ads; a reload brought them). Not reproduced in six later Android loads or on iOS. Most likely the adapter gives up its tries before the player answers.
+- ~~**Subtitles sometimes missing on an early load** (Android, 2 loads in 3 while the emulator was overloaded, one with two pre-roll ads; a reload brought them).~~ Found and fixed in M5f: the player drops a track set before it lists its caption tracks, and Langle asked once; it now waits for the list (see "Subtitles missing on an early load (M5f)"). To check on the emulator in M5g.
 - **Differs from the mock**:
   - The Langle sheet is always at full height (`MobileLangleSheet` sizes it to its content); on Android its last line is cut at 90%.
   - The site line is "YouTube" on a watch page (its `og:site_name`), the mock says "youtube.com".
@@ -353,6 +353,16 @@ The iPhone 18 Pro Simulator (iOS 27.2, system language Japanese), the check buil
 - **Found**: no bug in M4f on iOS; nothing changed. `swift test` (LangleCore): 72 tests pass.
 - **Open** (for the parent, with Android's list):
   - "Last export" is set when the sheet shows, also if the user dismisses it. On iOS the sheet's `completionWithItemsHandler` says whether an activity completed, so iOS could set it only after a save or send; Android cannot tell.
+
+## Subtitles missing on an early load (M5f, 2026-11-26)
+
+The open item of M4e (Android: no subtitles and no warning on two loads in three while the emulator was overloaded). Measured on the real site in Playwright's Chromium, logged out, `en-US`, muted, with the CPU slowed through CDP (`Emulation.setCPUThrottlingRate`): a probe in the page's world polled `#movie_player` every 100 ms, logged every `/api/timedtext` request, and asked for `fr` (a track the player never picks itself) with `setOption("captions", "track", …)`, as Langle's `loadTrack` does. The bodies are empty there (automation), but the requests show what the player took.
+
+- **The player drops a track set before its captions module lists the video's tracks.** `getPlayerResponse()` already has the video and its `captions` while `getOption("captions", "tracklist")` still answers `undefined`; an ask made then got no `fr` request in the next 12 s, on m.youtube.com (3 of 3 loads, 1× and 30×) and on www.youtube.com (30×). Asked again once the tracklist was listed, the player requested `fr` within about 100 ms, every time.
+- **Busy pages list late.** From the player response to the tracklist: about 0.05–0.3 s at 1×; 2 s on m.youtube.com and 8 s on www.youtube.com at 30×. It does not wait for playback: with autoplay blocked (player state −1, then paused) the tracklist was listed at once.
+- **So the cause**: `captureFor` waited 1.5 s for the player's own request, asked once and waited 10 s. On a page that listed its tracks after Langle's ask (an overloaded emulator, or the content video's player still loading after a pre-roll ad), the ask was dropped and Langle gave up after 11.5 s with nothing to log; a reload, or an ask by hand later, worked.
+- **Fixed** (the class: Langle asked the player before it could take the ask, and counted that as an answer): `loadTrack` sets nothing and answers null while the player lists no caption tracks, and `captureFor` keeps waiting for the player's own request and asks again, ad time not counted, until the tracks are listed. The wait is bounded: after 60 s unlisted it asks anyway and, if that gets nothing, warns ("listed no caption tracks"), so a device check sees it. Tests: the fake player's `tracksListedAfterMs` (it lists late and drops a track set before); the adapter's browser tests and the phone E2E test "the subtitles on a load whose player lists its caption tracks late" failed before the fix.
+- **Not checked**: on the emulator (left to M5g: several loads, cold and over a page, with the error log read), and the tracklist during and right after a pre-roll ad (no ad showed in these runs).
 
 ## iOS prototype (2026-11-22)
 `mobile/prototypes/ios-wkwebview` (SwiftUI shell, a hand-written Xcode project with a synchronized folder; no generator), on the Simulator (iPhone 17, iOS 27.2), logged out, the same video and the same `probe.js`. Driven from the shell by `check.sh` (`simctl launch` arguments, Darwin notifications for commands, results in the unified log).
