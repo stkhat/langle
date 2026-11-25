@@ -294,7 +294,7 @@ The iPhone 18 Pro Simulator (iOS 27.2), the check build on a fresh install (`-re
 - **Not seen on iOS**: subtitles missing on an early load.
 
 ### Open items for M4 (both platforms)
-- **Export, backup and import do nothing in the app.** Words ⋮'s Anki, CSV, Backup (JSON) and Import and Settings' Backup Export and Import: the pages download through a blob link and pick a file with `<input type=file>`; neither shell saves or shares a download (iOS now drops it rather than showing it), and Import's file picker is unchecked on iOS (WebKit usually shows its own) and does nothing on Android. Needs a design decision: a save or share sheet for the file and a file picker in the shells. Built in M4f (the share sheet and the system's file picker); see "Device checks (M4f, Android)".
+- **Export, backup and import do nothing in the app.** Words ⋮'s Anki, CSV, Backup (JSON) and Import and Settings' Backup Export and Import: the pages download through a blob link and pick a file with `<input type=file>`; neither shell saves or shares a download (iOS now drops it rather than showing it), and Import's file picker is unchecked on iOS (WebKit usually shows its own) and does nothing on Android. Needs a design decision: a save or share sheet for the file and a file picker in the shells. Built in M4f (the share sheet and the system's file picker); see "Device checks (M4f, Android)" and "Device checks (M4f, iOS)".
 - **Subtitles sometimes missing on an early load** (Android, 2 loads in 3 while the emulator was overloaded, one with two pre-roll ads; a reload brought them). Not reproduced in six later Android loads or on iOS. Most likely the adapter gives up its tries before the player answers.
 - **Differs from the mock**:
   - The Langle sheet is always at full height (`MobileLangleSheet` sizes it to its content); on Android its last line is cut at 90%.
@@ -324,6 +324,22 @@ The Android emulator (Android 17 Play image, signed in to a Google account), the
   - No way to save an export to the phone itself on this image (above). Options for the user to decide: keep the share sheet only, or add a "Save to device" path (`ACTION_CREATE_DOCUMENT`, the system's save dialog) beside it.
   - "Last export: just now" is set when the chooser opens, also when the user backs out of it: Android does not say whether the file was shared.
   - The picker asks for `application/json` only (the input's `accept`): a backup a mail or chat app typed otherwise (`application/octet-stream`) would be greyed out. Not seen here (Downloads types files by their extension).
+
+## Device checks (M4f, iOS; 2026-11-25)
+
+The iPhone 18 Pro Simulator (iOS 27.2, system language Japanese), the check build on a fresh install (`check.sh launch -reset 1`), the E2E article (`node e2e/serve.ts`). This time the Simulator tool's device access was granted, so the first run (Agree and continue, Start), Words ⋮ and its rows, Settings › Backup, the share sheet, the Files save dialog and the picker were all real taps; only the Words and Settings tabs were opened with `check.sh cmd words|settings` and the four terms (patient, schedule, tedious, the phrase figure out) were saved through the background's `saveTerm` from Langle's world on the article. Files were read from the app container (`simctl get_app_container booted dev.langle.app data`) and from Files' "On My iPhone" (the File Provider Storage folder of the Files app group).
+
+- **Export**: each presents `UIActivityViewController` with the file's name, type and size at the top, written to `tmp/shared/` (only the latest kept):
+  - Words ⋮ Anki (.txt): `langle-anki-en-ja-2026-11-25.txt` (1,352 bytes), Anki's header lines and one tab-separated note per word, as on Android.
+  - Words ⋮ CSV: `langle-words-en-ja-2026-11-25.csv`, with a BOM, the header and the four rows.
+  - Words ⋮ Backup (JSON) and Settings › Backup Export: `langle-backup-2026-11-25.json` (2,950 bytes, `format: langle-export`, version 3, the four terms). Settings shows "Last export: just now".
+- **What the share sheet offers** on the Simulator: Reminders (text and CSV only), More (an empty app list on the Simulator), Copy and **Save to Files**. Save to Files opened Files' save dialog on "On My iPhone"; the Anki file and the backup were saved there and the saved backup is byte for byte the shared one. A real iPhone should also list AirDrop, Mail, Messages and installed apps (not checked here).
+- **Cancelling**: a tap outside the sheet dismisses it and the page stays usable; the next export presents it again.
+- **Import**: the file input opens WebKit's own document picker (Recents, Shared, Browse). The accept filter works: in "On My iPhone" the backup is selectable and the Anki `.txt` is greyed out. After a reset and the first run, the backup picked from Words ⋮ Import brought the four words back into the list; after another reset, from Settings › Backup Import: "Imported 4 words", and Words lists the four. Cancelling the picker (✕) leaves the page usable and the next Import opens it again. The first picker after a launch took about 3 s to appear on the Simulator (the document picker's own start); later ones about 1 s.
+- **Error log**: 32 entries, all info (the en pack's files served by jsDelivr on the first start), read twice; cleared. The app's unified log had no errors; one `sharing <name> (<bytes> bytes)` line per export.
+- **Found**: no bug in M4f on iOS; nothing changed. `swift test` (LangleCore): 72 tests pass.
+- **Open** (for the parent, with Android's list):
+  - "Last export" is set when the sheet shows, also if the user dismisses it. On iOS the sheet's `completionWithItemsHandler` says whether an activity completed, so iOS could set it only after a save or send; Android cannot tell.
 
 ## iOS prototype (2026-11-22)
 `mobile/prototypes/ios-wkwebview` (SwiftUI shell, a hand-written Xcode project with a synchronized folder; no generator), on the Simulator (iPhone 17, iOS 27.2), logged out, the same video and the same `probe.js`. Driven from the shell by `check.sh` (`simctl launch` arguments, Darwin notifications for commands, results in the unified log).
