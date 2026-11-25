@@ -46,7 +46,12 @@ import {
   type SettingsPatch,
 } from "../core/settings";
 import { termId } from "../core/term-id";
-import { hostnameOf, occurrenceLink, tryNormalizeUrl } from "../core/url";
+import {
+  hostnameOf,
+  occurrenceLink,
+  onHost,
+  tryNormalizeUrl,
+} from "../core/url";
 import { errorText, omit } from "../core/util";
 import {
   MAX_CACHED_TRANSLATIONS,
@@ -55,6 +60,8 @@ import {
   type ExportDetails,
   type OccurrenceView,
   type Origin,
+  type RecentProgress,
+  type RecentVisit,
   type Reply,
   type RequestOf,
   type RequestType,
@@ -74,6 +81,7 @@ import {
 import { historyKeys, type HistoryStore } from "./history-store";
 import type { LanguageResources } from "./language-resources";
 import type { PackStore } from "./pack-store";
+import { RECENTS_LIMIT, type RecentsStore } from "./recents-store";
 import type { ImportedOccurrence, TermStore } from "./term-store";
 import type { TranslationCache } from "./translation-cache";
 import type { ExplanationCache } from "./explanation-cache";
@@ -97,6 +105,8 @@ export interface HandlerDeps {
     retry(): void;
   };
   sync: { status(): Promise<SyncStatus> };
+  /** The phone app's recent pages: only where `appHost` exists, so none elsewhere. */
+  recents?: RecentsStore;
   cloud: Pick<
     CloudSyncBackend,
     "status" | "requestCheck" | "connect" | "disconnect"
@@ -171,6 +181,10 @@ const MAX_EXPLAINED_KEY = 200;
 const MAX_EXPLAINED_SENTENCE = 2000;
 const MAX_PROVIDER_FIELD = 100;
 
+/** Longest address, and title or site name, a recent page is kept with. */
+const MAX_RECENT_URL = 2048;
+const MAX_RECENT_TEXT = 300;
+
 const textUpTo = (value: unknown, max: number): value is string =>
   typeof value === "string" && value.trim() !== "" && value.length <= max;
 
@@ -218,10 +232,25 @@ export function createHandlers({
   resources,
   packs,
   sync,
+  recents,
   cloud,
   openOptionsPage,
   openPopup,
 }: HandlerDeps): Handle {
+  /**
+   * Whether a page may be kept among the recents: a web address not in "Never run on".
+   * Langle switched off (for the site or as a whole) still lists it: Home lists what
+   * was browsed in the app, not what Langle ran on.
+   */
+  async function recentAllowed(url: unknown): Promise<boolean> {
+    if (typeof url !== "string" || url.length > MAX_RECENT_URL) return false;
+    if (!/^https?:\/\//i.test(url)) return false;
+    const host = hostnameOf(url);
+    if (host === undefined) return false;
+    const { neverRunOn } = await settings.get();
+    return !neverRunOn.some((entry) => onHost(host, entry));
+  }
+
   /** Cached translations of `texts`; best effort: none when the cache cannot be read. */
   async function cachedTranslations(
     pair: string,
@@ -766,6 +795,55 @@ export function createHandlers({
       await history.clear();
       return null;
     },
+
+    async recentsVisit({ page }) {
+      const { url, title, site, kind } = (page ?? {}) as Partial<RecentVisit>;
+      if (
+        !recents ||
+        typeof title !== "string" ||
+        typeof site !== "string" ||
+        (kind !== "video" && kind !== "page") ||
+        !(await recentAllowed(url))
+      )
+        return null;
+      await recents.visit({
+        url: url!,
+        title: title.trim().slice(0, MAX_RECENT_TEXT),
+        site: site.trim().slice(0, MAX_RECENT_TEXT),
+        kind,
+      });
+      return null;
+    },
+    async recentsProgress({ progress }) {
+      const { url, position, duration, title, channel } = (progress ??
+        {}) as Partial<RecentProgress>;
+      const seconds = (n: unknown): n is number =>
+        typeof n === "number" && Number.isFinite(n) && n >= 0;
+      const text = (s: unknown) =>
+        typeof s === "string" && s.trim() !== ""
+          ? s.trim().slice(0, MAX_RECENT_TEXT)
+          : undefined;
+      if (
+        !recents ||
+        !seconds(position) ||
+        !seconds(duration) ||
+        !(await recentAllowed(url))
+      )
+        return null;
+      const named = { title: text(title), channel: text(channel) };
+      await recents.progress({
+        url: url!,
+        position: Math.min(position, duration),
+        duration,
+        ...(named.title !== undefined && { title: named.title }),
+        ...(named.channel !== undefined && { channel: named.channel }),
+      });
+      return null;
+    },
+    recentsList: async ({ limit }) =>
+      recents && Number.isInteger(limit) && limit > 0
+        ? recents.list(Math.min(limit, RECENTS_LIMIT))
+        : [],
 
     async packStatus() {
       const { learningLang, nativeLang } = await settings.get();

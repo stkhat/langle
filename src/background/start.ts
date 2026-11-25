@@ -6,6 +6,8 @@ import { createHistoryStore, forgetNeverRunOnHosts } from "./history-store";
 import { createLanguageResources } from "./language-resources";
 import { createPackDownloads, startPackDownloads } from "./pack-downloads";
 import { createPackSource, createPackStore } from "./pack-store";
+import { createRecentsStore } from "./recents-store";
+import { appHostOf } from "../core/app-host";
 import { cloudSettings, getSettings, setSettings } from "./settings-store";
 import { watchBuild } from "./self-reload";
 import { createSetup } from "./setup";
@@ -113,6 +115,8 @@ export function startBackground(): void {
     resources,
     packs: { lock, store: packStore, retry: retryPacks },
     sync,
+    // Home's Continue and Sites: kept only in the phone app.
+    ...(appHostOf() && { recents: createRecentsStore(db) }),
     cloud,
     openOptionsPage: () => browser.runtime.openOptionsPage(),
     // Chrome refuses it at times (no focused window): nothing then.
