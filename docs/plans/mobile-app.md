@@ -676,7 +676,7 @@ Spec [mobile-translation.md](../specs/mobile-translation.md) "M5: the hosts" (th
 - [ ] M5-0: the iOS row state in the mock and ui.md (the parent session)
 - [x] M5a: the bridge and the bridge provider (shared TS) (branch `claude/mobile-m5a`)
 - [x] M5b: the model packs' pipeline, the engine files, `mt-en-ja` (branch `claude/mobile-m5b`)
-- [ ] M5c: the Android host (branch `claude/mobile-m5c`)
+- [x] M5c: the Android host (branch `claude/mobile-m5c`): checked on the emulator (download, a translated definition, ~300 MB given back on release, a killed renderer restarted on the next sentence; notes/mobile.md "The Android translation host (M5c)")
 - [x] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`): the Simulator cannot translate (`unsupported` for every strategy), so the sheet and translation wait for M5g's real iPhone (notes/mobile.md "The iOS translation host (M5d)")
 - [x] M5e: the other 17 model packs (branch `claude/mobile-m5e`)
 - [x] M5f: subtitles missing on an early load (branch `claude/mobile-m5f`): the player drops a track set before it lists its caption tracks; `captureFor` now waits for the list (notes/mobile.md "Subtitles missing on an early load (M5f)")
@@ -734,11 +734,11 @@ Branch `claude/mobile-m5c`, from `main` with M5a and M5b merged.
 
 **Tasks**
 
-- [ ] **JUnit first** (fake clock, fake engine): the 60-second release, the release when the UI is hidden, one restart then off until the page is opened again, the 30- and 10-second limits, `start: false` never starting the engine, a page not on screen answered with `null`. Commit.
-- [ ] **The downloader** (JUnit with a fake server): mirrors in order, SHA-256 per file, progress events, a failed file → failed, remove. Commit.
-- [ ] **`translate-host.html`** and its Worker: Bergamot from the app's files, pivot through English; browser test with a fake Bergamot module. Commit.
-- [ ] **The WebView** in the `translate` profile, wired to the host and the router. Build. **Report "ready for the device"**. On the emulator: the model downloads from Settings' row; a tapped word's English definition is translated; the memory given back on release (~300 MB); killing the `translate` renderer leaves the page and the extension host. Error log read, fixed or explained, cleared. Shut the emulator down.
-- [ ] **Docs**: notes/mobile.md (what the emulator showed), development.md, status.md, tick M5c. Draft PR "Mobile app M5c: the Android translation host", `gh pr ready`.
+- [x] **JUnit first** (fake clock, fake engine): the 60-second release, the release when the UI is hidden, one restart then off until the page is opened again, the 30- and 10-second limits, `start: false` never starting the engine, a page not on screen answered with `null`. Commit.
+- [x] **The downloader** (JUnit with a fake server): mirrors in order, SHA-256 per file, progress events, a failed file → failed, remove. Commit.
+- [x] **`translate-host.html`** and its Worker: Bergamot from the app's files, pivot through English; browser test with a fake Bergamot module. Commit.
+- [x] **The WebView** in the `translate` profile, wired to the host and the router. Build. **Report "ready for the device"**. On the emulator: the model downloads from Settings' row; a tapped word's English definition is translated; the memory given back on release (~300 MB); killing the `translate` renderer leaves the page and the extension host. Error log read, fixed or explained, cleared. Shut the emulator down.
+- [x] **Docs**: notes/mobile.md (what the emulator showed), development.md, status.md, tick M5c. Draft PR "Mobile app M5c: the Android translation host", `gh pr ready`.
 
 ### M5d: the iOS host and the Settings row (one agent, Opus)
 
