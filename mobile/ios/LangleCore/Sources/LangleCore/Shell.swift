@@ -120,9 +120,11 @@ public final class Shell {
     return .showTab(tab, load: nil)
   }
 
-  public func handle(_ action: RouterAction) -> ShellStep {
+  /// `canonical` is the kept page's `rel=canonical` address, when `asksCanonical` said to ask
+  /// the page for it: a page opened by that address shows the kept page too.
+  public func handle(_ action: RouterAction, canonical: String? = nil) -> ShellStep {
     switch action {
-    case .openTab(let tab): return opened(tab)
+    case .openTab(let tab): return opened(tab, canonical: canonical)
     case .navigateTab(let tab): return navigated(tab)
     case .activateTab(let tab): return activated(tab)
     case .closeTab(let tab): return closed(tab)
@@ -131,13 +133,23 @@ public final class Shell {
     }
   }
 
+  /// Whether `handle` wants the kept page's canonical address for `action`: a web page opened
+  /// while a page is kept (Continue names a page by the address it reported, which can be the
+  /// canonical one: www.youtube.com for a video on m.youtube.com).
+  public func asksCanonical(_ action: RouterAction) -> Bool {
+    guard case .openTab(let tab) = action else { return false }
+    return hasPage && !isApp(tab.url)
+  }
+
   // MARK: actions
 
-  private func opened(_ tab: Tab) -> ShellStep {
+  private func opened(_ tab: Tab, canonical: String?) -> ShellStep {
     guard isApp(tab.url) else {
       // One browsing page: a web page opened in a new tab opens there.
       tabs.remove(tab.id)
-      if hasPage, let current = pageURL, sameDocument(current, tab.url) {
+      if hasPage, let current = pageURL,
+        sameDocument(current, tab.url) || canonical.map({ sameDocument($0, tab.url) }) == true
+      {
         show(.page)
         return .show(.page)
       }

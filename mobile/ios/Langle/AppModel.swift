@@ -167,10 +167,9 @@ final class AppModel: ObservableObject {
     syncScreen()
   }
 
-  /// ‹ on the title bar: Home, the page kept with its media paused.
+  /// ‹ on the title bar: Home, the page kept with its media paused (`syncScreen`).
   func goHome() {
     shell.home()
-    pauseMedia()
     syncScreen()
   }
 
@@ -179,7 +178,6 @@ final class AppModel: ObservableObject {
     switch shell.back(canGoBack: canGoBack) {
     case .history: browsing.page.goBack()
     case .home:
-      pauseMedia()
       syncScreen()
     case .none: break
     }
@@ -228,7 +226,15 @@ final class AppModel: ObservableObject {
     switch action {
     case .reloadTab(let id): reloadTab(id)
     case .reloadHost: host?.reload()
-    default: follow(shell.handle(action))
+    default:
+      guard shell.asksCanonical(action) else { return follow(shell.handle(action)) }
+      // Asked now: the page's canonical address changes as it navigates.
+      Task { [weak self] in
+        guard let self else { return }
+        let answer = await browsing.page.evaluate(world: .page, source: PageCommands.canonical)
+        let canonical = answer.isEmpty || answer.hasPrefix("error:") ? nil : answer
+        follow(shell.handle(action, canonical: canonical))
+      }
     }
   }
 
@@ -278,12 +284,16 @@ final class AppModel: ObservableObject {
   }
 
   /// The screen `Shell` chose; a sheet over the page goes when another screen shows, and the
-  /// sheet's own buttons (word list, settings) leave the page.
+  /// sheet's own buttons (word list, settings) leave the page. A page left by any way (‹, the
+  /// edge swipe, the sheet's buttons) is kept with its media paused.
   private func syncScreen() {
     let now = shell.screen
     guard now != screen else { return }
     if sheet != nil { closeSheet() }
-    if screen == .page { barShown = true }
+    if screen == .page {
+      barShown = true
+      pauseMedia()
+    }
     screen = now
   }
 

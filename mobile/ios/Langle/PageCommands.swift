@@ -7,7 +7,12 @@ enum PageCommands {
     return meta?.getAttribute("content") ?? "";
     """#
 
-  /// ‹ leaves the page for Home: its videos and sounds stop playing.
+  /// The page's `rel=canonical` address ("" without one): Continue may name the page by it.
+  static let canonical = #"""
+    return document.querySelector('link[rel="canonical"]')?.href ?? "";
+    """#
+
+  /// Leaving the page for Home: its videos and sounds stop playing.
   static let pauseMedia = #"""
     let paused = 0;
     for (const media of document.querySelectorAll("video, audio")) {

@@ -83,6 +83,28 @@ final class ShellScreensTests: XCTestCase {
     XCTAssertEqual(tabs.active?.id, shell.browsingTab)
   }
 
+  func test_the_kept_page_is_shown_again_by_its_canonical_address() {
+    // Continue names m.youtube.com's videos by their canonical www.youtube.com address.
+    let (shell, tabs) = makeShell()
+    let canonical = "https://www.youtube.com/watch?v=iG9CE55wbtY"
+    _ = shell.handle(created(tabs, video))
+    shell.home()
+    let action = created(tabs, canonical)
+    XCTAssertTrue(shell.asksCanonical(action))
+    XCTAssertEqual(shell.handle(action, canonical: canonical), .show(.page))
+    XCTAssertEqual(tabs.get(shell.browsingTab)?.url, video)
+    shell.home()
+    XCTAssertEqual(shell.handle(created(tabs, canonical)), .loadPage(canonical))
+  }
+
+  func test_the_canonical_address_is_asked_for_only_for_a_web_page_over_a_kept_page() {
+    let (shell, tabs) = makeShell()
+    XCTAssertFalse(shell.asksCanonical(created(tabs, video)))
+    _ = shell.handle(created(tabs, video))
+    XCTAssertFalse(shell.asksCanonical(created(tabs, words)))
+    XCTAssertTrue(shell.asksCanonical(created(tabs, article)))
+  }
+
   func test_the_page_follows_its_commits() {
     let (shell, tabs) = makeShell()
     _ = shell.handle(created(tabs, video))
