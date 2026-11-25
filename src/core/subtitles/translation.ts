@@ -112,7 +112,7 @@ const SPEAKER_DASH = /^[-–—]/;
  * Joins adjacent cards that one translated cue covers at least `COVERED_SHARE` of each, up
  * to MAX_JOINED_WORDS words: a human translation often puts two short sentences into one
  * line ("They feel fear and doubt. They procrastinate."), which would otherwise show on
- * both cards (rule G). The subtitle lines move with their cards. `joiner` goes between the
+ * both cards (rule G). The subtitle lines (and their words) move with their cards. `joiner` goes between the
  * joined texts (a line break before a speaker's dash line).
  */
 export function joinCoveredCards(
@@ -169,6 +169,12 @@ export function joinCoveredCards(
         card,
         start: line.start + offset,
         end: line.end + offset,
+        ...(line.words && {
+          words: line.words.map((word) => ({
+            ...word,
+            start: word.start + offset,
+          })),
+        }),
       };
     }),
   };

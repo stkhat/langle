@@ -156,7 +156,7 @@ describe("saving a term brings its kept sentences in", () => {
     });
     expect(after.here.map((o) => o.sentence)).toEqual(["Fresh yeast."]);
     expect(after.elsewhere.map((o) => o.link)).toEqual([
-      "https://www.youtube.com/watch?v=abc&t=65s",
+      "https://www.youtube.com/watch?v=abc&t=65s&langle=65000",
       "https://example.com/bread",
     ]);
   });

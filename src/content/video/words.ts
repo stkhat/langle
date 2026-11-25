@@ -1,5 +1,5 @@
 import type { Span, TermKind, WordStatus } from "../../core/classify";
-import { lowerBound, type SubtitleLine } from "../../core/subtitles/cues";
+import { lineIndexAt, type SubtitleLine } from "../../core/subtitles/cues";
 import { joinerFor } from "../../core/subtitles/translation";
 import type { Cue } from "../../core/subtitles/types";
 import type { TermBrief } from "../../messaging/protocol";
@@ -55,9 +55,9 @@ function pieceIn(
 
 /**
  * A phrase across transcript cards (`splitRun`: its parts marked `previous`, `next`),
- * from the span of one of its parts: the cards it is in, its words as written (the
- * gap's too) and the cards' text, each joined as the language joins lines. Undefined
- * for a span that one card holds whole.
+ * from the span of one of its parts: the cards it is in, where it starts in the first
+ * one's text, its words as written (the gap's too) and the cards' text, each joined as
+ * the language joins lines. Undefined for a span that one card holds whole.
  */
 export function acrossCards(
   cues: readonly Cue[],
@@ -66,7 +66,13 @@ export function acrossCards(
   span: Span,
   flat: (text: string) => string,
 ):
-  | { first: number; last: number; surface: string; sentence: string }
+  | {
+      first: number;
+      last: number;
+      start: number;
+      surface: string;
+      sentence: string;
+    }
   | undefined {
   if (!span.part?.previous && !span.part?.next) return undefined;
   const pieces = new Map<number, Span>([[cue, span]]);
@@ -93,18 +99,19 @@ export function acrossCards(
     lines.push(text.slice(start, end));
     texts.push(text);
   }
+  const opening = pieces.get(first)!;
   return {
     first,
     last,
+    start: (opening.part ?? opening).start,
     surface: flat(lines.join("\n")),
     sentence: flat(texts.join("\n")),
   };
 }
 
 /**
- * The place of the text at `offset` in card `card`: the last of the card's lines that
- * starts at or before it (lines are sorted by time, so a card's lines are together and
- * in order); the card's own start when it has no line.
+ * The place of the text at `offset` in card `card`: the line that holds it
+ * (`lineIndexAt`); the card's own start when it has no line.
  */
 export function placeOf(
   cues: readonly Cue[],
@@ -112,13 +119,7 @@ export function placeOf(
   card: number,
   offset: number,
 ): VideoPlace {
-  let line = -1;
-  for (
-    let i = lowerBound(lines.length, (i) => lines[i]!.card < card);
-    i < lines.length && lines[i]!.card === card && lines[i]!.start <= offset;
-    i++
-  )
-    line = i;
+  const line = lineIndexAt(lines, card, offset);
   return {
     card,
     line,

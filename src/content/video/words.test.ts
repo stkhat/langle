@@ -421,6 +421,7 @@ describe("acrossCards", () => {
     const whole = {
       first: 0,
       last: 1,
+      start: 12,
       surface: "give up",
       sentence: "they had to give up the loaf",
     };

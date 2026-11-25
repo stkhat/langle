@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   fnv1a64,
+  landingOf,
   normalizeUrl,
   occurrenceLink,
   onHost,
@@ -100,15 +101,45 @@ describe("fnv1a64", () => {
   });
 });
 
+describe("landingOf", () => {
+  it("reads the time an occurrence link points to", () => {
+    const link = occurrenceLink(
+      { platform: "youtube", url: "https://www.youtube.com/watch?v=abc" },
+      { timeMs: 12_345 },
+    );
+    expect(landingOf(link)).toBe(12_345);
+    // Also after the site moved its parameters around or changed host.
+    expect(landingOf("https://m.youtube.com/watch?langle=500&v=abc")).toBe(500);
+  });
+
+  it("is undefined for other links", () => {
+    expect(landingOf("https://www.youtube.com/watch?v=abc&t=12s")).toBe(
+      undefined,
+    );
+    expect(landingOf("https://www.youtube.com/watch?v=abc&langle=x")).toBe(
+      undefined,
+    );
+    expect(landingOf("not a url")).toBe(undefined);
+  });
+});
+
 describe("occurrenceLink", () => {
   const video = {
     platform: "youtube" as const,
     url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   };
 
-  it("adds the whole seconds to a YouTube link", () => {
+  it("adds the whole seconds and Langle's marker to a YouTube link", () => {
     expect(occurrenceLink(video, { timeMs: 83_900 })).toBe(
-      "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=83s",
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=83s&langle=83900",
+    );
+  });
+
+  it("keeps the source: the marked link normalizes to the video's URL", () => {
+    const link = occurrenceLink(video, { timeMs: 83_900 });
+    expect(normalizeUrl(link)).toBe(video.url);
+    expect(sourceId("youtube", normalizeUrl(link))).toBe(
+      sourceId("youtube", video.url),
     );
   });
 

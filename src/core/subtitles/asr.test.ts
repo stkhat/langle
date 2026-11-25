@@ -41,6 +41,15 @@ const words = (
 });
 
 const texts = (result: SentenceCards) => result.cards.map((c) => c.text);
+/** Each word of card `card`'s lines as its text from where it starts, with its time. */
+const wordTimes = (result: SentenceCards, card: number) =>
+  result.lines
+    .filter((line) => line.card === card)
+    .flatMap((line) => line.words ?? [])
+    .map(({ start, startMs }) => [
+      result.cards[card]!.text.slice(start).split(" ")[0],
+      startMs,
+    ]);
 const allWords = (cues: readonly Cue[]) =>
   cues.flatMap((c) => c.text.split(/\s+/)).filter(Boolean);
 const lineTexts = (result: SentenceCards, card: number) =>
@@ -66,6 +75,21 @@ function expectWellFormed(result: SentenceCards, maxLineChars = 60) {
     const next = result.cards[i + 1];
     if (next) expect(card.endMs).toBeLessThanOrEqual(next.startMs);
   });
+  // Each line's words start inside it, in order, at a word: the first at its start.
+  for (const line of result.lines) {
+    const words = line.words ?? [];
+    const text = result.cards[line.card]!.text;
+    expect(words[0]).toEqual({ start: line.start, startMs: line.startMs });
+    words.forEach((word, k) => {
+      expect(word.start).toBeLessThan(line.end);
+      expect(text[word.start]).toMatch(/\S/);
+      const before = words[k - 1];
+      if (before) {
+        expect(word.start).toBeGreaterThan(before.start);
+        expect(word.startMs).toBeGreaterThanOrEqual(before.startMs);
+      }
+    });
+  }
   result.lines.forEach((line, i) => {
     expect(line.endMs).toBeGreaterThan(line.startMs);
     const next = result.lines[i + 1];
@@ -93,6 +117,29 @@ describe("asrSentenceCards", () => {
       [600, 1500],
       [1500, 4000],
     ]);
+    // Where each word starts in its card, with the site's time for it.
+    expect(wordTimes(result, 1)).toEqual([
+      ["How", 600],
+      ["are", 900],
+      ["you?", 1200],
+    ]);
+    expectWellFormed(result);
+  });
+
+  it("keeps each word's time in the lines a long card is split into", () => {
+    const list: [number, string][] = [];
+    for (let i = 0; i < 16; i++) list.push([i * 300, ` word${i}`]);
+    const result = asrSentenceCards([words(0, 6000, list)], {
+      maxLineChars: 30,
+      pauseMs: 10_000,
+      maxWords: 40,
+    });
+    expect(result.cards).toHaveLength(1);
+    expect(result.lines.length).toBeGreaterThan(1);
+    expect(wordTimes(result, 0)).toEqual(
+      list.map(([ms, text]) => [text.trim(), ms]),
+    );
+    expectWellFormed(result, 30);
   });
 
   it("ends a sentence at a pause in a track without punctuation", () => {
@@ -266,6 +313,20 @@ describe("alignAsrSentences", () => {
   };
   const pairs = (result: TranslatedCards) =>
     result.cards.map((card, i) => [card.text, result.translations[i]]);
+
+  it("gives every word of its cards the track's own time", () => {
+    const result = align("asr-punctuated");
+    expectWellFormed(result);
+    const said = new Set(
+      fixture("asr-punctuated-en").flatMap((c) => [
+        c.startMs,
+        ...(c.words ?? []).map((w) => w.startMs),
+      ]),
+    );
+    for (const line of result.lines)
+      for (const word of line.words ?? [])
+        expect(said.has(word.startMs)).toBe(true);
+  });
 
   it("pairs each sentence of a punctuated track with its translation", () => {
     expect(pairs(align("asr-punctuated")).slice(0, 9)).toEqual([
@@ -679,6 +740,14 @@ describe("asrSentenceCards on a manual track (linesByCue)", () => {
       [3100, 5000],
       [5200, 6000],
     ]);
+    // Each word keeps the time `cueWords` spread over its own cue.
+    expect(wordTimes(result, 0).slice(4, 8)).toEqual([
+      ["THIS", 2_394],
+      ["WOMAN", 2_697],
+      ["BEFORE", 3_100],
+      ["YOU", 3_516],
+    ]);
+    expectWellFormed(result);
   });
 
   it("puts no card boundary inside a cue", () => {

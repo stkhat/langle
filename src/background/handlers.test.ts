@@ -1351,7 +1351,7 @@ describe("handlers: exportDetails", () => {
         occurrence: {
           sentence: "Shape the loaf.",
           title: "Baking video",
-          link: "https://www.youtube.com/watch?v=abc&t=12s",
+          link: "https://www.youtube.com/watch?v=abc&t=12s&langle=12500",
         },
       },
       // The test pack has no pronunciation for these.
@@ -1435,7 +1435,7 @@ describe("handlers: lookup", () => {
             platform: "youtube",
             url: VIDEO.url,
           },
-          link: "https://www.youtube.com/watch?v=abc&t=12s",
+          link: "https://www.youtube.com/watch?v=abc&t=12s&langle=12500",
         },
       ],
       yourMeanings: [],
@@ -2288,7 +2288,7 @@ describe("handlers: lookup from the sentence history", () => {
           platform: "youtube",
           url: "https://www.youtube.com/watch?v=abc",
         },
-        link: "https://www.youtube.com/watch?v=abc&t=12s",
+        link: "https://www.youtube.com/watch?v=abc&t=12s&langle=12500",
       },
       {
         sentence: "A warm loaf.",

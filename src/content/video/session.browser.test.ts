@@ -40,6 +40,18 @@ const CARDS: Cue[] = CUES.map((c) => ({
   text: c.text.replaceAll("\n", " "),
 }));
 /**
+ * When `word` of a manual cue is said, by the site's timing: the cue's time spread over
+ * its text (`cueWords`). An occurrence is recorded at that time, not at its card's start.
+ */
+const saidAt = (cue: Cue, word: string) =>
+  cue.startMs +
+  Math.round(
+    (cue.text.indexOf(word) / cue.text.length) * (cue.endMs - cue.startMs),
+  );
+/** "tangy" in the first card and in the third. */
+const TANGY_0 = saidAt(CUES[0]!, "tangy");
+const TANGY_2 = saidAt(CUES[2]!, "tangy");
+/**
  * A Japanese track with its own timing: the first line runs into the second cue, but
  * covers less than half of it (one that covered half of each would join the two cards).
  */
@@ -85,8 +97,11 @@ type SiteCaptions =
 function fakeSite(
   video: HTMLVideoElement,
   captions: Record<string, SiteCaptions>,
+  /** The time of the occurrence link the page opened from (`PlatformAdapter.landing`). */
+  landing?: number,
 ) {
   let id: string | undefined = "vid1";
+  let link = landing;
   let ad = false;
   const listeners = new Set<() => void>();
   const log = {
@@ -104,6 +119,11 @@ function fakeSite(
     videoId: () => id,
     title: () => `Title of ${id}`,
     url: () => `https://www.youtube.com/watch?v=${id}`,
+    landing() {
+      const ms = link;
+      link = undefined;
+      return ms;
+    },
     video: () => video,
     playerElement: () => null,
     controlsPoint: () => null,
@@ -167,10 +187,13 @@ async function start(
     hooks?: Pick<VideoDeps, "onPanelOpen" | "onTermsChanged">;
     explainProvider?: VideoDeps["explainProvider"];
     touchMode?: VideoDeps["touchMode"];
+    /** The page opened from an occurrence link to this time, the player at `at` (s). */
+    landing?: { ms: number; at: number };
   } = {},
 ) {
   const video = await createVideo();
-  const site = fakeSite(video, captions);
+  if (options.landing) await seekTo(video, options.landing.at);
+  const site = fakeSite(video, captions, options.landing?.ms);
   const bg = testBackground(
     {
       highlight: { new: true, learning: true, known: false },
@@ -424,7 +447,7 @@ describe("sentence cards", () => {
       "生地をこねる。",
     ]);
     // Each cue is still a line in the video: a part of its card.
-    expect(state().lines).toEqual([
+    expect(state().lines).toMatchObject([
       { startMs: 0, endMs: 1000, card: 0, start: 0, end: 16 },
       { startMs: 1000, endMs: 2000, card: 0, start: 17, end: 23 },
       { startMs: 2500, endMs: 3500, card: 1, start: 0, end: 16 },
@@ -572,7 +595,7 @@ describe("occurrences", () => {
         termId: termId("en", "tangy"),
         sentence: "The yeast smells tangy.",
         translation: "イーストはぴりっとした匂い。",
-        pos: { timeMs: 0 },
+        pos: { timeMs: TANGY_0 },
       },
     ]);
     expect(bg.sent("recordEncounters")[0]?.source).toEqual({
@@ -590,7 +613,7 @@ describe("occurrences", () => {
       termId: termId("en", "tangy"),
       sentence: "It is a tangy loaf.",
       translation: "ぴりっとしたパンだ。",
-      pos: { timeMs: 2500 },
+      pos: { timeMs: TANGY_2 },
     });
 
     // Each line once per video.
@@ -605,8 +628,8 @@ describe("occurrences", () => {
       sourceUrl: "https://www.youtube.com/watch?v=vid1",
     });
     expect(lookup.here.map((o) => o.pos)).toEqual([
-      { timeMs: 2500 },
-      { timeMs: 0 },
+      { timeMs: TANGY_2 },
+      { timeMs: TANGY_0 },
     ]);
   });
 
@@ -617,7 +640,32 @@ describe("occurrences", () => {
     await expect.poll(() => bg.sent("recordEncounters").length).toBe(1);
     expect(
       bg.sent("recordEncounters").flatMap((r) => r.items.map((i) => i.pos)),
-    ).toEqual([{ timeMs: 0 }]);
+    ).toEqual([{ timeMs: TANGY_0 }]);
+  });
+});
+
+describe("opened from an occurrence link", () => {
+  it("goes back once to the start of the card that holds the link's time", async () => {
+    // The link's time is mid-card (a word said in the third card); the player is there.
+    const { state, site, video } = await start(undefined, {
+      landing: { ms: TANGY_2, at: TANGY_2 / 1000 },
+    });
+    await ready(state);
+    await expect.poll(() => site.log.seeks).toEqual([CUES[2]!.startMs]);
+    // Once: back inside the card later, it stays where the viewer put it.
+    await seekTo(video, 3.2);
+    await seekTo(video, 3.3);
+    expect(site.log.seeks).toEqual([CUES[2]!.startMs]);
+  });
+
+  it("does not seek when the player is no longer inside that card", async () => {
+    const { state, site, video } = await start(undefined, {
+      landing: { ms: TANGY_2, at: 1.2 },
+    });
+    await ready(state);
+    await expect.poll(() => state().current).toBe(1);
+    await seekTo(video, 3.0);
+    expect(site.log.seeks).toEqual([]);
   });
 });
 
@@ -1318,7 +1366,52 @@ describe("a phrase across cards (speech recognition's line breaks)", () => {
       key: "give up",
       display: "give up",
       sentence: "they had to give up the tangy loaf",
+      // Saved from its second part, at the time "give" is said in the first card.
+      pos: { timeMs: 600 },
     });
+  });
+
+  it("records a saved phrase once, at the time its first word is said", async () => {
+    const { state, bg, video } = await start(
+      {
+        vid1: captionsOf(
+          PAUSED,
+          { source: "none", lang: "ja", cues: [] },
+          "asr",
+        ),
+      },
+      {
+        before: (bg) =>
+          bg.send({
+            type: "saveTerm",
+            lang: "en",
+            key: "give up",
+            display: "give up",
+            kind: "phrase",
+            status: "learning",
+            source: {
+              platform: "web",
+              url: "https://example.com/",
+              title: "",
+              lang: "en",
+            },
+            sentence: "They give up.",
+            pos: { textQuote: "They give up." },
+          }),
+      },
+    );
+    await ready(state);
+    await classified(state);
+    await seekTo(video, 2.6);
+    const items = () => bg.sent("recordEncounters").flatMap((r) => r.items);
+    await expect
+      .poll(() => items().filter((i) => i.termId === termId("en", "give up")))
+      .toEqual([
+        expect.objectContaining({
+          sentence: "they had to give up the tangy loaf",
+          pos: { timeMs: 600 },
+        }),
+      ]);
   });
 });
 
@@ -1458,7 +1551,7 @@ describe("words in the subtitles", () => {
         status: "learning",
         sentence: "The yeast smells tangy.",
         translation: "イーストはぴりっとした匂い。",
-        pos: { timeMs: 0 },
+        pos: { timeMs: TANGY_0 },
         source: {
           platform: "youtube",
           url: "https://www.youtube.com/watch?v=vid1",
@@ -1503,7 +1596,7 @@ describe("words in the subtitles", () => {
         term: expect.objectContaining({
           key: "tangy",
           sentence,
-          pos: { timeMs: state().cues[2]!.startMs },
+          pos: { timeMs: TANGY_2 },
         }),
       }),
     ]);
@@ -1559,7 +1652,7 @@ describe("words in the subtitles", () => {
     const items = () => bg.sent("recordEncounters").flatMap((r) => r.items);
     await expect
       .poll(() => items().map((i) => i.pos))
-      .toEqual([{ timeMs: 2500 }]);
+      .toEqual([{ timeMs: TANGY_2 }]);
   });
 
   it("the hover card's buttons save the word", async () => {
@@ -1667,7 +1760,7 @@ describe("selecting words", () => {
       status: "learning",
       sentence: FIRST,
       translation: "イーストはぴりっとした匂い。",
-      pos: { timeMs: 0 },
+      pos: { timeMs: saidAt(MIND[0]!, "made") },
       source: { platform: "youtube", title: "Title of vid1" },
     });
     await expect.poll(() => state().phrase).toBeNull();

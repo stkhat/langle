@@ -62,6 +62,12 @@ export interface PlatformAdapter {
   title(): string;
   /** The video's URL, for the occurrence's source. */
   url(): string;
+  /**
+   * The time (ms) the occurrence link that opened the current video points to
+   * (`occurrenceLink`), handed out once per link; undefined otherwise. Only where
+   * occurrence links carry a time (YouTube).
+   */
+  landing?(): number | undefined;
   video(): HTMLVideoElement | null;
   playerElement(): HTMLElement | null;
   /** Where the L and ^ buttons go in the player bar's right-hand controls. */
