@@ -41,6 +41,7 @@ class MainActivity : Activity() {
   var host: ExtensionHost? = null
     private set
   private lateinit var engine: WebViewEngine
+  private val files = AppFiles(this)
   private var backCallback: Any? = null
   private var recovering = false
 
@@ -55,6 +56,7 @@ class MainActivity : Activity() {
     WindowCompat.setDecorFitsSystemWindows(window, false)
     val origin = AppOrigin(assets)
     engine = WebViewEngine(this, origin)
+    engine.chooseFiles = files::choose
     var notice: String? = null
     var manifest: Manifest? = null
     if (!engine.supportsLangle) {
@@ -76,6 +78,7 @@ class MainActivity : Activity() {
       )
     router.onError = { Log.e("LangleBridge", it) }
     router.onAction = ::perform
+    router.onShareFile = files::share
 
     val hostSlot = FrameLayout(this)
     val injector = manifest?.let { ContentInjector(it, origin::file) }
@@ -181,6 +184,12 @@ class MainActivity : Activity() {
       else -> screens.shell.back(canGoBack)?.let(screens::apply)
     }
     updateBack()
+  }
+
+  @Deprecated("Activity's result, for the document picker (AppFiles.choose)")
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    @Suppress("DEPRECATION")
+    if (!files.onResult(requestCode, resultCode, data)) super.onActivityResult(requestCode, resultCode, data)
   }
 
   override fun onNewIntent(intent: Intent) {

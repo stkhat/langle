@@ -91,7 +91,7 @@ export async function exportWords(o: {
             known: t("status.known"),
           },
         });
-  deps.download(
+  await deps.saveFile(
     exportFileName(format, langs.learning, langs.native, new Date(deps.now())),
     text,
     MEDIA_TYPE[format],

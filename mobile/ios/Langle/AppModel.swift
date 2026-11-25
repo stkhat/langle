@@ -81,6 +81,7 @@ final class AppModel: ObservableObject {
       persistence: FilePersistence(directory: Self.storeFolder), clock: DispatchClock())
     router.onError = { Log.bridge.error("\($0, privacy: .public)") }
     router.onAction = { [weak self] in self?.perform($0) }
+    router.onShareFile = { file, done in FileShare.present(file, done: done) }
     shell = Shell(origin: AppSchemeHandler.origin, tabs: router.tabs)
 
     if let manifest {

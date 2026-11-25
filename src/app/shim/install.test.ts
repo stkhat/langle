@@ -118,6 +118,14 @@ describe("installShim", () => {
     ]);
   });
 
+  test("appHost.shareFile is a call with the file's name, type and text", async () => {
+    const native = fakeBridge();
+    installShim(native.bridge, INFO);
+    const file = { name: "langle.csv", mime: "text/csv", text: "a,b" };
+    await appHostOf()?.shareFile(file);
+    expect(native.calls).toEqual([{ api: "appHost.shareFile", args: [file] }]);
+  });
+
   test("leaves out what the app does not have", () => {
     const shim = installShim(fakeBridge().bridge, INFO) as Record<
       string,

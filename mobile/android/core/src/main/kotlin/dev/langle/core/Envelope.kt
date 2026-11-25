@@ -43,6 +43,7 @@ val CALL_APIS: Set<String> =
     "alarms.get",
     "alarms.clear",
     "appHost.openPage",
+    "appHost.shareFile",
   )
 
 /** What native code tells a script. */

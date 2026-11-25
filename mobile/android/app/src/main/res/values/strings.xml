@@ -18,4 +18,6 @@
     <string name="close_langle">Close Langle</string>
     <string name="update_webview">Update Android System WebView to use Langle on pages.</string>
     <string name="build_refused">Langle cannot run: %1$s</string>
+    <string name="save_to_device">Save to device</string>
+    <string name="save_failed">Could not save the file</string>
 </resources>
