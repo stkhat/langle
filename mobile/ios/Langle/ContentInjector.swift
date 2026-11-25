@@ -23,6 +23,8 @@ final class ContentInjector {
     let info: JSONValue = [
       "origin": .string(AppSchemeHandler.origin), "manifest": manifest.value,
       "context": .string(context),
+      // `appHost.translator`: the phone's own models (Apple Translation), no model packs.
+      "translator": ["models": "system"],
     ]
     return "window.__langleAppInfo = \(info.json);"
   }
