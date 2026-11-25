@@ -27,10 +27,16 @@ describe("parseEnvelope", () => {
       "event.json",
       "get-current.json",
       "hello.json",
+      "models-ensure.json",
+      "models-progress.json",
+      "models-remove.json",
       "open-page.json",
+      "prepare-translator.json",
       "reply-error.json",
       "reply-ok.json",
       "share-file.json",
+      "translate.json",
+      "translator-status.json",
     ]);
   });
 

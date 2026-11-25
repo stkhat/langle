@@ -379,6 +379,77 @@ describe("tabs", () => {
         SHARE_FILE_ERROR,
       );
   });
+
+  test("the translation calls go to the app's translation host, and are not available without one", async () => {
+    const pair = { from: "en", to: "ja" };
+    const calls = [
+      ["appHost.translate", { ...pair, text: "A cat.", start: true }],
+      ["appHost.translatorStatus", pair],
+      ["appHost.prepareTranslator", pair],
+      ["appHost.models.ensure", { pack: "mt-en-ja", files: [], mirrors: [] }],
+      ["appHost.models.remove", { pack: "mt-en-ja" }],
+    ] as const;
+    const without = setup();
+    const tab = without.native.openTab(ARTICLE);
+    const bare = without.connect({ kind: "content", tabId: tab });
+    for (const [api, request] of calls)
+      await expect(bare.bridge.call(api, request)).rejects.toThrow(
+        `${api} is not available here.`,
+      );
+
+    const asked: unknown[] = [];
+    const { connect, record, native } = setup({
+      translator: {
+        status: () => "packs",
+        translate: (request) => {
+          asked.push(request);
+          return `ja(${request.text})`;
+        },
+        prepare: () => "ready",
+        ensure: (_, progress) => progress(5),
+        remove: (pack) => void asked.push(`remove ${pack}`),
+      },
+    });
+    const host = connect({ kind: "host" });
+    const progress = record(host.bridge, "appHost.models.onProgress");
+    await host.bridge.call("bridge.hello", { context: "host" });
+    const shown = native.openTab(ARTICLE);
+    const content = connect({ kind: "content", tabId: shown });
+    await expect(content.bridge.call(...calls[0])).resolves.toBe("ja(A cat.)");
+    await expect(content.bridge.call(...calls[1])).resolves.toBe("packs");
+    await expect(content.bridge.call(...calls[2])).resolves.toBe("ready");
+    await expect(
+      host.bridge.call("appHost.models.ensure", {
+        pack: "mt-en-ja",
+        version: "1",
+        files: [{ path: "a", sha256: "b", size: 10 }],
+        mirrors: [],
+      }),
+    ).resolves.toBeUndefined();
+    await host.bridge.call(...calls[4]);
+    await settle();
+    expect(progress).toEqual([[{ pack: "mt-en-ja", received: 5, total: 10 }]]);
+    expect(asked).toEqual([calls[0][1], "remove mt-en-ja"]);
+  });
+
+  test("appHost.translate answers a page not on screen with null at once, never asking the host", async () => {
+    const translate = vi.fn(() => "訳");
+    const { connect, native } = setup({
+      translator: { status: () => "ready", translate },
+    });
+    const hidden = native.openTab(ARTICLE);
+    native.openTab("https://example.com/other");
+    const content = connect({ kind: "content", tabId: hidden });
+    await expect(
+      content.bridge.call("appHost.translate", {
+        from: "en",
+        to: "ja",
+        text: "A cat.",
+        start: true,
+      }),
+    ).resolves.toBeNull();
+    expect(translate).not.toHaveBeenCalled();
+  });
 });
 
 describe("alarms", () => {

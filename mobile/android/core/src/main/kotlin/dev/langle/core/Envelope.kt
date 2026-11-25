@@ -44,7 +44,25 @@ val CALL_APIS: Set<String> =
     "alarms.clear",
     "appHost.openPage",
     "appHost.shareFile",
+    "appHost.translate",
+    "appHost.translatorStatus",
+    "appHost.prepareTranslator",
+    "appHost.models.ensure",
+    "appHost.models.remove",
   )
+
+/** The calls the app's translation host and model downloads answer (`Router.onTranslation`). */
+val TRANSLATION_APIS: Set<String> =
+  linkedSetOf(
+    "appHost.translate",
+    "appHost.translatorStatus",
+    "appHost.prepareTranslator",
+    "appHost.models.ensure",
+    "appHost.models.remove",
+  )
+
+/** The error of a call the app cannot answer yet, the same text in all three routers. */
+fun notAvailable(api: String) = "$api is not available here."
 
 /** What native code tells a script. */
 val EVENT_APIS: Set<String> =
@@ -54,6 +72,7 @@ val EVENT_APIS: Set<String> =
     "runtime.onStartup",
     "storage.onChanged",
     "alarms.onAlarm",
+    "appHost.models.onProgress",
   )
 
 /** Why a text is not an envelope (the TS side's words). */

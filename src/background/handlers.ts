@@ -24,13 +24,14 @@ import { normalizeWord } from "../core/text/tokenize";
 import { isAnswer } from "../core/explain/answer";
 import { MAX_LINES } from "../core/explain/context";
 import { learningLanguages, nativeLanguages } from "../core/languages";
-import { packBytes, type PackLock } from "../core/packs/lock";
 import {
-  fallbacksOf,
-  packsFor,
-  pairsOfPack,
-  translationPair,
-} from "../core/packs/pairs";
+  modelPacksOf,
+  packBytes,
+  pairPacks,
+  type PackLock,
+  type PackLockEntry,
+} from "../core/packs/lock";
+import { fallbacksOf, pairsOfPack, translationPair } from "../core/packs/pairs";
 import { allOf, PacksUnavailableError } from "../core/packs/unavailable";
 import {
   correctPhrase,
@@ -52,7 +53,7 @@ import {
   onHost,
   tryNormalizeUrl,
 } from "../core/url";
-import { errorText, omit } from "../core/util";
+import { errorText, omit, own } from "../core/util";
 import {
   MAX_CACHED_TRANSLATIONS,
   MAX_TRANSLATION_TEXT,
@@ -847,10 +848,15 @@ export function createHandlers({
 
     async packStatus() {
       const { learningLang, nativeLang } = await settings.get();
-      const needed = packsFor(learningLang, nativeLang);
-      const fallbacks: readonly string[] = fallbacksOf(
-        `${learningLang}-${nativeLang}`,
-      );
+      const needed = pairPacks(learningLang, nativeLang, packs.lock);
+      // Pages work without the translation models too.
+      const fallbacks: readonly string[] = [
+        ...fallbacksOf(`${learningLang}-${nativeLang}`),
+        ...needed.filter(
+          (pack) =>
+            own<PackLockEntry>(packs.lock.packs, pack)?.kind === "model",
+        ),
+      ];
       const [states, stored] = await Promise.all([
         packs.store.states(needed),
         packs.store.downloaded(),
@@ -859,7 +865,9 @@ export function createHandlers({
         pair: {
           packs: needed.map((pack) => ({
             pack,
-            size: packBytes(packs.lock.packs[pack]),
+            size: packBytes(
+              own<PackLockEntry>(packs.lock.packs, pack) ?? { files: [] },
+            ),
             ...states[pack]!,
             ...(fallbacks.includes(pack) && { fallback: true as const }),
           })),
@@ -878,16 +886,22 @@ export function createHandlers({
     async removePack({ pack }) {
       if (typeof pack !== "string") throw new Error("No pack to remove");
       const { learningLang, nativeLang } = await settings.get();
-      if ((packsFor(learningLang, nativeLang) as string[]).includes(pack))
+      if (
+        (pairPacks(learningLang, nativeLang, packs.lock) as string[]).includes(
+          pack,
+        )
+      )
         throw new Error(`${pack} is used by the chosen languages`);
       const stored = await packs.store.downloaded();
       if (!stored.some((d) => d.pack === pack)) return null;
       await packs.store.remove(pack);
       await Promise.all(
-        pairsOfPack(pack).flatMap(({ learning, native }) => [
-          translations.clearPair(translationPair(learning, native)),
-          explanations.clearPair(translationPair(learning, native)),
-        ]),
+        pairsOfPack(pack, modelPacksOf(packs.lock)).flatMap(
+          ({ learning, native }) => [
+            translations.clearPair(translationPair(learning, native)),
+            explanations.clearPair(translationPair(learning, native)),
+          ],
+        ),
       );
       return null;
     },

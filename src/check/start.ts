@@ -2,6 +2,7 @@ import { browser } from "wxt/browser";
 import { translatorBackend } from "../content/translate/backend";
 import { PACK_STATE_KEY, type PackStates } from "../core/packs/state";
 import { send } from "../messaging/client";
+import { setTlangRefused, tlangRefused } from "./refuse-tlang";
 import { answerSettingsRequests } from "./settings-channel";
 import {
   answerLogRequest,
@@ -135,5 +136,6 @@ export function startContentCheck(name: string): void {
     removePack: async (pack) => {
       await send({ type: "removePack", pack });
     },
+    refuseTlang: { get: tlangRefused, set: setTlangRefused },
   });
 }

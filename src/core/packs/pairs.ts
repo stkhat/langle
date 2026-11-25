@@ -31,8 +31,33 @@ export function fallbacksOf(dictionary: string): DefinitionPack[] {
  * language's pack, then the other packs of its dictionary into the native language,
  * its fallbacks last (`fallbacksOf`): pages analyze and hovers show once the packs
  * before them are on the device. An unknown language or pair needs nothing.
+ * With `models` (the model packs there are, where the app downloads them:
+ * `modelPacksOf`), the translation models of learning → native and of the
+ * definitions' English → native come after them all.
  */
-export function packsFor(learning: string, native: string): PackName[] {
+export function packsFor(learning: string, native: string): PackName[];
+export function packsFor(
+  learning: string,
+  native: string,
+  models: ((pack: ModelPackName) => boolean) | undefined,
+): (PackName | ModelPackName)[];
+export function packsFor(
+  learning: string,
+  native: string,
+  models?: (pack: ModelPackName) => boolean,
+): (PackName | ModelPackName)[] {
+  const data = dataPacksFor(learning, native);
+  if (!models) return data;
+  return [
+    ...data,
+    ...new Set([
+      ...modelPacksFor(learning, native, models),
+      ...modelPacksFor("en", native, models),
+    ]),
+  ];
+}
+
+function dataPacksFor(learning: string, native: string): PackName[] {
   const pack = LANGUAGE_PACKS.find((lang) => lang === learning);
   const dictionary = `${learning}-${native}`;
   const fallbacks: readonly PackName[] = fallbacksOf(dictionary);
@@ -53,15 +78,46 @@ export interface LanguagePair {
   native: string;
 }
 
-/** The offered pairs whose packs include `pack`, in the order Settings offers them. */
-export function pairsOfPack(pack: string): LanguagePair[] {
+/**
+ * The offered pairs whose packs include `pack`, in the order Settings offers them
+ * (`models`: as for `packsFor`).
+ */
+export function pairsOfPack(
+  pack: string,
+  models?: (pack: ModelPackName) => boolean,
+): LanguagePair[] {
   return learningLanguages().flatMap((learning) =>
     nativeLanguages(learning)
       .filter((native) =>
-        (packsFor(learning, native) as string[]).includes(pack),
+        (packsFor(learning, native, models) as string[]).includes(pack),
       )
       .map((native) => ({ learning, native })),
   );
+}
+
+/** A translation model pack of the phone app (Android): one direction, "mt-en-ja". */
+export type ModelPackName = `mt-${string}-${string}`;
+
+/** The model pack that translates `from` into `to` directly. */
+const modelPackName = (from: string, to: string): ModelPackName =>
+  `mt-${from}-${to}`;
+
+/**
+ * The model packs that translate `from` into `to`, of those `has` says exist (the
+ * lock's, or those with a state): the direct one, else two through English (de → fr =
+ * mt-de-en + mt-en-fr); none for one language or a pair with no models.
+ */
+export function modelPacksFor(
+  from: string,
+  to: string,
+  has: (pack: ModelPackName) => boolean,
+): ModelPackName[] {
+  if (from === to) return [];
+  const direct = modelPackName(from, to);
+  if (has(direct)) return [direct];
+  if (from === "en" || to === "en") return [];
+  const through = [modelPackName(from, "en"), modelPackName("en", to)];
+  return through.every(has) ? through : [];
 }
 
 /** The key machine translations of a pair are cached under ("en>ja"). */

@@ -12,8 +12,15 @@ export interface TranslationProvider {
    * Without it, the provider is always ready.
    */
   open?(options?: { download?: boolean }): Promise<boolean>;
-  /** Undefined when no translation is available. */
-  translate(text: string): Promise<string | undefined>;
+  /**
+   * Undefined when no translation is available. `start: false` (the lists) asks a
+   * translator that has to load its model first not to start it for this text; the
+   * built-in provider ignores it.
+   */
+  translate(
+    text: string,
+    options?: { start?: boolean },
+  ): Promise<string | undefined>;
   /**
    * Calls `listener` with the model's download while the model is still to come (to be
    * downloaded or downloading), with its share as it is reported, and with undefined

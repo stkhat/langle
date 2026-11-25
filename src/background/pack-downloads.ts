@@ -1,5 +1,6 @@
 import { browser } from "wxt/browser";
-import { packsFor, translationPair } from "../core/packs/pairs";
+import { pairPacks } from "../core/packs/lock";
+import { translationPair } from "../core/packs/pairs";
 import { promiseCache } from "../core/util";
 import type { Settings } from "../core/settings";
 import type { EnsureResult, PackStore } from "./pack-store";
@@ -26,7 +27,7 @@ export function retryDelayMinutes(failures: number): number {
 
 export interface PackDownloads {
   /**
-   * Brings the chosen pair's packs (`packsFor`) to their lock version. When one fails,
+   * Brings the chosen pair's packs (`pairPacks`: `packsFor` with the app's model packs) to their lock version. When one fails,
    * the retry alarm is set for later (timers die with the service worker; alarms do
    * not); when none does, a scheduled retry is cleared. Overlapping calls for the same
    * pair share one run.
@@ -73,7 +74,7 @@ export function createPackDownloads({
   const runs = promiseCache<EnsureResult>({ keep: false });
 
   async function run(learning: string, native: string) {
-    const result = await store.ensure(packsFor(learning, native));
+    const result = await store.ensure(pairPacks(learning, native));
     try {
       if (result.failed.length > 0) await scheduleRetry();
       else await clearRetry();
@@ -96,7 +97,10 @@ export function createPackDownloads({
 
     async retryPending() {
       const { learningLang, nativeLang } = await getSettings();
-      await store.markFailed(packsFor(learningLang, nativeLang), RETRY_PENDING);
+      await store.markFailed(
+        pairPacks(learningLang, nativeLang),
+        RETRY_PENDING,
+      );
     },
   };
 }

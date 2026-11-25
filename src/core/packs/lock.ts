@@ -3,8 +3,11 @@
 // WXT_PACK_MIRRORS variable (`import.meta.env`, from the environment or .env.<mode>),
 // never in production mode:
 //   WXT_PACK_MIRRORS=http://localhost:4719/mirror/{package}@{version}/{file},…
+import { appHostOf } from "../app-host";
+import { own } from "../util";
 import lockFile from "./packs.lock.json";
 import type { PackName } from "./load";
+import { packsFor, type ModelPackName } from "./pairs";
 
 /** One file of a pack version: its path in the pack (and in the npm package), size and SHA-256 (hex). */
 export interface PackLockFile {
@@ -21,27 +24,44 @@ export interface PackLockEntry {
   readonly format: number;
   readonly files: readonly PackLockFile[];
   /**
-   * "model": one of Mozilla's translation models for the phone app's on-device
-   * translator (`model-manifest.ts`), downloaded by the app's native code into its own
-   * files, never by the extension. A data pack has no kind.
+   * `model`: a translation model pack of the phone app (Android, `mt-<from>-<to>`),
+   * which native code downloads (`appHost.models`); never fetched by the extension.
    */
   readonly kind?: "model";
 }
-
-/** A model pack: the translation model from one language to another (`mt-en-ja`). */
-export type ModelPackName = `mt-${string}-${string}`;
 
 export interface PackLock {
   readonly v: 1;
   /** URL templates with {package}, {version} and {file}, tried in order. */
   readonly mirrors: readonly string[];
-  readonly packs: Readonly<Record<PackName | ModelPackName, PackLockEntry>>;
+  /** By name; model packs (`kind: "model"`, `ModelPackName`) are read with `own`. */
+  readonly packs: Readonly<Record<PackName, PackLockEntry>>;
   /**
    * The language pairs offered (those passing the quality gate): learning language →
    * native languages, the default first.
    */
   readonly pairs: Readonly<Record<string, readonly string[]>>;
 }
+
+/**
+ * The lock's model packs where the app downloads them (`appHost.translator.models`
+ * is `packs`, Android); undefined elsewhere (the extension, iOS), which needs none.
+ */
+export function modelPacksOf(
+  lock: PackLock,
+  g: object = globalThis,
+): ((pack: ModelPackName) => boolean) | undefined {
+  if (appHostOf(g)?.translator?.models !== "packs") return undefined;
+  return (pack) => own<PackLockEntry>(lock.packs, pack)?.kind === "model";
+}
+
+/** The packs the background brings for a pair: `packsFor` with the lock's model packs here. */
+export const pairPacks = (
+  learning: string,
+  native: string,
+  lock: PackLock = readLock(),
+  g: object = globalThis,
+) => packsFor(learning, native, modelPacksOf(lock, g));
 
 /** Bytes of a pack version's files. */
 export const packBytes = (entry: Pick<PackLockEntry, "files">) =>

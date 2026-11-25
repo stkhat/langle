@@ -26,7 +26,8 @@ import {
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { gunzipSync } from "node:zlib";
-import type { ModelPackName, PackLockFile } from "../../src/core/packs/lock.ts";
+import type { PackLockFile } from "../../src/core/packs/lock.ts";
+import type { ModelPackName } from "../../src/core/packs/pairs.ts";
 import {
   MODEL_FORMAT,
   MODEL_MANIFEST,

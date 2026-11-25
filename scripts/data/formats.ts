@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { recipeNatives, type RecipeNative } from "../../src/core/natives.ts";
 import type { PackName } from "../../src/core/packs/load.ts";
-import type { ModelPackName } from "../../src/core/packs/lock.ts";
+import type { ModelPackName } from "../../src/core/packs/pairs.ts";
 import { PACK_FORMATS } from "../../src/core/packs/formats.ts";
 import { MODEL_FORMAT } from "../../src/core/packs/model-manifest.ts";
 import { PACKS_DIR, ROOT } from "./common.ts";

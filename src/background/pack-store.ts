@@ -1,3 +1,4 @@
+import type { AppModels } from "../core/app-host";
 import { PACK_FORMATS } from "../core/packs/formats";
 import type { FetchJson } from "../core/packs/load";
 import {
@@ -31,7 +32,9 @@ export interface DownloadedPack {
 /**
  * Downloaded packs in IndexedDB (`packFiles`, `packVersions`): fetched from the
  * lock's mirrors, checked against the lock's SHA-256, switched to a new version in one
- * transaction. Every pack is downloaded: none is bundled with the extension.
+ * transaction. Every pack is downloaded: none is bundled with the extension. Model
+ * packs (`kind: "model"`, the app's on Android) are downloaded by native code
+ * (`appHost.models`) into the app's files: the store keeps their version and state.
  */
 export interface PackStore {
   /**
@@ -84,6 +87,11 @@ export interface PackStoreOptions {
    * also when a later one served it (the check build's log, `src/check/`).
    */
   onMirror?: (event: MirrorEvent) => void;
+  /**
+   * Where model packs are downloaded (`appHost.models`, the app on Android); without
+   * it a model pack fails and is never fetched.
+   */
+  models?: AppModels;
 }
 
 /** One try of one mirror for one file of a pack. */
@@ -166,6 +174,7 @@ export function createPackStore({
   setState,
   now = Date.now,
   onMirror,
+  models,
 }: PackStoreOptions): PackStore {
   /** The state of the packs this worker brought to their lock version, or tried to. */
   const states = new Map<string, PackState>();
@@ -183,6 +192,7 @@ export function createPackStore({
   const writes = serial();
 
   const lockEntry = (pack: string) => own<PackLockEntry>(lock.packs, pack);
+  const isModel = (entry: PackLockEntry | undefined) => entry?.kind === "model";
 
   /** The packs (each once, in order) that the lock has, with their entries. */
   const inLock = (packs: readonly string[]) =>
@@ -248,11 +258,23 @@ export function createPackStore({
     pack: string,
     entry: PackLockEntry,
   ): Promise<{ state: PackState; stored: Set<string> }> {
+    const total = packBytes(entry);
+    if (isModel(entry)) {
+      // Its files are the app's: the version record says they are there.
+      const ready = isLockVersion(await db.packVersions.get(pack), entry);
+      return {
+        state: {
+          state: ready ? "ready" : "downloading",
+          received: ready ? total : 0,
+          total,
+        },
+        stored: new Set(),
+      };
+    }
     const [active, stored] = await Promise.all([
       db.packVersions.get(pack),
       storedFiles(entry),
     ]);
-    const total = packBytes(entry);
     const missing = entry.files.filter((file) => !stored.has(file.sha256));
     if (isLockVersion(active, entry) && missing.length === 0)
       return { state: { state: "ready", received: total, total }, stored };
@@ -315,10 +337,70 @@ export function createPackStore({
     );
   }
 
+  /**
+   * Has native code bring a model pack to its lock version (`appHost.models.ensure`),
+   * keeping its state from the progress it reports; true when it is there.
+   */
+  async function bringModel(
+    pack: string,
+    entry: PackLockEntry,
+    set: (state: PackState) => void,
+  ): Promise<boolean> {
+    const total = packBytes(entry);
+    let received = 0;
+    let stop: (() => void) | undefined;
+    try {
+      if (!models) throw new Error("Model packs are downloaded by the app");
+      const { state } = await storedState(pack, entry);
+      set(state);
+      publish(true);
+      if (state.state === "ready") return true;
+      stop = models.onProgress((progress) => {
+        if (progress.pack !== pack) return;
+        received = Math.min(Math.max(progress.received, 0), total);
+        set({ state: "downloading", received, total });
+        publish(false);
+      });
+      await models.ensure({
+        pack,
+        version: entry.version,
+        files: entry.files.map(({ path, sha256, size }) => ({
+          path,
+          sha256,
+          size,
+        })),
+        // Only {file} is left for native code to fill.
+        mirrors: lock.mirrors.map((template) =>
+          template
+            .replaceAll("{package}", entry.package)
+            .replaceAll("{version}", entry.version),
+        ),
+      });
+      stop();
+      await db.packVersions.put({
+        pack,
+        version: entry.version,
+        format: entry.format,
+        files: [],
+      });
+      set({ state: "ready", received: total, total });
+      publish(true);
+      switched.emit(pack);
+      return true;
+    } catch (error) {
+      stop?.();
+      set({ state: "failed", received, total, error: errorText(error) });
+      publish(true);
+      return false;
+    }
+  }
+
   /** Brings one pack to its lock version; true when it is there. */
   async function bring(pack: string): Promise<boolean> {
     const entry = lockEntry(pack);
     if (!entry) return false;
+    if (isModel(entry))
+      return bringModel(pack, entry, (state) => states.set(pack, state));
     const total = packBytes(entry);
     let received = 0;
     let updating = false;
@@ -410,6 +492,7 @@ export function createPackStore({
 
     async remove(pack) {
       await inflight.peek(pack);
+      if (isModel(lockEntry(pack))) await models?.remove(pack);
       await db.transaction("rw", db.packVersions, db.packFiles, async () => {
         await db.packVersions.delete(pack);
         await collectGarbage();

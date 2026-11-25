@@ -674,7 +674,7 @@ Spec [mobile-translation.md](../specs/mobile-translation.md) "M5: the hosts" (th
 
 - [x] M5 designed (2026-11-26, with the user): spec "M5: the hosts"
 - [ ] M5-0: the iOS row state in the mock and ui.md (the parent session)
-- [ ] M5a: the bridge and the bridge provider (shared TS) (branch `claude/mobile-m5a`)
+- [x] M5a: the bridge and the bridge provider (shared TS) (branch `claude/mobile-m5a`)
 - [x] M5b: the model packs' pipeline, the engine files, `mt-en-ja` (branch `claude/mobile-m5b`)
 - [ ] M5c: the Android host (branch `claude/mobile-m5c`)
 - [ ] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`)
@@ -704,12 +704,12 @@ Branch `claude/mobile-m5a`.
 
 **Tasks**
 
-- [ ] **Protocol**: calls `appHost.translate`, `appHost.translatorStatus`, `appHost.prepareTranslator`, `appHost.models.ensure`, `appHost.models.remove`; event `appHost.models.onProgress`. Golden files, parsed and produced by TS, JUnit and XCTest (the routers' golden tests). Commit.
-- [ ] **`start`**: the queue passes `{ start: rank !== list }` to `translate`; the built-in provider ignores it. Unit tests: `list` gets `start: false`, the others true. Commit.
-- [ ] **The bridge provider** (`bridge-backend.ts`) and its choice in `translatorBackend()` where `appHost` exists, with a fake host (`reference-native.ts`'s translator: statuses, a page not on screen answered with `null`, aborts). Unit tests for every spec bullet of "The bridge provider". Commit.
-- [ ] **Model packs in the store**: `packsFor` adds the pair's model packs (direct or through English) only where `appHost.translator.models` is `packs`; `PackStore` hands `kind: "model"` packs to `appHost.models.ensure` and keeps their `packState` from the progress events; Remove calls `appHost.models.remove`. Tests with the reference native: the extension and `system` never fetch a model pack; the row's states (share, failed, Retry). Commit.
-- [ ] **The check switch**: a check-build setting that makes the YouTube adapter treat `tlang` as refused (the recorded 429 path); left out of production (`npm run test:manifest` or the production-build check covers it). Unit test. Commit.
-- [ ] **Docs**: architecture.md ("Browser differences", packs), development.md (the switch), status.md, tick M5a. Draft PR "Mobile app M5a: the translation bridge", `gh pr ready`.
+- [x] **Protocol**: calls `appHost.translate`, `appHost.translatorStatus`, `appHost.prepareTranslator`, `appHost.models.ensure`, `appHost.models.remove`; event `appHost.models.onProgress`. Golden files, parsed and produced by TS, JUnit and XCTest (the routers' golden tests). Commit.
+- [x] **`start`**: the queue passes `{ start: rank !== list }` to `translate`; the built-in provider ignores it. Unit tests: `list` gets `start: false`, the others true. Commit.
+- [x] **The bridge provider** (`bridge-backend.ts`) and its choice in `translatorBackend()` where `appHost` exists, with a fake host (`reference-native.ts`'s translator: statuses, a page not on screen answered with `null`, aborts). Unit tests for every spec bullet of "The bridge provider". Commit.
+- [x] **Model packs in the store**: `packsFor` adds the pair's model packs (direct or through English) only where `appHost.translator.models` is `packs`; `PackStore` hands `kind: "model"` packs to `appHost.models.ensure` and keeps their `packState` from the progress events; Remove calls `appHost.models.remove`. Tests with the reference native: the extension and `system` never fetch a model pack; the row's states (share, failed, Retry). Commit.
+- [x] **The check switch**: a check-build setting that makes the YouTube adapter treat `tlang` as refused (the recorded 429 path); left out of production (`npm run test:manifest` or the production-build check covers it). Unit test. Commit.
+- [x] **Docs**: architecture.md ("Browser differences", packs), development.md (the switch), status.md, tick M5a. Draft PR "Mobile app M5a: the translation bridge", `gh pr ready`.
 
 ### M5b: the model packs' pipeline and the engine files (one agent, Opus)
 
