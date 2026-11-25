@@ -84,6 +84,32 @@ describe("pairsOfPack", () => {
   });
 });
 
+describe("packsFor with the app's model packs", () => {
+  const models = (pack: ModelPackName) =>
+    ["mt-en-ja", "mt-de-en", "mt-en-fr", "mt-es-en"].includes(pack);
+
+  it("adds the models of learning → native and the definitions' en → native last", () => {
+    expect(packsFor("en", "ja", models)).toEqual([
+      ...packsFor("en", "ja"),
+      "mt-en-ja",
+    ]);
+    expect(packsFor("de", "fr", models)).toEqual([
+      ...packsFor("de", "fr"),
+      "mt-de-en",
+      "mt-en-fr",
+    ]);
+    expect(packsFor("es", "en", models)).toEqual([
+      ...packsFor("es", "en"),
+      "mt-es-en",
+    ]);
+  });
+
+  it("adds none without them (the extension, iOS)", () => {
+    expect(packsFor("en", "ja", undefined)).toEqual(packsFor("en", "ja"));
+    expect(packsFor("en", "ja").some((p) => p.startsWith("mt-"))).toBe(false);
+  });
+});
+
 describe("modelPacksFor", () => {
   const having =
     (...packs: string[]) =>
