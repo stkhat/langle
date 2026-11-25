@@ -1,6 +1,7 @@
 import { t } from "../../i18n/t";
 import { onlyFromUser } from "../../ui/from-user";
 import { CheckIcon, WordListIcon } from "../../ui/icons";
+import { useOptionRow } from "../../ui/Segmented";
 import { color, root, sectionHeading, statusButton } from "../../ui/styles";
 
 export interface SaveAllProps {
@@ -39,6 +40,7 @@ function doneLine(done: NonNullable<SaveAllProps["done"]>): string {
 export function SaveAll(props: SaveAllProps) {
   const height = props.phone ? "44px" : "40px";
   const fontSize = props.phone ? "14px" : "13px";
+  const { ref, row, option } = useOptionRow("8px");
   return (
     <div
       style={root({ display: "flex", flexDirection: "column", gap: "10px" })}
@@ -83,18 +85,13 @@ export function SaveAll(props: SaveAllProps) {
         </button>
       )}
       {props.unsavedCount > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: "8px",
-          }}
-        >
+        <div ref={ref} style={row}>
           <button
             type="button"
             title={t("saveAll.note")}
             onClick={onlyFromUser(() => props.onAddLearning())}
             style={{
+              ...option,
               height,
               borderRadius: "8px",
               ...statusButton.learning(false),
@@ -111,6 +108,7 @@ export function SaveAll(props: SaveAllProps) {
             title={t("saveAll.note")}
             onClick={onlyFromUser(() => props.onMarkKnown())}
             style={{
+              ...option,
               height,
               borderRadius: "8px",
               ...statusButton.known(true),

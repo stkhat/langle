@@ -2,6 +2,7 @@ import type { CSSProperties, JSX } from "preact";
 import type { WordStatus } from "../../core/classify";
 import { t } from "../../i18n/t";
 import { onlyFromUser } from "../from-user";
+import { useOptionRow } from "../Segmented";
 import { color, statusButton } from "../styles";
 
 type Style = CSSProperties;
@@ -33,6 +34,7 @@ export function StatusButtons(props: {
 }) {
   const { status } = props;
   const size: Style = props.touch ? TOUCH_SEGMENT : SEGMENT;
+  const row = useOptionRow(props.touch ? "8px" : "6px");
 
   function segment(
     value: WordStatus,
@@ -48,6 +50,7 @@ export function StatusButtons(props: {
         disabled={disabled}
         onClick={onlyFromUser(() => props.onStatus(value))}
         style={{
+          ...row.option,
           ...size,
           ...(pressed ? on : statusButton.known(false)),
           ...(disabled && { cursor: "default", opacity: 0.5 }),
@@ -63,11 +66,8 @@ export function StatusButtons(props: {
     <div
       role="group"
       aria-label={t("dict.statusGroup")}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: props.touch ? "8px" : "6px",
-      }}
+      ref={row.ref}
+      style={row.row}
     >
       {segment(
         "learning",

@@ -1,6 +1,6 @@
 // Sums up the render sweep (sweep.spec.ts): issues per locale and type, controls that
-// wrapped where English stays on one line and grew taller, and English strings left in
-// another locale. Writes summary.json beside the results and prints the counts.
+// wrapped where English stays on one line and grew taller, labels that wrap in a row of
+// buttons, and English strings left in another locale. Writes summary.json beside the results and prints the counts.
 // Usage: node scripts/ui-render/summarize.ts [dir] (default $UI_RENDER_OUT or reports/ui-render)
 import fs from "node:fs";
 import path from "node:path";
@@ -120,10 +120,23 @@ for (const r of results) {
       for (const { key, re } of left)
         if (re.test(text)) push({ type: "englishAttr", path: key, text });
     const theirs = base?.results[surface];
-    if (!theirs || r.code === "en") continue;
     const enControls = new Map<string, Control>(
-      theirs.controls.map((c) => [c.path, c]),
+      (theirs?.controls ?? []).map((c) => [c.path, c]),
     );
+    // A label in a row of buttons that wraps where English keeps one line (or in
+    // English itself): the row's height or its equal widths no longer hold.
+    for (const c of m.controls) {
+      if (!c.row || c.wraps <= 1) continue;
+      const e = r.code === "en" ? undefined : enControls.get(c.path);
+      if (e && e.wraps > 1) continue;
+      push({
+        type: "rowWrap",
+        path: c.path,
+        text: c.text,
+        detail: `${c.wraps} lines in ${c.w}px${e ? ` (en "${e.text.slice(0, 30)}" ${e.w}px)` : ""}`,
+      });
+    }
+    if (!theirs || r.code === "en") continue;
     for (const c of m.controls) {
       const e = enControls.get(c.path);
       if (e && e.lines <= 1 && c.lines > 1 && c.h > e.h + 2)

@@ -3,6 +3,7 @@ import type { TermKind, WordStatus } from "../../core/classify";
 import { t } from "../../i18n/t";
 import { onlyFromUser } from "../from-user";
 import { BookmarkIcon } from "../icons";
+import { wrapRow } from "../Segmented";
 import { IPA_FONT, color, root, statusButton } from "../styles";
 import { MachineTranslationMark } from "./MachineTranslationMark";
 import { langAttrs } from "../text-direction";
@@ -59,7 +60,9 @@ const BOX = {
   },
 } as const;
 
+/** As wide as its label (never wrapped); the row wraps when they do not all fit. */
 const BUTTON: CSSProperties = {
+  flex: "none",
   display: "inline-flex",
   alignItems: "center",
   gap: "6px",
@@ -186,7 +189,12 @@ export function HoverCard(props: HoverCardProps) {
           </div>
         </>
       )}
-      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+      <div
+        style={{
+          ...wrapRow("8px"),
+          marginTop: "12px",
+        }}
+      >
         <button
           type="button"
           aria-pressed={props.status === "learning"}

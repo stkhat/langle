@@ -8,7 +8,7 @@
 
 - **Surfaces**: setup (consent, then languages), popup (setup, set up, after "Mark all as Learning"), Settings (desktop; every section in the phone layout), hover card and dictionary window on an article word, a word with several senses and a phrase, the video subtitle's hover card, dictionary and Langle menu, the transcript's Words tab, page words, word list and its details, notices. Each locale uses the pair English → that language (English: English → Japanese), so meanings are in the locale's language where a pack exists.
 - **Phone layout**: Playwright's `isMobile` does not reach extension pages. The sweep sets the touch media features, touch emulation and a 390×844 mobile viewport through CDP after each navigation (Playwright resets the emulation on navigation).
-- **Measured** (`measure.ts`, in the page, through open shadow roots): text cut with an ellipsis, clipped or overflowing its box, cut by an ancestor, siblings that overlap (positioned ones, sticky bars and sheets, apart as info), single-line controls that wrap and grow taller than in English, horizontal page scroll, `text-align: left` in a right-to-left UI, `lang` on the roots, English strings left (en.json values with 4+ letters of their own), console errors.
+- **Measured** (`measure.ts`, in the page, through open shadow roots): text cut with an ellipsis, clipped or overflowing its box, cut by an ancestor, siblings that overlap (positioned ones, sticky bars and sheets, apart as info), single-line controls that wrap and grow taller than in English, a label that wraps inside a button of a row of buttons (`rowWrap`, below), horizontal page scroll, `text-align: left` in a right-to-left UI, `lang` on the roots, English strings left (en.json values with 4+ letters of their own), console errors.
 - **Summed up** (`summarize.ts`): counts per locale and type; `summary.json` holds every row with its screenshot. An ellipsis on a text that is none of the locale's strings is content (a meaning cut in a row, by design) and counted apart.
 
 ## Before and after
@@ -39,6 +39,22 @@ Info, by design: overlapPositioned 27 (the sticky setup bar; the phone word deta
 - **Notices**: `overflow-wrap: anywhere` on the license texts.
 
 English is unchanged: pixel diffs of the English screenshots before and after differ only where Japanese text now breaks between phrases (meanings, translated subtitle lines), where the notices' long line now wraps, and in timing (a meaning or the download percentage not yet shown in one of the runs).
+
+## Rows of options (rowWrap)
+
+Added 2026-11-26 after a check in Chrome: in German the dictionary window's status buttons read "Lernen | Bekannt | Nicht gespeichert", the last one on two lines. The sweep had missed it: the buttons are 40 px tall whatever their text, so `grew` (taller than in English) never fired.
+
+- **Check**: a button (`button`, `role` button, tab, radio, menuitem) with one label (one text run: not a card with a title and a description) whose siblings are all buttons and which shares its line with one of them; its label taking more than one line where English keeps one (in English itself: any). Height plays no part. `measure.ts` records `row` and `wraps` (the most lines one text node takes) per control; `summarize.ts` counts `rowWrap`.
+- **Before**: 66 in 9 locales (es fr it pl pt ru tr de id). The hover card's "+ Learning" (32: es fr it pl pt ru tr, every surface the card shows on), the popup's "Mark all as Learning / Known" (14: de es fr id it pl pt tr), the phone Settings' "Keep as New / Mark as Known" (12: de es fr it pl pt ru tr), the dictionary's "Not saved" (8: de fr id ru, in the article panel's 340 px; the sweep's video word is saved, so its 360 px YouTube window showed "Entfernen", which fits). A first version of the check also counted English's subtitle-position cards (title and description), 4, which the one-label rule leaves out.
+- **After**: 0, all 16 locales, desktop and phone.
+
+The rule (`src/ui/Segmented.tsx`), for every row of options:
+
+- **`useOptionRow`** (status buttons, segmented controls, the video panel's tabs, Mark all, the fullscreen transcript choice): while the labels fit on one line, a grid of `minmax(max-content, 1fr)` columns: equal widths as the mock draws them, and a longer label takes the width it needs while the others share the rest ("Lernen | Bekannt | Nicht gespeichert" in the dictionary). When the columns run past the row (it measures this, and again on a resize), a wrapping flex row whose options grow from 0 and never get narrower than their labels; back to the grid once they fit. A grid, not a flex row, while they fit: Chrome hands the last 1/64 px of a fractional width to another column in a flex row than in a grid, which moved "Right" in the phone Settings by a subpixel; the grid keeps English to the pixel (`minmax(max-content, 1fr)` gives the same columns as the old `minmax(0, 1fr)`, checked over 200–420 px in steps of 0.25 px, 2–4 columns, gaps 0–8).
+- **`wrapRow` + `rowOption`**: rows that were already flex rows (the phone Settings' choices) and, with `flex: none` options, rows of options as wide as their labels (the hover card).
+- Rows that wrap now: the hover card's "Details" goes under "+ Learning" and "Known" (es fr it pl pt ru tr: 300 px is too narrow for the three); Mark all's two buttons stack (de es fr id it pl pt tr); the phone Settings' two choices stack (de es fr it pl pt ru tr); the dictionary's touch panel (300 px, 14 px text) in German. No translation was shortened: every label fits alone.
+
+English before and after: pixel-identical on every surface (37 screenshots) apart from the sweep's timing (a download percentage, the word list's details panel open or not when the shot is taken, the notices), which two runs of the same build differ in too. `DictionaryWindow.browser.test.tsx` checks the German status buttons at the window's, the panel's and the touch panel's widths, and English's equal widths.
 
 ## Looked at by eye
 

@@ -2,6 +2,7 @@ import { useContext } from "preact/hooks";
 import type { Settings } from "../../../core/settings";
 import { t, type MessageKey } from "../../../i18n/t";
 import { PhoneRows, RowLabel } from "../../../ui/RowLabel";
+import { useOptionRow } from "../../../ui/Segmented";
 import { color } from "../../../ui/styles";
 import { Section, SwitchRow, type SectionProps } from "../rows";
 import { StepKeysRow } from "./StepKeysRow";
@@ -195,15 +196,16 @@ function FullscreenRow(props: {
   onPick: (id: Settings["phoneFullscreenTranscript"]) => void;
 }) {
   const title = t("settings.video.fullscreen");
+  const { ref, row, option } = useOptionRow(0);
   return (
     <div class="row">
       <RowLabel title={title} desc={t("settings.video.fullscreenDesc")} />
       <div
+        ref={ref}
         role="radiogroup"
         aria-label={title}
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          ...row,
           border: `1px solid ${color.lineStrong}`,
           borderRadius: "8px",
           overflow: "hidden",
@@ -219,6 +221,7 @@ function FullscreenRow(props: {
               aria-checked={on}
               onClick={() => props.onPick(o.id)}
               style={{
+                ...option,
                 height: "44px",
                 border: 0,
                 margin: 0,

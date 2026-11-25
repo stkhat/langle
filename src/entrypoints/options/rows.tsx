@@ -3,7 +3,12 @@ import { useContext } from "preact/hooks";
 import type { Settings, SettingsPatch } from "../../core/settings";
 import { t, type MessageKey } from "../../i18n/t";
 import { PhoneRows, RowLabel } from "../../ui/RowLabel";
-import { Segmented } from "../../ui/Segmented";
+import {
+  rowOption,
+  segmentGroup,
+  Segmented,
+  wrapRow,
+} from "../../ui/Segmented";
 import { color } from "../../ui/styles";
 import { Switch } from "../../ui/Switch";
 
@@ -93,12 +98,16 @@ export function ChoiceRow<T extends string>(props: {
         options={props.options.map((o) => ({ ...o, label: t(o.label) }))}
         value={props.value}
         onPick={props.onPick}
-        style={{ display: phone ? "flex" : "inline-flex", flex: "none" }}
+        style={{
+          ...(phone ? wrapRow(segmentGroup.gap) : { display: "inline-flex" }),
+          flex: "none",
+        }}
         button={(selected) => ({
           height: phone ? "40px" : "34px",
           padding: "0 14px",
           fontWeight: 600,
-          ...(phone && { flex: 1, fontSize: "14px" }),
+          // Desktop: each option as wide as its label; phone: across the row.
+          ...(phone ? { ...rowOption, fontSize: "14px" } : { flex: "none" }),
           ...(!selected && { color: color.muted }),
         })}
       />
