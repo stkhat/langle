@@ -153,7 +153,7 @@ Each milestone has its own branch and its own draft PR. At most three subagents 
 1. **M0**: the `langle-app` target, the bridge protocol and golden files, and the shim with its tests (shared TS). S1 and S2 run alongside it.
 2. **M1 Android shell** and **M2 iOS shell**, in parallel. Each one has the engine implementation, the router, the key-value store, the extension host, the app origin, and a minimal screen (one page and an address field). It is done when Langle runs on an article end to end.
 3. **M3**: the `m.youtube.com` `PlatformAdapter`, and touch in place of hover (tap → dictionary sheet, long-press selection), portrait and fullscreen landscape. This is shared TS, checked first in desktop Chromium with a phone viewport. Designed below ("M3: m.youtube.com and touch").
-4. **M4**: the app's screens from the mock (Home, title bar, Langle sheet, Words, Settings, first run).
+4. **M4**: the app's screens from the mock (Home, title bar, Langle sheet, Words, Settings, first run). Designed below ("M4: the app's screens").
 5. Then the translation hosts (mobile-translation.md "Build order" 3), ad blocking, own-cloud sync in the app, Share / Open with, and the release checks already listed in the notes. Each one gets its own short design pass where the notes leave a decision open.
 
 ## M3: m.youtube.com and touch (approved with the user on 2026-11-24)
@@ -227,3 +227,48 @@ What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` 
   - fullscreen landscape with and without the transcript column;
   - the error log is empty;
   - screenshots compared with the mock.
+
+## M4: the app's screens (approved with the user on 2026-11-25)
+What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` page. This section is how the shared TS and the shells get there.
+
+### Decisions (the user's choices, 2026-11-25)
+- **Words, Settings and the first run are drawn in the mock first** (M4-0) and reviewed by the user before they are built. Home, the title bar and the Langle sheet are already drawn and are built meanwhile.
+- **Continue and Sites on Home come from a store of recent pages, kept only in the app**: the URL, title, site and, on a video, its position and length. Recorded only where `appHost` exists (feature detection), kept on the phone, never synced, at most 50 pages. Nothing is recorded on the desktop.
+- **"Saved on this phone"**: in the app `storage.sync` is never synced, so the app says "Saved on this phone · {when}" where the extension names its browser's sync. Settings leaves out the browser-sync switch and the cloud-sync rows (the app offers no cloud provider yet, "Shim surface": `identity`), and the first run says the data stays on the phone. Once own-cloud sync is built for the app, the line names the provider as the mock does ("Saved to Google Drive").
+
+### Phone layouts of the shared pages
+- One component per page, as now. Its phone layout is chosen by the page itself, by touch mode (`(hover: none) and (pointer: coarse)`, as in M3), never by the build target. Firefox for Android's popup gets it for free.
+- **The Langle sheet** (`popup.html`) in the phone layout: the window's full width (no 360 px), touch targets of 44 px, switches 52 × 32, sections as in `MobileLangleSheet`:
+  - header (mark, Langle, the pair, word list, settings, "Use Langle"); On this site;
+  - on a video, **Subtitles**: Subtitle position Below video / In video (`phoneSubtitlePosition`), Show dual subtitles (`subtitleTranslation`), Show transcript, Transcript in fullscreen Off / Left / Right (`phoneFullscreenTranscript`), Text size (`subtitleSize`), Background (`subtitleOpacity`, only with In video). Only the two `phone*` settings are the phone's own (M3); the others are the desktop's;
+  - This page / This video (Show words on this page on articles, Mark all as Learning / Known, Undo); Highlight chips; counts and the saved line.
+- **Words** (`wordlist.html`) and **Settings** (`options.html`) keep their data and sections; the phone layout changes only the frame, as drawn in M4-0 (Words: the list, then a word's details; Settings: the list of sections, then one section).
+- **First run** (`welcome.html`): the same steps (consent, languages, start), laid out as drawn in M4-0.
+
+### Browser differences
+- `BrowserEnv` gets `sync: { kind: "browser", name } | { kind: "device" }` in place of `syncName`. `device` is chosen where `appHost` exists. Every string that names the browser's sync has a `device` counterpart ("Saved on this phone · {when}"; the first run's line on what is sent). Rows that only make sense with a browser's sync are left out with `device`.
+
+### Home (`home.html`, `langle-app` only)
+- As `MobileStart`: the mark, Langle and the pair; the search field; counts (Learning, Known, Phrases) and the saved line; Continue; Sites.
+- **The search field**: text that parses as an address (a scheme, or a dot and no space) opens it (`https://` added); anything else opens `https://m.youtube.com/results?search_query=…`. It asks the shell to open the page (`appHost.openPage(url)`).
+- **Continue**: the recent pages, newest first (at most 10 shown). A video shows its thumbnail (`i.ytimg.com/vi/<id>/mqdefault.jpg`), its progress bar and "Channel · 4:12 of 9:30"; an article its icon and "Site · Yesterday".
+- **Sites**: YouTube first, then the sites of the recent pages, the most opened first (four tiles at most).
+- **The recents store**: a Dexie table `recents` (key: the normalized URL; `url`, `title`, `site`, `kind: "video" | "page"`, `position?`, `duration?`, `openedAt`, `opens`). Content scripts report `recents.visit` on load and `recents.progress` on a video every 10 s and on pause and leaving; the background keeps the newest 50. Messages are sent only where `appHost` exists, and the background handles them only there.
+
+### The shells (native)
+- **Screens**: Home, Words and Settings are app-origin pages under a native tab bar (Home · Words · Settings). The tab bar shows only on them.
+- **A page opens over Home** (the search, Continue, a site, a link from Words): the tab bar hides and the **title bar** shows: ‹ (Home) · the page's title and its site on two lines · L · ⋮.
+  - The site is `og:site_name` (read by a named command when the page has loaded), else the host without `www.` / `m.`.
+  - A tap on the title edits the search or address in place.
+  - ⋮: Forward, Share (the system's share sheet), Copy link, Open in another browser.
+  - The bar slides away when the page scrolls down (`onScroll(dy)`) or a Langle sheet opens, and comes back when it scrolls up.
+- **One browsing page.** ‹ shows Home and keeps the page (its media paused by a named command); Continue's first row is that page and shows it again at once. Opening another page loads it into the same page. Back (the edge swipe on iOS, system back on Android) goes back in the page's history, and from its first entry to Home.
+- **L** opens the Langle sheet (`popup.html`) in the native sheet frame. In landscape the frame is at most 520 px wide, centred (M3's open item). The sheet's word list and settings buttons switch to the Words and Settings tabs (`tabs.create` with `wordlist.html`, `runtime.openOptionsPage`), and the sheet closes.
+- **First run**: `runtime.onInstalled` opens `welcome.html` full screen, without the tab bar; when setup is done it shows Home.
+- M1/M2's address row and Langle button go.
+
+### Testing
+- **Vitest (browser)**: the sheet's phone layout and the two phone settings; `BrowserEnv` (`browser` unchanged, `device` with `appHost`); Home (search parsing, Continue, Sites); the recents store and its messages (nothing sent or kept without `appHost`); Words, Settings and the first run in the phone layout.
+- **E2E** (`phone` project): Home → search → a page → L → the sheet's subtitle settings change the page.
+- **Native**: JUnit and XCTest for the site name, back's order (history, then Home), and switching tabs from the sheet.
+- **On the emulator, then the Simulator** (one at a time): first run → Home → a video and an article → the sheet → Words and Settings → back to Home and Continue; screenshots next to the mock's boards; the error log empty.
