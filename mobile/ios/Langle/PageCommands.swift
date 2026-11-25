@@ -3,6 +3,10 @@
 enum PageCommands {
   /// The page's `og:site_name` ("" without one): the title bar's site.
   static let siteName = #"""
+    // Asked when a document commits, before its head is parsed.
+    if (document.readyState === "loading") {
+      await new Promise((done) => document.addEventListener("DOMContentLoaded", done, { once: true }));
+    }
     const meta = document.querySelector('meta[property="og:site_name"]');
     return meta?.getAttribute("content") ?? "";
     """#
