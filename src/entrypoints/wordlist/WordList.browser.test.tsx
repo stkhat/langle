@@ -24,6 +24,8 @@ import { noTranslation } from "../../testing/stubs";
 import type { SponsorCard } from "../../core/sponsors";
 import type { TouchMode } from "../../content/touch/touch-mode";
 import { fixedTouchMode } from "../../testing/touch";
+import type { SharedFile } from "../../core/app-host";
+import { saveFile } from "../../ui/backup/save-file";
 import { WordList, type WordListDeps } from "./WordList";
 
 const NOW = new Date(2026, 10, 10, 12, 0, 0).getTime();
@@ -190,6 +192,8 @@ interface FakeOptions {
   /** The phone layout (default: the page's own touch mode, off in tests). */
   touch?: TouchMode;
   openPage?: (url: string) => void;
+  /** How the page saves a file (default: recorded in `downloads`). */
+  saveFile?: WordListDeps["saveFile"];
 }
 
 /** A background behind the word list: terms, lookups, status changes, backups. */
@@ -308,8 +312,14 @@ function fake(options: FakeOptions = {}) {
       }
     }) as WordListDeps["send"],
     now: () => NOW,
-    download: (name, text, type) =>
-      downloads.push({ name, text, ...(type !== undefined && { type }) }),
+    saveFile:
+      options.saveFile ??
+      ((name, text, type) =>
+        void downloads.push({
+          name,
+          text,
+          ...(type !== undefined && { type }),
+        })),
     speak: (text) => spoken.push(text),
     createTranslator: () => options.translator ?? noTranslation,
     sponsorCard: options.sponsorCard ?? null,
@@ -1239,6 +1249,49 @@ describe("WordList on a phone", () => {
     const details = screen.getByRole("region", { name: "Word details" });
     await details.getByRole("link", { name: /Why patient bakers/ }).click();
     expect(opened).toEqual([ARTICLE.url]);
+  });
+
+  it("hands each export from the ⋮ menu to the app's share sheet, where appHost exists", async () => {
+    const shared: SharedFile[] = [];
+    vi.stubGlobal("appHost", {
+      openPage: () => Promise.resolve(),
+      shareFile: (file: SharedFile) => {
+        shared.push(file);
+        return Promise.resolve();
+      },
+    });
+    try {
+      const { screen, downloads } = await phone({ saveFile });
+      for (const item of ["Anki (.txt)", "CSV", "Backup (JSON)"]) {
+        await screen.getByRole("button", { name: "Export and import" }).click();
+        await screen
+          .getByRole("menu", { name: "Export and import" })
+          .getByRole("menuitem", { name: item })
+          .click();
+        await expect
+          .poll(() => shared.length)
+          .toBe(["Anki (.txt)", "CSV", "Backup (JSON)"].indexOf(item) + 1);
+      }
+      expect(shared.map(({ name, mime }) => ({ name, mime }))).toEqual([
+        {
+          name: "langle-anki-en-ja-2026-11-10.txt",
+          mime: "text/plain;charset=utf-8",
+        },
+        {
+          name: "langle-words-en-ja-2026-11-10.csv",
+          mime: "text/csv;charset=utf-8",
+        },
+        { name: "langle-backup-2026-11-10.json", mime: "application/json" },
+      ]);
+      expect(shared[0]!.text).toMatch(/^#separator:tab\n#html:true\n/);
+      expect(shared[0]!.text).toContain("\tfigure out\t");
+      expect(shared[1]!.text).toMatch(/^\uFEFFWord,Kind,Status,/);
+      expect(shared[1]!.text).toContain("\r\nfigure out,");
+      expect(shared[2]!.text).toBe('{"format":"langle-export"}');
+      expect(downloads).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("exports and imports from the ⋮ menu, with a note that goes", async () => {

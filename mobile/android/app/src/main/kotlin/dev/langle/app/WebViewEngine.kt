@@ -5,11 +5,14 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
+import android.webkit.MimeTypeMap
 import android.webkit.RenderProcessGoneDetail
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -26,6 +29,7 @@ import androidx.webkit.WebViewFeature
 import dev.langle.core.jsonOf
 import dev.langle.core.obj
 import dev.langle.core.parseJson
+import dev.langle.core.pickerTypes
 import dev.langle.core.string
 import dev.langle.core.toJsonText
 
@@ -52,8 +56,16 @@ class WebViewEngine(private val context: Context, private val origin: AppOrigin)
     else Log.w(TAG, "Langle does not run on pages: the WebView lacks $missingFeatures")
   }
 
+  /**
+   * Answers a page's `<input type=file>` with the files the user picked, or null (MainActivity:
+   * the system's document picker); without it the input gets nothing.
+   */
+  var chooseFiles: ((types: List<String>, multiple: Boolean, done: (Array<Uri>?) -> Unit) -> Unit)? = null
+
   override fun createPage(profile: PageProfile, delegate: PageDelegate): Page =
-    WebViewPage(context, profile, delegate, origin, supportsLangle)
+    WebViewPage(context, profile, delegate, origin, supportsLangle) { types, multiple, done ->
+      chooseFiles?.invoke(types, multiple, done) ?: done(null)
+    }
 
   companion object {
     const val APP_PROFILE = "langle"
@@ -77,6 +89,7 @@ private class WebViewPage(
   private val delegate: PageDelegate,
   private val origin: AppOrigin,
   private val langle: Boolean,
+  private val chooseFiles: (types: List<String>, multiple: Boolean, done: (Array<Uri>?) -> Unit) -> Unit,
 ) : Page {
   override val view = FrameLayout(context)
   private var web: WebView
@@ -274,6 +287,13 @@ private class WebViewPage(
 
     override fun onReceivedTitle(view: WebView, title: String?) {
       if (view === web && title != null) delegate.onTitle(this@WebViewPage, title)
+    }
+
+    /** A file input (Import's): the picker asks for the input's `accept` types where it has them. */
+    override fun onShowFileChooser(view: WebView, callback: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
+      val types = pickerTypes(params.acceptTypes.orEmpty().toList()) { MimeTypeMap.getSingleton().getMimeTypeFromExtension(it) }
+      chooseFiles(types, params.mode == FileChooserParams.MODE_OPEN_MULTIPLE) { callback.onReceiveValue(it) }
+      return true
     }
 
     override fun onCloseWindow(window: WebView) {

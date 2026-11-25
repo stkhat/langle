@@ -6,7 +6,7 @@ import { SPONSOR_PAGE_URL } from "../../core/links";
 import { SPONSOR_CARD } from "../../core/sponsors";
 import { send } from "../../messaging/client";
 import { watchPackState, watchSettings } from "../../messaging/storage";
-import { download } from "../../ui/backup/download";
+import { saveFile } from "../../ui/backup/save-file";
 import { mountSetUpPage } from "../../ui/mount-page";
 import { WordList, type WordListDeps } from "./WordList";
 
@@ -16,7 +16,7 @@ mountSetUpPage(() => {
   const deps: WordListDeps = {
     send,
     now: Date.now,
-    download,
+    saveFile,
     watchPackState,
     speak,
     createTranslator: translatorBackend().create,

@@ -7,5 +7,8 @@ export function createAppHost(bridge: Bridge): AppHost {
     openPage: async (url) => {
       await bridge.call("appHost.openPage", url);
     },
+    shareFile: async ({ name, mime, text }) => {
+      await bridge.call("appHost.shareFile", { name, mime, text });
+    },
   };
 }

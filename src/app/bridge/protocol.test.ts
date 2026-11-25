@@ -30,6 +30,7 @@ describe("parseEnvelope", () => {
       "open-page.json",
       "reply-error.json",
       "reply-ok.json",
+      "share-file.json",
     ]);
   });
 

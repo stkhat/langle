@@ -47,6 +47,7 @@ public enum Envelope: Equatable, Sendable {
     "alarms.get",
     "alarms.clear",
     "appHost.openPage",
+    "appHost.shareFile",
   ]
 
   /// What native code tells a script (protocol.ts `EVENT_APIS`).

@@ -12,8 +12,8 @@ import { color } from "../styles";
 export interface BackupDeps {
   send: typeof send;
   now(): number;
-  /** Hands a file to the user (a download). */
-  download(fileName: string, text: string, type?: string): void;
+  /** Hands a file to the user (`save-file.ts`: a download, or the app's share sheet). */
+  saveFile(fileName: string, text: string, type?: string): void | Promise<void>;
 }
 
 /** The result of the last export or import, as a short line; null while there is none. */
@@ -54,7 +54,7 @@ const MENU_CSS = `.mi{display:flex;align-items:center;width:100%;height:36px;pad
 const PHONE_MENU_CSS = `.mi{height:44px;padding:0 12px;border-radius:8px;font-size:15px}.kb{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;padding:0;border-radius:22px;background:none;color:${color.ink};cursor:pointer}`;
 
 /**
- * Export (downloads `langle-backup-YYYY-MM-DD.json`) and Import (a file input →
+ * Export (saves `langle-backup-YYYY-MM-DD.json`) and Import (a file input →
  * `importJson`) buttons, shared by the settings page and the word list. Each press
  * clears the note first; failures and the import's count come back through `onNote`.
  */
@@ -106,7 +106,7 @@ export function BackupButtons(props: {
     props.onNote(null);
     try {
       const json = await deps.send({ type: "exportJson" });
-      deps.download(backupFileName(new Date(deps.now())), json);
+      await deps.saveFile(backupFileName(new Date(deps.now())), json);
       props.onExported?.();
     } catch (error) {
       props.onNote({

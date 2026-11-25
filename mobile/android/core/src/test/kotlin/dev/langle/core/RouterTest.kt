@@ -313,6 +313,47 @@ class RouterTest {
       )
       assertEquals(listOf<RouterAction>(RouterAction.OpenPage(ARTICLE)), h.actions)
     }
+
+    // The share sheet answers: the call settles once it shows, or fails with the app's reason.
+    @Test
+    @DisplayName("appHost.shareFile hands a plain-named file to the share sheet and answers when it shows")
+    fun `appHost_shareFile hands a plain-named file to the share sheet`() {
+      val h = Harness()
+      val words = h.connect(ContextSpec.Page("$ORIGIN/wordlist.html"))
+      val file = mapOf("name" to "langle-backup.json", "mime" to "application/json", "text" to "{}")
+      assertEquals("Sharing a file is not available here.", words.call("appHost.shareFile", file).error)
+
+      val shared = mutableListOf<SharedFile>()
+      var answer: ((String?) -> Unit)? = null
+      h.router.onShareFile = { f, done ->
+        shared += f
+        answer = done
+      }
+      val pending = words.call("appHost.shareFile", file)
+      assertEquals(listOf(SharedFile("langle-backup.json", "application/json", "{}")), shared)
+      assertNull(pending.answer)
+      answer!!(null)
+      h.settle()
+      assertEquals(Answer.Value(null), pending.answer)
+
+      val failed = words.call("appHost.shareFile", file)
+      answer!!("No app can take it.")
+      h.settle()
+      assertEquals("No app can take it.", failed.error)
+
+      for (bad in listOf(
+        file + ("name" to "../langle.json"),
+        file + ("name" to "a/b.json"),
+        file + ("name" to ".hidden"),
+        file + ("name" to ""),
+        file + ("mime" to "json"),
+        file - "text",
+        "langle.json",
+      )) {
+        assertEquals(SharedFile.ERROR, words.call("appHost.shareFile", bad).error, bad.toString())
+      }
+      assertEquals(2, shared.size)
+    }
   }
 
   @Nested

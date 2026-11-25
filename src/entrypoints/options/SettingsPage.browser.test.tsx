@@ -182,7 +182,7 @@ function fake(options: FakeOptions = {}) {
       ...options.links,
     },
     now: () => NOW,
-    download: (name, text) => downloads.push({ name, text }),
+    saveFile: (name, text) => void downloads.push({ name, text }),
     refreshMs: 60_000,
   };
   return {

@@ -108,6 +108,9 @@ public final class Router {
   public var onAction: ((RouterAction) -> Void)?
   /// Bad envelopes and other things worth a log line; never a crash.
   public var onError: ((String) -> Void)?
+  /// `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` with nil
+  /// once it shows, or with why it could not.
+  public var onShareFile: ((SharedFile, _ done: @escaping (String?) -> Void) -> Void)?
 
   private let persistence: Persistence
   private let clock: Clock
@@ -406,6 +409,10 @@ public final class Router {
       }
       openTab(url.absoluteString)
       done(.success(nil))
+    case "appHost.shareFile":
+      guard let file = SharedFile(args.first) else { throw BridgeError(SharedFile.error) }
+      guard let share = onShareFile else { throw BridgeError(noSharing) }
+      share(file) { error in done(error.map { .failure(BridgeError($0)) } ?? .success(nil)) }
     default:
       // storage.<area>.<get | set | remove | clear>
       let parts = api.split(separator: ".").map(String.init)

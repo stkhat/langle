@@ -34,6 +34,7 @@
 - [x] M4c-android: the same on Android (branch `claude/mobile-m4c-android`), notes/mobile.md "Device checks (M4c, Android)"
 - [x] M4d: Words, Settings and the first run in the phone layout (branch `claude/mobile-m4d`)
 - [x] M4e: the device checks of the whole of M4 (branch `claude/mobile-m4e`), notes/mobile.md "Device checks of M4 (M4e, Android)" and "(M4e, iOS)", with "Open items for M4"
+- [ ] M4f: export and import in the app (branch `claude/mobile-m4f`): `appHost.shareFile` and the share sheet, the shells' file pickers
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
@@ -656,3 +657,12 @@ Branch `claude/mobile-m4d`, from `main` with M4a merged and M4-0 approved.
 
 ### M4e: the device checks of the whole of M4 (one agent, Opus)
 From `main` with every M4 branch merged. The emulator, then the Simulator, check build, fresh install: the M4c device steps again plus Words (search, a word's details, a source link opening the page over Home), Settings (each section opens; the phone settings round-trip with the sheet) and the first run's phone layout. Screenshots next to every M4 board. Fixes go in this branch. notes/mobile.md, status.md, tick M4e. Draft PR "Mobile app M4e: device checks", `gh pr ready`.
+
+### M4f: export and import in the app (planned 2026-11-25)
+M4e found that Words ⋮ (Anki, CSV, Backup, Import) and Settings › Backup (Export, Import) do nothing in the app: the pages save through a blob download and pick a file with `<input type=file>`, and neither shell handles either. The user's decision (2026-11-25): an export goes to the phone's share sheet, where the user saves it to Files or sends it; Import opens the system's file picker.
+- **One part saves every file**: `ui/backup/save-file.ts` `saveFile(name, text, type)`. Where `appHost` exists it calls `appHost.shareFile({name, mime, text})`; elsewhere it is the blob download, as before. Words and Settings get it as their `saveFile` dep; a share sheet that fails shows as "Export failed".
+- **Protocol**: `appHost.shareFile` (golden `share-file.json`) in protocol.ts, the reference native and both routers, which check the file the same way (a plain name: 1–255 characters, no folder, no control character, not hidden; a type with a slash; text) and answer once the app says the sheet shows, or with its error.
+- **Android**: the file goes to the cache's `shared/` folder, out through a FileProvider (`${applicationId}.files`) with `ACTION_SEND`, the type without its parameters, read permission granted, in the system chooser. A file input is answered by `onShowFileChooser`: `ACTION_OPEN_DOCUMENT` for the input's `accept` types (extensions through `MimeTypeMap`; core `pickerTypes`, every file when one is unknown).
+- **iOS**: the file goes to the temporary folder's `shared/`, then `UIActivityViewController` from the top view controller (on iPad a popover in the middle, no arrow). WKWebView answers a file input with its own picker; nothing in the shell's setup blocks it.
+- **Tests**: `save-file.browser.test.ts` (the download, and the share sheet where `appHost` exists), Words' phone test exporting each format through a stand-in `appHost`, the routers' `appHost.shareFile` tests, core's `pickerTypes`.
+- **Device checks** (Android, then iOS, check build): each export from Words ⋮ and Settings › Backup opens the share sheet with the right file; saved, its contents are right; Import of that backup through the picker brings the words back; the error log read and cleared.

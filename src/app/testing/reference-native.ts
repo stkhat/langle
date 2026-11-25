@@ -386,6 +386,12 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
         openTab(new URL(String(args[0])).href);
         log.push(`appHost.openPage ${String(args[0])}`);
         return undefined;
+      // The shells write the file under its name and show the share sheet.
+      case "appHost.shareFile": {
+        const file = sharedFile(args[0]);
+        log.push(`appHost.shareFile ${file.name} ${file.mime} ${file.text}`);
+        return undefined;
+      }
       case "alarms.create": {
         const [name, info] = (
           typeof args[0] === "string" ? args : ["", args[0]]
@@ -505,6 +511,44 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
 }
 
 /** The id of a call that could not be read, so it can be answered with the error. */
+/** The error a bad `appHost.shareFile` gets, the same text in all three routers. */
+export const SHARE_FILE_ERROR =
+  "appHost.shareFile needs a plain file name, a media type and text.";
+
+/**
+ * `appHost.shareFile`'s file, checked as the shells check it before writing it: a plain
+ * name (1–255 characters, no folder, no control character, not hidden), a type with a
+ * slash, and text.
+ */
+function sharedFile(value: unknown): {
+  name: string;
+  mime: string;
+  text: string;
+} {
+  const file = (value ?? {}) as Record<string, unknown>;
+  const { name, mime, text } = file;
+  if (
+    typeof name !== "string" ||
+    !isPlainFileName(name) ||
+    typeof mime !== "string" ||
+    !mime.includes("/") ||
+    typeof text !== "string"
+  )
+    throw new Error(SHARE_FILE_ERROR);
+  return { name, mime, text };
+}
+
+/** 1–255 UTF-16 units, not starting with a dot, with no slash, backslash or control character. */
+function isPlainFileName(name: string): boolean {
+  if (name.length < 1 || name.length > 255 || name.startsWith("."))
+    return false;
+  for (let i = 0; i < name.length; i++) {
+    const code = name.charCodeAt(i);
+    if (code < 0x20 || name[i] === "/" || name[i] === "\\") return false;
+  }
+  return true;
+}
+
 function callIdOf(json: string): string | undefined {
   try {
     const value = JSON.parse(json) as { kind?: unknown; id?: unknown };

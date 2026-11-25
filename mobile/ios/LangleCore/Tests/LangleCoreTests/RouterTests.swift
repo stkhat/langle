@@ -255,6 +255,46 @@ final class TabsTests: XCTestCase {
     XCTAssertTrue(h.router.tabs.all.contains { $0.url == article && $0.active })
     XCTAssertEqual(h.actions, [.openTab(h.router.tabs.all.last!)])
   }
+
+  // The share sheet answers: the call settles once it shows, or fails with the app's reason.
+  func test_appHost_shareFile_hands_a_plain_named_file_to_the_share_sheet() {
+    let h = Harness()
+    let words = h.connect(.page(url: "\(origin)/wordlist.html"))
+    let file: JSONValue = ["name": "langle-backup.json", "mime": "application/json", "text": "{}"]
+    XCTAssertEqual(words.call("appHost.shareFile", file).error, noSharing)
+
+    var shared: [SharedFile] = []
+    var answer: ((String?) -> Void)?
+    h.router.onShareFile = { file, done in
+      shared.append(file)
+      answer = done
+    }
+    let pending = words.call("appHost.shareFile", file)
+    XCTAssertEqual(shared, [SharedFile(name: "langle-backup.json", mime: "application/json", text: "{}")])
+    XCTAssertFalse(pending.settled)
+    answer?(nil)
+    h.settle()
+    XCTAssertEqual(pending.value, .some(nil))
+
+    let failed = words.call("appHost.shareFile", file)
+    answer?("No app can take it.")
+    h.settle()
+    XCTAssertEqual(failed.error, "No app can take it.")
+
+    let bad: [JSONValue] = [
+      ["name": "../langle.json", "mime": "application/json", "text": "{}"],
+      ["name": "a/b.json", "mime": "application/json", "text": "{}"],
+      ["name": ".hidden", "mime": "application/json", "text": "{}"],
+      ["name": "", "mime": "application/json", "text": "{}"],
+      ["name": "langle.json", "mime": "json", "text": "{}"],
+      ["name": "langle.json", "mime": "application/json"],
+      "langle.json",
+    ]
+    for value in bad {
+      XCTAssertEqual(words.call("appHost.shareFile", value).error, SharedFile.error, "\(value)")
+    }
+    XCTAssertEqual(shared.count, 2)
+  }
 }
 
 final class AlarmsTests: XCTestCase {

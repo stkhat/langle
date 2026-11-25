@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AppFiles.share: the exported file, in the cache's shared/ folder, for the share sheet's app. -->
+<paths>
+    <cache-path name="shared" path="shared/" />
+</paths>

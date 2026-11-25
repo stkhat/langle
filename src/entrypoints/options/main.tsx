@@ -4,7 +4,7 @@ import { createBrowserEnv } from "../../core/browser-env";
 import { supportLinks } from "../../core/links";
 import { send } from "../../messaging/client";
 import { watchPackState, watchSettings } from "../../messaging/storage";
-import { download } from "../../ui/backup/download";
+import { saveFile } from "../../ui/backup/save-file";
 import { mountSetUpPage } from "../../ui/mount-page";
 import { SettingsPage, type SettingsDeps } from "./SettingsPage";
 
@@ -21,7 +21,7 @@ mountSetUpPage(() => {
     noticesUrl: browser.runtime.getURL("/notices.html"),
     links: supportLinks(env.reviewUrl),
     now: Date.now,
-    download,
+    saveFile,
     refreshMs: 30_000,
   };
   return { theme: deps, app: <SettingsPage deps={deps} /> };

@@ -5,6 +5,7 @@ import {
   createReferenceNative,
   type ContextSpec,
   type ReferenceNativeOptions,
+  SHARE_FILE_ERROR,
 } from "./reference-native";
 
 const ORIGIN = "https://app.langle.invalid";
@@ -346,6 +347,37 @@ describe("tabs", () => {
       expect.objectContaining({ url: ARTICLE, active: true }),
     );
     expect(native.log).toEqual([`appHost.openPage ${ARTICLE}`]);
+  });
+
+  test("appHost.shareFile takes a plain file name, a media type and text", async () => {
+    const { connect, native } = setup();
+    const { bridge } = connect({
+      kind: "page",
+      url: `${ORIGIN}/wordlist.html`,
+    });
+    const file = {
+      name: "langle-backup.json",
+      mime: "application/json",
+      text: "{}",
+    };
+    await expect(
+      bridge.call("appHost.shareFile", file),
+    ).resolves.toBeUndefined();
+    expect(native.log).toEqual([
+      "appHost.shareFile langle-backup.json application/json {}",
+    ]);
+    for (const bad of [
+      { ...file, name: "../langle.json" },
+      { ...file, name: "a/b.json" },
+      { ...file, name: ".hidden" },
+      { ...file, name: "" },
+      { ...file, mime: "json" },
+      { name: file.name, mime: file.mime },
+      "langle.json",
+    ])
+      await expect(bridge.call("appHost.shareFile", bad)).rejects.toThrow(
+        SHARE_FILE_ERROR,
+      );
   });
 });
 

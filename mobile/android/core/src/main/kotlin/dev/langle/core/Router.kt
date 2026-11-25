@@ -111,6 +111,12 @@ class Router(val options: Options = Options(), private val persistence: Persiste
   /** Bad envelopes and other things worth a log line; never a crash. */
   var onError: ((String) -> Unit)? = null
 
+  /**
+   * `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` with null
+   * once it shows, or with why it could not.
+   */
+  var onShareFile: ((file: SharedFile, done: (error: String?) -> Unit) -> Unit)? = null
+
   private val contexts = mutableListOf<Connection>()
   private val forwards = linkedMapOf<String, Forward>()
   private val hostWaiters = mutableListOf<Waiter>()
@@ -314,6 +320,11 @@ class Router(val options: Options = Options(), private val persistence: Persiste
           ?: throw BridgeError("appHost.openPage needs an http(s) address.")
         onAction?.invoke(RouterAction.OpenPage(url))
         done(Answer.Value(null))
+      }
+      "appHost.shareFile" -> {
+        val file = SharedFile.from(first) ?: throw BridgeError(SharedFile.ERROR)
+        val share = onShareFile ?: throw BridgeError(NO_SHARING)
+        share(file) { error -> done(if (error == null) Answer.Value(null) else Answer.Failure(error)) }
       }
       "action.openPopup" -> {
         onAction?.invoke(RouterAction.OpenPopup)
