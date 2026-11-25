@@ -1,4 +1,6 @@
+import type { CSSProperties } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import type { TouchMode } from "../../content/touch/touch-mode";
 import { sendStatus } from "../../content/lookup/status";
 import { warn } from "../../content/lookup/warn";
 import type { TranslationProvider } from "../../content/translate/translator";
@@ -17,6 +19,8 @@ import {
 import { BrandHeader } from "../../ui/BrandHeader";
 import type { SponsorCard } from "../../core/sponsors";
 import { SearchIcon } from "../../ui/icons";
+import { usePhoneLayout } from "../../ui/phone-layout";
+import { PHONE_SCREEN, PhoneBackBar, PhoneTitle } from "../../ui/phone-screen";
 import { Segmented } from "../../ui/Segmented";
 import { color, FONT, PAGE_BUTTON_CSS } from "../../ui/styles";
 import { DetailsPanel, savedFrom, type Details } from "./DetailsPanel";
@@ -35,6 +39,10 @@ export interface WordListDeps extends BackupDeps {
   sponsorCard: SponsorCard | null;
   /** The page for would-be sponsors (`SupportLinks.sponsor`); empty while it does not exist. */
   sponsorPage: string;
+  /** Opens a source's page; missing: a link opens a new tab (the app opens it over Home). */
+  openPage?: (url: string) => void;
+  /** The page's touch mode but in tests (`usePhoneLayout`). */
+  touch?: TouchMode;
 }
 
 /** "learned": known words that went there from learning (`learnedAt`). */
@@ -49,6 +57,8 @@ ${PAGE_BUTTON_CSS}
 .th{font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:${color.muted};font-weight:600;text-align:left;padding:0 12px 10px}
 .rowb:hover{background:${color.surface} !important}
 .ib:hover{background:${color.surfaceGray} !important}
+.chip{display:inline-flex;align-items:center;height:40px;padding:0 13px;border-radius:999px;border:1px solid ${color.lineStrong};background:${color.card};color:${color.ink3};font:inherit;font-size:14px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{border-color:${color.ink};background:${color.ink};color:${color.onInk};font-weight:600}
 `;
 
 const STATUS_TABS: readonly { id: StatusFilter; label: MessageKey }[] = [
@@ -104,8 +114,74 @@ function FilterTabs<T extends string>(props: {
   );
 }
 
+/** The phone layout's filters (mock MobileWords): a row of pill chips. */
+function FilterChips<T extends string>(props: {
+  label: string;
+  tabs: readonly { id: T; label: MessageKey }[];
+  value: T;
+  onPick: (value: T) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={props.label}
+      style={{ display: "flex", gap: "8px", flex: "none" }}
+    >
+      {props.tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          class="chip"
+          aria-pressed={tab.id === props.value}
+          onClick={() => props.onPick(tab.id)}
+        >
+          {t(tab.label)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** How long the phone layout's toast shows. */
+const TOAST_MS = 3000;
+
+/** The phone layout's note of an export or import: a pill over the list for a while. */
+function Toast(props: { note: BackupNote; onGone: () => void }) {
+  const { note, onGone } = props;
+  useEffect(() => {
+    if (!note) return;
+    const timer = setTimeout(onGone, TOAST_MS);
+    return () => clearTimeout(timer);
+  }, [note]);
+  return (
+    note && (
+      <span
+        role="status"
+        style={{
+          position: "fixed",
+          left: "50%",
+          bottom: "calc(16px + env(safe-area-inset-bottom))",
+          transform: "translateX(-50%)",
+          zIndex: 3,
+          maxWidth: "calc(100% - 40px)",
+          boxSizing: "border-box",
+          padding: "10px 16px",
+          borderRadius: "999px",
+          background: note.ok ? color.ink : color.danger,
+          color: color.onInk,
+          fontSize: "14px",
+          boxShadow: "0 6px 18px rgba(20,24,43,0.2)",
+        }}
+      >
+        {note.text}
+      </span>
+    )
+  );
+}
+
 /** The word list page (mock WordList): saved words, filters, and the selected word's details. */
 export function WordList({ deps }: { deps: WordListDeps }) {
+  const phone = usePhoneLayout(deps.touch);
   const data = useWordListData(deps);
   const { langs, terms, reload, findTerm, packs, meanings } = data;
   const [query, setQuery] = useState("");
@@ -115,6 +191,8 @@ export function WordList({ deps }: { deps: WordListDeps }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [details, setDetails] = useState<Details | null>(null);
   const [note, setNote] = useState<BackupNote>(null);
+  /** The phone layout shows the selected word's details over the list. */
+  const [open, setOpen] = useState(false);
   /** The selection the last lookup was for, so a late answer is dropped. */
   const looking = useRef<string | null>(null);
   /** The selected term whose lookup waits for language data. */
@@ -150,9 +228,9 @@ export function WordList({ deps }: { deps: WordListDeps }) {
       .sort(COMPARE[sort]);
   }, [terms, query, status, kind, sort]);
 
-  // The first row is selected when the list first shows.
+  // The first row is selected when the list first shows; a phone shows the list alone.
   useEffect(() => {
-    if (selectedId === null && rows[0]) select(rows[0]);
+    if (!phone && selectedId === null && rows[0]) select(rows[0]);
   }, [rows]);
 
   function select(term: TermSummary) {
@@ -234,6 +312,198 @@ export function WordList({ deps }: { deps: WordListDeps }) {
         ? t("wordlist.noMatch")
         : null;
 
+  const backup = (
+    <BackupButtons
+      deps={deps}
+      class="btn"
+      phone={phone}
+      onNote={setNote}
+      onImported={() => void reload().catch(warn)}
+      more={{
+        count: rows.length,
+        items: EXPORTS.map(([format, label]) => ({
+          label: t(label),
+          run: () => {
+            setNote({ ok: true, text: t("backup.exporting") });
+            return exportWords({ format, rows, langs, deps, data });
+          },
+        })),
+      }}
+    />
+  );
+  const list = (
+    <Rows
+      rows={rows}
+      selectedId={selectedId}
+      nativeLang={langs.native}
+      now={now}
+      empty={empty}
+      phone={phone}
+      onPick={(term) => {
+        select(term);
+        setOpen(true);
+      }}
+      onShown={(shown) =>
+        meanings.shown(
+          shown.map((term) => ({ key: term.id, head: term.display })),
+        )
+      }
+    />
+  );
+  const panel = details && (
+    <DetailsPanel
+      details={details}
+      row={findTerm(details.term.id)}
+      nativeLang={langs.native}
+      learningLang={langs.learning}
+      now={now}
+      onStatus={(to) => void changeStatus(to)}
+      onSpeak={(head) => deps.speak(head, langs.learning)}
+      sponsorCard={deps.sponsorCard}
+      sponsorPage={deps.sponsorPage}
+      phone={phone}
+      onOpen={deps.openPage}
+    />
+  );
+  const sortSelect = (style?: CSSProperties) => (
+    <select
+      id="sort"
+      class="sel"
+      {...(phone && { "aria-label": t("wordlist.sort") })}
+      value={sort}
+      onChange={(e) => setSort(e.currentTarget.value as Sort)}
+      style={style}
+    >
+      {SORTS.map(([value, label]) => (
+        <option key={value} value={value}>
+          {t(label)}
+        </option>
+      ))}
+    </select>
+  );
+
+  if (phone)
+    return (
+      <>
+        <div
+          inert={open}
+          style={{ ...PHONE_SCREEN, height: "100dvh", overflow: "hidden" }}
+        >
+          <style>{CSS}</style>
+          <PhoneTitle title={t("wordlist.phoneTitle")}>
+            <span style={{ fontSize: "13px", color: color.muted }}>
+              {languagePair(langs.learning, langs.native)}
+            </span>
+            {backup}
+          </PhoneTitle>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              height: "48px",
+              marginTop: "-6px",
+              padding: "0 16px",
+              boxSizing: "border-box",
+              border: `1px solid ${color.lineStrong}`,
+              borderRadius: "24px",
+              background: color.card,
+              color: color.muted,
+              flex: "none",
+            }}
+          >
+            <SearchIcon size={20} />
+            <input
+              type="search"
+              aria-label={t("wordlist.search")}
+              placeholder={t("wordlist.searchPlaceholder")}
+              value={query}
+              onInput={(e) => setQuery(e.currentTarget.value)}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                border: 0,
+                padding: 0,
+                background: "none",
+                color: color.ink,
+                font: "inherit",
+                fontSize: "16px",
+                outline: "none",
+              }}
+            />
+          </label>
+          <FilterChips
+            label={t("wordlist.status")}
+            tabs={STATUS_TABS}
+            value={status}
+            onPick={setStatus}
+          />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginTop: "-4px",
+              flex: "none",
+            }}
+          >
+            <FilterChips
+              label={t("wordlist.kind")}
+              tabs={KIND_TABS}
+              value={kind}
+              onPick={setKind}
+            />
+            <span style={{ flex: 1 }}></span>
+            {sortSelect({
+              height: "44px",
+              maxWidth: "124px",
+              padding: "0 2px",
+              border: 0,
+              background: "none",
+              color: color.greenText,
+              fontWeight: 600,
+            })}
+          </div>
+          <section
+            aria-label={t("wordlist.list")}
+            style={{
+              flex: "0 1 auto",
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+              borderRadius: "12px",
+              background: color.card,
+              border: `1px solid ${color.line}`,
+              overflow: "hidden",
+            }}
+          >
+            {list}
+          </section>
+          <Toast note={note} onGone={() => setNote(null)} />
+        </div>
+        {open && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 4,
+              overflowY: "auto",
+              background: color.surface,
+              color: color.ink,
+              fontFamily: FONT,
+              fontSize: "15px",
+            }}
+          >
+            <PhoneBackBar
+              label={t("wordlist.phoneTitle")}
+              onBack={() => setOpen(false)}
+            />
+            {details?.term.id === selectedId && panel}
+          </div>
+        )}
+      </>
+    );
+
   return (
     <div
       style={{
@@ -259,22 +529,7 @@ export function WordList({ deps }: { deps: WordListDeps }) {
         />
         <span style={{ flex: 1 }}></span>
         <BackupStatus note={note} />
-        <BackupButtons
-          deps={deps}
-          class="btn"
-          onNote={setNote}
-          onImported={() => void reload().catch(warn)}
-          more={{
-            count: rows.length,
-            items: EXPORTS.map(([format, label]) => ({
-              label: t(label),
-              run: () => {
-                setNote({ ok: true, text: t("backup.exporting") });
-                return exportWords({ format, rows, langs, deps, data });
-              },
-            })),
-          }}
-        />
+        {backup}
       </div>
 
       <div
@@ -335,18 +590,7 @@ export function WordList({ deps }: { deps: WordListDeps }) {
         <label for="sort" style={{ fontSize: "13px", color: color.muted }}>
           {t("wordlist.sort")}
         </label>
-        <select
-          id="sort"
-          class="sel"
-          value={sort}
-          onChange={(e) => setSort(e.currentTarget.value as Sort)}
-        >
-          {SORTS.map(([value, label]) => (
-            <option key={value} value={value}>
-              {t(label)}
-            </option>
-          ))}
-        </select>
+        {sortSelect()}
       </div>
 
       <div style={{ flex: 1, minHeight: 0, display: "flex", gap: "20px" }}>
@@ -371,33 +615,9 @@ export function WordList({ deps }: { deps: WordListDeps }) {
             <span class="th">{t("wordlist.col.seen")}</span>
             <span class="th">{t("wordlist.col.lastSeen")}</span>
           </div>
-          <Rows
-            rows={rows}
-            selectedId={selectedId}
-            nativeLang={langs.native}
-            now={now}
-            empty={empty}
-            onPick={select}
-            onShown={(shown) =>
-              meanings.shown(
-                shown.map((term) => ({ key: term.id, head: term.display })),
-              )
-            }
-          />
+          {list}
         </section>
-        {details && (
-          <DetailsPanel
-            details={details}
-            row={findTerm(details.term.id)}
-            nativeLang={langs.native}
-            learningLang={langs.learning}
-            now={now}
-            onStatus={(to) => void changeStatus(to)}
-            onSpeak={(head) => deps.speak(head, langs.learning)}
-            sponsorCard={deps.sponsorCard}
-            sponsorPage={deps.sponsorPage}
-          />
-        )}
+        {panel}
       </div>
     </div>
   );

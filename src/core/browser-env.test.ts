@@ -40,9 +40,16 @@ describe("createBrowserEnv", () => {
   it("detects the File System Access API on the given global", () => {
     expect(createBrowserEnv("chrome", {}).features).toEqual({
       fileSystemAccess: false,
+      appHost: false,
     });
     expect(
       createBrowserEnv("chrome", { showDirectoryPicker: () => {} }).features,
-    ).toEqual({ fileSystemAccess: true });
+    ).toEqual({ fileSystemAccess: true, appHost: false });
+  });
+
+  it("detects the phone app by its appHost, whatever the build", () => {
+    const appHost = { openPage: () => {} };
+    expect(createBrowserEnv("chrome", { appHost }).features.appHost).toBe(true);
+    expect(createBrowserEnv("langle-app", {}).features.appHost).toBe(false);
   });
 });

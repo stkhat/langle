@@ -32,7 +32,7 @@
 - [x] M4b: Home and the recents store (branch `claude/mobile-m4b`)
 - [x] M4c-ios: the tab bar, the title bar and the page over Home (branch `claude/mobile-m4c-ios`), notes/mobile.md "The app's screens on iOS (M4c)"
 - [x] M4c-android: the same on Android (branch `claude/mobile-m4c-android`), notes/mobile.md "Device checks (M4c, Android)"
-- [ ] M4d: Words, Settings and the first run in the phone layout (branch `claude/mobile-m4d`)
+- [x] M4d: Words, Settings and the first run in the phone layout (branch `claude/mobile-m4d`)
 - [ ] M4e: the device checks of the whole of M4
 
 ## Running order
@@ -648,11 +648,11 @@ Branch `claude/mobile-m4d`, from `main` with M4a merged and M4-0 approved.
 **Files**: `src/entrypoints/wordlist/` (`WordList.tsx`, `Rows.tsx`, `DetailsPanel.tsx`), `src/entrypoints/options/` (`SettingsPage.tsx`, `rows.tsx`), `src/entrypoints/welcome/Welcome.tsx`, their browser tests; M4a's `usePhoneLayout()`.
 
 **Tasks**
-- [ ] **Words** as `MobileWords` / `MobileWordsDetail`: the list, a tap pushes the details, ‹ Words goes back; the same data hooks (`useWordListData`). Desktop unchanged. Commit.
-- [ ] **Settings** as `MobileSettings` / `MobileSettingsSection`: the sections' list, one section at a time, ‹ Settings. The rows of each section as on the desktop, sized for touch. Commit.
-- [ ] **First run** as `MobileFirstRun*`. Commit.
-- [ ] Render each at 390 × 844 against its board, fix differences. Commit.
-- [ ] **Docs**: ui.md if needed, status.md, tick M4d. `verify -- --skip-firefox`, draft PR "Mobile app M4d: Words, Settings and first run on a phone", `gh pr ready`.
+- [x] **Words** as `MobileWords` / `MobileWordsDetail`: the list, a tap pushes the details, ‹ Words goes back; the same data hooks (`useWordListData`). Desktop unchanged. Commit.
+- [x] **Settings** as `MobileSettings` / `MobileSettingsSection`: the sections' list, one section at a time, ‹ Settings. The rows of each section as on the desktop, sized for touch. Commit.
+- [x] **First run** as `MobileFirstRun*`. Commit.
+- [x] Render each at 390 × 844 against its board, fix differences. Commit.
+- [x] **Docs**: ui.md if needed, status.md, tick M4d. `verify -- --skip-firefox`, draft PR "Mobile app M4d: Words, Settings and first run on a phone", `gh pr ready`.
 
 ### M4e: the device checks of the whole of M4 (one agent, Opus)
 From `main` with every M4 branch merged. The emulator, then the Simulator, check build, fresh install: the M4c device steps again plus Words (search, a word's details, a source link opening the page over Home), Settings (each section opens; the phone settings round-trip with the sheet) and the first run's phone layout. Screenshots next to every M4 board. Fixes go in this branch. notes/mobile.md, status.md, tick M4e. Draft PR "Mobile app M4e: device checks", `gh pr ready`.

@@ -23,6 +23,11 @@ export interface BrowserEnv {
   features: {
     /** File System Access API (saving to a folder). */
     fileSystemAccess: boolean;
+    /**
+     * The phone app's `appHost` (core/app-host.ts): a phone with no keyboard, no
+     * Netflix and no sponsors, whose own store takes the ratings.
+     */
+    appHost: boolean;
   };
 }
 
@@ -44,6 +49,7 @@ export function createBrowserEnv(
     reviewUrl: firefox ? REVIEW_URLS.firefoxAddOns : REVIEW_URLS.chromeWebStore,
     features: {
       fileSystemAccess: "showDirectoryPicker" in g,
+      appHost: "appHost" in g,
     },
   };
 }

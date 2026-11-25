@@ -1,4 +1,12 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-preact";
 import type { TermStatus } from "../../core/classify";
@@ -14,6 +22,8 @@ import type {
 import type { TranslationProvider } from "../../content/translate/translator";
 import { noTranslation } from "../../testing/stubs";
 import type { SponsorCard } from "../../core/sponsors";
+import type { TouchMode } from "../../content/touch/touch-mode";
+import { fixedTouchMode } from "../../testing/touch";
 import { WordList, type WordListDeps } from "./WordList";
 
 const NOW = new Date(2026, 10, 10, 12, 0, 0).getTime();
@@ -177,6 +187,9 @@ interface FakeOptions {
   sponsorCard?: SponsorCard | null;
   /** The page for would-be sponsors (default: none yet). */
   sponsorPage?: string;
+  /** The phone layout (default: the page's own touch mode, off in tests). */
+  touch?: TouchMode;
+  openPage?: (url: string) => void;
 }
 
 /** A background behind the word list: terms, lookups, status changes, backups. */
@@ -301,6 +314,8 @@ function fake(options: FakeOptions = {}) {
     createTranslator: () => options.translator ?? noTranslation,
     sponsorCard: options.sponsorCard ?? null,
     sponsorPage: options.sponsorPage ?? "",
+    ...(options.touch && { touch: options.touch }),
+    ...(options.openPage && { openPage: options.openPage }),
     watchPackState(listener) {
       packListeners.add(listener);
       listener({});
@@ -1118,5 +1133,139 @@ describe("the sponsor spot", () => {
     expect(
       again.details.getByRole("link", { name: "Become a sponsor" }).query(),
     ).toBeNull();
+  });
+});
+
+describe("WordList on a phone", () => {
+  beforeEach(() => page.viewport(390, 844));
+  afterEach(() => page.viewport(1440, 1000));
+
+  async function phone(options: FakeOptions = {}) {
+    const f = fake({ ...options, touch: fixedTouchMode(true) });
+    const screen = await render(<WordList deps={f.deps} />);
+    const list = screen.getByRole("region", { name: "Saved words" });
+    const heads = () =>
+      [...list.element().querySelectorAll("button [data-head]")].map(
+        (el) => el.textContent,
+      );
+    await expect.poll(() => heads().length).toBeGreaterThan(0);
+    const row = (head: string) =>
+      list.getByRole("button", { name: new RegExp(`^${head}`) });
+    return { ...f, screen, list, heads, row };
+  }
+
+  it("shows the list alone, under the tab's title, with rows a finger's size", async () => {
+    const { screen, row, sent } = await phone();
+    await expect
+      .element(screen.getByRole("heading", { name: "Words", level: 1 }))
+      .toBeVisible();
+    await expect.element(screen.getByText("English → Japanese")).toBeVisible();
+    expect(
+      screen.getByRole("complementary", { name: "Word details" }).query(),
+    ).toBeNull();
+    // Nothing is looked up before a word is opened.
+    expect(sent.some((r) => r.type === "lookup")).toBe(false);
+    await expect
+      .poll(() => textOf(row("figure out")))
+      .toBe("figure outPhrase見つけ出す、理解するLearning");
+    expect(row("figure out").element().getBoundingClientRect().height).toBe(64);
+    const search = screen.getByRole("searchbox", {
+      name: "Search saved words",
+    });
+    // The field across the screen, less the 20px sides.
+    expect(
+      search.element().closest("label")!.getBoundingClientRect().width,
+    ).toBe(350);
+  });
+
+  it("filters with chips, sorts, and searches", async () => {
+    const { screen, heads } = await phone();
+    const kind = screen.getByRole("group", { name: "Kind" });
+    await kind.getByRole("button", { name: "Phrases" }).click();
+    await expect
+      .element(kind.getByRole("button", { name: "Phrases" }))
+      .toHaveAttribute("aria-pressed", "true");
+    expect(heads()).toEqual(["figure out", "heavy lifting"]);
+    await kind.getByRole("button", { name: "All" }).click();
+    await screen
+      .getByRole("group", { name: "Status" })
+      .getByRole("button", { name: "Known" })
+      .click();
+    expect(heads()).toEqual(["honestly", "crackle"]);
+    await screen.getByRole("combobox", { name: "Sort" }).selectOptions("A–Z");
+    expect(heads()).toEqual(["crackle", "honestly"]);
+    await screen
+      .getByRole("searchbox", { name: "Search saved words" })
+      .fill("zzz");
+    await expect
+      .element(screen.getByText("No saved words match."))
+      .toBeVisible();
+  });
+
+  it("pushes a word's details over the list, and ‹ Words goes back", async () => {
+    const { screen, row, list } = await phone();
+    await row("figure out").click();
+    // After the list's own "Words" chip, which takes no taps now.
+    const back = screen.getByRole("button", { name: "Words" }).last();
+    await expect.element(back).toBeVisible();
+    await expect
+      .element(screen.getByRole("heading", { name: "figure out", level: 1 }))
+      .toBeVisible();
+    const details = screen.getByRole("region", { name: "Word details" });
+    const status = details.getByRole("button", { name: "Learning" });
+    expect(status.element().getBoundingClientRect().height).toBe(44);
+    await expect
+      .element(details.getByText("Where you saw it · 2"))
+      .toBeVisible();
+    // The list under it keeps its place but takes no taps.
+    expect(list.element().closest("[inert]")).not.toBeNull();
+    await back.click();
+    expect(
+      screen.getByRole("region", { name: "Word details" }).query(),
+    ).toBeNull();
+    expect(list.element().closest("[inert]")).toBeNull();
+    await row("tedious").click();
+    await expect
+      .element(screen.getByRole("heading", { name: "tedious", level: 1 }))
+      .toBeVisible();
+  });
+
+  it("opens a place's page through the app instead of a new tab", async () => {
+    const opened: string[] = [];
+    const { screen, row } = await phone({
+      openPage: (url) => opened.push(url),
+    });
+    await row("figure out").click();
+    const details = screen.getByRole("region", { name: "Word details" });
+    await details.getByRole("link", { name: /Why patient bakers/ }).click();
+    expect(opened).toEqual([ARTICLE.url]);
+  });
+
+  it("exports and imports from the ⋮ menu, with a note that goes", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const { screen, downloads } = await phone();
+      expect(screen.getByRole("button", { name: "Export" }).query()).toBeNull();
+      expect(screen.getByRole("button", { name: "Import" }).query()).toBeNull();
+      await screen.getByRole("button", { name: "Export and import" }).click();
+      const menu = screen.getByRole("menu", { name: "Export and import" });
+      await expect.element(menu.getByText("Shown words · 6")).toBeVisible();
+      const items = [...menu.element().querySelectorAll("[role=menuitem]")];
+      expect(items.map((item) => item.textContent)).toEqual([
+        "Anki (.txt)",
+        "CSV",
+        "Backup (JSON)",
+        "Import",
+      ]);
+      expect(items[0]!.getBoundingClientRect().height).toBe(44);
+      await menu.getByRole("menuitem", { name: "CSV" }).click();
+      await expect.poll(() => downloads.length).toBe(1);
+      const note = screen.getByRole("status");
+      await expect.element(note).toHaveTextContent("Exported 6 words");
+      vi.advanceTimersByTime(3000);
+      await expect.element(note).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -161,15 +161,19 @@ function NeverRunOn(props: {
   );
 }
 
-export function SitesSection(props: SectionProps) {
+/** The sites' switches and the never-run list; the phone app (`app`) plays no Netflix. */
+export function SitesSection(props: SectionProps & { app?: boolean }) {
   const s = props.settings;
+  const sites = props.app
+    ? SITES.filter((site) => site.id !== "netflix")
+    : SITES;
   return (
     <Section
       id="sites"
       label="settings.section.sites"
       lead={t("settings.sites.lead")}
     >
-      {SITES.map((site) => (
+      {sites.map((site) => (
         <SwitchRow
           key={site.id}
           title={t(site.label)}

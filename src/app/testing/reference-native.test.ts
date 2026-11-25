@@ -298,6 +298,29 @@ describe("tabs", () => {
     );
   });
 
+  test("getCurrent is the calling page's own tab, and nothing without one", async () => {
+    const { connect } = setup();
+    const { bridge: host } = connect({ kind: "host" });
+    const welcome = (await host.call("tabs.create", {
+      url: `${ORIGIN}/welcome.html`,
+    })) as { id: number };
+    const { bridge: page } = connect({
+      kind: "page",
+      url: `${ORIGIN}/welcome.html`,
+      tabId: welcome.id,
+    });
+    await expect(page.call("tabs.getCurrent")).resolves.toMatchObject({
+      id: welcome.id,
+      url: `${ORIGIN}/welcome.html`,
+    });
+    const { bridge: popup } = connect({
+      kind: "page",
+      url: `${ORIGIN}/popup.html`,
+    });
+    await expect(popup.call("tabs.getCurrent")).resolves.toBeUndefined();
+    await expect(host.call("tabs.getCurrent")).resolves.toBeUndefined();
+  });
+
   test("openOptionsPage opens Settings; openPopup, reload and tabs.reload are logged", async () => {
     const { connect, native } = setup();
     const { bridge } = connect({ kind: "host" });

@@ -1,5 +1,16 @@
-import type { ComponentChildren, CSSProperties } from "preact";
+import {
+  createContext,
+  type ComponentChildren,
+  type CSSProperties,
+} from "preact";
+import { useContext } from "preact/hooks";
 import { color } from "./styles";
+
+/**
+ * The settings rows are in the phone layout (mock MobileSettingsSection): titles in
+ * the body's weight, larger, and controls a finger's size.
+ */
+export const PhoneRows = createContext(false);
 
 /** A settings row's title over its description; a `<label>` when it names a control (`for`). */
 export function RowLabel(props: {
@@ -13,6 +24,7 @@ export function RowLabel(props: {
   children?: ComponentChildren;
 }) {
   const Tag = props.for ? "label" : "span";
+  const phone = useContext(PhoneRows);
   return (
     <Tag
       for={props.for}
@@ -26,7 +38,11 @@ export function RowLabel(props: {
       }}
     >
       <span
-        style={{ fontSize: props.small ? "14px" : "15px", fontWeight: 600 }}
+        style={
+          phone
+            ? { fontSize: props.small ? "15px" : "16px" }
+            : { fontSize: props.small ? "14px" : "15px", fontWeight: 600 }
+        }
       >
         {props.title}
       </span>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type { CloudProviderId } from "../../../core/cloud/provider";
 import type { BrowserEnv } from "../../../core/browser-env";
-import { t } from "../../../i18n/t";
+import { t, type MessageKey } from "../../../i18n/t";
 import type { CloudStatus, SyncStatus } from "../../../messaging/protocol";
 import {
   BackupButtons,
@@ -227,6 +227,13 @@ function ConnectRow(props: {
   );
 }
 
+/** "Sync and backup"; only "Backup" where nothing is synced (the phone app). */
+export function syncSectionLabel(env: Pick<BrowserEnv, "sync">): MessageKey {
+  return env.sync.kind === "device"
+    ? "settings.section.backup"
+    : "settings.section.sync";
+}
+
 export function SyncSection(
   props: SectionProps & {
     deps: BackupDeps;
@@ -263,7 +270,7 @@ export function SyncSection(
   return (
     <Section
       id="sync"
-      label="settings.section.sync"
+      label={syncSectionLabel(env)}
       lead={
         syncName === undefined
           ? t("settings.sync.leadDevice")

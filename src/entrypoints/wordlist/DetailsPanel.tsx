@@ -79,8 +79,12 @@ export function DetailsPanel(props: {
   sponsorCard: SponsorCard | null;
   /** The page for would-be sponsors; empty while it does not exist. */
   sponsorPage: string;
+  /** The phone layout (mock MobileWordsDetail): the whole screen, in touch sizes. */
+  phone?: boolean;
+  /** Opens a place's page instead of a new tab (`WordListDeps.openPage`). */
+  onOpen?: ((url: string) => void) | undefined;
 }) {
-  const { details, now } = props;
+  const { details, now, phone } = props;
   const { entry, term, occurrences } = details;
   const head = entry?.head ?? term.key;
   // The row is read again after a status change; the details keep the term as picked.
@@ -95,6 +99,100 @@ export function DetailsPanel(props: {
   const groups = seenGroups(occurrences, items, details.meanings);
   // A term without meanings of the user's lists its places as before.
   const labelled = groups.some((group) => group.meaning);
+  const content = (
+    <>
+      <EntryHeader
+        head={head}
+        kind={term.kind}
+        ipa={entry?.ipa ?? details.ipa}
+        {...(props.row?.machineTranslated
+          ? { short: props.row.short, shortLang: props.nativeLang }
+          : {
+              short: entry?.short,
+              shortLang: entry?.glossLang ?? props.nativeLang,
+            })}
+        onSpeak={() => props.onSpeak(head)}
+        speakStyle={
+          phone
+            ? {
+                ...iconButton,
+                width: "44px",
+                height: "44px",
+                marginRight: "-8px",
+                borderRadius: "22px",
+              }
+            : iconButton
+        }
+        speakClass="ib"
+        screenTitle={phone}
+      />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <StatusButtons
+          status={details.status}
+          onStatus={props.onStatus}
+          removeBorder={color.chipLine}
+          saveDisabled={!savedFrom(occurrences)}
+          touch={phone}
+        />
+        {details.status === "known" && learnedAt !== undefined && (
+          <p style={{ margin: 0, fontSize: "13px", color: color.muted }}>
+            {t("wordlist.learnedOn", { date: shortDate(learnedAt, now) })}
+          </p>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: phone ? "10px" : "8px",
+        }}
+      >
+        <h3 style={sectionHeading}>
+          {t("wordlist.seenIn", { count: items.length })}
+        </h3>
+        {groups.map((group, g) => (
+          <div
+            key={group.meaning?.key ?? ""}
+            data-seen-group
+            style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+          >
+            {labelled && (
+              <GroupHeading
+                meaning={group.meaning}
+                count={group.items.length}
+                nativeLang={props.nativeLang}
+              />
+            )}
+            {group.items.map((item, i) => (
+              <ElsewhereRow
+                key={`${g}-${i}`}
+                item={item}
+                lang={props.learningLang}
+                touch={phone}
+                {...(props.onOpen && { onOpen: props.onOpen })}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+  if (phone)
+    return (
+      <section
+        aria-label={t("wordlist.details")}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "20px",
+          padding: "4px 20px calc(24px + env(safe-area-inset-bottom))",
+        }}
+      >
+        {content}
+      </section>
+    );
   return (
     <aside
       aria-label={t("wordlist.details")}
@@ -121,62 +219,7 @@ export function DetailsPanel(props: {
           gap: "18px",
         }}
       >
-        <EntryHeader
-          head={head}
-          kind={term.kind}
-          ipa={entry?.ipa ?? details.ipa}
-          {...(props.row?.machineTranslated
-            ? { short: props.row.short, shortLang: props.nativeLang }
-            : {
-                short: entry?.short,
-                shortLang: entry?.glossLang ?? props.nativeLang,
-              })}
-          onSpeak={() => props.onSpeak(head)}
-          speakStyle={iconButton}
-          speakClass="ib"
-        />
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <StatusButtons
-            status={details.status}
-            onStatus={props.onStatus}
-            removeBorder={color.chipLine}
-            saveDisabled={!savedFrom(occurrences)}
-          />
-          {details.status === "known" && learnedAt !== undefined && (
-            <p style={{ margin: 0, fontSize: "13px", color: color.muted }}>
-              {t("wordlist.learnedOn", { date: shortDate(learnedAt, now) })}
-            </p>
-          )}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <h3 style={sectionHeading}>
-            {t("wordlist.seenIn", { count: items.length })}
-          </h3>
-          {groups.map((group, g) => (
-            <div
-              key={group.meaning?.key ?? ""}
-              data-seen-group
-              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-            >
-              {labelled && (
-                <GroupHeading
-                  meaning={group.meaning}
-                  count={group.items.length}
-                  nativeLang={props.nativeLang}
-                />
-              )}
-              {group.items.map((item, i) => (
-                <ElsewhereRow
-                  key={`${g}-${i}`}
-                  item={item}
-                  lang={props.learningLang}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
+        {content}
       </div>
       <SponsorSpot
         card={props.sponsorCard}

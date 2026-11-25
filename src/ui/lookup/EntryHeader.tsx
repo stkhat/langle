@@ -21,7 +21,13 @@ export function EntryHeader(props: {
   speakStyle: CSSProperties;
   /** The speak button's class (the word list's hover rule). */
   speakClass?: string;
+  /**
+   * The headword is the screen's title (mock MobileWordsDetail): an h1, larger, and the
+   * speak button at the row's end.
+   */
+  screenTitle?: boolean;
 }) {
+  const Heading = props.screenTitle ? "h1" : "h2";
   const short = props.short && (
     <p
       {...langAttrs(props.shortLang)}
@@ -40,16 +46,16 @@ export function EntryHeader(props: {
           flexWrap: "wrap",
         }}
       >
-        <h2
+        <Heading
           style={{
             margin: 0,
-            fontSize: "26px",
-            fontWeight: 650,
+            fontSize: props.screenTitle ? "30px" : "26px",
+            fontWeight: props.screenTitle ? 700 : 650,
             letterSpacing: "-0.01em",
           }}
         >
           {props.head}
-        </h2>
+        </Heading>
         <span
           style={{
             fontSize: "12px",
@@ -62,6 +68,7 @@ export function EntryHeader(props: {
         >
           {t(props.kind === "word" ? "kind.word" : "kind.phrase")}
         </span>
+        {props.screenTitle && <span style={{ flex: 1 }}></span>}
         <button
           type="button"
           class={props.speakClass}

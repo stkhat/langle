@@ -45,12 +45,29 @@ function Out(props: {
   );
 }
 
+/** The phone layout's buttons (mock MobileSettings): a finger's size, no icons. */
+const phoneButton: CSSProperties = {
+  ...secondary,
+  height: "44px",
+  fontSize: "15px",
+};
+
 /**
  * The Support Langle box under the section nav (mock Settings `#support`): Ko-fi, the
  * store's review page, the feedback form and the sponsor page. None of them set: no box.
+ * The phone app has the rating and the feedback only (mock MobileSettings).
  */
-export function SupportBox(props: { links: SupportLinks }) {
-  const { links } = props;
+export function SupportBox(props: {
+  links: SupportLinks;
+  /** `BrowserEnv.features.appHost`: no Ko-fi and no sponsor page. */
+  app?: boolean;
+  /** The phone layout: under the sections' list, in touch sizes. */
+  phone?: boolean;
+}) {
+  const { phone } = props;
+  const links = props.app
+    ? { ...props.links, coffee: "", sponsor: "" }
+    : props.links;
   if (!links.coffee && !links.review && !links.feedback && !links.sponsor)
     return null;
   return (
@@ -85,7 +102,7 @@ export function SupportBox(props: { links: SupportLinks }) {
       <p
         style={{
           margin: 0,
-          fontSize: "13px",
+          fontSize: phone ? "14px" : "13px",
           lineHeight: 1.5,
           color: color.ink2,
         }}
@@ -96,12 +113,12 @@ export function SupportBox(props: { links: SupportLinks }) {
         <CupIcon size={16} />
         {t("support.coffee")}
       </Out>
-      <Out href={links.review} style={secondary}>
-        <StarIcon size={16} />
+      <Out href={links.review} style={phone ? phoneButton : secondary}>
+        {!phone && <StarIcon size={16} />}
         {t("support.rateLangle")}
       </Out>
-      <Out href={links.feedback} style={secondary}>
-        <MessageIcon size={16} />
+      <Out href={links.feedback} style={phone ? phoneButton : secondary}>
+        {!phone && <MessageIcon size={16} />}
         {t("support.feedback")}
       </Out>
       <Out

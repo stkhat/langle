@@ -32,6 +32,7 @@ val CALL_APIS: Set<String> =
     "storage.session.clear",
     "tabs.query",
     "tabs.get",
+    "tabs.getCurrent",
     "tabs.sendMessage",
     "tabs.create",
     "tabs.update",

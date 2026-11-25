@@ -263,6 +263,22 @@ class RouterTest {
     }
 
     @Test
+    @DisplayName("getCurrent is the calling page's own tab, and nothing without one")
+    fun `getCurrent is the calling page's own tab, and nothing without one`() {
+      val h = Harness()
+      val host = h.connect(ContextSpec.Host)
+      val welcomeId = host.call("tabs.create", mapOf("url" to "$ORIGIN/welcome.html")).value.obj!!["id"].number!!.toInt()
+      val page = h.connect(ContextSpec.Page("$ORIGIN/welcome.html", welcomeId))
+      val current = page.call("tabs.getCurrent").value.obj!!
+      assertEquals(welcomeId, current["id"].number!!.toInt())
+      assertEquals("$ORIGIN/welcome.html", current["url"].string)
+      val popup = h.connect(ContextSpec.Page("$ORIGIN/popup.html"))
+      assertNull(popup.call("tabs.getCurrent").error)
+      assertNull(popup.call("tabs.getCurrent").value.obj)
+      assertNull(host.call("tabs.getCurrent").value.obj)
+    }
+
+    @Test
     @DisplayName("openOptionsPage opens Settings; openPopup, reload and tabs.reload are logged")
     fun `openOptionsPage opens Settings, openPopup, reload and tabs_reload are logged`() {
       val h = Harness()
