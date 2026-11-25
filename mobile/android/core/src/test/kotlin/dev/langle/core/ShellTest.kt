@@ -2,6 +2,7 @@ package dev.langle.core
 
 import dev.langle.core.ShellEffect.CloseFirstRun
 import dev.langle.core.ShellEffect.CloseSheet
+import dev.langle.core.ShellEffect.DropTabPage
 import dev.langle.core.ShellEffect.GoBack
 import dev.langle.core.ShellEffect.Load
 import dev.langle.core.ShellEffect.OpenFirstRun
@@ -213,6 +214,24 @@ class ShellTest {
         listOf(CloseFirstRun, Show(SETTINGS)),
         shell.navigated(Screen.FirstRun, "$ORIGIN/options.html"),
       )
+    }
+
+    @Test
+    fun `Words before setup goes to the first run in its own tab, and Words is made again when shown`() {
+      shell.select(AppTab.WORDS)
+      val effects = shell.navigated(WORDS, "$ORIGIN/welcome.html")
+      val id = shell.firstRunTab!!
+      assertEquals(
+        listOf(DropTabPage(AppTab.WORDS), OpenFirstRun("$ORIGIN/welcome.html", id), Show(Screen.FirstRun)),
+        effects,
+      )
+      assertEquals(id, active)
+      assertEquals("$ORIGIN/wordlist.html", shell.url(AppTab.WORDS))
+      assertEquals("$ORIGIN/wordlist.html", tabs.get(shell.tabId(AppTab.WORDS))!!.url)
+      // Start: the first run's tab is removed, Home shows.
+      tabs.remove(id)
+      assertEquals(listOf(CloseFirstRun, Show(HOME)), shell.handle(RouterAction.CloseTab(Tab(id, "$ORIGIN/welcome.html", false))))
+      assertEquals(listOf(Show(WORDS)), shell.select(AppTab.WORDS))
     }
 
     @Test

@@ -37,6 +37,10 @@ public enum ShellStep: Equatable, Sendable {
   case loadPage(String)
   /// `welcome.html` in its tab, full screen.
   case startFirstRun(url: String, tabId: Int)
+  /// The tab's page went to `welcome.html` (Words or Settings before setup): that page goes and
+  /// is made again, at the tab's own address, when the tab next shows; the first run shows full
+  /// screen in its own tab (`tabId`, just opened; nil: the first run already open).
+  case firstRunFromTab(AppTab, url: String, tabId: Int?)
   /// The first run's tab closed: Home shows.
   case endFirstRun
   /// Another app page, in the sheet frame.
@@ -107,9 +111,14 @@ public final class Shell {
   }
 
   /// A tab's page committed a new document. The first run's page leaving for a screen of its
-  /// own (Settings, when the device was set up already) ends the first run there.
+  /// own (Settings, when the device was set up already) ends the first run there; a tab's page
+  /// going to the first run (before setup) shows it in its own tab instead
+  /// (docs/notes/mobile.md "Device checks of M4 (M4e, Android)").
   @discardableResult
   public func committed(tab id: Int, url: String) -> ShellStep {
+    if path(of: url) == "/welcome.html", let tab = tabIds.first(where: { $0.value == id })?.key {
+      return firstRun(from: tab, url: url)
+    }
     tabs.setURL(id, url)
     guard id == firstRunTab, path(of: url) != "/welcome.html", let tab = appTab(url) else {
       return .nothing
@@ -211,6 +220,18 @@ public final class Shell {
     }
     if sheetTabs.remove(tab.id) != nil { return .closeAppSheet(tabId: tab.id) }
     return .nothing
+  }
+
+  private func firstRun(from tab: AppTab, url: String) -> ShellStep {
+    tabs.setURL(tabId(tab), origin + tab.path)
+    var opened: Int?
+    if firstRunTab == nil {
+      let id = tabs.open(url: url, active: false).id
+      firstRunTab = id
+      opened = id
+    }
+    show(.firstRun)
+    return .firstRunFromTab(tab, url: url, tabId: opened)
   }
 
   // MARK: helpers

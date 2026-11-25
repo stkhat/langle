@@ -1672,6 +1672,35 @@ describe("SettingsPage on a phone", () => {
     expect(screen.getByRole("region", { name: "Sites" }).query()).toBeNull();
   });
 
+  it("words Appearance, Dictionaries and Sites for the app, not the browser", async () => {
+    const { screen } = await openPhone();
+    const leads = {
+      Appearance: "System follows your phone's light or dark mode.",
+      "Dictionaries and AI":
+        "Links shown in the dictionary window. Each one opens with the word filled in.",
+      Sites:
+        "Where Langle runs. You can also switch it off for one site in the Langle sheet.",
+    };
+    for (const [name, lead] of Object.entries(leads)) {
+      await pushed(screen, name).click();
+      const section = screen.getByRole("region", { name });
+      await expect.element(section).toBeVisible();
+      const text = section.element().textContent ?? "";
+      expect(text).toContain(lead);
+      expect(text).not.toMatch(/browser|new tab|toolbar popup/);
+      await screen.getByRole("button", { name: "Settings" }).click();
+    }
+  });
+
+  it("keeps the browser's wording in touch mode outside the app", async () => {
+    const f = fake({ phone: true, links: LINKS });
+    const screen = await render(<SettingsPage deps={f.deps} />);
+    await pushed(screen, "Sites").click();
+    const sites = screen.getByRole("region", { name: "Sites" });
+    await expect.element(sites).toBeVisible();
+    expect(sites.element().textContent).toContain("from the toolbar popup.");
+  });
+
   it("sets the phone's own subtitle position and fullscreen transcript, with no keyboard shortcuts", async () => {
     const { screen, sent } = await openPhone();
     await pushed(screen, "Video subtitles").click();

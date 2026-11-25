@@ -8,12 +8,17 @@ export const THEMES: readonly { id: Settings["theme"]; label: MessageKey }[] = [
   { id: "dark", label: "settings.appearance.dark" },
 ];
 
-export function AppearanceSection(props: SectionProps) {
+/** `app`: the phone app (`BrowserEnv.features.appHost`), which follows the phone's mode. */
+export function AppearanceSection(props: SectionProps & { app?: boolean }) {
   return (
     <Section id="appearance" label="settings.section.appearance">
       <ChoiceRow
         title={t("settings.appearance.theme")}
-        desc={t("settings.appearance.themeDesc")}
+        desc={t(
+          props.app
+            ? "settings.appearance.themeDescApp"
+            : "settings.appearance.themeDesc",
+        )}
         options={THEMES}
         value={props.settings.theme}
         onPick={(theme) => props.change({ theme })}

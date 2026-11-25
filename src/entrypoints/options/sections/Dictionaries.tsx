@@ -124,7 +124,7 @@ function ModelControl(props: { row: ModelRow; onDownload(): void }) {
 
 export function DictionariesSection(
   props: SectionProps & {
-    env: Pick<BrowserEnv, "name">;
+    env: Pick<BrowserEnv, "name" | "features">;
     /** The on-device AI; none: no rows for it. */
     explainProvider: ExplanationProvider | undefined;
   },
@@ -140,7 +140,12 @@ export function DictionariesSection(
     <Section
       id="dictionaries"
       label="settings.section.dictionaries"
-      lead={t("settings.dictionaries.lead")}
+      lead={t(
+        // The phone app has no tabs: a link opens as the one browsing page.
+        env.features.appHost
+          ? "settings.dictionaries.leadApp"
+          : "settings.dictionaries.lead",
+      )}
     >
       <div
         style={{

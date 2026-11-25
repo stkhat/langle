@@ -147,6 +147,36 @@ final class ShellScreensTests: XCTestCase {
     XCTAssertNil(tabs.get(welcomeTab.id))
   }
 
+  func test_Words_before_setup_goes_to_the_first_run_in_its_own_tab_and_Words_is_made_again() {
+    let (shell, tabs) = makeShell()
+    shell.select(.words)
+    let step = shell.committed(tab: shell.tabId(.words), url: welcome)
+    let firstRun = tabs.active!
+    XCTAssertNotEqual(firstRun.id, shell.tabId(.words))
+    XCTAssertEqual(step, .firstRunFromTab(.words, url: welcome, tabId: firstRun.id))
+    XCTAssertEqual(shell.screen, .firstRun)
+    XCTAssertEqual(tabs.get(shell.tabId(.words))?.url, words)
+    // Start: the first run's tab is removed, Home shows; Words loads its own page again.
+    tabs.remove(firstRun.id)
+    XCTAssertEqual(shell.handle(.closeTab(firstRun)), .endFirstRun)
+    XCTAssertEqual(shell.screen, .tab(.home))
+    shell.select(.words)
+    XCTAssertEqual(tabs.active?.url, words)
+  }
+
+  func test_a_tab_going_to_welcome_while_the_first_run_is_open_shows_that_first_run() {
+    let (shell, tabs) = makeShell()
+    _ = shell.handle(created(tabs, welcome))
+    let welcomeTab = tabs.active!
+    shell.select(.settings)
+    XCTAssertEqual(
+      shell.committed(tab: shell.tabId(.settings), url: welcome),
+      .firstRunFromTab(.settings, url: welcome, tabId: nil))
+    XCTAssertEqual(shell.screen, .firstRun)
+    XCTAssertEqual(tabs.active?.id, welcomeTab.id)
+    XCTAssertEqual(tabs.get(shell.tabId(.settings))?.url, settings)
+  }
+
   func test_activating_a_kept_tab_or_the_page_shows_it() {
     let (shell, tabs) = makeShell()
     XCTAssertEqual(shell.handle(.activateTab(tabs.get(shell.tabId(.words))!)), .showTab(.words, load: nil))

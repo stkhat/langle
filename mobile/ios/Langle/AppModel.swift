@@ -47,6 +47,7 @@ final class AppModel: ObservableObject {
   /// The site name asked for this address last (one ask per page).
   private var siteAskedFor: URL?
   private var ogSiteName: String?
+  private var siteAsks = 0
 
   /// The view the host's slot sits in (zero size, in the window).
   let hostView = UIView(frame: .zero)
@@ -113,6 +114,9 @@ final class AppModel: ObservableObject {
     browsing.onCommit = { [weak self] url in
       guard let self else { return }
       shell.committed(tab: tabId, url: url.absoluteString)
+      // The new document's own site name: an ask made when the address changed (a back or
+      // forward changes it before the commit) may have read the document it replaced.
+      if url.absoluteString != "about:blank" { askSiteName(url) }
       barScroll.reset()
       barShown = true
     }
@@ -255,6 +259,16 @@ final class AppModel: ObservableObject {
     case .startFirstRun(let address, let tabId):
       firstRun?.close()
       firstRun = URL(string: address).flatMap { appPage(url: $0, tabId: tabId) }
+    case .firstRunFromTab(let tab, let address, let tabId):
+      // The tab's page goes after the commit that asked for it; `page(for:)` makes it again.
+      if let page = tabPages.removeValue(forKey: tab) {
+        page.onCommit = nil
+        DispatchQueue.main.async { page.close() }
+      }
+      if let tabId {
+        firstRun?.close()
+        firstRun = URL(string: address).flatMap { appPage(url: $0, tabId: tabId) }
+      }
     case .endFirstRun:
       break
     case .appSheet(let address, let tabId):
@@ -314,19 +328,25 @@ final class AppModel: ObservableObject {
     canGoForward = forward
     guard let url, url.absoluteString != "about:blank" else { return }
     router.tabs.setURL(shell.browsingTab, url.absoluteString)
-    if url != siteAskedFor {
-      siteAskedFor = url
-      ogSiteName = nil
-      Task { [weak self] in
-        guard let self else { return }
-        let named = await browsing.page.evaluate(world: .langle, source: PageCommands.siteName)
-        guard browsing.page.url == url else { return }
-        ogSiteName = named.hasPrefix("error:") ? nil : named
-        site = SiteName.of(url: url.absoluteString, ogSiteName: ogSiteName)
-      }
-    }
+    if url != siteAskedFor { askSiteName(url) }
     self.title = title.isEmpty ? SiteName.of(url: url.absoluteString, ogSiteName: nil) : title
     site = SiteName.of(url: url.absoluteString, ogSiteName: ogSiteName)
+  }
+
+  /// Asks the page for its `og:site_name`; only the latest ask's answer counts.
+  private func askSiteName(_ url: URL) {
+    siteAskedFor = url
+    ogSiteName = nil
+    siteAsks += 1
+    let ask = siteAsks
+    site = SiteName.of(url: url.absoluteString, ogSiteName: nil)
+    Task { [weak self] in
+      guard let self else { return }
+      let named = await browsing.page.evaluate(world: .langle, source: PageCommands.siteName)
+      guard ask == siteAsks, browsing.page.url == url else { return }
+      ogSiteName = named.hasPrefix("error:") ? nil : named
+      site = SiteName.of(url: url.absoluteString, ogSiteName: ogSiteName)
+    }
   }
 
   /// After the host came back: the pages reload, as a browser restores crashed tabs.

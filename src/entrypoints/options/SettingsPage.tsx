@@ -216,7 +216,13 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
         }}
       />
     ),
-    appearance: <AppearanceSection key="appearance" {...section} />,
+    appearance: (
+      <AppearanceSection
+        key="appearance"
+        {...section}
+        app={deps.env.features.appHost}
+      />
+    ),
     level: <LevelSection key="level" {...section} />,
     highlighting: <HighlightingSection key="highlighting" {...section} />,
     dictionaries: (
