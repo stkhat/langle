@@ -87,9 +87,9 @@ export function SpeakerIcon() {
   );
 }
 
-export function SearchIcon() {
+export function SearchIcon(props: { size?: number }) {
   return (
-    <Outline size={18} stroke={1.8} cap>
+    <Outline size={props.size ?? 18} stroke={1.8} cap>
       <circle cx="11" cy="11" r="6"></circle>
       <path d="M20 20l-4.5-4.5"></path>
     </Outline>
@@ -290,6 +290,48 @@ export function HeartIcon(props: { size: number }) {
   return (
     <Outline size={props.size} stroke={1.8} join>
       <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"></path>
+    </Outline>
+  );
+}
+
+/** The ⋮ of a phone screen's menu (mock MobileWords). */
+export function MoreIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="5" r="1.8"></circle>
+      <circle cx="12" cy="12" r="1.8"></circle>
+      <circle cx="12" cy="19" r="1.8"></circle>
+    </svg>
+  );
+}
+
+/** The › at the end of a phone list's row: it opens a screen. */
+export function ChevronRightIcon() {
+  return (
+    <Outline
+      size={16}
+      stroke={2}
+      cap
+      join
+      color={color.knownLine}
+      style={{ flex: "none", alignSelf: "center" }}
+    >
+      <path d="M9 6l6 6-6 6"></path>
+    </Outline>
+  );
+}
+
+/** The ‹ of a phone screen's back link ("‹ Words", "‹ Settings"). */
+export function BackChevronIcon() {
+  return (
+    <Outline size={24} stroke={2} cap join>
+      <path d="M15 5l-7 7 7 7"></path>
     </Outline>
   );
 }

@@ -4,7 +4,7 @@ import type { ImportResult } from "../../messaging/protocol";
 import { t } from "../../i18n/t";
 import type { send } from "../../messaging/client";
 import { backupFileName, fmt } from "../format/format";
-import { ChevronDownIcon } from "../icons";
+import { ChevronDownIcon, MoreIcon } from "../icons";
 import { usePressAway } from "../press-away";
 import { color } from "../styles";
 
@@ -51,6 +51,7 @@ export interface MoreExports {
 }
 
 const MENU_CSS = `.mi{display:flex;align-items:center;width:100%;height:36px;padding:0 10px;border:0;border-radius:6px;background:none;color:${color.ink};font:inherit;font-size:14px;text-align:left;cursor:pointer}.mi:hover:not(:disabled),.mi:focus-visible{background:${color.surfaceGray}}.mi:disabled{color:${color.muted};cursor:default}`;
+const PHONE_MENU_CSS = `.mi{height:44px;padding:0 12px;border-radius:8px;font-size:15px}.kb{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;padding:0;border-radius:22px;background:none;color:${color.ink};cursor:pointer}`;
 
 /**
  * Export (downloads `langle-backup-YYYY-MM-DD.json`) and Import (a file input →
@@ -66,8 +67,13 @@ export function BackupButtons(props: {
   onImported?(result: ImportResult): void;
   /** With these, Export opens a menu: the words shown as each, then the backup. */
   more?: MoreExports;
+  /**
+   * The phone layout (mock MobileWordsExport): with `more`, one ⋮ button whose menu
+   * also holds Import, in touch sizes.
+   */
+  phone?: boolean;
 }) {
-  const { deps, more } = props;
+  const { deps, more, phone } = props;
   const fileInput = useRef<HTMLInputElement>(null);
   const menuBox = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState(false);
@@ -133,40 +139,75 @@ export function BackupButtons(props: {
     }
   }
 
+  const menuLabel = phone ? t("backup.menu") : t("backup.export");
+  const fileButton = (
+    <button
+      class={phone ? "mi" : props.class}
+      type="button"
+      {...(phone && { role: "menuitem" })}
+      onClick={() => {
+        setMenu(false);
+        fileInput.current?.click();
+      }}
+    >
+      {t("backup.import")}
+    </button>
+  );
   const exportButton = more ? (
-    <div ref={menuBox} style={{ position: "relative" }}>
-      <style>{MENU_CSS}</style>
-      <button
-        class={props.class}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={menu}
-        onClick={() => setMenu(!menu)}
-      >
-        {t("backup.export")}
-        <ChevronDownIcon />
-      </button>
+    <div
+      ref={menuBox}
+      style={{
+        position: "relative",
+        ...(phone && { flex: "none", marginRight: "-10px" }),
+      }}
+    >
+      <style>{phone ? MENU_CSS + PHONE_MENU_CSS : MENU_CSS}</style>
+      {phone ? (
+        <button
+          type="button"
+          class="kb"
+          aria-label={menuLabel}
+          aria-haspopup="menu"
+          aria-expanded={menu}
+          onClick={() => setMenu(!menu)}
+        >
+          <MoreIcon />
+        </button>
+      ) : (
+        <button
+          class={props.class}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={menu}
+          onClick={() => setMenu(!menu)}
+        >
+          {t("backup.export")}
+          <ChevronDownIcon />
+        </button>
+      )}
       {menu && (
         <div
           role="menu"
-          aria-label={t("backup.export")}
+          aria-label={menuLabel}
           style={{
             position: "absolute",
-            top: "46px",
-            right: 0,
+            top: phone ? "48px" : "46px",
+            right: phone ? "2px" : 0,
             zIndex: 5,
-            width: "220px",
+            width: phone ? "240px" : "220px",
             boxSizing: "border-box",
             padding: "6px",
             background: color.raised,
             border: `1px solid ${color.line}`,
-            borderRadius: "10px",
-            boxShadow: "0 8px 24px rgba(20,24,43,0.14)",
+            borderRadius: phone ? "12px" : "10px",
+            boxShadow: phone
+              ? "0 10px 30px rgba(20,24,43,0.18)"
+              : "0 8px 24px rgba(20,24,43,0.14)",
           }}
         >
           <div
             style={{
-              padding: "8px 10px 6px",
+              padding: phone ? "8px 12px 6px" : "8px 10px 6px",
               fontSize: "12px",
               color: color.muted,
             }}
@@ -199,6 +240,7 @@ export function BackupButtons(props: {
           >
             {t("backup.exportBackup")}
           </button>
+          {phone && fileButton}
         </div>
       )}
     </div>
@@ -211,13 +253,7 @@ export function BackupButtons(props: {
   return (
     <>
       {exportButton}
-      <button
-        class={props.class}
-        type="button"
-        onClick={() => fileInput.current?.click()}
-      >
-        {t("backup.import")}
-      </button>
+      {!(phone && more) && fileButton}
       <input
         ref={fileInput}
         type="file"
