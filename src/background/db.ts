@@ -2,7 +2,7 @@ import { Dexie, type EntityTable, type Table } from "dexie";
 import type { Answer } from "../core/explain/answer";
 import type { Meaning } from "../core/meanings";
 import type { Platform, Position } from "../core/url";
-import type { Origin, TermRecord } from "../messaging/protocol";
+import type { Origin, RecentPage, TermRecord } from "../messaging/protocol";
 
 export interface SourceRecord {
   /** `sourceId(platform, url)` */
@@ -169,6 +169,8 @@ export type LangleDb = Dexie & {
   meanings: EntityTable<MeaningRecord, "key">;
   meaningChoices: Table<MeaningChoiceRecord, [string, string, string]>;
   explanations: EntityTable<ExplanationRecord, "key">;
+  /** The phone app's recent pages (`recents-store.ts`); empty elsewhere. */
+  recents: EntityTable<RecentPage, "key">;
 };
 
 export interface LangleDbOptions {
@@ -184,7 +186,7 @@ export interface LangleDbOptions {
  * cloud sync: the occurrences and history sentences already there get this device and
  * the upgrade time (`deviceId`, `addedAt`); terms gain `clearedAt` with nothing to fill
  * (a tombstone without one counts as cleared at its `updatedAt`); the hosts added to
- * "Never run on" are kept with their times.
+ * "Never run on" are kept with their times. Version 8 adds the phone app's recent pages.
  */
 export function openLangleDb(
   name: string,
@@ -221,5 +223,6 @@ export function openLangleDb(
       await tx.table("occurrences").toCollection().modify(recorded);
       await tx.table("historySentences").toCollection().modify(recorded);
     });
+  db.version(8).stores({ recents: "key, openedAt" });
   return db;
 }

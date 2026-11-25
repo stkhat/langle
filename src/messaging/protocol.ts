@@ -149,6 +149,45 @@ export interface KeptExplanation {
   lines: number;
 }
 
+/** A page opened in the phone app, as its content script reports it (`recentsVisit`). */
+export interface RecentVisit {
+  /** The address as the page was opened. */
+  url: string;
+  title: string;
+  /** `og:site_name`, else the host without `www.` / `m.`. */
+  site: string;
+  kind: "video" | "page";
+}
+
+/** Where a video of the phone app is (`recentsProgress`), in seconds. */
+export interface RecentProgress {
+  /** Any form of the video's address; the background normalizes it. */
+  url: string;
+  position: number;
+  duration: number;
+  /** The video's title and channel as its player has them, when it says. */
+  title?: string;
+  channel?: string;
+}
+
+/**
+ * A page or video opened in the phone app, for Home's Continue and Sites (mobile-app.md
+ * "Home"). Kept only where `appHost` exists; never synced or exported.
+ */
+export interface RecentPage extends RecentVisit {
+  /** `normalizeUrl(url)`: one row per page, however it was reached. */
+  key: string;
+  /** A video's channel, when its player says. */
+  channel?: string;
+  /** A video's position and length, in seconds. */
+  position?: number;
+  duration?: number;
+  /** When it was last opened or played. */
+  openedAt: number;
+  /** How often it was opened. */
+  opens: number;
+}
+
 export type Request =
   /** Where this device stands in the first run, with the pair its screen starts from. */
   | { type: "setupStatus" }
@@ -302,6 +341,15 @@ export type Request =
     }
   | { type: "historyStatus" }
   | { type: "clearHistory" }
+  /**
+   * The phone app's recent pages (mobile-app.md "Home"): kept only where `appHost`
+   * exists, and not for a host in "Never run on". A visit counts an opening; progress
+   * moves a video already visited (and makes it the newest).
+   */
+  | { type: "recentsVisit"; page: RecentVisit }
+  | { type: "recentsProgress"; progress: RecentProgress }
+  /** Newest first; empty outside the app. */
+  | { type: "recentsList"; limit: number }
   /**
    * Machine translations the UI made of cleaned English definitions (`cleanDefinition`)
    * into the native language. At most `MAX_CACHED_TRANSLATIONS` items are kept per
@@ -589,6 +637,9 @@ interface ResponseMap {
   recordHistory: { kept: number };
   historyStatus: HistoryStatus;
   clearHistory: null;
+  recentsVisit: null;
+  recentsProgress: null;
+  recentsList: RecentPage[];
   cacheTranslations: null;
   packStatus: PackStatus;
   retryPacks: null;
