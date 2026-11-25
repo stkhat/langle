@@ -1,20 +1,26 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { playwrightImage } from "./playwright-image.ts";
 
 const workflows = join(import.meta.dirname, "../.github/workflows");
+const require = createRequire(import.meta.url);
 
-// ci.yml checks its own image when it runs; this also covers cache.yml, whose cache key
-// must name the same image for ci.yml to hit it.
-it("every workflow names the Playwright image of the installed @playwright/test", () => {
-  const found: string[] = [];
-  for (const file of readdirSync(workflows)) {
-    const text = readFileSync(join(workflows, file), "utf8");
-    for (const [image] of text.matchAll(/mcr\.microsoft\.com\/playwright:\S+/g))
-      found.push(`${file}: ${image}`);
-  }
-  expect(found.length).toBeGreaterThan(0);
-  for (const entry of found)
-    expect(entry).toBe(`${entry.split(":")[0]}: ${playwrightImage()}`);
+it("names the image of the installed @playwright/test", () => {
+  const { version } = require("@playwright/test/package.json") as {
+    version: string;
+  };
+  expect(playwrightImage()).toBe(
+    `mcr.microsoft.com/playwright:v${version}-noble`,
+  );
+});
+
+// The image comes from the lockfile at run time; a literal tag would go stale on the
+// next Playwright bump (Dependabot cannot edit workflows).
+it("no workflow hard-codes a Playwright image tag", () => {
+  for (const file of readdirSync(workflows))
+    expect(readFileSync(join(workflows, file), "utf8")).not.toMatch(
+      /mcr\.microsoft\.com\/playwright:/,
+    );
 });

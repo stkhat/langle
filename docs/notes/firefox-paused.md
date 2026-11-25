@@ -16,7 +16,7 @@ In the pull request "Pause Firefox: Chrome-only build and tests" (restore from g
 - Firefox steps in `ci.yml`, `cross-os.yml` (Playwright's Firefox) and `release.yml` (the Firefox zip)
 - The `/core` entry of `.gitignore` (Firefox's out-of-memory crash dumps in `verify`)
 
-Kept: WXT's `browser` for every extension API, feature detection, `BrowserEnv` with Firefox's names ("Firefox", "Firefox Sync", the AMO review URL in `REVIEW_URLS`), and the Firefox workarounds and comments in `src/` (harmless in Chrome). `scripts/playwright-image.ts` and `scripts/test-lock.ts` stay: CI's image check and `verify` still use them.
+Kept: WXT's `browser` for every extension API, feature detection, `BrowserEnv` with Firefox's names ("Firefox", "Firefox Sync", the AMO review URL in `REVIEW_URLS`), and the Firefox workarounds and comments in `src/` (harmless in Chrome). `scripts/playwright-image.ts` and `scripts/test-lock.ts` stay: CI's `image` job and `verify` still use them.
 
 ## Open issues when it was paused
 From `docs/status.md`:
