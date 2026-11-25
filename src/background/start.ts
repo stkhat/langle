@@ -167,8 +167,7 @@ const SETUP_TAB_KEY = "setupTab";
 
 /**
  * The cloud providers this build can connect to. Google Drive needs the build's Google
- * clients: production has none until the store item's client is registered, so nothing
- * can connect there yet.
+ * client (google-clients.ts); a build without one offers no provider.
  */
 function cloudProviders(): Partial<Record<CloudProviderId, CloudProvider>> {
   const google = googleClients();
