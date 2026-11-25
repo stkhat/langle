@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import en from "./locales/en.json";
-import { interpolate, onUiLocaleChange, setUiLocale, t, uiLocale } from "./t";
+import {
+  formatTag,
+  interpolate,
+  onUiLocaleChange,
+  setUiLocale,
+  t,
+  uiLocale,
+} from "./t";
 
 afterEach(() => setUiLocale("en"));
 
@@ -60,6 +67,28 @@ describe("t in another locale", () => {
     setUiLocale("de", { "cloud.devices": "{count} Geräte" });
     expect(t("cloud.devices", { count: 12345 })).toBe("12.345 Geräte");
     expect(t("settings.languages.dataSize", { size: "6.4" })).toBe("6.4 MB");
+  });
+
+  it("writes digits 0–9 in Arabic, as Chrome's Arabic interface does", () => {
+    expect(
+      new Intl.NumberFormat(formatTag("ar")).resolvedOptions().numberingSystem,
+    ).toBe("latn");
+    // Egyptian Arabic's default digits are Arabic-Indic ("٢").
+    setUiLocale("ar-EG", { "cloud.devices": { other: "{count} أجهزة" } });
+    expect(t("cloud.devices", { count: 12 })).toBe("12 أجهزة");
+  });
+
+  it("chooses the form by the number, however the number is written", () => {
+    setUiLocale("ru", {
+      "dict.sentences": {
+        one: "{count} предложение",
+        few: "{count} предложения",
+        many: "{count} предложений",
+        other: "{count} предложения",
+      },
+    });
+    expect(t("dict.sentences", { count: 5000 })).toBe("5 000 предложений");
+    expect(t("dict.sentences", { count: 1.5 })).toBe("1,5 предложения");
   });
 
   it("tells the listeners when the locale changes, not when it stays", () => {

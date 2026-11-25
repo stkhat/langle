@@ -146,8 +146,14 @@ async function useStartPair(
     (await context.waitForEvent("serviceworker"));
   await (await setupPage(context)).close();
   // What Start stores (`storeChosenPair`, then the setup): all settings with their
-  // times, so browser sync's space is as full as it is after a real setup.
-  const values = mergeSettings({ learningLang, nativeLang });
+  // times, so browser sync's space is as full as it is after a real setup. The
+  // interface stays English, whose texts the tests look for (en.json); following Your
+  // language is first-run.spec.ts's.
+  const values = mergeSettings({
+    learningLang,
+    nativeLang,
+    interfaceLanguage: "en",
+  });
   await worker.evaluate(
     async ([sync, local]) => {
       const { chrome: api } = globalThis as unknown as {

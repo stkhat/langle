@@ -42,6 +42,7 @@ Helpers: `e2e/page.ts` (`highlighted`, `pointOn`, `ON_TIME`, `openArticle`, `sho
 - Before handing work back or pushing, run everything once: `npm run verify` (check, unit, browser on Chromium, builds, E2E; about 110 s, terse output). The pre-push hook refuses a push of a tree `verify` has not passed on.
 - Open pull requests as drafts and mark them "Ready for review" just before merging: only then does GitHub run the tests (`ci.yml`, one Linux job, about 3.5 minutes): the parts of `verify` whose result can differ on Linux (unit, Chromium browser tests, builds, E2E). `cross-os.yml` (macOS and Windows) runs by hand only, e.g. before a release.
 - On CI, a browser test that fails is retried once (`retry` in `vitest.config.ts`), like E2E (`retries` in `playwright.config.ts`). A test that needs its retry again and again is flaky: fix it.
+- E2E tests see Langle in English and look for `en.json`'s texts: the fixture's set-up pair stores `interfaceLanguage: "en"`, as the test browser's Your language (Japanese) would otherwise be the interface's. `first-run.spec.ts` goes through the real setup, so it reads the language a page shows (`pageUiLocale` in `e2e/ui-text.ts`: the browser's before "I speak", Japanese after) and that locale's texts (`uiText`).
 - E2E tests run in parallel, files and tests alike (`fullyParallel`): every test gets its own browser profile, so a test must not depend on another.
 
 ## Notes
