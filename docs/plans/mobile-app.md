@@ -1,4 +1,4 @@
-# Mobile app: implementation plan (M0, spikes S1 and S2, M1, M2 and M3)
+# Mobile app: implementation plan (M0, spikes S1 and S2, M1, M2, M3 and M4)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -26,6 +26,13 @@
 - [x] M3d: the video UI on a phone, and the device checks (branch `claude/mobile-m3d`): the iPhone 17 Simulator (portrait) and the Android emulator (WebView Dev 160), notes/mobile.md "Device checks (M3d)"
 - [x] M3e designed (2026-11-24, with the user): the page's element fullscreen stood in for on the iPhone ("M3e" below)
 - [x] M3e: the app's own fullscreen on the iPhone (branch `claude/mobile-m3e`), notes/mobile.md "The app's own fullscreen (M3e)"
+- [x] M4 designed (2026-11-25, with the user): spec [mobile-app.md](../specs/mobile-app.md) "M4: the app's screens"
+- [ ] M4-0: Words, Settings and the first run drawn in the mock; reviewed by the user
+- [ ] M4a: the Langle sheet's phone layout and "Saved on this phone" (branch `claude/mobile-m4a`)
+- [ ] M4b: Home and the recents store (branch `claude/mobile-m4b`)
+- [ ] M4c-ios and M4c-android: the tab bar, the title bar and the page over Home (branches `claude/mobile-m4c-ios`, `claude/mobile-m4c-android`)
+- [ ] M4d: Words, Settings and the first run in the phone layout (branch `claude/mobile-m4d`)
+- [ ] M4e: the device checks of the whole of M4
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
@@ -573,3 +580,77 @@ Branch `claude/mobile-m3e` from `main`. One agent (the work is one chain through
 - [x] Phone E2E: the fake m.youtube.com with element fullscreen hidden and the stand-in injected, YouTube's button → landscape UI with and without the column. Commit.
 - [x] The iPhone 17 Simulator, check build, the real m.youtube.com (TED `iG9CE55wbtY`, muted): fullscreen with and without the transcript column, compared with `MobileYouTubeLandscape` and its `TranscriptRight` / `TranscriptLeft`; leaving by the button, rotating back and the edge swipe; the error log read and cleared.
 - [x] Docs: notes/mobile.md, development.md if `check.sh` changes, ui.md if anything differs from the mock, status.md one line; tick M3e. `npm run verify -- --skip-firefox`, draft PR "Mobile app M3e: the app's own fullscreen on the iPhone", `gh pr ready`, merge.
+
+## M4: the app's screens (planned 2026-11-25)
+Spec [mobile-app.md](../specs/mobile-app.md) "M4: the app's screens". Every M4 branch starts from `main` and runs `npm run verify -- --skip-firefox` (no Firefox tests in M4, the user 2026-11-25).
+
+**Running order** (at most three agents at once; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`):
+- Wave 1: M4-0 (the parent session, in the mock), M4a, M4b.
+- Wave 2: M4c-ios, M4c-android (after M4b is merged: they load `home.html`), M4d (after M4-0 is approved and M4a is merged).
+- M4e last, after every other M4 branch is merged.
+- Device steps: an agent writes and builds everything, checks the other device is off (`pgrep -fl qemu-system`, `xcrun simctl list devices booted`), then **stops and reports** that it is ready for the device. The parent resumes it when the device is free. Shut the device down when done.
+
+**Every UI task**: render it at 390 × 844 (Playwright, `isMobile`, `hasTouch`) and compare with the mock's board before committing (layout, copy, colors, defaults). Put the screenshots next to the boards in the PR.
+
+### M4-0: the mock (the parent session)
+- On the mock's `Mobile app` page, draw:
+  - `MobileWords` (the list: search, filters as chips, rows with the word, its meaning and status) and `MobileWordsDetail` (a word's details pushed over the list, ‹ Words);
+  - `MobileSettings` (the list of sections) and `MobileSettingsSection` (one section, ‹ Settings);
+  - `MobileFirstRun` (consent), `MobileFirstRunLanguages`, `MobileFirstRunPending`;
+  - the "Saved on this phone" state on `MobileStart` and `MobileLangleSheet` (no Drive connected).
+- Fix the `mAppScope` note, update ui.md "Mobile app", and ask the user to review. Their comments are handled before M4d starts.
+
+### M4a: the Langle sheet's phone layout and "Saved on this phone" (one agent, Opus)
+Branch `claude/mobile-m4a`.
+
+**Files**: `src/core/browser-env.ts` (+ test); every `syncName` user (`src/entrypoints/popup/`, `src/entrypoints/options/sections/Sync.tsx`, `SettingsPage.tsx`, `src/entrypoints/welcome/`); `src/i18n/locales/en.json`; `src/entrypoints/popup/Popup.tsx` and a new `src/entrypoints/popup/Subtitles.tsx`; a shared `src/ui/phone-layout.ts` (the touch-mode hook for pages, from `src/content/touch/touch-mode.ts`'s query); their browser tests.
+
+**Tasks**
+- [ ] **`BrowserEnv.sync`**: `{ kind: "browser", name }` (Chrome sync / Firefox Sync, as now) or `{ kind: "device" }` where `appHost` exists (`g` is injectable, as for `fileSystemAccess`). Replace `syncName` everywhere. Unit tests: Chrome and Firefox unchanged, `device` with an `appHost` on the global. Commit.
+- [ ] **The `device` strings**: `popup.sync.savedDevice` "Saved on this phone · {when}"; the first run's consent line on what is sent (says the data stays on the phone); Settings leaves out the browser-sync switch and the cloud-sync rows with `device`. Browser tests for both kinds. Commit.
+- [ ] **The phone layout hook** (`usePhoneLayout()`: touch mode on the page, watched). Commit.
+- [ ] **The sheet's phone layout**: full width, 44 px targets, 52 × 32 switches, sizes and spacing as `MobileLangleSheet`. Desktop unchanged (its tests pass untouched). Commit.
+- [ ] **Subtitles section** on a video (the popup already knows the tab's platform): the rows of the spec, writing the settings (`phoneSubtitlePosition`, `subtitleTranslation`, the transcript setting the video UI reads, `phoneFullscreenTranscript`, `subtitleSize`, `subtitleOpacity` only with In video). Only in the phone layout (on the desktop these stay in the player's menu). Browser tests: each control writes its setting; Background shows only with In video. Commit.
+- [ ] Render at 390 × 844 against `MobileLangleSheet` and `MobileLangleSheetVideo`, fix differences. Commit.
+- [ ] **Docs**: ui.md if anything differs (mock first); architecture.md "Browser differences" for `sync`; status.md one line; tick M4a. `verify -- --skip-firefox`, draft PR "Mobile app M4a: the Langle sheet on a phone", `gh pr ready`.
+
+### M4b: Home and the recents store (one agent, Opus)
+Branch `claude/mobile-m4b`.
+
+**Files**: `src/background/db.ts` (a new version with `recents`), a new `src/background/recents-store.ts` (+ browser test), `src/background/handlers.ts`, `src/messaging/protocol.ts`; the reporting in the content scripts (`src/content/video/session.ts` for position, the article and video entrypoints for visits), in a new `src/content/recents.ts`; a new entrypoint `src/entrypoints/home/` (`index.html`, `main.tsx`, `Home.tsx`, + browser test) included only in `langle-app`; `src/app/shim/` for `appHost.openPage` if it is not there; `tests/app-manifest.test.ts` if the build's pages are listed there.
+
+**Tasks**
+- [ ] **The store**: `recents` (key the normalized URL; `url`, `title`, `site`, `kind`, `position?`, `duration?`, `openedAt`, `opens`), `visit`, `progress`, `list(limit)`, the newest 50 kept. Browser test with fake-indexeddb as the other stores. Commit.
+- [ ] **Messages** `recents.visit`, `recents.progress`, `recents.list`; the background handles them only where `appHost` exists. Unit tests: without `appHost`, nothing is kept. Commit.
+- [ ] **Reporting**: content scripts send a visit on load (title, `og:site_name` or the host) and, on a video, the position every 10 s, on pause and on `pagehide`; only where `appHost` exists. Tests: nothing sent without it. Commit.
+- [ ] **`appHost.openPage(url)`**: a shim call the shells answer by opening the page over Home. Add it to the protocol's golden files and to `reference-native.ts`. Commit.
+- [ ] **Home** as `MobileStart`: header, the search field (the spec's parsing; unit tests for addresses and searches), counts and the saved line (M4a's `device` string if merged, else the same key added here; one of the two branches rebases), Continue, Sites. Browser tests. Render against `MobileStart`. Commit.
+- [ ] **Docs**: ui.md if needed, architecture.md (the recents store, app only), status.md, tick M4b. `verify -- --skip-firefox`, draft PR "Mobile app M4b: Home and recent pages", `gh pr ready`.
+
+### M4c-ios and M4c-android: the tab bar, the title bar and the page over Home (two agents, Opus)
+Branches `claude/mobile-m4c-ios`, `claude/mobile-m4c-android`, from `main` with M4b merged. They share no files and write their code in parallel; the device steps take turns (iOS first).
+
+**Files**: iOS `mobile/ios/Langle/` (`LangleApp.swift`, `AppModel.swift`, new `TabBar` / `TitleBar` views, `CheckCommands.swift` for the named commands `siteName` and `pauseMedia`), `LangleCore` for the testable parts (the site name, back's order, tab switching from router actions) + XCTest. Android `mobile/android/app/` (`MainActivity.kt` split into a screen controller, title bar and tab bar views) and `mobile/android/core/` + JUnit. `docs/development.md` "Mobile app" if commands change.
+
+**Tasks** (each platform)
+- [ ] **The testable core**: the site name (`og:site_name`, else the host without `www.` / `m.`), back's order (history, then Home), the screen state (first run, a tab, a page over Home), `tabs.create` / `openOptionsPage` → the Words / Settings tab, `appHost.openPage` → the page. Unit tests first. Commit.
+- [ ] **Tabs**: Home, Words, Settings as app-origin pages (one each, kept), the native tab bar (icons and labels as `MobileStart`). First run: `welcome.html` full screen until setup is done, then Home. Remove the address row and the Langle button. Commit.
+- [ ] **The page over Home and the title bar**: ‹ · title and site · L · ⋮ (Forward, Share, Copy link, Open in another browser); a tap on the title edits it; the bar slides away on scrolling down and when a sheet opens, back on scrolling up; ‹ shows Home and pauses the page's media; back goes through the history, then Home. Commit.
+- [ ] **The sheet frame**: L opens `popup.html`; in landscape at most 520 px wide, centred; the sheet's word list and settings buttons switch tabs and close the sheet. Commit.
+- [ ] Build (`check.sh build check`), native tests pass. **Report "ready for the device"**. On the device with the check build: first run → Home → search → a video (TED `iG9CE55wbtY`, muted) and the E2E article → the title bar (scroll, ⋮, editing) → L → the sheet's Subtitles rows change the video → Words and Settings → ‹ and Continue. Screenshots next to `MobileStart`, `MobileYouTube`, `MobileArticle`, `MobileLangleSheet(Video)`. The error log read, every entry fixed or explained, cleared.
+- [ ] **Docs**: notes/mobile.md (what the device showed), ui.md if anything differs (mock first), status.md, tick the platform. `verify -- --skip-firefox`, draft PR "Mobile app M4c (iOS|Android): the app's screens", `gh pr ready`.
+
+### M4d: Words, Settings and the first run in the phone layout (one agent, Opus)
+Branch `claude/mobile-m4d`, from `main` with M4a merged and M4-0 approved.
+
+**Files**: `src/entrypoints/wordlist/` (`WordList.tsx`, `Rows.tsx`, `DetailsPanel.tsx`), `src/entrypoints/options/` (`SettingsPage.tsx`, `rows.tsx`), `src/entrypoints/welcome/Welcome.tsx`, their browser tests; M4a's `usePhoneLayout()`.
+
+**Tasks**
+- [ ] **Words** as `MobileWords` / `MobileWordsDetail`: the list, a tap pushes the details, ‹ Words goes back; the same data hooks (`useWordListData`). Desktop unchanged. Commit.
+- [ ] **Settings** as `MobileSettings` / `MobileSettingsSection`: the sections' list, one section at a time, ‹ Settings. The rows of each section as on the desktop, sized for touch. Commit.
+- [ ] **First run** as `MobileFirstRun*`. Commit.
+- [ ] Render each at 390 × 844 against its board, fix differences. Commit.
+- [ ] **Docs**: ui.md if needed, status.md, tick M4d. `verify -- --skip-firefox`, draft PR "Mobile app M4d: Words, Settings and first run on a phone", `gh pr ready`.
+
+### M4e: the device checks of the whole of M4 (one agent, Opus)
+From `main` with every M4 branch merged. The emulator, then the Simulator, check build, fresh install: the M4c device steps again plus Words (search, a word's details, a source link opening the page over Home), Settings (each section opens; the phone settings round-trip with the sheet) and the first run's phone layout. Screenshots next to every M4 board. Fixes go in this branch. notes/mobile.md, status.md, tick M4e. Draft PR "Mobile app M4e: device checks", `gh pr ready`.
