@@ -34,7 +34,7 @@
 - [x] M4c-android: the same on Android (branch `claude/mobile-m4c-android`), notes/mobile.md "Device checks (M4c, Android)"
 - [x] M4d: Words, Settings and the first run in the phone layout (branch `claude/mobile-m4d`)
 - [x] M4e: the device checks of the whole of M4 (branch `claude/mobile-m4e`), notes/mobile.md "Device checks of M4 (M4e, Android)" and "(M4e, iOS)", with "Open items for M4"
-- [ ] M4f: export and import in the app (branch `claude/mobile-m4f`): `appHost.shareFile` and the share sheet, the shells' file pickers
+- [x] M4f: export and import in the app (branch `claude/mobile-m4f`): `appHost.shareFile` and the share sheet (with Save to device on Android), the shells' file pickers; notes/mobile.md "Device checks (M4f, Android)" and "(M4f, iOS)"
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.

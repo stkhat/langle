@@ -294,7 +294,8 @@ The iPhone 18 Pro Simulator (iOS 27.2), the check build on a fresh install (`-re
 - **Not seen on iOS**: subtitles missing on an early load.
 
 ### Open items for M4 (both platforms)
-- **Export, backup and import do nothing in the app.** Words ⋮'s Anki, CSV, Backup (JSON) and Import and Settings' Backup Export and Import: the pages download through a blob link and pick a file with `<input type=file>`; neither shell saves or shares a download (iOS now drops it rather than showing it), and Import's file picker is unchecked on iOS (WebKit usually shows its own) and does nothing on Android. Needs a design decision: a save or share sheet for the file and a file picker in the shells. Built in M4f (the share sheet and the system's file picker); see "Device checks (M4f, Android)" and "Device checks (M4f, iOS)".
+- ~~**Export, backup and import do nothing in the app.**~~ Done in M4f: the share sheet (with Save to device on Android) and the system's file picker; see "Device checks (M4f, Android)" and "Device checks (M4f, iOS)".
+- **"Last export: just now" is set when the share sheet opens**, also when the user closes it without sharing or saving. Android's chooser does not say whether the file went anywhere, so both shells keep it this way (iOS could tell through `completionWithItemsHandler`).
 - **Subtitles sometimes missing on an early load** (Android, 2 loads in 3 while the emulator was overloaded, one with two pre-roll ads; a reload brought them). Not reproduced in six later Android loads or on iOS. Most likely the adapter gives up its tries before the player answers.
 - **Differs from the mock**:
   - The Langle sheet is always at full height (`MobileLangleSheet` sizes it to its content); on Android its last line is cut at 90%.
