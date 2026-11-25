@@ -58,6 +58,8 @@ function start(
     pollMs: 20,
     ...adapterOptions,
   });
+  // As the session does while the site is on.
+  adapter.setPageGate(true);
 }
 
 /** Keeps the next `count` fetchTimedtext calls from the page script (see holdBackPageCalls). */

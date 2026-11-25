@@ -95,23 +95,35 @@ describe("the page script's gate", () => {
     expect(take).not.toHaveBeenCalled();
   });
 
-  it("keeps on once on", async () => {
+  it("goes off again when told to wait (the site switched off), and on again", async () => {
     tellPage(channel, "on");
+    await expect.poll(() => gate.off).toBe(false);
     tellPage(channel, "wait");
-    await delivered();
+    await expect.poll(() => gate.off).toBe(true);
     const take = vi.fn();
+    gate.whenOn(take);
+    tellPage(channel, "on");
+    await expect.poll(() => gate.off).toBe(false);
+    expect(take).not.toHaveBeenCalled();
     gate.whenOn(take);
     expect(take).toHaveBeenCalledOnce();
   });
 
-  it("is on once the content script's bridge exists", async () => {
+  it("opens and closes only when the content script's bridge says so", async () => {
     const take = vi.fn();
     gate.whenOn(take);
     const bridge = createPageBridge<{ type: "ping" }, { ping: null }, string>({
       channel,
       isEvent: (data): data is string => typeof data === "string",
     });
-    await expect.poll(() => take.mock.calls.length).toBe(1);
+    await delivered();
+    expect(take).not.toHaveBeenCalled();
+    bridge.setGate(false);
+    await expect.poll(() => gate.off).toBe(true);
+    bridge.setGate(true);
+    await expect.poll(() => gate.off).toBe(false);
+    gate.whenOn(take);
+    expect(take).toHaveBeenCalledOnce();
     bridge.dispose();
   });
 });
