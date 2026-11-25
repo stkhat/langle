@@ -1,8 +1,10 @@
+import LangleCore
 import SwiftUI
 
-/// The minimal shell of milestone M2 (docs/plans/mobile-app.md): an address field, back and
-/// forward, one browsing page, and the Langle button opening `popup.html` in a sheet. No styling
-/// beyond the system's; the app's real screens come in M4.
+/// The app's screens (docs/plans/mobile-app.md M4c): Home, Words and Settings under the tab bar,
+/// a page opened from Home under its title bar, the first run full screen, and app pages in the
+/// sheet frame over the page. Every page made stays in the window, hidden while another screen
+/// shows, so a page left for Home keeps its place.
 ///   xcrun simctl launch booted dev.langle.app [-url <page>] [-reset 1]
 @main
 struct LangleApp: App {
@@ -19,88 +21,145 @@ struct LangleApp: App {
 
 struct ShellView: View {
   @ObservedObject var model: AppModel
-  @State private var typed = ""
-  @FocusState private var editing: Bool
 
   var body: some View {
-    VStack(spacing: 0) {
-      if !model.fullscreen { addressRow }
+    ZStack {
+      HostSlot(view: model.hostView).frame(width: 0, height: 0)
       if model.started {
-        PageContainer(page: model.browsing.page.view, host: model.hostView)
-          .ignoresSafeArea(edges: model.fullscreen ? .all : [])
+        tabsScreen.shown(isTab)
+        pageScreen.shown(model.screen == .page)
+        if let firstRun = model.firstRun {
+          PageContainer(page: firstRun.page.view)
+            .ignoresSafeArea()
+            .shown(model.screen == .firstRun)
+        }
       } else {
-        Spacer()
+        Color.white.ignoresSafeArea()
+      }
+      if let sheet = model.sheet {
+        SheetFrame(sheet: sheet, close: model.closeSheet).zIndex(1)
       }
     }
+    .animation(.easeOut(duration: 0.25), value: model.sheet?.id)
     // The app's own fullscreen: the page alone, no status bar or home indicator.
     .statusBarHidden(model.fullscreen)
     .persistentSystemOverlays(model.fullscreen ? .hidden : .automatic)
-    .onChange(of: model.address) { _, address in
-      if !editing { typed = address }
-    }
-    .sheet(item: $model.sheet, onDismiss: model.sheetDismissed) { sheet in
-      PageContainer(page: sheet.context.page.view, host: nil)
-        .ignoresSafeArea(edges: .bottom)
-        .presentationDragIndicator(.visible)
+  }
+
+  private var isTab: Bool {
+    if case .tab = model.screen { return true }
+    return false
+  }
+
+  private var currentTab: AppTab? {
+    if case .tab(let tab) = model.screen { return tab }
+    return nil
+  }
+
+  /// Home, Words or Settings: the app page under the status bar (its background behind it), the
+  /// tab bar under it.
+  private var tabsScreen: some View {
+    VStack(spacing: 0) {
+      ZStack {
+        ForEach(AppTab.allCases, id: \.self) { tab in
+          if let page = model.tabPages[tab] {
+            PageContainer(page: page.page.view).shown(currentTab == tab)
+          }
+        }
+      }
+      .ignoresSafeArea(edges: .top)
+      TabBar(current: currentTab, select: model.select)
     }
   }
 
-  private var addressRow: some View {
+  private var edgeBack: (() -> Void)? {
+    guard model.edgeBackEnabled else { return nil }
+    let model = self.model
+    return { model.back() }
+  }
+
+  /// A page over Home: the title bar (it slides away while the page scrolls down), the page.
+  private var pageScreen: some View {
     VStack(spacing: 0) {
-      HStack(spacing: 12) {
-        Button(action: model.goBack) { Image(systemName: "chevron.backward") }
-          .disabled(!model.canGoBack)
-          .accessibilityLabel("Back")
-        Button(action: model.goForward) { Image(systemName: "chevron.forward") }
-          .disabled(!model.canGoForward)
-          .accessibilityLabel("Forward")
-        TextField("Address", text: $typed)
-          .textFieldStyle(.roundedBorder)
-          .keyboardType(.URL)
-          .textInputAutocapitalization(.never)
-          .autocorrectionDisabled()
-          .submitLabel(.go)
-          .focused($editing)
-          .onSubmit { model.go(typed) }
-        Button("Langle", action: model.openPopup)
-          .disabled(model.refusal != nil)
+      if model.refusal != nil, !model.fullscreen {
+        Text(model.refusal ?? "").font(.footnote).foregroundStyle(Palette.muted).padding(8)
       }
-      .padding(.horizontal)
-      .padding(.vertical, 8)
-      if let refusal = model.refusal {
-        Text(refusal).font(.footnote).foregroundStyle(.secondary).padding(.horizontal)
+      if model.barShown, !model.fullscreen {
+        TitleBar(model: model).transition(.move(edge: .top))
       }
+      PageContainer(page: model.browsing.page.view, edgeBack: edgeBack)
+      .ignoresSafeArea(edges: model.fullscreen ? .all : .bottom)
     }
+    // White under the status bar too, as the bar's own.
+    .background { Color.white.ignoresSafeArea() }
+    .animation(.easeOut(duration: 0.2), value: model.barShown)
   }
 }
 
-/// A page's view, and the extension host's zero-size slot next to it (in the hierarchy).
+extension View {
+  /// A screen kept in the window while another one shows.
+  func shown(_ on: Bool) -> some View {
+    opacity(on ? 1 : 0).allowsHitTesting(on).accessibilityHidden(!on)
+  }
+}
+
+/// The view the extension host's zero-size slot sits in.
+struct HostSlot: UIViewRepresentable {
+  let view: UIView
+  func makeUIView(context: Context) -> UIView { view }
+  func updateUIView(_ view: UIView, context: Context) {}
+}
+
+/// A page's view. With `edgeBack`, a swipe from the left edge calls it: on a page's first history
+/// entry, where WebKit's own back swipe has nowhere to go (a pan on the container; spike M3e saw
+/// UIScreenEdgePanGestureRecognizer never fire on the Simulator).
 struct PageContainer: UIViewRepresentable {
   let page: UIView
-  let host: UIView?
+  var edgeBack: (() -> Void)?
+
+  func makeCoordinator() -> EdgeBack { EdgeBack() }
 
   func makeUIView(context: Context) -> UIView {
     let container = UIView()
-    update(container)
+    let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(EdgeBack.pan(_:)))
+    pan.delegate = context.coordinator
+    container.addGestureRecognizer(pan)
+    update(container, context.coordinator)
     return container
   }
 
-  func updateUIView(_ container: UIView, context: Context) { update(container) }
+  func updateUIView(_ container: UIView, context: Context) { update(container, context.coordinator) }
 
-  private func update(_ container: UIView) {
+  private func update(_ container: UIView, _ coordinator: EdgeBack) {
+    coordinator.action = edgeBack
     if page.superview !== container {
-      // Another page's view (the container showed another page before): it goes.
-      for view in container.subviews where view !== host { view.removeFromSuperview() }
+      container.subviews.forEach { $0.removeFromSuperview() }
       page.removeFromSuperview()
       page.frame = container.bounds
       page.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.insertSubview(page, at: 0)
+      container.addSubview(page)
     }
-    if let host, host.superview !== container {
-      host.removeFromSuperview()
-      host.frame = .zero
-      container.addSubview(host)
+  }
+
+  @MainActor
+  final class EdgeBack: NSObject, UIGestureRecognizerDelegate {
+    var action: (() -> Void)?
+
+    @objc func pan(_ pan: UIPanGestureRecognizer) {
+      guard pan.state == .ended, let view = pan.view else { return }
+      let moved = pan.translation(in: view)
+      if moved.x >= 80, abs(moved.y) < moved.x { action?() }
     }
+
+    func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
+      guard action != nil, let view = recognizer.view else { return false }
+      return recognizer.location(in: view).x <= 24
+    }
+
+    func gestureRecognizer(
+      _ recognizer: UIGestureRecognizer,
+      shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+    ) -> Bool { true }
   }
 }
 

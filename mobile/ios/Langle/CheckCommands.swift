@@ -9,7 +9,7 @@
   ///   read and cleared through the extension host's `browser.storage`;
   /// - `eval`: runs `Documents/eval.json` (`{ "target": "host" | "page" | "langle" | "sheet",
   ///   "source": "<function body>" }`) and logs what it returns;
-  /// - `state`: the tabs, the sheet and whether the host said hello, and whether the page is in
+  /// - `state`: the screen, the title bar's text, whether it shows, the tabs, the sheet and whether the host said hello, and whether the page is in
   ///   fullscreen, the orientation and the window size.
   @MainActor
   final class CheckCommands {
@@ -55,7 +55,7 @@
         case "state":
           let tabs = model.router.tabs.all.map { "\($0.id)\($0.active ? "*" : "") \($0.url)" }
           say(
-            "state host=\(model.host?.isReady ?? false) tabs=[\(tabs.joined(separator: ", "))] sheet=\(model.sheet?.context.page.url?.absoluteString ?? "none") page=\(model.browsing.page.url?.absoluteString ?? "none") fullscreen=\(model.fullscreen) \(Orientation.current)"
+            "state screen=\(model.screen) title=\"\(model.title)\" site=\"\(model.site)\" bar=\(model.barShown) back=\(model.canGoBack) host=\(model.host?.isReady ?? false) tabs=[\(tabs.joined(separator: ", "))] sheet=\(model.sheet?.context.page.url?.absoluteString ?? "none") page=\(model.browsing.page.url?.absoluteString ?? "none") fullscreen=\(model.fullscreen) \(Orientation.current)"
           )
         default:
           say("unknown command \(command)")

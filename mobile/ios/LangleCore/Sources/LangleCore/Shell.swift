@@ -79,6 +79,9 @@ public final class Shell {
 
   public func tabId(_ tab: AppTab) -> Int { tabIds[tab]! }
 
+  /// The first run's tab is open (shown, or kept while another screen shows).
+  public var firstRunOpen: Bool { firstRunTab != nil }
+
   /// The browsing page's address, as its last commit said.
   public var pageURL: String? { hasPage ? tabs.get(browsingTab)?.url : nil }
 

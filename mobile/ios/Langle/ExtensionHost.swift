@@ -18,6 +18,7 @@ final class ContextPage: PageDelegate {
   var onCommit: ((URL) -> Void)?
   var onProcessGone: (() -> Void)?
   var onFullscreen: ((Bool) -> Void)?
+  var onScroll: ((Double) -> Void)?
 
   init(
     engine: BrowsingEngine, profile: PageProfile, router: Router, world: ScriptWorld,
@@ -74,6 +75,10 @@ final class ContextPage: PageDelegate {
 
   func page(_ page: Page, fullscreen: Bool) {
     onFullscreen?(fullscreen)
+  }
+
+  func page(_ page: Page, scrolledTo y: Double) {
+    onScroll?(y)
   }
 }
 
