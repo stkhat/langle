@@ -56,6 +56,8 @@ export function createTestPage(
     refreshedResponse?: unknown;
     /** The player lists its caption tracks (and takes a track) only after this long. */
     tracksListedAfterMs?: number;
+    /** The player sends each caption request only this long after a track is set. */
+    requestDelayMs?: number;
     shorts?: boolean;
     /** The caption track an earlier load left on (the player starts with it, unrequested). */
     storedTrack?: { languageCode: string; kind: string };
@@ -243,6 +245,7 @@ function install(
     playerResponse?: unknown;
     refreshedResponse?: unknown;
     tracksListedAfterMs?: number;
+    requestDelayMs?: number;
     playerId?: string;
   },
   shorts: Pick<TestPage, "actionBar" | "commentsPanel">,
@@ -255,6 +258,7 @@ function install(
     refreshedResponse: options.refreshedResponse,
     captionsOn: options.captionsOn,
     tracksListedAfterMs: options.tracksListedAfterMs,
+    requestDelayMs: options.requestDelayMs,
     playerId: options.playerId,
   });
   const fake = player as TestPage["player"] & {
