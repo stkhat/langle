@@ -121,6 +121,7 @@ private class WebViewPage(
     }
     web.webViewClient = Client()
     web.webChromeClient = Chrome()
+    web.setOnScrollChangeListener { _, _, y, _, oldY -> if (y != oldY) delegate.onScroll(this, y - oldY, y) }
     if (langle) {
       WebViewCompat.addWebMessageListener(web, WebViewEngine.BRIDGE, rules, world(web, bridgeWorld)) {
         _, message, _, isMainFrame, proxy ->
@@ -238,6 +239,10 @@ private class WebViewPage(
       lastUrl = url
     }
 
+    override fun onPageFinished(view: WebView, url: String) {
+      if (view === web) delegate.onLoaded(this@WebViewPage, url)
+    }
+
     override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
       lastUrl = url
       delegate.onNavigate(this@WebViewPage, url)
@@ -265,6 +270,10 @@ private class WebViewPage(
 
     override fun onHideCustomView() {
       delegate.onExitFullscreen(this@WebViewPage)
+    }
+
+    override fun onReceivedTitle(view: WebView, title: String?) {
+      if (view === web && title != null) delegate.onTitle(this@WebViewPage, title)
     }
 
     override fun onCloseWindow(window: WebView) {

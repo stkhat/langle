@@ -29,6 +29,9 @@ class ContextPage(
 
   var onDocument: ((url: String) -> Unit)? = null
   var onNavigate: ((url: String) -> Unit)? = null
+  var onLoaded: ((url: String) -> Unit)? = null
+  var onTitle: ((title: String) -> Unit)? = null
+  var onScroll: ((dy: Int, scrollY: Int) -> Unit)? = null
   var onLeaveApp: ((url: String) -> Unit)? = null
   var onClose: (() -> Unit)? = null
   var onProcessGone: (() -> Unit)? = null
@@ -73,6 +76,18 @@ class ContextPage(
 
   override fun onNavigate(page: Page, url: String) {
     onNavigate?.invoke(url)
+  }
+
+  override fun onLoaded(page: Page, url: String) {
+    onLoaded?.invoke(url)
+  }
+
+  override fun onTitle(page: Page, title: String) {
+    onTitle?.invoke(title)
+  }
+
+  override fun onScroll(page: Page, dy: Int, scrollY: Int) {
+    onScroll?.invoke(dy, scrollY)
   }
 
   override fun onLeaveApp(page: Page, url: String) {

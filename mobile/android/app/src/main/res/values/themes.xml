@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Langle" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Light bars over the shell's light screens (edge to edge: the shell pads for them). -->
+    <style name="Theme.Langle" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:colorAccent">#FF0B7F65</item>
+    </style>
 </resources>
