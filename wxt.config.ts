@@ -13,9 +13,13 @@ export default defineConfig({
   srcDir: "src",
   manifestVersion: 3,
   // The data sources and licenses page's data (`virtual:langle-notices`), and the
-  // bundled packages' licenses.
-  vite: () => ({
-    plugins: [preact(), noticesPlugin(), licenses.plugin()],
+  // bundled packages' licenses. The phone app also lists its translation models.
+  vite: ({ browser }) => ({
+    plugins: [
+      preact(),
+      noticesPlugin({ models: browser === "langle-app" }),
+      licenses.plugin(),
+    ],
   }),
   manifest: ({ mode }) => {
     return {

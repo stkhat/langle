@@ -12,7 +12,7 @@ export const MODEL_FORMAT = 1;
 export const MODEL_MANIFEST = "manifest.json";
 
 /** One part of a model file, in a model pack (and in its npm package). */
-export interface ModelFilePart {
+interface ModelFilePart {
   readonly path: string;
   readonly size: number;
   readonly sha256: string;
@@ -30,7 +30,7 @@ export interface ModelFile {
  * model, the lexical shortlist, and one vocabulary shared by both languages or one per
  * language.
  */
-export type ModelFiles = {
+type ModelFiles = {
   readonly model: ModelFile;
   readonly lex: ModelFile;
 } & (

@@ -1,17 +1,22 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { NoticesData } from "../src/core/notices.ts";
-import { NOTICES_DIR, PACKS } from "./data/formats.ts";
+import { MODEL_PACKS, NOTICES_DIR, PACKS } from "./data/formats.ts";
 
 /**
  * What the extension's data sources and licenses page lists: every pack with its
  * license, changes and sources (as `scripts/data/formats.ts` records them for the npm
  * packages), and the full text of each notice a source's license asks every copy to
- * carry, once.
+ * carry, once. The phone app's build also lists the translation models its on-device
+ * translator downloads (`models`).
  */
-export function noticesData(): NoticesData {
+export function noticesData({ models = false } = {}): NoticesData {
   const notices = new Map<string, { title: string; text: string }>();
-  const packs = Object.values(PACKS).map((info) => ({
+  const listed = [
+    ...Object.values(PACKS),
+    ...(models ? Object.values(MODEL_PACKS) : []),
+  ];
+  const packs = listed.map((info) => ({
     package: info.package,
     title: info.title,
     license: { name: info.license.name, url: info.license.url },

@@ -35,8 +35,7 @@ export interface PackLock {
   readonly v: 1;
   /** URL templates with {package}, {version} and {file}, tried in order. */
   readonly mirrors: readonly string[];
-  readonly packs: Readonly<Record<PackName, PackLockEntry>> &
-    Readonly<Partial<Record<ModelPackName, PackLockEntry>>>;
+  readonly packs: Readonly<Record<PackName | ModelPackName, PackLockEntry>>;
   /**
    * The language pairs offered (those passing the quality gate): learning language →
    * native languages, the default first.
