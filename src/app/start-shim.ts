@@ -1,3 +1,4 @@
+import type { AppTranslator } from "../core/app-host";
 import { createBridge } from "./bridge/bridge";
 import { nativeTransport } from "./bridge/native-transport";
 import { installShim } from "./shim/install";
@@ -11,6 +12,17 @@ interface LangleAppInfo {
   origin: string;
   manifest: Record<string, unknown>;
   context: string;
+  /**
+   * `{ models: "packs" }` (Android) or `{ models: "system" }` (iOS) once the app has a
+   * translation host (mobile-translation.md "The bridge"); left out before.
+   */
+  translator?: { models?: unknown };
+}
+
+/** The app info's translator, when it is one the shim knows. */
+function translatorOf(info: LangleAppInfo): AppTranslator | undefined {
+  const models = info.translator?.models;
+  return models === "packs" || models === "system" ? { models } : undefined;
 }
 
 /** The id the extension's code sees as `browser.runtime.id`. */
@@ -31,10 +43,12 @@ export function startShim(): void {
     return;
   }
   const bridge = createBridge(transport);
+  const translator = translatorOf(info);
   installShim(bridge, {
     id: APP_ID,
     origin: info.origin,
     manifest: info.manifest,
+    ...(translator && { translator }),
   });
   const hello = () => {
     bridge

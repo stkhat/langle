@@ -1,3 +1,4 @@
+import { NEW_TAB } from "../external-link";
 import type { CSSProperties, JSX } from "preact";
 import type { TermKind, WordStatus } from "../../core/classify";
 import { t } from "../../i18n/t";
@@ -744,8 +745,7 @@ function DictionaryLinks(props: Pick<CommonProps, "dictionaries">) {
           <a
             key={d.href}
             href={d.href}
-            target="_blank"
-            rel="noopener"
+            {...NEW_TAB}
             style={{
               display: "inline-flex",
               alignItems: "center",

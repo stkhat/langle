@@ -1,0 +1,51 @@
+{
+  "v": 1,
+  "from": "en",
+  "to": "tr",
+  "gemmPrecision": "int8shiftAlphaAll",
+  "files": {
+    "lex": {
+      "size": 3261300,
+      "sha256": "3aba0be842bd4c192659c781e6fdce8eb9b2b1fff29a40d22f75da369d59f46f",
+      "parts": [
+        {
+          "path": "lex.50.50.entr.s2t.bin",
+          "size": 3261300,
+          "sha256": "3aba0be842bd4c192659c781e6fdce8eb9b2b1fff29a40d22f75da369d59f46f"
+        }
+      ]
+    },
+    "model": {
+      "size": 17141051,
+      "sha256": "ea3cd4ee09de190df265c78d84260e277a9a8a3ddff05eb55d72afe7fc0fdbf4",
+      "parts": [
+        {
+          "path": "model.entr.intgemm.alphas.bin.1",
+          "size": 8388608,
+          "sha256": "efbac230b222dbbc10ff5f191e799935a5b37891f938e3f5143e6b723253ca53"
+        },
+        {
+          "path": "model.entr.intgemm.alphas.bin.2",
+          "size": 8388608,
+          "sha256": "05269dba7434d3b2679e42b8db7ea89e39070abb6330ffdb52adb35646d34511"
+        },
+        {
+          "path": "model.entr.intgemm.alphas.bin.3",
+          "size": 363835,
+          "sha256": "92ac27a8519cc282476aa45a1b738f618a935cb7c5c39f416f4f34fd54a6d04c"
+        }
+      ]
+    },
+    "vocab": {
+      "size": 798793,
+      "sha256": "a220363d60391f7ce3df8ec9785424dbc00c24d5786d1a4308cf8ca3ed3385c2",
+      "parts": [
+        {
+          "path": "vocab.entr.spm",
+          "size": 798793,
+          "sha256": "a220363d60391f7ce3df8ec9785424dbc00c24d5786d1a4308cf8ca3ed3385c2"
+        }
+      ]
+    }
+  }
+}

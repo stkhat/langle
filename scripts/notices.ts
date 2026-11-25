@@ -6,9 +6,10 @@ const MODULE_ID = "virtual:langle-notices";
 /**
  * Serves `virtual:langle-notices` (`noticesData`) to the build and the tests. The data
  * module is loaded only when the page asks for it, so the configs that use this plugin
- * do not load the data scripts.
+ * do not load the data scripts. `models`: the phone app's build, which also lists the
+ * translation models (`noticesData`).
  */
-export function noticesPlugin(): Plugin {
+export function noticesPlugin({ models = false } = {}): Plugin {
   const resolved = `\0${MODULE_ID}`;
   return {
     name: "langle-notices",
@@ -19,7 +20,7 @@ export function noticesPlugin(): Plugin {
       const { noticesData } = (await import(
         url
       )) as typeof import("./notices-data.ts");
-      return `export default ${JSON.stringify(noticesData())};`;
+      return `export default ${JSON.stringify(noticesData({ models }))};`;
     },
   };
 }

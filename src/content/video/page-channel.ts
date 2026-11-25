@@ -12,9 +12,10 @@ export interface PageChannel {
 }
 
 /**
- * What the content script tells the hooks about the first run (ui.md "First-run
- * consent"): it waits for the setup, or Langle runs. A page that forges one only
- * changes what of its own data comes back to it.
+ * What the content script tells the hooks: Langle runs on this site ("on"), or it does
+ * not, for now: the first run's setup is waited for (ui.md "First-run consent"), the
+ * site is switched off or on "Never run on" ("wait"). Told again on every change. A
+ * page that forges one only changes what of its own data comes back to it.
  */
 type Word = "on" | "wait";
 
@@ -79,6 +80,11 @@ export interface PageBridge<
   ): Promise<Results[T]>;
   /** Calls `listener` with every event the page script posts. */
   onEvent(listener: (event: Event) => void): () => void;
+  /**
+   * Opens the page script's gate (`PageGate`) or closes it: the hooks pass on what
+   * they see only while it is open. Closed until first told.
+   */
+  setGate(open: boolean): void;
   dispose(): void;
 }
 
@@ -112,8 +118,6 @@ export function createPageBridge<
     }
   }
   window.addEventListener("message", onMessage);
-  // A bridge is made only once Langle runs, and it hears what the hooks then post.
-  tellPage(channel, "on");
 
   return {
     call(call, wait = timeoutMs) {
@@ -140,6 +144,9 @@ export function createPageBridge<
     onEvent(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
+    },
+    setGate(open) {
+      tellPage(channel, open ? "on" : "wait");
     },
     dispose() {
       window.removeEventListener("message", onMessage);
@@ -185,11 +192,13 @@ const installed = new Map<string, () => void>();
 const WORD_WAIT_MS = 5000;
 
 /**
- * The hooks' gate. They are in from document_start, before the stored consent can be
- * read: until told, they hold what they see without reading it.
+ * The hooks' gate. They are in from document_start, before the stored consent and the
+ * site's settings can be read: until told, they hold what they see without reading it.
+ * Then it follows the content script's word: on while Langle runs on the site, off while
+ * it does not (what was held is dropped, nothing new is looked at).
  */
 export interface PageGate {
-  /** Waiting for the setup, or never told: hooks only pass through. */
+  /** Told "wait", or never told: hooks only pass through. */
   readonly off: boolean;
   /** Runs `take` once on: now, or held until then. Never, when off. */
   whenOn(take: () => void): void;
@@ -216,8 +225,8 @@ function createGate() {
     gate,
     hear(word: Word) {
       clearTimeout(timer);
-      if (state === "on") return;
       if (word === "wait") return turnOff();
+      if (state === "on") return;
       state = "on";
       const waiting = held;
       held = [];

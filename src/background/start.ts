@@ -67,12 +67,14 @@ export function startBackground(): void {
   });
 
   const lock = readLock();
+  const models = appHostOf()?.models;
   const packStore = createPackStore({
     db,
     lock,
     setState: (states) =>
       browser.storage.local.set({ [PACK_STATE_KEY]: states }),
     ...(checkLog && { onMirror: checkLog.onMirror }),
+    ...(models && { models }),
   });
   const loadPack = createPackLoader(createPackSource(packStore));
   const resources = createLanguageResources(loadPack);
@@ -106,11 +108,12 @@ export function startBackground(): void {
   });
   setup.openOnInstall();
 
+  const explanations = createExplanationCache(db);
   const handle = createHandlers({
     store,
     history,
     translations: createTranslationCache(db),
-    explanations: createExplanationCache(db),
+    explanations,
     settings: { get: getSettings, set: setSettings },
     resources,
     packs: { lock, store: packStore, retry: retryPacks },
@@ -137,7 +140,7 @@ export function startBackground(): void {
   });
 
   // Registered synchronously too, so a change that wakes the worker is heard.
-  forgetNeverRunOnHosts(history);
+  forgetNeverRunOnHosts(history, explanations);
 
   // Gray while Langle is switched off (the popup header's switch) or not set up.
   followToolbarIcon({

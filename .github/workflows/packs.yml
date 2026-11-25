@@ -3,7 +3,8 @@ name: Publish packs
 # Publishes the npm package of each language pack whose version in the
 # committed lock (src/core/packs/packs.lock.json) is not on npm yet
 # (scripts/data/npm-publish.ts). Run it by hand on main after a pull request that
-# changes data/packs/ is merged, and before the release that uses the new versions.
+# changes data/packs/ (or a model pin in scripts/data/mt-models.ts) is merged, and
+# before the release that uses the new versions.
 #
 # npm trusted publishing: no token; npm checks this repository and this file's name
 # (packs.yml) against each package's trusted publisher. A package takes one only once it
@@ -37,5 +38,9 @@ jobs:
         with:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
-      # The script uses Node's built-ins only, so there is no `npm ci`.
+      # The scripts use Node's built-ins only, so there is no `npm ci`. The model packs'
+      # parts are not committed: data:mt-models fetches Mozilla's released models and
+      # writes their parts again, checked against the pins; npm-publish then checks them
+      # against the lock.
+      - run: npm run data:mt-models
       - run: npm run data:npm-publish -- ${{ inputs.dry-run && '--dry-run' || '' }}

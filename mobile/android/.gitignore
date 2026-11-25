@@ -8,3 +8,5 @@
 .idea
 # The bundled langle-app build (scripts/bundle-build.sh).
 /app/src/main/assets/langle-app
+# The Bergamot translator's engine files (npm run mobile:bergamot), assets bergamot/.
+/app/engine

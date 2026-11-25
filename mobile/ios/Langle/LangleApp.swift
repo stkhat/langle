@@ -10,11 +10,15 @@ import SwiftUI
 struct LangleApp: App {
   @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
   @StateObject private var model = AppModel()
+  @Environment(\.scenePhase) private var scenePhase
 
   var body: some Scene {
     WindowGroup {
       ShellView(model: model)
         .task { await model.start() }
+    }
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .background { model.leftScreen() }
     }
   }
 }
@@ -25,6 +29,7 @@ struct ShellView: View {
   var body: some View {
     ZStack {
       HostSlot(view: model.hostView).frame(width: 0, height: 0)
+      TranslatorConsent(translation: model.translation)
       if model.started {
         tabsScreen.shown(isTab)
         pageScreen.shown(model.screen == .page)

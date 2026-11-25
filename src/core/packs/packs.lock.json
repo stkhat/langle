@@ -941,6 +941,810 @@
       "format": 2,
       "package": "@langle/fr-en",
       "version": "2026.1120.1"
+    },
+    "mt-de-en": {
+      "files": [
+        {
+          "path": "lex.50.50.deen.s2t.bin",
+          "sha256": "113b98460468360cca68c042e1cddf49c4e1931cbb975ed04349c9a3bd607010",
+          "size": 4945796
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "97c1132aa6421a44080a4c451b9a7cbaa98de48035fb8af2873b320d111ca978",
+          "size": 1658
+        },
+        {
+          "path": "model.deen.intgemm.alphas.bin.1",
+          "sha256": "ba6946ddbe10dd5783bad617bfc8da4652a96f34ff6f35cf2cdb1f0fcd4200cf",
+          "size": 8388608
+        },
+        {
+          "path": "model.deen.intgemm.alphas.bin.2",
+          "sha256": "aab3c774b985ee45da1e776d4b00773e535aa95e2f6933e8bce126292dc113ad",
+          "size": 8388608
+        },
+        {
+          "path": "model.deen.intgemm.alphas.bin.3",
+          "sha256": "997ae118829bd30da4f0cd0879e918a9b5cae622a6fb741c3e79099518d1e418",
+          "size": 8388608
+        },
+        {
+          "path": "model.deen.intgemm.alphas.bin.4",
+          "sha256": "e4a59957582e794e13d9df818cc3092bd8bea69512dcc0b5a9ece8be729d1a07",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.deen.spm",
+          "sha256": "69f730becafa48e3bb2c244eab66456877c08959a02f2bd5519b5a3088b62f9c",
+          "size": 810073
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-de-en",
+      "version": "2026.1125.0"
+    },
+    "mt-en-ar": {
+      "files": [
+        {
+          "path": "lex.50.50.enar.s2t.bin",
+          "sha256": "2b7194817c5dd9225ca90c0d908cc92e1d6d1f45625781a5feb037ac568d6a61",
+          "size": 3139692
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "c4b768dc60fe4597108c08a305da920ce458f28de6d137ee1caf949128dd0181",
+          "size": 1658
+        },
+        {
+          "path": "model.enar.intgemm.alphas.bin.1",
+          "sha256": "430954dba1e0f253a7debd22f0a10e7ab86fd5722627e2a033e7d8023a09f836",
+          "size": 8388608
+        },
+        {
+          "path": "model.enar.intgemm.alphas.bin.2",
+          "sha256": "7727c6b379f093662e5a6b80febc890dd799ad92418723e9189affeafac0e9d5",
+          "size": 8388608
+        },
+        {
+          "path": "model.enar.intgemm.alphas.bin.3",
+          "sha256": "7c606e878867f5e29df308eef60adf763844e1592f6d89370fa06e0990885929",
+          "size": 8388608
+        },
+        {
+          "path": "model.enar.intgemm.alphas.bin.4",
+          "sha256": "98edf0d31a7ba7628789b624304de914fb006a0e01e3743ab4f3967df9204d34",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.enar.spm",
+          "sha256": "8d93c54aa5e2044c416ec680b5ff9af0227bd698521666e8b1a1ea1b041fbae8",
+          "size": 863591
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-ar",
+      "version": "2026.1125.0"
+    },
+    "mt-en-de": {
+      "files": [
+        {
+          "path": "lex.50.50.ende.s2t.bin",
+          "sha256": "7ed39f1cffbd68a27ddf05bbfe068de2060f1d7e69f1a20e27ae923551dd7393",
+          "size": 4347672
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "c78485090b47fbb66bb56bdc54e052115f099362d68a5c7f50f7496ad995b5e7",
+          "size": 1658
+        },
+        {
+          "path": "model.ende.intgemm.alphas.bin.1",
+          "sha256": "dac3128b4a79cf59488a9464e4076495b27b8dac95d5902b2807fa11b0d1e6ad",
+          "size": 8388608
+        },
+        {
+          "path": "model.ende.intgemm.alphas.bin.2",
+          "sha256": "421161b931a1a3404a3dff94594564a2a0ecf95a7d375b89e04da4aeb68c728a",
+          "size": 8388608
+        },
+        {
+          "path": "model.ende.intgemm.alphas.bin.3",
+          "sha256": "2f4e143fa4f7afedde90eeec7335565303cb09129c897d5b1d66940c8da4338b",
+          "size": 8388608
+        },
+        {
+          "path": "model.ende.intgemm.alphas.bin.4",
+          "sha256": "8b039d52fbe8066d99c37c090c3433a3646c02a767c1ce9dcf77e0647036b802",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.ende.spm",
+          "sha256": "69f730becafa48e3bb2c244eab66456877c08959a02f2bd5519b5a3088b62f9c",
+          "size": 810073
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-de",
+      "version": "2026.1125.0"
+    },
+    "mt-en-es": {
+      "files": [
+        {
+          "path": "lex.50.50.enes.s2t.bin",
+          "sha256": "7d51237c0a07027dcd61643cfbbb0f8c48597d19907ef53d2cae9d6bec2cf25c",
+          "size": 4198436
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "4ecba9ea9e87e5400ec69cbdfe04fbfb6e1ab9539fc7e992096f4d61a3783365",
+          "size": 1658
+        },
+        {
+          "path": "model.enes.intgemm.alphas.bin.1",
+          "sha256": "cad71efbbfc313a259118223866016dde54a8800713a886329110ab1fae9c930",
+          "size": 8388608
+        },
+        {
+          "path": "model.enes.intgemm.alphas.bin.2",
+          "sha256": "b8664a26d079204d9058698aa7080f5a570f4bc2169a5626c4793f8fa0383e74",
+          "size": 8388608
+        },
+        {
+          "path": "model.enes.intgemm.alphas.bin.3",
+          "sha256": "59d0357c077afc5fc91f53966de02102c1cabe7454661eedb8e504397dbbe8c1",
+          "size": 8388608
+        },
+        {
+          "path": "model.enes.intgemm.alphas.bin.4",
+          "sha256": "b2972cfa174fca6b2dbd8e136cbab3d449bd9fde6726dd7a1191751a0adbd04f",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.enes.spm",
+          "sha256": "5ae254fa9b15aa182e70fd2a6186b1333c63a29a48043a9224c6aa4fcac058ad",
+          "size": 816054
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-es",
+      "version": "2026.1125.0"
+    },
+    "mt-en-fr": {
+      "files": [
+        {
+          "path": "lex.50.50.enfr.s2t.bin",
+          "sha256": "2585ed98d3af0bc949865aedeb390493d591f56870814376e73e4144c41ed059",
+          "size": 4372936
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "8dcd097ff06a64ca544a062fb8c30873538c9b54134da30ac9d13d017d6ace61",
+          "size": 1658
+        },
+        {
+          "path": "model.enfr.intgemm.alphas.bin.1",
+          "sha256": "5bc1be2506dc0b367ce8d099d83d78f75e15f1e33fc1a8f86016571c04e660bf",
+          "size": 8388608
+        },
+        {
+          "path": "model.enfr.intgemm.alphas.bin.2",
+          "sha256": "7b876789ef084f2f9fd0f7f1daecf171a09b995ecb549ed8d29159a091850913",
+          "size": 8388608
+        },
+        {
+          "path": "model.enfr.intgemm.alphas.bin.3",
+          "sha256": "50c89665e44b35a4a51c86df6c1c223cd4d3ba0f7ccc01691f038ca0ea15c64c",
+          "size": 8388608
+        },
+        {
+          "path": "model.enfr.intgemm.alphas.bin.4",
+          "sha256": "a2c64a79ce3e281a8fbc6cfa18e8173210660695a58c42b1c1bc06d8dc0f425a",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.enfr.spm",
+          "sha256": "783abf3abe075afdf8d85d233994bef2c3a064e935ab1bed946820aff6ac002a",
+          "size": 814404
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-fr",
+      "version": "2026.1125.0"
+    },
+    "mt-en-hi": {
+      "files": [
+        {
+          "path": "lex.50.50.enhi.s2t.bin",
+          "sha256": "b473f6fe41cdb7c1dbeeb714fc50314feab77b0af2b2da6f7830ee14492dd847",
+          "size": 3504820
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "b469bb115bc0d173b8df7c6aeb365a380d54f658461f334e024e61b3b9f6f410",
+          "size": 1469
+        },
+        {
+          "path": "model.enhi.intgemm.alphas.bin.1",
+          "sha256": "dc3ed41e539864ab379724eca13e5ccc21ce0dc236787ce41923a4bc48735c0b",
+          "size": 8388608
+        },
+        {
+          "path": "model.enhi.intgemm.alphas.bin.2",
+          "sha256": "d2fd3a595ebb48bffbf5623b9b7cb5edcf3fb4383910409efc2fa5b21f7bc698",
+          "size": 8388608
+        },
+        {
+          "path": "model.enhi.intgemm.alphas.bin.3",
+          "sha256": "04bbc97d6fbbec48283bc1cf5a29c28ae8bee493b9dab16ead0178352c96fede",
+          "size": 363835
+        },
+        {
+          "path": "vocab.enhi.spm",
+          "sha256": "8017cbf812bae400794c424699b89de90db06ac7a4ca67a420013a9f68b270c1",
+          "size": 925360
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-hi",
+      "version": "2026.1125.0"
+    },
+    "mt-en-id": {
+      "files": [
+        {
+          "path": "lex.50.50.enid.s2t.bin",
+          "sha256": "d37f72bcab6e7bc52fd223350f95521b5810bb2486a97275f86077988fced3f4",
+          "size": 3515428
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "2efffb16709f23e1f7cc06fa8c7f8f0ffd364c22dc94300abf73f96730f0b4f4",
+          "size": 1469
+        },
+        {
+          "path": "model.enid.intgemm.alphas.bin.1",
+          "sha256": "167359fee59db515f006d11a45c1d13b8ddf925633d775ec9147f82bdc3c5e67",
+          "size": 8388608
+        },
+        {
+          "path": "model.enid.intgemm.alphas.bin.2",
+          "sha256": "b99aa10946d7214434ffb2a41788dc5ac04f2845f7f4db40735c19994481cc29",
+          "size": 8388608
+        },
+        {
+          "path": "model.enid.intgemm.alphas.bin.3",
+          "sha256": "5a3200040c7adae2feb14cd4f127b9223ec171e712d2d5bacc87a58e5cc035ad",
+          "size": 363835
+        },
+        {
+          "path": "vocab.enid.spm",
+          "sha256": "61bc7db24d3b6de638a02a280580a273fe0c942ecbe8a8204b2f81978211db22",
+          "size": 773211
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-id",
+      "version": "2026.1125.0"
+    },
+    "mt-en-it": {
+      "files": [
+        {
+          "path": "lex.50.50.enit.s2t.bin",
+          "sha256": "8b21914804625b2777dae7fdb636eb78f02a3eb8b7bceaa50f29ac740961da93",
+          "size": 4133192
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "219af7911cb7720da441ab486f6bb5ba3f69034d889a7a599e7242419c433434",
+          "size": 1658
+        },
+        {
+          "path": "model.enit.intgemm.alphas.bin.1",
+          "sha256": "14df69c941e9032203e6c0eaa30b74e2dafe94ca62c86618c4b32177397f2b44",
+          "size": 8388608
+        },
+        {
+          "path": "model.enit.intgemm.alphas.bin.2",
+          "sha256": "a11b07ea7badd13af718275096ee8d58a4c64bfe71ec323cbbd5d066cf84fbe9",
+          "size": 8388608
+        },
+        {
+          "path": "model.enit.intgemm.alphas.bin.3",
+          "sha256": "abd0bca86c6a8b648dfb83fc8c0a75a9e27bb39c70600516583b72e6af795786",
+          "size": 8388608
+        },
+        {
+          "path": "model.enit.intgemm.alphas.bin.4",
+          "sha256": "df02f513aac2d18abad22098b4fbdf67be155b9aba00f8ee48410bf54e708abf",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.enit.spm",
+          "sha256": "3ef0211d4ae6db21440892f180f2019fe2bfc110a330ffa9d2eca9665e4f2bc5",
+          "size": 812724
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-it",
+      "version": "2026.1125.0"
+    },
+    "mt-en-ja": {
+      "files": [
+        {
+          "path": "lex.50.50.enja.s2t.bin",
+          "sha256": "edfb7eb47b98a2689b804ab3614c31b24f1257aa54b1154da3d85e1ae8152d9f",
+          "size": 4128360
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "967f6d42f0a6ac11182bb8f65479cc422f6baf86eb38db5fdd35a29425045386",
+          "size": 2368
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.1",
+          "sha256": "791daa2e5029fb9db3b0167441b04cab05f4cf0f5d3a7f71185983534abddebe",
+          "size": 8388608
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.2",
+          "sha256": "043154c4bfdafa923f27668a51b82232b67d7419a338558fd508590a027dbea8",
+          "size": 8388608
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.3",
+          "sha256": "0c67792635dbfd02e4f80cdd8c0ec07e3a10eb79bc02472aa67a247a1021285f",
+          "size": 8388608
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.4",
+          "sha256": "c2a194f7a26a475c40449e88a5681d616f79749ab6feb1af7b1013c56ea9ebc9",
+          "size": 8388608
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.5",
+          "sha256": "888b33257e09d98e035ae0a9729b0d90efba9a235cd46818ecca445419d065e7",
+          "size": 8388608
+        },
+        {
+          "path": "model.enja.intgemm.alphas.bin.6",
+          "sha256": "d10ab509c8247d11b797b2e18e7b93707903fd79ae1c2b8847ab3fac5dc1a1a6",
+          "size": 1906747
+        },
+        {
+          "path": "srcvocab.enja.spm",
+          "sha256": "970c98d174fc01e0339fbabbf45af36a4be3f26f819ec1a5ea1189f71e091889",
+          "size": 796275
+        },
+        {
+          "path": "trgvocab.enja.spm",
+          "sha256": "3b3d9f8f3a034d98d0a476f1794fa79c01e4e98a967ceb6777a66ba2d03ec1e1",
+          "size": 827144
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-ja",
+      "version": "2026.1125.0"
+    },
+    "mt-en-ko": {
+      "files": [
+        {
+          "path": "lex.50.50.enko.s2t.bin",
+          "sha256": "96efba97d4bb93ab362e5569bea0f115184d2f68d63b67305ee663c18e32fbeb",
+          "size": 6449612
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "3f1f39a15b03b738a568ca193d932c0ce5c2a186b24e9caa7ac45aece9636097",
+          "size": 2368
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.1",
+          "sha256": "fa9e8ffda98df36e7cc9d38c6d798862185b7f2d192eba3e1287b24648f35868",
+          "size": 8388608
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.2",
+          "sha256": "a65ce798eaa16347131cf7572fe45dd457aa74228644e679a43ef5a2c95c3630",
+          "size": 8388608
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.3",
+          "sha256": "792e6b9526e7b4a24322fed958bea2d105a9fb492dda818a16a0440b38e81572",
+          "size": 8388608
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.4",
+          "sha256": "093a100648b31c9c77a156e8c2a3e6f40c8f17d063b823e478bad1dff3fe3e79",
+          "size": 8388608
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.5",
+          "sha256": "7a7f242ec1eb8258bc3d0a728fe5c3bc6da91db6507a7f822fb0698ba3eae518",
+          "size": 8388608
+        },
+        {
+          "path": "model.enko.intgemm.alphas.bin.6",
+          "sha256": "7c07db55bd81a2a6ea5d19a9c119a3792d2c1f758758b8dbc7a816d1a252052e",
+          "size": 1906747
+        },
+        {
+          "path": "srcvocab.enko.spm",
+          "sha256": "8d4e3141868efd410eb86c2b60d41aa6bc6b46e4c4b2c0b85e3792493c69d802",
+          "size": 791280
+        },
+        {
+          "path": "trgvocab.enko.spm",
+          "sha256": "2ece21b28dd7022d36127d17423a74dabf544787dfc1cf614f7b565f93a4a1d3",
+          "size": 815353
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-ko",
+      "version": "2026.1125.0"
+    },
+    "mt-en-pl": {
+      "files": [
+        {
+          "path": "lex.50.50.enpl.s2t.bin",
+          "sha256": "d7d7b364673f633763c9f8f2e8ee9c7a184e92f4086e8b84abe870a2a8dbe5d5",
+          "size": 3540052
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "f4b79dddb24580b88dc7b9f34d529de172c13bd6a683baef024bd08b8fb0678b",
+          "size": 1658
+        },
+        {
+          "path": "model.enpl.intgemm.alphas.bin.1",
+          "sha256": "2adc35eaf9d8122f3a9f0bcb25e4d8334b2f613360bfc436b713bca452982b02",
+          "size": 8388608
+        },
+        {
+          "path": "model.enpl.intgemm.alphas.bin.2",
+          "sha256": "7ab7749830c68e44aecf5885b55da7ca387ec856eaef18192b549eba07405a46",
+          "size": 8388608
+        },
+        {
+          "path": "model.enpl.intgemm.alphas.bin.3",
+          "sha256": "feaa981ced972dc1ea2caefb26f35724919992d0bd86f56f48624a3b06ff43b0",
+          "size": 8388608
+        },
+        {
+          "path": "model.enpl.intgemm.alphas.bin.4",
+          "sha256": "2cda83622ce0259085267a8b218f59fecb876577b4839e85556de2dc8665fd50",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.enpl.spm",
+          "sha256": "2000f182efa8ce5f69bc3f9e574666b5bc2c0af684eedd32f69d15aa9021ea85",
+          "size": 821612
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-pl",
+      "version": "2026.1125.0"
+    },
+    "mt-en-pt": {
+      "files": [
+        {
+          "path": "lex.50.50.enpt.s2t.bin",
+          "sha256": "ccb4c31c9e1899d77a200e71a86958e6ef6c8649627d0bbf3f873b57d9f236bd",
+          "size": 3970340
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "8161c9df8052e3f88f98aa51d4976143be9bf90bee27d14502604f7da472d43f",
+          "size": 1658
+        },
+        {
+          "path": "model.enpt.intgemm.alphas.bin.1",
+          "sha256": "4685e20f13c2b12d53d7d27d560612c8fb496d81d6467f97d788fe7242e4c744",
+          "size": 8388608
+        },
+        {
+          "path": "model.enpt.intgemm.alphas.bin.2",
+          "sha256": "a91f15cc93b1367c5130f43ff04851b200bd9715aa2b11172b3014af49c746c6",
+          "size": 8388608
+        },
+        {
+          "path": "model.enpt.intgemm.alphas.bin.3",
+          "sha256": "3c0795c9e13cae8f2392d42bfae54234cc9e85988e59060df2e7afd403b983fa",
+          "size": 8388608
+        },
+        {
+          "path": "model.enpt.intgemm.alphas.bin.4",
+          "sha256": "305beda948c1df9fa0f34f893faa79e91e04473e98591390a3ee6c0ba146a1eb",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.enpt.spm",
+          "sha256": "d9f46182823d5bbc84201252b2dfcac28f63e561f0ec827ed858f241864c9def",
+          "size": 816726
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-pt",
+      "version": "2026.1125.0"
+    },
+    "mt-en-ru": {
+      "files": [
+        {
+          "path": "lex.50.50.enru.s2t.bin",
+          "sha256": "4d91839726b960e70b6d05c53d0cffd16262832b1c0e1ea99d66f412dcc6a239",
+          "size": 2774540
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "d0f4e7c004d877ee777113d11a6fca3c156e85d4fff29cf7c13ef5e069f922d6",
+          "size": 1658
+        },
+        {
+          "path": "model.enru.intgemm.alphas.bin.1",
+          "sha256": "4a88e33ad4b329fa35e5556147a232fa93f7c5c946facac7f6d19d602f3ce0d3",
+          "size": 8388608
+        },
+        {
+          "path": "model.enru.intgemm.alphas.bin.2",
+          "sha256": "ea7bfa618bbd3f85c97e4cfe58a3c8538e86d873a1dcb61c05576d8a7b30a8a1",
+          "size": 8388608
+        },
+        {
+          "path": "model.enru.intgemm.alphas.bin.3",
+          "sha256": "0df6184eea7466a29211e6d6d27d7b96a07e165f614d08eeab93e4b815e90fb7",
+          "size": 8388608
+        },
+        {
+          "path": "model.enru.intgemm.alphas.bin.4",
+          "sha256": "f132109649abbacb12649a44417e3aa79dc4b6d1ee565a02ab260c441d0abb9e",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.enru.spm",
+          "sha256": "56ee63e14e8cb926c394242adc3ed7cc602644c3d33058cff2ce2959d52a6258",
+          "size": 904455
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-ru",
+      "version": "2026.1125.0"
+    },
+    "mt-en-th": {
+      "files": [
+        {
+          "path": "lex.50.50.enth.s2t.bin",
+          "sha256": "6961ce07f38e6c113a70855706aa7cad4cc828f986d1751c33f14699f885a2e8",
+          "size": 3016612
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "583f97353a1ab582330751cefb1ef8403d8a61d392a94e52c321078ae4e587aa",
+          "size": 1658
+        },
+        {
+          "path": "model.enth.intgemm.alphas.bin.1",
+          "sha256": "79aba53b33c18c43e8ffee7321a5ca69674c5571a50acf4c7bc32a29668e327c",
+          "size": 8388608
+        },
+        {
+          "path": "model.enth.intgemm.alphas.bin.2",
+          "sha256": "e27b30189f20d59cb72731ef547651b4a0bdfdbb13ab403665240cf56d04b740",
+          "size": 8388608
+        },
+        {
+          "path": "model.enth.intgemm.alphas.bin.3",
+          "sha256": "2182654a7473119c98987d5c2f8c631212c7029b98481ec182a013928e357a22",
+          "size": 8388608
+        },
+        {
+          "path": "model.enth.intgemm.alphas.bin.4",
+          "sha256": "e4c66d195e34b768edc27fae1b9893cce6a9b8f40c97ec1bc485030dfa69e0a3",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.enth.spm",
+          "sha256": "5deff7093d558768f8c22406449202e27595f023cc383a2b66beed240ed46443",
+          "size": 993517
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-th",
+      "version": "2026.1125.0"
+    },
+    "mt-en-tr": {
+      "files": [
+        {
+          "path": "lex.50.50.entr.s2t.bin",
+          "sha256": "3aba0be842bd4c192659c781e6fdce8eb9b2b1fff29a40d22f75da369d59f46f",
+          "size": 3261300
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "60f054251d154c6d74616927c2122c8a77e18357f611c2702a2801478b0b8d79",
+          "size": 1469
+        },
+        {
+          "path": "model.entr.intgemm.alphas.bin.1",
+          "sha256": "efbac230b222dbbc10ff5f191e799935a5b37891f938e3f5143e6b723253ca53",
+          "size": 8388608
+        },
+        {
+          "path": "model.entr.intgemm.alphas.bin.2",
+          "sha256": "05269dba7434d3b2679e42b8db7ea89e39070abb6330ffdb52adb35646d34511",
+          "size": 8388608
+        },
+        {
+          "path": "model.entr.intgemm.alphas.bin.3",
+          "sha256": "92ac27a8519cc282476aa45a1b738f618a935cb7c5c39f416f4f34fd54a6d04c",
+          "size": 363835
+        },
+        {
+          "path": "vocab.entr.spm",
+          "sha256": "a220363d60391f7ce3df8ec9785424dbc00c24d5786d1a4308cf8ca3ed3385c2",
+          "size": 798793
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-tr",
+      "version": "2026.1125.0"
+    },
+    "mt-en-zh": {
+      "files": [
+        {
+          "path": "lex.50.50.enzh.s2t.bin",
+          "sha256": "8575d8daa10e2dbff316dcdf8e1ce475357bcc2c92bdc63b736a2d5add22f681",
+          "size": 4485184
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "f0bfda7590ab99b09337dca6cc041bf560ad252559a85aad32dad321f6ad1632",
+          "size": 2368
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.1",
+          "sha256": "37d7531bc6481ca383574f48bd6be31228efeed9ed6c72348f0993fb506711ef",
+          "size": 8388608
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.2",
+          "sha256": "a638faec22a7643341f926793cce290efad70c4a6a8134db455eb67827972427",
+          "size": 8388608
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.3",
+          "sha256": "295e7317ffc4f19be82e2dedcca8a4b09e0ba3825bfc07b999273581aa985a3e",
+          "size": 8388608
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.4",
+          "sha256": "03e3897ebbe474ac3f04d04e37ca3ed76e4cfd34b95fd998e5e281af0ebad350",
+          "size": 8388608
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.5",
+          "sha256": "36609e78bcb0be8a4507a4a54366427488be3ded7c09ad993f4533fb02c6035d",
+          "size": 8388608
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.6",
+          "sha256": "837742aa3cd8601f4e217c968e17dd48a29a95b1e42b7c6d5d0b9cf9bf52bbcd",
+          "size": 1906747
+        },
+        {
+          "path": "srcvocab.enzh.spm",
+          "sha256": "bd9b65504acc6d9726dd281f7defc2adb7c2c22d0688fe2f84697de25197c8c5",
+          "size": 806952
+        },
+        {
+          "path": "trgvocab.enzh.spm",
+          "sha256": "aded6993c36e440284d11cec3f6b8aef9c0e43188a772d80be342a713adf223d",
+          "size": 772004
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-en-zh",
+      "version": "2026.1125.0"
+    },
+    "mt-es-en": {
+      "files": [
+        {
+          "path": "lex.50.50.esen.s2t.bin",
+          "sha256": "e2610211d3b9577d012638fe7e7e74ed7b4b708ce96b9e792e67c282a6492daa",
+          "size": 4636248
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "5cb68c9bf2b0812ca23d8c4b057e5538cf888343ddad3db470e3f3038e199810",
+          "size": 1658
+        },
+        {
+          "path": "model.esen.intgemm.alphas.bin.1",
+          "sha256": "0fb93b64c1d50013e4560a174ef94596ed131c0595c6d12a65affd3d709c1f32",
+          "size": 8388608
+        },
+        {
+          "path": "model.esen.intgemm.alphas.bin.2",
+          "sha256": "7fafc3110337afa58d73508b4093d0a0d99134bd4f53d35ab5cc45097acfc246",
+          "size": 8388608
+        },
+        {
+          "path": "model.esen.intgemm.alphas.bin.3",
+          "sha256": "f76728892a3949ff0bcd020f30a0af94934cbb62672fe163dd4ab622528f97b6",
+          "size": 8388608
+        },
+        {
+          "path": "model.esen.intgemm.alphas.bin.4",
+          "sha256": "80cf0ce83944a35d0dc21db06f86c4d1722f325eecdd11aee181e323a181c697",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.esen.spm",
+          "sha256": "5ae254fa9b15aa182e70fd2a6186b1333c63a29a48043a9224c6aa4fcac058ad",
+          "size": 816054
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-es-en",
+      "version": "2026.1125.0"
+    },
+    "mt-fr-en": {
+      "files": [
+        {
+          "path": "lex.50.50.fren.s2t.bin",
+          "sha256": "87c6752ea908f5f0347c10ac0cf7d80d9c2f4f20c81c90168f3e8230b56d4440",
+          "size": 4824120
+        },
+        {
+          "path": "manifest.json",
+          "sha256": "ed4b55344e53b9afa0d12ecbdfeab3d191c0cdab318426ea35f3d6334e8fdf04",
+          "size": 1658
+        },
+        {
+          "path": "model.fren.intgemm.alphas.bin.1",
+          "sha256": "20bdb5cdbf3e20414f0012483cd10aa65ba28be406c2cb501abc86e40340a2e9",
+          "size": 8388608
+        },
+        {
+          "path": "model.fren.intgemm.alphas.bin.2",
+          "sha256": "4c04963fc36093fe59866b0e9bbff51c34daff0863d8377190a50122449d97b7",
+          "size": 8388608
+        },
+        {
+          "path": "model.fren.intgemm.alphas.bin.3",
+          "sha256": "c4498a75d654b12a1a0a4fbc2ca251e15b3df4c31e520834d79bb96b9e0a4ba7",
+          "size": 8388608
+        },
+        {
+          "path": "model.fren.intgemm.alphas.bin.4",
+          "sha256": "e9b524bc9be00f3a3a94a0e7dbada32559946874ca418bfb0b213304289b83fe",
+          "size": 6395963
+        },
+        {
+          "path": "vocab.fren.spm",
+          "sha256": "783abf3abe075afdf8d85d233994bef2c3a064e935ab1bed946820aff6ac002a",
+          "size": 814404
+        }
+      ],
+      "format": 1,
+      "kind": "model",
+      "package": "@langle/mt-fr-en",
+      "version": "2026.1125.0"
     }
   },
   "pairs": {

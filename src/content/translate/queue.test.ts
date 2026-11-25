@@ -308,6 +308,23 @@ describe("createTranslationQueue", () => {
     expect(open.mock.calls).toEqual([[{ download: false }], [{}]]);
   });
 
+  it("tells the translator to start its model for everything but the lists", async () => {
+    const translate = vi.fn(async (text: string) => `ja(${text})`);
+    const queue = createTranslationQueue(() => ({ translate }));
+    await queue.translate("A list.", "list", EN_JA);
+    await queue.translate("A subtitle.", "subtitle", EN_JA);
+    await queue.translate("A window.", "window", EN_JA);
+    await queue.translate("A hover.", "hover", EN_JA);
+    await queue.translate("Ahead.", "ahead", EN_JA);
+    expect(translate.mock.calls).toEqual([
+      ["A list.", { start: false }],
+      ["A subtitle.", { start: true }],
+      ["A window.", { start: true }],
+      ["A hover.", { start: true }],
+      ["Ahead.", { start: true }],
+    ]);
+  });
+
   it("shares one translation between requests for the same text", async () => {
     const t = heldTranslator();
     const queue = createTranslationQueue(() => t.provider);

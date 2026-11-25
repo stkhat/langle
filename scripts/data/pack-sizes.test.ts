@@ -1,7 +1,8 @@
 // Guards on the size of the language packs (docs/notes/data-sizes.md). Every pack is
 // downloaded (none is bundled), but each file stays well under the 5 MB that
 // addons.mozilla.org's linter (web-ext lint) allows per text file, so a pack could
-// still ship inside the extension.
+// still ship inside the extension. The phone app's translation models (mt-*) are
+// binary, downloaded by its native code, and have their own guards below.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -12,7 +13,10 @@ import {
 } from "../../src/core/languages.ts";
 import { packsFor } from "../../src/core/packs/pairs.ts";
 import { PACKS_DIR } from "./common.ts";
-import { PACKS } from "./formats.ts";
+import type { PackLock } from "../../src/core/packs/lock.ts";
+import { MODEL_PACKS, PACKS } from "./formats.ts";
+import { PART_BYTES } from "./mt-models.ts";
+import { LOCK_PATH } from "./publish.ts";
 
 const FILE_LIMIT_BYTES = 4_000_000;
 
@@ -27,7 +31,9 @@ const bytesUnder = (dir: string) =>
   filesUnder(dir).reduce((sum, path) => sum + statSync(path).size, 0);
 
 describe("pack files in data/packs", () => {
-  const files = filesUnder(PACKS_DIR);
+  const files = filesUnder(PACKS_DIR).filter(
+    (path) => !relative(PACKS_DIR, path).startsWith("mt-"),
+  );
 
   it("exist", () => {
     expect(files.length).toBeGreaterThan(0);
@@ -89,3 +95,23 @@ describe.each([
     expect(bytes).toBeLessThan(budget);
   });
 });
+
+// A model pack's files are parts of at most 8 MiB (PART_BYTES), well below jsDelivr's
+// 50 MB per file, and its package stays below jsDelivr's 150 MB per package
+// (docs/specs/architecture.md "Model packs"). Each test's name shows the download.
+const JSDELIVR_PACKAGE_BYTES = 150_000_000;
+const lock = JSON.parse(readFileSync(LOCK_PATH, "utf8")) as PackLock;
+const models = Object.keys(MODEL_PACKS).map((name) => {
+  const entry = lock.packs[name as keyof PackLock["packs"]]!;
+  const bytes = entry.files.reduce((sum, file) => sum + file.size, 0);
+  return [name, `${(bytes / 1e6).toFixed(2)} MB`, entry, bytes] as const;
+});
+it.each(models)(
+  "%s downloads %s in parts of at most 8 MiB, below jsDelivr's 150 MB per package",
+  (_name, _size, entry, bytes) => {
+    expect(entry.kind).toBe("model");
+    for (const file of entry.files)
+      expect(file.size).toBeLessThanOrEqual(PART_BYTES);
+    expect(bytes).toBeLessThan(JSDELIVR_PACKAGE_BYTES);
+  },
+);

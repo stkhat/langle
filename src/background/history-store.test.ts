@@ -52,6 +52,17 @@ describe("forgetNeverRunOnHosts", () => {
     ]);
   });
 
+  it("forgets the host in every store it is given (the history, the explanations)", async () => {
+    const history = { forgetHost: vi.fn(async () => 1) };
+    const explanations = { forgetHost: vi.fn(async () => 2) };
+    forgetNeverRunOnHosts(history, explanations);
+    await setSettings({ neverRunOn: ["b.com"] });
+    await vi.waitFor(() =>
+      expect(explanations.forgetHost).toHaveBeenCalledWith("b.com"),
+    );
+    expect(history.forgetHost).toHaveBeenCalledWith("b.com");
+  });
+
   it("forgets nothing on start and stops when unwatched", async () => {
     await setSettings({ neverRunOn: ["a.com"] });
     const history = { forgetHost: vi.fn(async () => 0) };

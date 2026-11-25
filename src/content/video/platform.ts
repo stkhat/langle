@@ -132,5 +132,11 @@ export interface PlatformAdapter {
    */
   onNavigate(listener: (change?: { reload: boolean }) => void): () => void;
   hideSiteCaptions(hidden: boolean): void;
+  /**
+   * Opens the page script's gate while Langle runs on the site, closes it while the
+   * site is off (`PageGate`): the page's hooks pass on nothing they see while it is
+   * closed. Closed until first told.
+   */
+  setPageGate(open: boolean): void;
   dispose(): void;
 }

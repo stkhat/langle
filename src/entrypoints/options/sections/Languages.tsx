@@ -1,3 +1,4 @@
+import { useEffect, useState } from "preact/hooks";
 import { learningLanguages, nativeLanguages } from "../../../core/languages";
 import { pairsOfPack } from "../../../core/packs/pairs";
 import { combinedState } from "../../../core/packs/state";
@@ -61,12 +62,30 @@ function otherData(others: PackStatus["others"]): OtherData[] {
   return [...groups.values()];
 }
 
-/** The chosen pair's download: Downloaded, its share, or Couldn't download with Retry. */
+/**
+ * A data row's title: on a phone its state or button sits beside it while both fit,
+ * else under it (`PHONE_SETTINGS_CSS`).
+ */
+const DATA_LABEL = { flexBasis: "180px" };
+
+/**
+ * The chosen pair's download: Downloaded, its share, or Couldn't download with Retry;
+ * once its packs are there, Download while the translator waits for the user's
+ * consent (iOS, mock MobileSettingsLanguages).
+ */
 function PairDataState(props: {
   packs: PackStatus["pair"]["packs"];
+  noTranslator: boolean;
   onRetry: () => void;
+  onDownload: () => void;
 }) {
   const { state, percent } = combinedState(props.packs);
+  if (state === "ready" && props.noTranslator)
+    return (
+      <button class="btn" type="button" onClick={props.onDownload}>
+        {t("settings.languages.dataDownload")}
+      </button>
+    );
   if (state === "ready")
     return (
       <span class="st">
@@ -109,12 +128,16 @@ function LanguageData(props: {
   status: PackStatus;
   learning: string;
   native: string;
+  noTranslator: boolean;
   onRetry: () => void;
+  onDownload: () => void;
   onRemove: (packs: string[]) => void;
 }) {
   const { pair } = props.status;
   const others = otherData(props.status.others);
-  const pairSize = pair.packs.reduce((sum, p) => sum + p.size, 0);
+  const pairSize = megabytesTenths(
+    pair.packs.reduce((sum, p) => sum + p.size, 0),
+  );
   return (
     <div
       class="row"
@@ -130,20 +153,30 @@ function LanguageData(props: {
         desc={t("settings.languages.dataDesc")}
         style={{ paddingBottom: "10px" }}
       />
-      <div class="sub">
+      <div class="sub data">
         <RowLabel
           small
+          style={DATA_LABEL}
           title={languagePair(props.learning, props.native)}
-          desc={t("settings.languages.dataSize", {
-            size: megabytesTenths(pairSize),
-          })}
+          desc={t(
+            props.noTranslator
+              ? "settings.languages.dataNoTranslator"
+              : "settings.languages.dataSize",
+            { size: pairSize },
+          )}
         />
-        <PairDataState packs={pair.packs} onRetry={props.onRetry} />
+        <PairDataState
+          packs={pair.packs}
+          noTranslator={props.noTranslator}
+          onRetry={props.onRetry}
+          onDownload={props.onDownload}
+        />
       </div>
       {others.map((other) => (
-        <div key={other.label} class="sub">
+        <div key={other.label} class="sub data">
           <RowLabel
             small
+            style={DATA_LABEL}
             title={other.label}
             desc={t("settings.languages.dataUnused", {
               size: megabytesTenths(other.size),
@@ -165,6 +198,32 @@ function LanguageData(props: {
   );
 }
 
+/**
+ * Whether the pair's translator waits for the user's consent to download it (iOS,
+ * after Apple's sheet was declined), and Download, which shows the sheet again.
+ */
+function useNoTranslator(learning: string, native: string) {
+  const [waiting, setWaiting] = useState(false);
+  const [asked, setAsked] = useState(0);
+  useEffect(() => {
+    let current = true;
+    void translatorBackend()
+      .waitsForConsent(learning, native)
+      .then((now) => current && setWaiting(now));
+    return () => {
+      current = false;
+    };
+  }, [learning, native, asked]);
+  return {
+    waiting,
+    download: () => {
+      void translatorBackend()
+        .downloadModels(learning, native)
+        .finally(() => setAsked((n) => n + 1));
+    },
+  };
+}
+
 export function LanguagesSection(
   props: SectionProps & {
     packs: PackStatus | undefined;
@@ -173,6 +232,7 @@ export function LanguagesSection(
   },
 ) {
   const s = props.settings;
+  const noTranslator = useNoTranslator(s.learningLang, s.nativeLang);
 
   /**
    * A new learning language comes with a native language it has a dictionary into.
@@ -227,7 +287,9 @@ export function LanguagesSection(
           status={props.packs}
           learning={s.learningLang}
           native={s.nativeLang}
+          noTranslator={noTranslator.waiting}
           onRetry={props.onRetry}
+          onDownload={noTranslator.download}
           onRemove={props.onRemove}
         />
       )}

@@ -295,6 +295,43 @@ final class TabsTests: XCTestCase {
     }
     XCTAssertEqual(shared.count, 2)
   }
+
+  // The hosts come in M5c and M5d; until the app sets one, each call fails at once.
+  func test_the_translation_calls_go_to_the_apps_translation_host_and_are_not_available_without_one() {
+    let h = Harness()
+    let host = h.connect(.host)
+    host.call("bridge.hello", ["context": "host"])
+    let tab = h.router.openTab(url: article)
+    let content = h.connect(.content(tabId: tab))
+    let translate: JSONValue = ["from": "en", "to": "ja", "text": "A cat.", "start": true]
+    let calls: [(String, JSONValue)] = [
+      ("appHost.translate", translate),
+      ("appHost.translatorStatus", ["from": "en", "to": "ja"]),
+      ("appHost.prepareTranslator", ["from": "en", "to": "ja"]),
+      ("appHost.models.ensure", ["pack": "mt-en-ja"]),
+      ("appHost.models.remove", ["pack": "mt-en-ja"]),
+    ]
+    for (api, request) in calls {
+      XCTAssertEqual(content.call(api, request).error, "\(api) is not available here.")
+    }
+
+    var asked: [(ContextSpec, String, JSONValue?)] = []
+    h.router.onTranslation = { from, api, request, done in
+      asked.append((from, api, request))
+      done(.success(api == "appHost.translate" ? .string("猫。") : nil))
+    }
+    XCTAssertEqual(content.call("appHost.translate", translate).value, .some(.string("猫。")))
+    XCTAssertEqual(asked.count, 1)
+    XCTAssertEqual(asked.first?.0, .content(tabId: tab))
+    XCTAssertEqual(asked.first?.1, "appHost.translate")
+    XCTAssertEqual(asked.first?.2, translate)
+
+    let progress = host.record("appHost.models.onProgress")
+    let event: JSONValue = ["pack": "mt-en-ja", "received": 5, "total": 10]
+    h.router.postToHost("appHost.models.onProgress", [event])
+    h.settle()
+    XCTAssertEqual(progress.seen, [[event]])
+  }
 }
 
 final class AlarmsTests: XCTestCase {

@@ -127,6 +127,8 @@ function fakeExplanations(): FakeExplanations {
     get: vi.fn(async () => undefined),
     put: vi.fn(async () => {}),
     clearPair: vi.fn(async () => {}),
+    clear: vi.fn(async () => {}),
+    forgetHost: vi.fn(async () => 0),
   };
 }
 
@@ -303,7 +305,9 @@ describe("handlers: routing", () => {
       pos: { textQuote: "Two loaves of bread." },
     } as const;
     expect(await value({ type: "saveTerm", ...input })).toEqual(LOAF);
-    expect(store.saveTerm).toHaveBeenCalledWith(input);
+    expect(store.saveTerm).toHaveBeenCalledWith(input, {
+      withoutSource: false,
+    });
   });
 
   it.each<{
@@ -360,7 +364,13 @@ describe("handlers: routing", () => {
         source: SOURCE,
       },
       method: "saveAll",
-      args: ["en", ["yeast", "crust"], "learning", SOURCE],
+      args: [
+        "en",
+        ["yeast", "crust"],
+        "learning",
+        SOURCE,
+        { withoutSource: false },
+      ],
       result: { batchId: "b1", count: 2 },
     },
     {
@@ -627,6 +637,36 @@ describe("handlers: language data", () => {
       others: [],
     });
     expect(packs.store.states).toHaveBeenCalledWith(["es", "es-en"]);
+  });
+
+  it("lists the pair's model packs in the app on Android, which pages work without", async () => {
+    const model = {
+      package: "@langle/mt-en-ja",
+      version: "2026.1126.0",
+      format: 1,
+      kind: "model" as const,
+      files: [{ path: "model.bin", size: 900, sha256: "aa" }],
+    };
+    packs.lock = {
+      ...LOCK,
+      packs: { ...LOCK.packs, "mt-en-ja": model } as PackLock["packs"],
+    };
+    const g = globalThis as { appHost?: unknown };
+    g.appHost = { translator: { models: "packs" } };
+    try {
+      expect(await value({ type: "packStatus" })).toMatchObject({
+        pair: {
+          packs: [
+            { pack: "en" },
+            { pack: "en-ja" },
+            { pack: "en-defs", fallback: true },
+            { pack: "mt-en-ja", size: 900, fallback: true },
+          ],
+        },
+      });
+    } finally {
+      delete g.appHost;
+    }
   });
 
   it("starts the current pair's downloads again for retryPacks", async () => {
@@ -2085,6 +2125,70 @@ describe("handlers: incognito tabs", () => {
     expect(store.recordEncounters).not.toHaveBeenCalled();
   });
 
+  it("saves a term from an incognito tab without its source", async () => {
+    store.saveTerm.mockResolvedValue(LOAF);
+    store.chooseMeaning.mockResolvedValue(LOAF);
+    store.saveAll.mockResolvedValue({ batchId: "b1", count: 1 });
+    const term = {
+      lang: "en",
+      key: "loaf",
+      display: "loaves",
+      kind: "word",
+      source: SOURCE,
+      sentence: "Two loaves of bread.",
+      pos: { textQuote: "Two loaves of bread." },
+    } as const;
+    const meaning = { from: "dictionary", text: "パン", pos: "noun" } as const;
+    for (const request of [
+      { type: "saveTerm", ...term, status: "learning" },
+      { type: "chooseMeaning", term, meaning },
+      {
+        type: "saveAll",
+        lang: "en",
+        keys: ["loaf"],
+        status: "learning",
+        source: SOURCE,
+      },
+    ] as const)
+      expect((await handle(request, INCOGNITO)).ok).toBe(true);
+    const without = { withoutSource: true };
+    expect(store.saveTerm).toHaveBeenCalledWith(expect.anything(), without);
+    expect(store.chooseMeaning).toHaveBeenCalledWith(
+      { term, meaning },
+      without,
+    );
+    expect(store.saveAll).toHaveBeenCalledWith(
+      "en",
+      ["loaf"],
+      "learning",
+      SOURCE,
+      without,
+    );
+  });
+
+  it("keeps no explanation from an incognito tab", async () => {
+    expect(
+      await handle(
+        {
+          type: "putExplanation",
+          explanation: {
+            learning: "en",
+            native: "ja",
+            key: "bank",
+            sourceUrl: "https://example.com/river",
+            sentence: "We sat on the bank.",
+            provider: "chrome-prompt-api",
+            version: "157",
+          },
+          answer: { meaning: "土手", sense: null },
+          lines: 5,
+        },
+        INCOGNITO,
+      ),
+    ).toEqual({ ok: true, value: null });
+    expect(explanations.put).not.toHaveBeenCalled();
+  });
+
   it("still records from a normal tab", async () => {
     history.record.mockResolvedValue(1);
     expect(
@@ -2111,10 +2215,11 @@ describe("handlers: historyStatus and clearHistory", () => {
     });
   });
 
-  it("clears the history for clearHistory", async () => {
+  it("clears the history and the kept explanations for clearHistory", async () => {
     history.clear.mockResolvedValue();
     expect(await value({ type: "clearHistory" })).toBeNull();
     expect(history.clear).toHaveBeenCalledTimes(1);
+    expect(explanations.clear).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -2258,7 +2363,10 @@ describe("handlers: saving brings the kept sentences in", () => {
     history.find.mockResolvedValue(KEPT);
     const request = { type: "chooseMeaning", term, meaning } as const;
     expect(await value(request)).toEqual(LOAF);
-    expect(store.chooseMeaning).toHaveBeenCalledWith({ term, meaning });
+    expect(store.chooseMeaning).toHaveBeenCalledWith(
+      { term, meaning },
+      { withoutSource: false },
+    );
     expect(store.importOccurrences).toHaveBeenCalledWith("en:loaf", KEPT);
 
     store.importOccurrences.mockClear();

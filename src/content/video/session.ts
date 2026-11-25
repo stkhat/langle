@@ -269,9 +269,17 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     adapter.hideSiteCaptions(hidden);
   });
 
+  /** The page script's gate as last told: open exactly while the site is on. */
+  let gateOpen: boolean | undefined;
+
   /** Opens the page's video; `reload`: again, though its id is the same. */
   function open(reload = false) {
-    const id = siteOn() ? (adapter.videoId() ?? null) : null;
+    const on = siteOn();
+    if (on !== gateOpen) {
+      gateOpen = on;
+      adapter.setPageGate(on);
+    }
+    const id = on ? (adapter.videoId() ?? null) : null;
     if (watch && watch.id === id && !reload) return;
     watch?.controller.abort();
     watch = undefined;

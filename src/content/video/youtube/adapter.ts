@@ -48,11 +48,19 @@ export interface YouTubeAdapterOptions {
   playerRequestWaitMs?: number;
   /** How long to wait for the player's request after asking for a track. */
   captureTimeoutMs?: number;
+  /** How long the player may take to list its caption tracks (ads not counted). */
+  tracksListedTimeoutMs?: number;
   /** How long to wait for one fetch of a track through the page script. */
   fetchTimeoutMs?: number;
   /** How long to wait for the page script's answer to any other call. */
   callTimeoutMs?: number;
   pollMs?: number;
+  /**
+   * Check builds only (`langle:check-settings` `refuseTlang`): treats YouTube's
+   * auto-translation (`tlang`) as refused, as a 429 answer is, so videos show the
+   * on-device translation.
+   */
+  refuseTlang?: () => boolean | Promise<boolean>;
 }
 
 /** How long to wait for the player response of the current video. */
@@ -61,6 +69,14 @@ const PLAYER_RESPONSE_TIMEOUT_MS = 30_000;
 const KEEP_CAPTURES = 4;
 /** How many times the player is asked again after an ad kept it from answering. */
 const AD_TRIES = 3;
+/**
+ * How long the player may take to list the video's caption tracks, ads not counted,
+ * before it is asked anyway. A busy page took over 10 s (docs/notes/mobile.md
+ * "Subtitles missing on an early load (M5f)").
+ */
+const TRACKS_LISTED_TIMEOUT_MS = 60_000;
+/** `askPlayer`'s answer while the player lists no caption tracks: nothing was asked. */
+const UNLISTED = Symbol("unlisted");
 /** A try of `loadCaptions` to make again (see `loadFrom`). */
 const AGAIN = Symbol("again");
 
@@ -85,6 +101,8 @@ export function createYouTubeAdapter(
   const pollMs = options.pollMs ?? 250;
   const playerRequestWaitMs = options.playerRequestWaitMs ?? 1500;
   const captureTimeoutMs = options.captureTimeoutMs ?? 10_000;
+  const tracksListedTimeoutMs =
+    options.tracksListedTimeoutMs ?? TRACKS_LISTED_TIMEOUT_MS;
   const fetchTimeoutMs = options.fetchTimeoutMs ?? NETWORK_CALL_TIMEOUT_MS;
   const layout = options.layout ?? desktopLayout(href);
   const bridge = createPageBridge<PageCall, PageCallResults, TimedtextMessage>({
@@ -173,7 +191,10 @@ export function createYouTubeAdapter(
    * The player's request for this video, asking the player for `original` if needed. The
    * player asks for nothing while an ad plays, and an ad can start after Langle looked
    * (the Android WebView, docs/notes/mobile.md "Device checks (M3d)"): a wait an ad was
-   * part of is tried again once the ad has ended.
+   * part of is tried again once the ad has ended. Nor does it take a track before its
+   * captions module lists the video's tracks, which on a busy page came after the whole
+   * wait (docs/notes/mobile.md "Subtitles missing on an early load (M5f)"): until then
+   * Langle keeps waiting, up to `tracksListedTimeoutMs`, then asks anyway.
    */
   async function captureFor(
     id: string,
@@ -182,8 +203,12 @@ export function createYouTubeAdapter(
   ): Promise<TimedtextMessage | undefined> {
     const seen = captures.get(id);
     if (seen) return seen;
-    for (let tries = 0; ; tries++) {
+    let adTries = 0;
+    /** How long the player has listed no caption tracks, ads not counted. */
+    let unlisted = 0;
+    for (;;) {
       while (adShowing()) await sleep(pollMs, signal);
+      const since = Date.now();
       const own = await captures.wait(id, playerRequestWaitMs, signal);
       if (own) return own;
       if (adShowing()) continue;
@@ -192,25 +217,42 @@ export function createYouTubeAdapter(
         ad ||= adShowing();
       }, pollMs);
       try {
-        const asked = await askPlayer(id, original, signal);
-        if (asked || !(ad || adShowing()) || tries >= AD_TRIES) return asked;
+        const anyway = unlisted >= tracksListedTimeoutMs;
+        const asked = await askPlayer(id, original, anyway, signal);
+        if (asked === UNLISTED) {
+          unlisted += Date.now() - since;
+          continue;
+        }
+        if (!asked && (ad || adShowing()) && ++adTries <= AD_TRIES) continue;
+        if (!asked && anyway)
+          console.warn(
+            `Langle: YouTube's player listed no caption tracks for ${id} in ${tracksListedTimeoutMs / 1000} s`,
+          );
+        return asked;
       } finally {
         clearInterval(watch);
       }
     }
   }
 
-  /** Asks the player for `original` and waits for its request. */
+  /**
+   * Asks the player for `original` and waits for its request; UNLISTED, asking nothing,
+   * while the player lists no caption tracks, unless `evenUnlisted`.
+   */
   async function askPlayer(
     id: string,
     original: YouTubeTrack,
+    evenUnlisted: boolean,
     signal?: AbortSignal,
-  ): Promise<TimedtextMessage | undefined> {
-    const { previous } = await call({
+  ): Promise<TimedtextMessage | undefined | typeof UNLISTED> {
+    const loaded = await call({
       type: "loadTrack",
       languageCode: original.lang,
       asr: original.kind === "asr",
+      ...(evenUnlisted && { evenUnlisted }),
     });
+    if (!loaded) return UNLISTED;
+    const { previous } = loaded;
     try {
       return await captures.wait(id, captureTimeoutMs, signal);
     } finally {
@@ -264,6 +306,7 @@ export function createYouTubeAdapter(
     const fetched: string[] = [];
     /** The cues of `track` (or of its auto-translation into `tlang`), from the capture or fetched. */
     const cuesOf = async (track: YouTubeTrack, tlang?: string) => {
+      if (tlang !== undefined && (await options.refuseTlang?.())) return [];
       const same =
         capture.lang === track.lang &&
         (capture.kind === "asr") === (track.kind === "asr") &&
@@ -352,6 +395,7 @@ export function createYouTubeAdapter(
     fillsWindow: () => layout.fullscreenBox() !== null,
     narrowPlayer,
     hideSiteCaptions: hideCaptions,
+    setPageGate: (open) => bridge.setGate(open),
     dispose() {
       for (const cleanup of cleanups.splice(0)) cleanup();
       hideCaptions(false);

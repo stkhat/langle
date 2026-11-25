@@ -1,6 +1,8 @@
 // Writes the pack lock file (src/core/packs/packs.lock.json) and an npm package folder
 // for each pack in data/packs/ (data/publish/<pack>/, git-ignored; npm-publish.ts
-// publishes them).
+// publishes them). A model pack (scripts/data/mt-models.ts) is locked from its
+// committed manifest.json, so its git-ignored parts are needed only to write its
+// package: without them it is left out of data/publish/.
 // Usage: npm run data:publish
 // The extension downloads every pack from the lock's mirrors; none is bundled.
 import { createHash } from "node:crypto";
@@ -21,12 +23,13 @@ import type {
 } from "../../src/core/packs/lock.ts";
 import { byCodeUnit, ROOT } from "./common.ts";
 import {
+  ALL_PACKS,
   NOTICES_DIR,
-  PACKS,
   REPOSITORY_URL,
   type PackInfo,
 } from "./formats.ts";
 import { gateReport, offeredPairs } from "./gate.ts";
+import { modelPackFiles } from "./mt-models.ts";
 
 type Packs = Readonly<Record<string, PackInfo>>;
 
@@ -126,10 +129,17 @@ export function buildLock(
     .sort()
     .map((name) => {
       const info = packs[name]!;
-      const files = existsSync(info.dir) ? listPackFiles(info.dir) : [];
+      const files = !existsSync(info.dir)
+        ? []
+        : info.kind === "model"
+          ? modelPackFiles(info.dir)
+          : listPackFiles(info.dir);
       if (files.length === 0)
-        throw new Error(`${name} has no files in ${relative(ROOT, info.dir)}`);
+        throw new Error(
+          `${name} has no files in ${relative(ROOT, info.dir)}${info.kind === "model" ? " (npm run data:mt-models)" : ""}`,
+        );
       const entry = {
+        ...(info.kind && { kind: info.kind }),
         package: info.package,
         version: nextVersion(
           files,
@@ -164,11 +174,17 @@ function stringifyLock(lock: PackLock) {
   return `${JSON.stringify(sortKeys(lock), null, 2)}\n`;
 }
 
+/** What a package is for, as its description and README name it. */
+const forWhat = (info: PackInfo) =>
+  info.kind === "model"
+    ? "the Langle app's on-device translator"
+    : "the Langle browser extension";
+
 function packageJson(info: PackInfo, entry: PackLockEntry) {
   return {
     name: info.package,
     version: entry.version,
-    description: `${info.description}, for the Langle browser extension`,
+    description: `${info.description}, for ${forWhat(info)}`,
     license: info.license.spdx,
     // In the form `npm publish` normalizes it to, so npm need not correct it.
     repository: { type: "git", url: `git+${REPOSITORY_URL}.git` },
@@ -191,7 +207,7 @@ function licenseText(info: PackInfo) {
     ...new Set(info.sources.flatMap((s) => s.license.notice ?? [])),
   ];
   return [
-    `The data files in this package (${info.package}) are licensed under the`,
+    `The ${info.kind === "model" ? "model" : "data"} files in this package (${info.package}) are licensed under the`,
     `${info.license.name}:`,
     info.license.url,
     "",
@@ -216,9 +232,11 @@ function readme(info: PackInfo) {
   return [
     `# ${info.package}`,
     "",
-    `${info.title} for the Langle browser extension: ${info.description}.`,
+    `${info.title} for ${forWhat(info)}: ${info.description}.`,
     "",
-    "The files are JSON data that the extension downloads, checks against the SHA-256 values it ships with and reads. They contain no code.",
+    info.kind === "model"
+      ? "The files are a translation model's weights, shortlist and vocabularies, as Mozilla released them, split into parts that `manifest.json` lists in order. The app downloads them, checks each against the SHA-256 values it ships with, joins the parts and gives them to the Bergamot translator. They contain no code."
+      : "The files are JSON data that the extension downloads, checks against the SHA-256 values it ships with and reads. They contain no code.",
     "",
     "## Sources",
     "",
@@ -234,7 +252,10 @@ function readme(info: PackInfo) {
   ].join("\n");
 }
 
-/** Writes data/publish/<pack>/ for each pack (the folder is replaced). */
+/**
+ * Writes data/publish/<pack>/ for each pack (the folder is replaced). A model pack whose
+ * parts are not in data/packs/ (they are git-ignored) is left out.
+ */
 export function writePackages(
   packs: Packs,
   lock: PackLock,
@@ -243,7 +264,12 @@ export function writePackages(
   rmSync(publishDir, { recursive: true, force: true });
   const written = [];
   for (const [name, info] of Object.entries(packs)) {
-    const entry = lock.packs[name as keyof PackLock["packs"]];
+    const entry = lock.packs[name as keyof PackLock["packs"]]!;
+    if (
+      info.kind === "model" &&
+      !entry.files.every((file) => existsSync(join(info.dir, file.path)))
+    )
+      continue;
     const out = join(publishDir, name);
     mkdirSync(out, { recursive: true });
     for (const file of entry.files)
@@ -261,7 +287,7 @@ export function writePackages(
 
 /** Writes the lock and the npm package folders. Returns the lock and the packages written. */
 export function publish({
-  packs = PACKS,
+  packs = ALL_PACKS,
   lockPath = LOCK_PATH,
   publishDir = PUBLISH_DIR,
   now = new Date(),

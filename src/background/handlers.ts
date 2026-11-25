@@ -24,13 +24,14 @@ import { normalizeWord } from "../core/text/tokenize";
 import { isAnswer } from "../core/explain/answer";
 import { MAX_LINES } from "../core/explain/context";
 import { learningLanguages, nativeLanguages } from "../core/languages";
-import { packBytes, type PackLock } from "../core/packs/lock";
 import {
-  fallbacksOf,
-  packsFor,
-  pairsOfPack,
-  translationPair,
-} from "../core/packs/pairs";
+  modelPacksOf,
+  packBytes,
+  pairPacks,
+  type PackLock,
+  type PackLockEntry,
+} from "../core/packs/lock";
+import { fallbacksOf, pairsOfPack, translationPair } from "../core/packs/pairs";
 import { allOf, PacksUnavailableError } from "../core/packs/unavailable";
 import {
   correctPhrase,
@@ -52,7 +53,7 @@ import {
   onHost,
   tryNormalizeUrl,
 } from "../core/url";
-import { errorText, omit } from "../core/util";
+import { errorText, omit, own } from "../core/util";
 import {
   MAX_CACHED_TRANSLATIONS,
   MAX_TRANSLATION_TEXT,
@@ -82,7 +83,7 @@ import { historyKeys, type HistoryStore } from "./history-store";
 import type { LanguageResources } from "./language-resources";
 import type { PackStore } from "./pack-store";
 import { RECENTS_LIMIT, type RecentsStore } from "./recents-store";
-import type { ImportedOccurrence, TermStore } from "./term-store";
+import type { ImportedOccurrence, SaveOptions, TermStore } from "./term-store";
 import type { TranslationCache } from "./translation-cache";
 import type { ExplanationCache } from "./explanation-cache";
 
@@ -142,8 +143,15 @@ const WRITTEN: ReadonlySet<unknown> = new Set([
   "run",
 ]);
 
-/** Private (incognito) windows leave nothing behind: no history, no encounters. */
+/**
+ * Private (incognito) windows leave no page or sentence behind: no history, no
+ * encounters, no cached explanations, and a term saved there keeps only its status.
+ */
 const fromIncognito = (sender: MessageSender) => sender.tab?.incognito === true;
+
+const saveOptions = (sender: MessageSender): SaveOptions => ({
+  withoutSource: fromIncognito(sender),
+});
 
 /**
  * An occurrence, or a kept sentence of the history (an encounter), as the UI shows it,
@@ -588,17 +596,20 @@ export function createHandlers({
       };
     },
 
-    async saveTerm(request) {
+    async saveTerm(request, sender) {
       const input = omit(request, "type");
       const wasSaved = (await store.termIndex(input.lang)).has(input.key);
-      const term = await store.saveTerm(input);
+      const term = await store.saveTerm(input, saveOptions(sender));
       if (!wasSaved) await importKept(term.id);
       return term;
     },
 
-    async chooseMeaning({ term: input, meaning }) {
+    async chooseMeaning({ term: input, meaning }, sender) {
       const wasSaved = (await store.termIndex(input.lang)).has(input.key);
-      const term = await store.chooseMeaning({ term: input, meaning });
+      const term = await store.chooseMeaning(
+        { term: input, meaning },
+        saveOptions(sender),
+      );
       if (term && !wasSaved) await importKept(term.id);
       return term;
     },
@@ -609,8 +620,8 @@ export function createHandlers({
     },
     recordEncounters: async ({ source, items }, sender) =>
       fromIncognito(sender) ? 0 : store.recordEncounters(source, items),
-    saveAll: ({ lang, keys, status, source }) =>
-      store.saveAll(lang, keys, status, source),
+    saveAll: ({ lang, keys, status, source }, sender) =>
+      store.saveAll(lang, keys, status, source, saveOptions(sender)),
     undoSaveAll: ({ batchId }) => store.undoSaveAll(batchId),
     counts: ({ lang }) => store.counts(lang),
     syncStatus: () => sync.status(),
@@ -792,7 +803,8 @@ export function createHandlers({
     },
     historyStatus: () => history.status(),
     clearHistory: async () => {
-      await history.clear();
+      // The kept explanations hold pages and sentences too.
+      await Promise.all([history.clear(), explanations.clear()]);
       return null;
     },
 
@@ -847,10 +859,15 @@ export function createHandlers({
 
     async packStatus() {
       const { learningLang, nativeLang } = await settings.get();
-      const needed = packsFor(learningLang, nativeLang);
-      const fallbacks: readonly string[] = fallbacksOf(
-        `${learningLang}-${nativeLang}`,
-      );
+      const needed = pairPacks(learningLang, nativeLang, packs.lock);
+      // Pages work without the translation models too.
+      const fallbacks: readonly string[] = [
+        ...fallbacksOf(`${learningLang}-${nativeLang}`),
+        ...needed.filter(
+          (pack) =>
+            own<PackLockEntry>(packs.lock.packs, pack)?.kind === "model",
+        ),
+      ];
       const [states, stored] = await Promise.all([
         packs.store.states(needed),
         packs.store.downloaded(),
@@ -859,7 +876,9 @@ export function createHandlers({
         pair: {
           packs: needed.map((pack) => ({
             pack,
-            size: packBytes(packs.lock.packs[pack]),
+            size: packBytes(
+              own<PackLockEntry>(packs.lock.packs, pack) ?? { files: [] },
+            ),
             ...states[pack]!,
             ...(fallbacks.includes(pack) && { fallback: true as const }),
           })),
@@ -878,16 +897,22 @@ export function createHandlers({
     async removePack({ pack }) {
       if (typeof pack !== "string") throw new Error("No pack to remove");
       const { learningLang, nativeLang } = await settings.get();
-      if ((packsFor(learningLang, nativeLang) as string[]).includes(pack))
+      if (
+        (pairPacks(learningLang, nativeLang, packs.lock) as string[]).includes(
+          pack,
+        )
+      )
         throw new Error(`${pack} is used by the chosen languages`);
       const stored = await packs.store.downloaded();
       if (!stored.some((d) => d.pack === pack)) return null;
       await packs.store.remove(pack);
       await Promise.all(
-        pairsOfPack(pack).flatMap(({ learning, native }) => [
-          translations.clearPair(translationPair(learning, native)),
-          explanations.clearPair(translationPair(learning, native)),
-        ]),
+        pairsOfPack(pack, modelPacksOf(packs.lock)).flatMap(
+          ({ learning, native }) => [
+            translations.clearPair(translationPair(learning, native)),
+            explanations.clearPair(translationPair(learning, native)),
+          ],
+        ),
       );
       return null;
     },
@@ -897,9 +922,10 @@ export function createHandlers({
       return (key && (await explanations.get(key))) ?? null;
     },
 
-    async putExplanation({ explanation, answer, lines }) {
+    async putExplanation({ explanation, answer, lines }, sender) {
       const key = explanationKeyOf(explanation);
       if (
+        fromIncognito(sender) ||
         key === undefined ||
         !isAnswer(answer) ||
         !Number.isInteger(lines) ||

@@ -27,6 +27,11 @@ android {
     // android.util.Log in unit tests.
     unitTests.isReturnDefaultValues = true
   }
+  sourceSets {
+    // The Bergamot translator's engine files (npm run mobile:bergamot; git-ignored), served
+    // to the translator's page as assets bergamot/….
+    getByName("main").assets.directories += "engine"
+  }
   androidResources {
     // aapt's default also leaves out folders starting with "_"; the bundled build keeps them all.
     ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~"
@@ -40,6 +45,25 @@ dependencies {
   testImplementation(platform(libs.junit.bom))
   testImplementation(libs.junit.jupiter)
   testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+// The engine files are code pinned by SHA-256 and never committed (scripts/mobile/bergamot.ts
+// checks them): an APK without them would have no on-device translator, so packaging the
+// assets fails without them. Unit tests do not need them.
+val checkEngineFiles by tasks.registering {
+  val dir = layout.projectDirectory.dir("engine/bergamot")
+  val names = listOf("bergamot-translator.wasm", "bergamot-translator.js", "LICENSE")
+  doLast {
+    val missing = names.filterNot { dir.file(it).asFile.isFile }
+    if (missing.isNotEmpty())
+      throw GradleException(
+        "The Bergamot engine files are missing from mobile/android/app/engine/bergamot/ " +
+          "(${missing.joinToString()}). Run `npm run mobile:bergamot` at the repository root.",
+      )
+  }
+}
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
+  dependsOn(checkEngineFiles)
 }
 
 tasks.withType<Test>().configureEach {

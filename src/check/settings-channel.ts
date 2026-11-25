@@ -22,7 +22,7 @@ import {
 /** The `type` of every message of this channel on the page. */
 export const SETTINGS_MESSAGE_TYPE = "langle:check-settings";
 
-type Action = "get" | "set" | "packs" | "remove";
+type Action = "get" | "set" | "packs" | "remove" | "refuseTlang";
 
 /** A web page's request (docs/development.md "Checking in your own Chrome"). */
 interface SettingsPageRequest {
@@ -33,6 +33,8 @@ interface SettingsPageRequest {
   settings?: unknown;
   /** `remove` only: the pack to delete from the device. */
   pack?: unknown;
+  /** `refuseTlang` only: turns the switch on or off; left out, it is only read. */
+  on?: unknown;
 }
 
 /** What the chosen pair's packs are doing (the `packs` action). */
@@ -55,10 +57,17 @@ export type SettingsPageReply = {
 } & (
   | { ok: true; settings: Settings }
   | ({ ok: true } & PackReport)
+  | { ok: true; refuseTlang: boolean }
   | { ok: false; error: string }
 );
 
-const ACTIONS: readonly Action[] = ["get", "set", "packs", "remove"];
+const ACTIONS: readonly Action[] = [
+  "get",
+  "set",
+  "packs",
+  "remove",
+  "refuseTlang",
+];
 
 const isPageRequest = (data: unknown): data is SettingsPageRequest => {
   const d = data as Partial<SettingsPageRequest & { reply: unknown }> | null;
@@ -168,6 +177,11 @@ export interface SettingsChannelDeps {
    * chosen pair does not use, so a check can watch its first download again.
    */
   removePack?(pack: string): Promise<void>;
+  /**
+   * The switch that makes the YouTube adapter treat `tlang` as refused (a 429), so a
+   * device check sees on-device translated subtitles (refuse-tlang.ts).
+   */
+  refuseTlang?: { get(): Promise<boolean>; set(on: boolean): Promise<void> };
 }
 
 /**
@@ -187,7 +201,19 @@ export function answerSettingsRequests(
 
   async function answer(
     request: SettingsPageRequest,
-  ): Promise<{ ok: true; settings: Settings } | ({ ok: true } & PackReport)> {
+  ): Promise<
+    | { ok: true; settings: Settings }
+    | ({ ok: true } & PackReport)
+    | { ok: true; refuseTlang: boolean }
+  > {
+    if (request.action === "refuseTlang") {
+      const { refuseTlang } = options;
+      if (!refuseTlang) throw new Error("refuseTlang is not offered here");
+      if (request.on !== undefined && typeof request.on !== "boolean")
+        throw new Error("on must be true or false");
+      if (typeof request.on === "boolean") await refuseTlang.set(request.on);
+      return { ok: true, refuseTlang: await refuseTlang.get() };
+    }
     if (request.action === "get")
       return { ok: true, settings: await options.getSettings() };
     if (request.action === "remove") {

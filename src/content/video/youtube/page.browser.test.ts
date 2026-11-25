@@ -147,6 +147,27 @@ describe("before Langle is set up", () => {
   });
 });
 
+describe("while the site is switched off", () => {
+  afterEach(async () => {
+    tellPage(CHANNEL, "on");
+    await flush();
+  });
+
+  it("posts nothing it saw while off, and what it sees once on again", async () => {
+    tellPage(CHANNEL, "wait");
+    await flush();
+    await xhr(TRACK);
+    await (await fetch(TRACK)).text();
+    await flush();
+    expect(posted).toEqual([]);
+    tellPage(CHANNEL, "on");
+    await flush();
+    expect(posted).toEqual([]);
+    await xhr(TRACK);
+    await expect.poll(() => posted.map((m) => m.body)).toEqual([en]);
+  });
+});
+
 describe("answering the content script", () => {
   let page: TestPage;
   beforeAll(() => {

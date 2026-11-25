@@ -58,6 +58,8 @@ function start(
     pollMs: 20,
     ...adapterOptions,
   });
+  // As the session does while the site is on.
+  adapter.setPageGate(true);
 }
 
 /** Keeps the next `count` fetchTimedtext calls from the page script (see holdBackPageCalls). */
@@ -470,6 +472,25 @@ describe("loading captions", () => {
     );
   });
 
+  it("chooses the on-device translator when the check build refuses tlang, never asking YouTube", async () => {
+    start(
+      { playerResponse: responseWithout((t) => t.vssId === ".ja") },
+      { refuseTlang: () => true },
+    );
+    const captions = await adapter.loadCaptions({
+      ...REQUEST,
+      translatorAvailable: true,
+    });
+    expect(captions?.translation).toEqual({
+      source: "builtIn",
+      lang: "ja",
+      cues: [],
+    });
+    expect(timedtextRequests().map((u) => u.searchParams.get("tlang"))).toEqual(
+      [null],
+    );
+  });
+
   it("falls back to the built-in translator or none", async () => {
     const noJa = responseWithout((t) => t.vssId === ".ja");
     noJa.captions.playerCaptionsTracklistRenderer.translationLanguages = [];
@@ -546,6 +567,27 @@ describe("loading captions", () => {
     setTimeout(() => page.player.classList.remove("ad-showing"), 300);
     expect((await loading)?.track.id).toBe(".en");
     expect(page.player.fake.requests.length).toBeGreaterThan(0);
+  });
+
+  it("asks the player for a track only once it lists its caption tracks (a slow first load)", async () => {
+    // youtube.com's player drops a track set before its captions module lists the
+    // tracks; on a busy page that came after Langle's whole wait (docs/notes/mobile.md).
+    start({ tracksListedAfterMs: 1500 });
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(page.player.fake.setOption).toHaveLength(1);
+  });
+
+  it("asks anyway, and warns, when the player lists no caption tracks in time", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => warn.mockRestore());
+    start({ tracksListedAfterMs: 60_000 }, { tracksListedTimeoutMs: 300 });
+    expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
+    // The one ask, which the player dropped.
+    expect(page.player.fake.setOption).toHaveLength(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(`listed no caption tracks for ${VIDEO_ID}`),
+    );
   });
 
   it("follows SPA navigation and returns nothing when YouTube sends empty captions", async () => {

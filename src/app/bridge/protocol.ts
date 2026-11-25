@@ -38,6 +38,11 @@ const CALL_APIS = [
   "alarms.clear",
   "appHost.openPage",
   "appHost.shareFile",
+  "appHost.translate",
+  "appHost.translatorStatus",
+  "appHost.prepareTranslator",
+  "appHost.models.ensure",
+  "appHost.models.remove",
 ] as const;
 
 /** What native code tells a script. */
@@ -47,6 +52,7 @@ const EVENT_APIS = [
   "runtime.onStartup",
   "storage.onChanged",
   "alarms.onAlarm",
+  "appHost.models.onProgress",
 ] as const;
 
 export type CallApi = (typeof CALL_APIS)[number];

@@ -161,7 +161,9 @@ export function createTranslationQueue(
       job.started = true;
       let translated: string | undefined;
       try {
-        translated = await translator(job.pair).translate(job.text);
+        translated = await translator(job.pair).translate(job.text, {
+          start: job.rank !== RANK.list,
+        });
       } catch {
         translated = undefined;
       }

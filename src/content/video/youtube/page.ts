@@ -226,6 +226,12 @@ function install(gate: PageGate) {
     (track.kind === "asr") === asr &&
     !track.translationLanguage?.languageCode;
 
+  /** The caption tracks the player's captions module lists (none before it is ready). */
+  function listedTracks(api: PlayerApi): CaptionTrackOption[] {
+    const list = api.getOption?.("captions", "tracklist");
+    return Array.isArray(list) ? (list as CaptionTrackOption[]) : [];
+  }
+
   async function answer(call: PageCall): Promise<unknown> {
     const api = player(call);
     switch (call.type) {
@@ -242,8 +248,12 @@ function install(gate: PageGate) {
         return api?.getVideoData?.()?.video_id ?? null;
       case "loadTrack": {
         if (!api?.setOption) throw new Error("No player");
-        keepChoice();
         api.loadModule?.("captions");
+        // Until its captions module lists the video's tracks, the player drops a track
+        // set (an early load on a busy page: docs/notes/mobile.md "Subtitles missing
+        // on an early load (M5f)").
+        if (listedTracks(api).length === 0 && !call.evenUnlisted) return null;
+        keepChoice();
         const current = api.getOption?.("captions", "track") as
           CaptionTrackOption | undefined;
         const previous = plain(current ?? {});
@@ -254,11 +264,7 @@ function install(gate: PageGate) {
           api.unloadModule?.("captions");
           api.loadModule?.("captions");
         }
-        const list = api.getOption?.("captions", "tracklist");
-        const tracks = Array.isArray(list)
-          ? (list as CaptionTrackOption[])
-          : [];
-        const track = tracks.find(
+        const track = listedTracks(api).find(
           (t) =>
             t.languageCode === call.languageCode &&
             (t.kind === "asr") === call.asr,

@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, expect, it } from "vitest";
 import { page } from "vitest/browser";
+import { DEFAULT_SETTINGS, type Settings } from "../../../core/settings";
 import { clickOn, dictionary, highlighted } from "../../../testing/article";
 import { testBackground } from "../../../testing/background";
 import { detectEnglish, noTranslation } from "../../../testing/stubs";
@@ -34,7 +35,7 @@ function addComments() {
   return root;
 }
 
-async function start() {
+async function start(settings: Partial<Settings> = {}) {
   const testPage = createTestPage();
   cleanups.push(() => testPage.remove());
   const adapter = createYouTubeAdapter({
@@ -46,6 +47,7 @@ async function start() {
   cleanups.push(() => adapter.dispose());
   const background = testBackground({
     highlight: { new: true, learning: true, known: false },
+    ...settings,
   });
   cleanups.push(() => background.close());
   const deps = {
@@ -114,4 +116,15 @@ it("one dictionary at a time, and a term saved in the comments reaches the video
   await clickOn(root, "tedious");
   await dictionary().getByRole("button", { name: "Learning" }).click();
   await expect.poll(videoAnalyses).toBe(before + 1);
+});
+
+it("takes in the page's captions only once the site is on, without a reload", async () => {
+  const { background, video } = await start({
+    sites: { ...DEFAULT_SETTINGS.sites, youtube: false },
+  });
+  const state = () => video.app.store.get();
+  expect(state().status).toBe("idle");
+  background.changeSettings({ sites: { youtube: true } });
+  await expect.poll(() => state().status, { timeout: 5000 }).toBe("ready");
+  expect(state().cues.length).toBeGreaterThan(0);
 });
