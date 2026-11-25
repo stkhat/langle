@@ -232,6 +232,14 @@ final class TabsTests: XCTestCase {
     XCTAssertEqual(
       h.actions, [.openTab(h.router.tabs.all[0]), .openPopup, .reloadHost, .reloadTab(1)])
   }
+
+  func test_appHost_openPage_opens_the_web_page_in_a_tab_and_is_logged() {
+    let h = Harness()
+    let page = h.connect(.page(url: "\(origin)/home.html"))
+    page.call("appHost.openPage", .string(article))
+    XCTAssertTrue(h.router.tabs.all.contains { $0.url == article && $0.active })
+    XCTAssertEqual(h.actions, [.openTab(h.router.tabs.all.last!)])
+  }
 }
 
 final class AlarmsTests: XCTestCase {
