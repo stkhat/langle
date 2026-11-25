@@ -320,10 +320,22 @@ The Android emulator (Android 17 Play image, signed in to a Google account), the
 - **A removed word does not come back from an older backup** ("Imported 0 words" after removing tedious): the import merges with last-writer-wins and the removal's tombstone is newer than the file. As designed (the same on desktop); the words came back on a fresh install.
 - **Error log**: 32 entries, all info (the packs served by jsDelivr on the first start), each of the three times it was read; cleared.
 - **Found**: no bug in M4f on Android; nothing changed.
-- **Open**:
+- **Open** (answered in "Save to device and the loose picker types" below for the first and third):
   - No way to save an export to the phone itself on this image (above). Options for the user to decide: keep the share sheet only, or add a "Save to device" path (`ACTION_CREATE_DOCUMENT`, the system's save dialog) beside it.
   - "Last export: just now" is set when the chooser opens, also when the user backs out of it: Android does not say whether the file was shared.
   - The picker asks for `application/json` only (the input's `accept`): a backup a mail or chat app typed otherwise (`application/octet-stream`) would be greyed out. Not seen here (Downloads types files by their extension).
+
+### Save to device and the loose picker types (2026-11-25)
+
+The user chose to add "Save to device". Same emulator, check build, fresh install (`adb uninstall`, then the first run and four saved terms as above).
+
+- **How it shows**: tried first as the chooser's first target (`EXTRA_INITIAL_INTENTS` with a `LabeledIntent`). On Android 17 the chooser draws such a target with the app's icon and name and the label as a second line, cut to "Save to devi…"; the activity's own icon and label are ignored. So Android 14 and later get a custom action instead (`EXTRA_CHOOSER_CUSTOM_ACTIONS`, a `ChooserAction` with an immutable `PendingIntent`): a chip with the download icon and the whole "Save to device" between the file and the targets. Android 10 to 13 keep the first target. Both start `SaveFileActivity` (not exported, no screen), which opens the save dialog with the file's name and type and copies the shared file's bytes to the chosen place. The first-target path (what 10 to 13 get) was seen working on Android 17; no older image was run.
+- **Saved**: Words ⋮ Backup (JSON) (first-target build), Words ⋮ CSV and Settings › Backup Export (chip) each opened DocumentsUI's save dialog on Downloads with the file's name; SAVE wrote `langle-backup-2026-11-25.json` (2,109 bytes), `langle-words-en-ja-2026-11-25.csv` (978 bytes, BOM, header and four rows) and `langle-backup-2026-11-25 (1).json` (DocumentsUI's own name for a second file). Each read back with `adb shell cat` equals the shared file in `cache/shared/` byte for byte.
+- **Cancelled**: Words ⋮ Anki, the chip, then back in the save dialog: "save cancelled" in the log, nothing in Downloads, back on Words; the next export opens the chooser again.
+- **Import with loose types**: the saved backup pushed again as `backup-from-chat` (MediaStore types it `application/octet-stream`) and `backup-from-mail.txt` (`text/plain`). The picker (`accept="application/json,.json"` now asks for `application/json`, `application/octet-stream`, `text/plain`) shows the two `.json` backups and both loose files selectable and the CSV greyed out. After a reset and the first run, `backup-from-chat` from Words ⋮ Import brought the four words back; after another reset, `backup-from-mail.txt` from Settings › Backup Import: "Imported 4 words".
+- **iOS** (read, not changed): WebKit's picker turns `accept` into content types and Files types a file by its extension, so a backup that keeps its `.json` name is selectable whatever the sending app called it, and one renamed `.txt` or without an extension is greyed out (the `.txt` was greyed in the iOS check below).
+- **Error log**: 32 entries, all info (the en pack's downloads); cleared. No app errors in the log.
+- **Unit tests**: `:core:test` and `:app:testDebugUnitTest`, 87 tests pass (FilesTest: the loose types, the any-file type, `bareMediaType`).
 
 ## Device checks (M4f, iOS; 2026-11-25)
 
