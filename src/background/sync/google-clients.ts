@@ -20,18 +20,20 @@ export interface GoogleClients {
   web: string;
 }
 
-/** Development and check builds: redirect to `DEVELOPMENT_EXTENSION_KEY`'s id. */
-const DEVELOPMENT_GOOGLE_CLIENTS: GoogleClients = {
-  web: "191564468385-i9mvko6iu5qpq1o8pkhtufudvu72nc36.apps.googleusercontent.com",
-};
-
 /**
- * Production builds: none until the Chrome Web Store item exists, since its id's
- * redirect URI must be added to the Web client first (or a client of its own in the
- * same Cloud project, which sees the same `appDataFolder`; docs/status.md "Before
- * publishing"). Until then production builds have no cloud provider.
+ * The one Web client of Langle's Cloud project. Its redirect URIs list both ids:
+ * `DEVELOPMENT_EXTENSION_KEY`'s (development and check builds) and the Chrome Web
+ * Store item's, `dldcjcapnikfmodbgnnlbkilbcepnbnf` (production builds). One client,
+ * so every build reads and writes the same `appDataFolder`.
  */
-const PRODUCTION_GOOGLE_CLIENTS: GoogleClients | undefined = undefined;
+const WEB_CLIENT_ID =
+  "191564468385-i9mvko6iu5qpq1o8pkhtufudvu72nc36.apps.googleusercontent.com";
+
+const DEVELOPMENT_GOOGLE_CLIENTS: GoogleClients = { web: WEB_CLIENT_ID };
+
+const PRODUCTION_GOOGLE_CLIENTS: GoogleClients | undefined = {
+  web: WEB_CLIENT_ID,
+};
 
 /**
  * This build's clients. The mode is a constant at build time, so production builds

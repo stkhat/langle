@@ -202,14 +202,16 @@ describe("Google sign-in", () => {
     );
   });
 
-  // Until the store item's client is registered, production has no Google client.
+  // Production takes its id from the store, and the Web client lists that id's redirect.
   test.each(BUILDS)(
-    "%s (production) has no key, no oauth2 and no development client",
+    "%s (production) has no key, no oauth2 and the Web client",
     (dir) => {
       const m = readManifest(dir);
       expect(m.key).toBeUndefined();
       expect(m.oauth2).toBeUndefined();
-      expect(scriptsOf(dir)).not.toContain("191564468385-");
+      expect(scriptsOf(dir)).toContain(
+        "191564468385-i9mvko6iu5qpq1o8pkhtufudvu72nc36.apps.googleusercontent.com",
+      );
     },
   );
 });
