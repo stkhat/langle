@@ -8,6 +8,7 @@ import { segment, segmentGroup } from "../Segmented";
 import { CloseIcon, MessageIcon } from "../icons";
 import { color, iconButton, root } from "../styles";
 import { LangleMark } from "../LangleMark";
+import { arrowStep } from "../text-direction";
 import {
   Transcript,
   TranscriptControls,
@@ -107,7 +108,7 @@ export function VideoPanel<R extends WordRow>(props: VideoPanelProps<R>) {
               width: "36px",
               height: "36px",
               // Mock Main: the 36px button sits in the 16px padding.
-              marginRight: "-6px",
+              marginInlineEnd: "-6px",
               color: color.ink3,
             }}
           >
@@ -266,12 +267,7 @@ function Tabs(props: { tab: PanelTab; onTab: (tab: PanelTab) => void }) {
             tabIndex={selected ? 0 : -1}
             onClick={() => props.onTab(id)}
             onKeyDown={(event) => {
-              const by =
-                event.key === "ArrowRight"
-                  ? 1
-                  : event.key === "ArrowLeft"
-                    ? -1
-                    : 0;
+              const by = arrowStep(event.key);
               if (by === 0) return;
               event.preventDefault();
               move(i, by);

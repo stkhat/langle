@@ -246,7 +246,7 @@ What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` 
 - **First run** (`welcome.html`): the same steps (consent, languages, start), laid out as drawn in M4-0.
 
 ### Browser differences
-- `BrowserEnv` gets `sync: { kind: "browser", name } | { kind: "device" }` in place of `syncName`. `device` is chosen where `appHost` exists. Every string that names the browser's sync has a `device` counterpart ("Saved on this phone · {when}"; the first run's line on what is sent). Rows that only make sense with a browser's sync are left out with `device`.
+- `BrowserEnv` gets `sync: { kind: "browser", browser } | { kind: "device" }` in place of `syncName`. `device` is chosen where `appHost` exists. Every string that names the browser's sync has a `device` counterpart ("Saved on this phone · {when}"; the first run's line on what is sent). Rows that only make sense with a browser's sync are left out with `device`.
 
 ### Home (`home.html`, `langle-app` only)
 - As `MobileStart`: the mark, Langle and the pair; the search field; counts (Learning, Known, Phrases) and the saved line; Continue; Sites.

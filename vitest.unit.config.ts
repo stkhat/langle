@@ -1,8 +1,9 @@
 import { defineConfig, defineProject } from "vitest/config";
 import { WxtVitest } from "wxt/testing/vitest-plugin";
+import { localesPlugin } from "./scripts/locales.ts";
 
 export const unit = defineProject({
-  plugins: [WxtVitest()],
+  plugins: [WxtVitest(), localesPlugin()],
   test: {
     name: "unit",
     environment: "node",

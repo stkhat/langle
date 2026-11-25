@@ -1,6 +1,7 @@
 import { render, type JSX } from "preact";
 import { fullscreenElement } from "../fullscreen";
 import { boxOf } from "../lookup/geometry";
+import { UiRoot } from "../../ui/locale-root";
 import { createShadowHost } from "../shadow-host";
 import { inUse } from "./hold";
 import { createStore } from "../store";
@@ -137,7 +138,12 @@ export function mountVideoUi({
     ui: JSX.Element,
   ): HTMLElement {
     const { host, root } = createShadowHost(name, style);
-    render(<VideoThemed app={app}>{ui}</VideoThemed>, root);
+    render(
+      <UiRoot>
+        <VideoThemed app={app}>{ui}</VideoThemed>
+      </UiRoot>,
+      root,
+    );
     roots.push(root);
     parts.push({ host, point, moves: { second: 0, count: 0, parent: null } });
     return host;

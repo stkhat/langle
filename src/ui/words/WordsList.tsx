@@ -203,7 +203,7 @@ const ROW_BUTTON: Style = {
   gap: "8px",
   width: "100%",
   boxSizing: "border-box",
-  textAlign: "left",
+  textAlign: "start",
   padding: 0,
   margin: 0,
   border: 0,
@@ -263,10 +263,7 @@ const VARIANTS: Record<
     chipLabel: (_head, place, places) =>
       t("video.words.jump", { time: places[place]! }),
     groupLabel: (head) => t("video.words.places", { head }),
-    moreLabel: (count) =>
-      count === 1
-        ? t("video.words.more.one")
-        : t("video.words.more", { count }),
+    moreLabel: (count) => t("video.words.more", { count }),
   },
   page: {
     chipsShown: 7,
@@ -275,8 +272,7 @@ const VARIANTS: Record<
     chipLabel: (head, place, places) =>
       t("page.words.jump", { head, n: place + 1, count: places.length }),
     groupLabel: (head) => t("page.words.places", { head }),
-    moreLabel: (count) =>
-      count === 1 ? t("page.words.more.one") : t("page.words.more", { count }),
+    moreLabel: (count) => t("page.words.more", { count }),
   },
 };
 

@@ -16,7 +16,12 @@ export interface Settings {
   enabled: boolean;
   learningLang: string;
   nativeLang: string;
-  uiLocale: string;
+  /**
+   * The interface language picked in Settings (a locale code); "" follows Your language
+   * (`interfaceLocale`, src/i18n/ui-locale.ts). It replaces `uiLocale`, which held "en",
+   * the only choice then: a stored `uiLocale` is dropped, so those settings follow.
+   */
+  interfaceLanguage: string;
   /** Treat the N most common words as known (1,000–20,000, step 500). */
   knownLevel: number;
   highlight: { new: boolean; learning: boolean; known: boolean };
@@ -160,7 +165,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   enabled: true,
   learningLang: "en",
   nativeLang: "ja",
-  uiLocale: "en",
+  interfaceLanguage: "",
   knownLevel: 3000,
   highlight: { new: false, learning: true, known: false },
   unsavedAtEnd: "keep",
@@ -213,6 +218,10 @@ const oneOf = <T extends string>(
 
 function bool(value: unknown, base: boolean): boolean {
   return typeof value === "boolean" ? value : base;
+}
+
+function string(value: unknown, base: string): string {
+  return typeof value === "string" ? value : base;
 }
 
 function nonEmptyString(value: unknown, base: string): string {
@@ -288,7 +297,7 @@ export function mergeSettings(
     enabled: bool(v.enabled, base.enabled),
     learningLang: nonEmptyString(v.learningLang, base.learningLang),
     nativeLang: nonEmptyString(v.nativeLang, base.nativeLang),
-    uiLocale: nonEmptyString(v.uiLocale, base.uiLocale),
+    interfaceLanguage: string(v.interfaceLanguage, base.interfaceLanguage),
     knownLevel: stepped(v.knownLevel, base.knownLevel, KNOWN_LEVEL),
     highlight: flags(v.highlight, base.highlight),
     unsavedAtEnd: oneOf(v.unsavedAtEnd, base.unsavedAtEnd, ["keep", "known"]),

@@ -11,12 +11,16 @@ import { REVIEW_URLS } from "./links";
  * Where `storage.sync` keeps the data: the browser's own sync (named in the UI), or
  * only this device (the phone app, whose `storage.sync` is never synced).
  */
-export type SyncPlace = { kind: "browser"; name: string } | { kind: "device" };
+export type SyncPlace =
+  { kind: "browser"; browser: string } | { kind: "device" };
 
 export interface BrowserEnv {
   /** For UI text, e.g. "Chrome". */
   name: string;
-  /** e.g. `{ kind: "browser", name: "Chrome sync" }`; `device` in the phone app. */
+  /**
+   * e.g. `{ kind: "browser", browser: "Chrome" }`, named in the interface language by
+   * `browserSyncName` ("Chrome sync"); `device` in the phone app.
+   */
   sync: SyncPlace;
   /** The store listing's review page ("Rate"); empty until the listing exists. */
   reviewUrl: string;
@@ -45,7 +49,7 @@ export function createBrowserEnv(
     sync:
       "appHost" in g
         ? { kind: "device" }
-        : { kind: "browser", name: firefox ? "Firefox Sync" : "Chrome sync" },
+        : { kind: "browser", browser: firefox ? "Firefox" : "Chrome" },
     reviewUrl: firefox ? REVIEW_URLS.firefoxAddOns : REVIEW_URLS.chromeWebStore,
     features: {
       fileSystemAccess: "showDirectoryPicker" in g,

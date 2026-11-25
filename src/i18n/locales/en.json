@@ -77,7 +77,8 @@
   "settings.languages.native": "Your language",
   "settings.languages.nativeDesc": "Meanings and translations are shown in this language.",
   "settings.languages.ui": "Interface language",
-  "settings.languages.uiDesc": "Language of Langle's own buttons and menus. More languages are planned.",
+  "settings.languages.uiDesc": "Language of Langle's own buttons and menus.",
+  "settings.languages.uiSame": "Same as your language",
   "settings.languages.data": "Language data",
   "settings.languages.dataDesc": "Words and dictionaries Langle keeps on this device.",
   "settings.languages.dataSize": "{size} MB",
@@ -218,15 +219,19 @@
   "backup.menu": "Export and import",
   "backup.import": "Import",
   "backup.file": "Backup file to import",
-  "backup.imported": "Imported {count} words",
-  "backup.imported.one": "Imported 1 word",
+  "backup.imported": {
+    "one": "Imported {count} word",
+    "other": "Imported {count} words"
+  },
   "backup.importFailed": "Could not import: {error}",
   "backup.exportFailed": "Could not export: {error}",
   "backup.exportBackup": "Backup (JSON)",
   "backup.shownWords": "Shown words · {count}",
   "backup.exporting": "Exporting…",
-  "backup.exported": "Exported {count} words",
-  "backup.exported.one": "Exported 1 word",
+  "backup.exported": {
+    "one": "Exported {count} word",
+    "other": "Exported {count} words"
+  },
   "export.anki": "Anki (.txt)",
   "export.csv": "CSV",
   "export.deck": "Langle {language}",
@@ -290,8 +295,10 @@
   "dict.usedHereOf": "Used here: {meaning}",
   "dict.yourMeaning": "Your meaning",
   "dict.ai": "AI",
-  "dict.sentences": "{count} sentences",
-  "dict.sentences.one": "1 sentence",
+  "dict.sentences": {
+    "one": "{count} sentence",
+    "other": "{count} sentences"
+  },
   "dict.fitsHere": "Fits here",
   "dict.inSentence": "In this sentence",
   "dict.explain": "Explain in context",
@@ -325,15 +332,21 @@
   "platform.netflix": "Netflix",
   "saveAll.scope.page": "This page",
   "saveAll.scope.video": "This video",
-  "saveAll.unsaved": "{count} words not saved yet",
-  "saveAll.unsaved.one": "1 word not saved yet",
+  "saveAll.unsaved": {
+    "one": "{count} word not saved yet",
+    "other": "{count} words not saved yet"
+  },
   "saveAll.allSaved": "Every word is saved",
   "saveAll.addLearning": "Mark all as Learning",
   "saveAll.markKnown": "Mark all as Known",
-  "saveAll.done.learning": "{count} words marked as Learning",
-  "saveAll.done.learning.one": "1 word marked as Learning",
-  "saveAll.done.known": "{count} words marked as Known",
-  "saveAll.done.known.one": "1 word marked as Known",
+  "saveAll.done.learning": {
+    "one": "{count} word marked as Learning",
+    "other": "{count} words marked as Learning"
+  },
+  "saveAll.done.known": {
+    "one": "{count} word marked as Known",
+    "other": "{count} words marked as Known"
+  },
   "saveAll.undo": "Undo",
   "saveAll.note": "Words you have already saved keep their status. Words inside the common-word level are not counted.",
   "video.subtitle": "Subtitle",
@@ -358,15 +371,19 @@
   "words.placesMine": "Places with your meaning {meaning}",
   "words.placesNone": "Places with no meaning chosen, {meaning}",
   "words.placesNoneBare": "Places with no meaning chosen",
-  "video.words.more": "Show {count} more times",
-  "video.words.more.one": "Show 1 more time",
+  "video.words.more": {
+    "one": "Show {count} more time",
+    "other": "Show {count} more times"
+  },
   "page.words.title": "Words on this page",
   "page.words.panel": "Langle words",
   "page.words.close": "Close words",
   "page.words.jump": "Go to {head}, {n} of {count}",
   "page.words.places": "Places of {head}",
-  "page.words.more": "Show {count} more",
-  "page.words.more.one": "Show 1 more",
+  "page.words.more": {
+    "one": "Show {count} more",
+    "other": "Show {count} more"
+  },
   "popup.showWords": "Show words on this page",
   "popup.subtitles": "Subtitles",
   "popup.subtitles.transcript": "Show transcript",
@@ -440,5 +457,6 @@
   "setup.languages.native": "I speak",
   "setup.languages.learning": "I’m learning",
   "setup.languages.choose": "Choose a language",
-  "setup.languages.start": "Start"
+  "setup.languages.start": "Start",
+  "env.syncName": "{browser} sync"
 }

@@ -193,7 +193,7 @@ const LOOK = {
       padding: "14px 16px",
       background: color.surface,
       borderBottom: `1px solid ${color.line}`,
-      textAlign: "left",
+      textAlign: "start",
     },
     line: {
       margin: 0,

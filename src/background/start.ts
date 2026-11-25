@@ -31,6 +31,7 @@ import { createPackLoader } from "../core/packs/load";
 import { readLock } from "../core/packs/lock";
 import { PACK_STATE_KEY } from "../core/packs/state";
 import { getSetupStage, watchSetupStage, whenSetUp } from "../messaging/setup";
+import { fetchLocale } from "../i18n/ui-locale";
 import { watchSettings } from "../messaging/storage";
 
 /**
@@ -122,6 +123,7 @@ export function startBackground(): void {
     ...(appHostOf() && { recents: createRecentsStore(db) }),
     cloud,
     openOptionsPage: () => browser.runtime.openOptionsPage(),
+    loadLocale: fetchLocale,
     // Chrome refuses it at times (no focused window): nothing then.
     openPopup: async () => {
       await browser.action.openPopup?.().catch(() => undefined);

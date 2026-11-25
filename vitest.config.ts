@@ -6,6 +6,7 @@ import type { Plugin } from "vite";
 import { netflixSubtitleBody } from "./tests/netflix-subtitles.ts";
 import { timedtextBody } from "./tests/youtube-timedtext.ts";
 import { unit } from "./vitest.unit.config.ts";
+import { localesPlugin } from "./scripts/locales.ts";
 import { noticesPlugin } from "./scripts/notices.ts";
 
 /** Answers /api/timedtext from the recorded fixtures, like YouTube (see tests/youtube-timedtext.ts). */
@@ -116,6 +117,7 @@ export default defineConfig({
         plugins: [
           preact(),
           noticesPlugin(),
+          localesPlugin(),
           timedtextFixtures(),
           netflixFixtures(),
         ],

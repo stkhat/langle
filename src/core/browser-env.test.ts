@@ -5,19 +5,19 @@ describe("createBrowserEnv", () => {
   it("names Chrome and its sync for the chrome build", () => {
     const env = createBrowserEnv("chrome", {});
     expect(env.name).toBe("Chrome");
-    expect(env.sync).toEqual({ kind: "browser", name: "Chrome sync" });
+    expect(env.sync).toEqual({ kind: "browser", browser: "Chrome" });
   });
 
   it("names Firefox and its sync for the firefox build", () => {
     const env = createBrowserEnv("firefox", {});
     expect(env.name).toBe("Firefox");
-    expect(env.sync).toEqual({ kind: "browser", name: "Firefox Sync" });
+    expect(env.sync).toEqual({ kind: "browser", browser: "Firefox" });
   });
 
   it("uses Chrome's names for other Chromium build targets", () => {
     expect(createBrowserEnv("edge", {}).sync).toEqual({
       kind: "browser",
-      name: "Chrome sync",
+      browser: "Chrome",
     });
   });
 

@@ -47,7 +47,7 @@ export function BrandHeader(props: {
             display: "flex",
             flexDirection: "column",
             minWidth: 0,
-            marginLeft: size.inset,
+            marginInlineStart: size.inset,
           }}
         >
           {title}

@@ -16,7 +16,11 @@ import {
   type CloudView,
 } from "../../../ui/format/cloud";
 import { relativeTime } from "../../../ui/format/format";
-import { syncSavedLine, syncSpace } from "../../../ui/format/sync";
+import {
+  browserSyncName,
+  syncSavedLine,
+  syncSpace,
+} from "../../../ui/format/sync";
 import { Meter } from "../../../ui/Meter";
 import { RowLabel } from "../../../ui/RowLabel";
 import { color } from "../../../ui/styles";
@@ -266,7 +270,8 @@ export function SyncSection(
   const provider =
     cloud && cloud.kind !== "unavailable" ? cloud.name : undefined;
   /** None where nothing is synced (the phone app): no browser-sync or cloud rows. */
-  const syncName = env.sync.kind === "browser" ? env.sync.name : undefined;
+  const syncName =
+    env.sync.kind === "browser" ? browserSyncName(env.sync.browser) : undefined;
   return (
     <Section
       id="sync"

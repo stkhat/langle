@@ -1,5 +1,6 @@
 import type { ComponentChildren, CSSProperties } from "preact";
 import { color } from "./styles";
+import { pointingStyle } from "./text-direction";
 
 /** An outline icon in the current text color, 24×24 units scaled to `size`. */
 function Outline(props: {
@@ -123,7 +124,7 @@ export function FoldIcon(props: { folded: boolean }) {
 /** Mock MobileYouTubeLandscape's "‹ Transcript". */
 export function BackIcon() {
   return (
-    <Outline size={18} stroke={2} cap join>
+    <Outline size={18} stroke={2} cap join style={pointingStyle()}>
       <path d="M15 6l-6 6 6 6"></path>
     </Outline>
   );
@@ -320,7 +321,7 @@ export function ChevronRightIcon() {
       cap
       join
       color={color.knownLine}
-      style={{ flex: "none", alignSelf: "center" }}
+      style={{ flex: "none", alignSelf: "center", ...pointingStyle() }}
     >
       <path d="M9 6l6 6-6 6"></path>
     </Outline>
@@ -330,7 +331,7 @@ export function ChevronRightIcon() {
 /** The ‹ of a phone screen's back link ("‹ Words", "‹ Settings"). */
 export function BackChevronIcon() {
   return (
-    <Outline size={24} stroke={2} cap join>
+    <Outline size={24} stroke={2} cap join style={pointingStyle()}>
       <path d="M15 5l-7 7 7 7"></path>
     </Outline>
   );

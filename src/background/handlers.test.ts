@@ -209,6 +209,9 @@ let openPopup: Mock<() => Promise<void>>;
 let loadPack: ReturnType<typeof stubPackLoader>;
 let packs: FakePacks;
 
+// The build has a Japanese locale besides English.
+vi.mock("virtual:langle-locales", () => ({ default: ["en", "ja"] }));
+
 beforeEach(() => {
   fakeBrowser.reset();
   store = fakeStore();
@@ -237,6 +240,7 @@ beforeEach(() => {
     sync,
     cloud,
     openOptionsPage,
+    loadLocale: async (locale) => ({ "app.name": `Langle (${locale})` }),
     openPopup,
   };
   handle = createHandlers(deps);
@@ -253,6 +257,16 @@ describe("handlers: routing", () => {
       await value({ type: "setSettings", patch: { knownLevel: 5000 } }),
     ).toMatchObject({ knownLevel: 5000 });
     expect(await getSettings()).toMatchObject({ knownLevel: 5000 });
+  });
+
+  it("answers uiMessages with a locale file of the build, and only with one", async () => {
+    expect(await value({ type: "uiMessages", locale: "ja" })).toEqual({
+      "app.name": "Langle (ja)",
+    });
+    for (const locale of ["en", "nl", "../ja"])
+      expect(await handle({ type: "uiMessages", locale })).toMatchObject({
+        ok: false,
+      });
   });
 
   it("opens the options page for openOptions (content scripts cannot)", async () => {

@@ -412,7 +412,7 @@ function Continue(props: { pages: RecentPage[]; now: number; open: Open }) {
                 style={{
                   height: "1px",
                   background: color.line,
-                  marginLeft: "120px",
+                  marginInlineStart: "120px",
                 }}
               ></div>
             )}
@@ -519,7 +519,7 @@ function Thumbnail({ page }: { page: RecentPage }) {
         <span
           style={{
             position: "absolute",
-            left: 0,
+            insetInlineStart: 0,
             bottom: 0,
             width: `${share}%`,
             height: "3px",

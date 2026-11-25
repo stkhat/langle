@@ -24,7 +24,11 @@ import {
   type CloudView,
 } from "../../ui/format/cloud";
 import { fmt, relativeTime } from "../../ui/format/format";
-import { syncSavedLine, syncSpace } from "../../ui/format/sync";
+import {
+  browserSyncName,
+  syncSavedLine,
+  syncSpace,
+} from "../../ui/format/sync";
 import { CheckIcon, GearIcon, WordListIcon } from "../../ui/icons";
 import { HighlightChips } from "../../ui/lookup/HighlightChips";
 import { Meter } from "../../ui/Meter";
@@ -119,7 +123,10 @@ function SyncLine(props: {
   const line = syncSavedLine(status, (lastSavedAt) => {
     const when = relativeTime(lastSavedAt, props.now);
     return place.kind === "browser"
-      ? t("popup.sync.saved", { syncName: place.name, when })
+      ? t("popup.sync.saved", {
+          syncName: browserSyncName(place.browser),
+          when,
+        })
       : t("popup.sync.savedDevice", { when });
   });
   if (!status.enabled) return <span style={{ fontSize: "13px" }}>{line}</span>;

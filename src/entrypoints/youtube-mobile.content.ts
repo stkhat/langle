@@ -1,6 +1,7 @@
 import { tlangRefused } from "../check/refuse-tlang";
 import { startContentCheck } from "../check/start";
 import { runWhenSetUp } from "../content/setup";
+import { inUiLocale } from "../content/ui-locale";
 import { tellPage } from "../content/video/page-channel";
 import { CHANNEL } from "../content/video/youtube/messages";
 import { runVideoSite } from "../content/video/run";
@@ -21,7 +22,7 @@ export default defineContentScript({
     if (import.meta.env.MODE === "check") startContentCheck("youtube-mobile");
     runWhenSetUp(
       ctx,
-      () =>
+      inUiLocale(ctx, () =>
         runVideoSite(
           ctx,
           createYouTubeAdapter({
@@ -32,6 +33,7 @@ export default defineContentScript({
             }),
           }),
         ),
+      ),
       { needsPageLoad: true, waiting: () => tellPage(CHANNEL, "wait") },
     );
   },

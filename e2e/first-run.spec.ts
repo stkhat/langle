@@ -184,6 +184,35 @@ test.describe("a page that was open before the install", () => {
   });
 });
 
+test("the store listing names Langle from _locales, and the setup is in the browser's language", async ({
+  context,
+}) => {
+  const page = await setupPage(context);
+  const found = await page.evaluate(() => {
+    const { chrome: api } = globalThis as unknown as {
+      chrome: {
+        i18n: { getMessage(name: string): string; getUILanguage(): string };
+        runtime: { getManifest(): Record<string, unknown> };
+      };
+    };
+    const manifest = api.runtime.getManifest();
+    return {
+      name: api.i18n.getMessage("name"),
+      description: api.i18n.getMessage("description"),
+      defaultLocale: manifest.default_locale,
+      accessible: JSON.stringify(manifest.web_accessible_resources ?? []),
+      lang: document.documentElement.lang,
+    };
+  });
+  expect(found.name).toBe("Langle");
+  expect(found.description).not.toBe("");
+  expect(found.defaultLocale).toBe("en");
+  // The locale files go to content scripts through the background, not to pages.
+  expect(found.accessible).not.toContain("locales");
+  // The test browser speaks English, which is the setup's language then.
+  expect(found.lang).toBe("en");
+});
+
 test("Not now leaves Langle off; the popup opens the setup again, and a page that has Langle is not reloaded", async ({
   context,
   extensionId,

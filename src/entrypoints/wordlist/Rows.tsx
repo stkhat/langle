@@ -91,7 +91,7 @@ function Row(props: {
         height: "48px",
         flex: "none",
         boxSizing: "border-box",
-        textAlign: "left",
+        textAlign: "start",
         borderRadius: "8px",
         font: "inherit",
         color: color.ink,
@@ -204,7 +204,7 @@ function PhoneRow(props: {
         border: 0,
         borderTop: props.first ? 0 : `1px solid ${color.soft}`,
         background: "transparent",
-        textAlign: "left",
+        textAlign: "start",
         font: "inherit",
         color: color.ink,
         cursor: "pointer",
@@ -354,7 +354,7 @@ export function Rows(props: {
         {props.rows.slice(first, last).map((term, i) =>
           row(term, first + i, {
             position: "absolute",
-            left: 0,
+            insetInlineStart: 0,
             top: `${(first + i) * stride}px`,
           }),
         )}
