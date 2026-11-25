@@ -111,6 +111,460 @@ export const MT_MODELS: readonly ModelPin[] = [
       },
     },
   },
+  {
+    from: "en",
+    to: "es",
+    architecture: "base-memory",
+    dir: "models/en-es/retrain_hr_fix_names_CUAEXUHoQum_cFqh-ZAryw/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enes.s2t.bin",
+        size: 4198436,
+        sha256:
+          "7d51237c0a07027dcd61643cfbbb0f8c48597d19907ef53d2cae9d6bec2cf25c",
+      },
+      model: {
+        name: "model.enes.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "3b1c399511c01c84c36fae5c0524df44096288efdc8236e182b5c97d7ad2244c",
+      },
+      vocab: {
+        name: "vocab.enes.spm",
+        size: 816054,
+        sha256:
+          "5ae254fa9b15aa182e70fd2a6186b1333c63a29a48043a9224c6aa4fcac058ad",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "pt",
+    architecture: "base-memory",
+    dir: "models/en-pt/retrain_hr_fix_names_Vnb0RUXTTd67hR-oLHM3eg/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enpt.s2t.bin",
+        size: 3970340,
+        sha256:
+          "ccb4c31c9e1899d77a200e71a86958e6ef6c8649627d0bbf3f873b57d9f236bd",
+      },
+      model: {
+        name: "model.enpt.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "07892fd2544ee79dcb643615d8f2debb9793fae16842e87c328e27a3dd26a770",
+      },
+      vocab: {
+        name: "vocab.enpt.spm",
+        size: 816726,
+        sha256:
+          "d9f46182823d5bbc84201252b2dfcac28f63e561f0ec827ed858f241864c9def",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "ru",
+    architecture: "base-memory",
+    dir: "models/en-ru/retrain_base-memory_KJ23-iDVTcymG1ZldWY17w/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enru.s2t.bin",
+        size: 2774540,
+        sha256:
+          "4d91839726b960e70b6d05c53d0cffd16262832b1c0e1ea99d66f412dcc6a239",
+      },
+      model: {
+        name: "model.enru.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "184cb5cda528eeefc0f75f5d0035d787b71d74af135e3c5608d01ae02ecfb920",
+      },
+      vocab: {
+        name: "vocab.enru.spm",
+        size: 904455,
+        sha256:
+          "56ee63e14e8cb926c394242adc3ed7cc602644c3d33058cff2ce2959d52a6258",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "fr",
+    architecture: "base-memory",
+    dir: "models/en-fr/retrain_hr_NLIxDbE1TBGyOTI-zwZagw/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enfr.s2t.bin",
+        size: 4372936,
+        sha256:
+          "2585ed98d3af0bc949865aedeb390493d591f56870814376e73e4144c41ed059",
+      },
+      model: {
+        name: "model.enfr.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "6322e296d4fecfe395a8d5723da4ec37ecbe6d7613bb1dfcf4b28e2a47498b68",
+      },
+      vocab: {
+        name: "vocab.enfr.spm",
+        size: 814404,
+        sha256:
+          "783abf3abe075afdf8d85d233994bef2c3a064e935ab1bed946820aff6ac002a",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "de",
+    architecture: "base-memory",
+    dir: "models/en-de/retrain_hr_fix_names_SCgGhxUPQ2WAECHLRtzrMg/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.ende.s2t.bin",
+        size: 4347672,
+        sha256:
+          "7ed39f1cffbd68a27ddf05bbfe068de2060f1d7e69f1a20e27ae923551dd7393",
+      },
+      model: {
+        name: "model.ende.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "8df29d9494d19f47fd5d97c6a73474c6f657e9f81c1a607c431d02befdf3810f",
+      },
+      vocab: {
+        name: "vocab.ende.spm",
+        size: 810073,
+        sha256:
+          "69f730becafa48e3bb2c244eab66456877c08959a02f2bd5519b5a3088b62f9c",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "zh",
+    architecture: "base-memory",
+    dir: "models/en-zh/llmaat_finetune10M_qe8_f2_ByQcSxGXQRqGi-UTxYE43g/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enzh.s2t.bin",
+        size: 4485184,
+        sha256:
+          "8575d8daa10e2dbff316dcdf8e1ce475357bcc2c92bdc63b736a2d5add22f681",
+      },
+      model: {
+        name: "model.enzh.intgemm.alphas.bin",
+        size: 43849787,
+        sha256:
+          "4e5accc141373565ddc8fa1565bceaa8d0c3482a82cab8131c719ebcc6c2157c",
+      },
+      srcvocab: {
+        name: "srcvocab.enzh.spm",
+        size: 806952,
+        sha256:
+          "bd9b65504acc6d9726dd281f7defc2adb7c2c22d0688fe2f84697de25197c8c5",
+      },
+      trgvocab: {
+        name: "trgvocab.enzh.spm",
+        size: 772004,
+        sha256:
+          "aded6993c36e440284d11cec3f6b8aef9c0e43188a772d80be342a713adf223d",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "it",
+    architecture: "base-memory",
+    dir: "models/en-it/retrain_hr_fix_names_GPSr_u8PSmC9fOx1ZDCHoA/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enit.s2t.bin",
+        size: 4133192,
+        sha256:
+          "8b21914804625b2777dae7fdb636eb78f02a3eb8b7bceaa50f29ac740961da93",
+      },
+      model: {
+        name: "model.enit.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "248f47568788ecc351da7e5e07064d4153b4f71e011364ae2c931ffeec4d1cc2",
+      },
+      vocab: {
+        name: "vocab.enit.spm",
+        size: 812724,
+        sha256:
+          "3ef0211d4ae6db21440892f180f2019fe2bfc110a330ffa9d2eca9665e4f2bc5",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "pl",
+    architecture: "base-memory",
+    dir: "models/en-pl/retrain_hr_fix_names_YmTlfuUsSKCbUp75UXaUuw/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enpl.s2t.bin",
+        size: 3540052,
+        sha256:
+          "d7d7b364673f633763c9f8f2e8ee9c7a184e92f4086e8b84abe870a2a8dbe5d5",
+      },
+      model: {
+        name: "model.enpl.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "b0b59716bcc8f46b8dc6ab5c32a2732acaad42a5a6d9ae9b472526a1bb0d71d4",
+      },
+      vocab: {
+        name: "vocab.enpl.spm",
+        size: 821612,
+        sha256:
+          "2000f182efa8ce5f69bc3f9e574666b5bc2c0af684eedd32f69d15aa9021ea85",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "th",
+    architecture: "base-memory",
+    dir: "models/en-th/new-opuscleaner-en-th-onestage-topk10_WIvJuHhrSyiXLtJBJOUrsA/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enth.s2t.bin",
+        size: 3016612,
+        sha256:
+          "6961ce07f38e6c113a70855706aa7cad4cc828f986d1751c33f14699f885a2e8",
+      },
+      model: {
+        name: "model.enth.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "80e326097655fca75f841130da3338a849aa245374e1616448bcf37b9523a05a",
+      },
+      vocab: {
+        name: "vocab.enth.spm",
+        size: 993517,
+        sha256:
+          "5deff7093d558768f8c22406449202e27595f023cc383a2b66beed240ed46443",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "hi",
+    architecture: "tiny",
+    dir: "models/en-hi/h1-2025_KoJuCNf_Q42R2Bz6j2jlOQ/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enhi.s2t.bin",
+        size: 3504820,
+        sha256:
+          "b473f6fe41cdb7c1dbeeb714fc50314feab77b0af2b2da6f7830ee14492dd847",
+      },
+      model: {
+        name: "model.enhi.intgemm.alphas.bin",
+        size: 17141051,
+        sha256:
+          "18682fa6aa1c1b2f78a6fcbcb354755094d623e65436ef7821720c5213e11a49",
+      },
+      vocab: {
+        name: "vocab.enhi.spm",
+        size: 925360,
+        sha256:
+          "8017cbf812bae400794c424699b89de90db06ac7a4ca67a420013a9f68b270c1",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "ar",
+    architecture: "base-memory",
+    dir: "models/en-ar/retrain_base-memory_G3CmhwG_TZext3cys-udHg/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enar.s2t.bin",
+        size: 3139692,
+        sha256:
+          "2b7194817c5dd9225ca90c0d908cc92e1d6d1f45625781a5feb037ac568d6a61",
+      },
+      model: {
+        name: "model.enar.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "ae659d7045fc2e5d6ba50583586a5d94ee4358d92c019847e37b57a0e627faa8",
+      },
+      vocab: {
+        name: "vocab.enar.spm",
+        size: 863591,
+        sha256:
+          "8d93c54aa5e2044c416ec680b5ff9af0227bd698521666e8b1a1ea1b041fbae8",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "id",
+    architecture: "tiny",
+    dir: "models/en-id/spring-2024_bbjDBFoDTNGSUo2if3ET_A/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enid.s2t.bin",
+        size: 3515428,
+        sha256:
+          "d37f72bcab6e7bc52fd223350f95521b5810bb2486a97275f86077988fced3f4",
+      },
+      model: {
+        name: "model.enid.intgemm.alphas.bin",
+        size: 17141051,
+        sha256:
+          "f81f13eef703a4e0650ffc3138a0f4bab7b6c8bfd173ef1b7bda68d16b8bc7e8",
+      },
+      vocab: {
+        name: "vocab.enid.spm",
+        size: 773211,
+        sha256:
+          "61bc7db24d3b6de638a02a280580a273fe0c942ecbe8a8204b2f81978211db22",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "tr",
+    architecture: "tiny",
+    dir: "models/en-tr/spring-2024_LiFGeNrEQpKdNlziG2qP_A/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.entr.s2t.bin",
+        size: 3261300,
+        sha256:
+          "3aba0be842bd4c192659c781e6fdce8eb9b2b1fff29a40d22f75da369d59f46f",
+      },
+      model: {
+        name: "model.entr.intgemm.alphas.bin",
+        size: 17141051,
+        sha256:
+          "ea3cd4ee09de190df265c78d84260e277a9a8a3ddff05eb55d72afe7fc0fdbf4",
+      },
+      vocab: {
+        name: "vocab.entr.spm",
+        size: 798793,
+        sha256:
+          "a220363d60391f7ce3df8ec9785424dbc00c24d5786d1a4308cf8ca3ed3385c2",
+      },
+    },
+  },
+  {
+    from: "en",
+    to: "ko",
+    architecture: "base-memory",
+    dir: "models/en-ko/cjk_retrain_base-memory_GP50C3MpQ9apCWZOW-f3PA/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.enko.s2t.bin",
+        size: 6449612,
+        sha256:
+          "96efba97d4bb93ab362e5569bea0f115184d2f68d63b67305ee663c18e32fbeb",
+      },
+      model: {
+        name: "model.enko.intgemm.alphas.bin",
+        size: 43849787,
+        sha256:
+          "ffe5ef2ce3f2e944055e35310bab186f6a70d533a0ee4394adf716a0e383afbb",
+      },
+      srcvocab: {
+        name: "srcvocab.enko.spm",
+        size: 791280,
+        sha256:
+          "8d4e3141868efd410eb86c2b60d41aa6bc6b46e4c4b2c0b85e3792493c69d802",
+      },
+      trgvocab: {
+        name: "trgvocab.enko.spm",
+        size: 815353,
+        sha256:
+          "2ece21b28dd7022d36127d17423a74dabf544787dfc1cf614f7b565f93a4a1d3",
+      },
+    },
+  },
+  {
+    from: "de",
+    to: "en",
+    architecture: "base-memory",
+    dir: "models/de-en/retrain_hr2_WZOW24i4QJmIib61LeHfwg/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.deen.s2t.bin",
+        size: 4945796,
+        sha256:
+          "113b98460468360cca68c042e1cddf49c4e1931cbb975ed04349c9a3bd607010",
+      },
+      model: {
+        name: "model.deen.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "3e6f7c2c2425d10824797270b382bee718ff34af2cab9308841c82ca46dc6f20",
+      },
+      vocab: {
+        name: "vocab.deen.spm",
+        size: 810073,
+        sha256:
+          "69f730becafa48e3bb2c244eab66456877c08959a02f2bd5519b5a3088b62f9c",
+      },
+    },
+  },
+  {
+    from: "es",
+    to: "en",
+    architecture: "base-memory",
+    dir: "models/es-en/retrain_hr_HbNjJ60BTwmVTbhfFxuduA/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.esen.s2t.bin",
+        size: 4636248,
+        sha256:
+          "e2610211d3b9577d012638fe7e7e74ed7b4b708ce96b9e792e67c282a6492daa",
+      },
+      model: {
+        name: "model.esen.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "4aed7734152ae0045d1a69ae49c86cfda18f53c61f90e95e1d1de1c7c7c3b033",
+      },
+      vocab: {
+        name: "vocab.esen.spm",
+        size: 816054,
+        sha256:
+          "5ae254fa9b15aa182e70fd2a6186b1333c63a29a48043a9224c6aa4fcac058ad",
+      },
+    },
+  },
+  {
+    from: "fr",
+    to: "en",
+    architecture: "base-memory",
+    dir: "models/fr-en/retrain_hr_EFgIftH_RrCyzl5gjemVNg/exported",
+    files: {
+      lex: {
+        name: "lex.50.50.fren.s2t.bin",
+        size: 4824120,
+        sha256:
+          "87c6752ea908f5f0347c10ac0cf7d80d9c2f4f20c81c90168f3e8230b56d4440",
+      },
+      model: {
+        name: "model.fren.intgemm.alphas.bin",
+        size: 31561787,
+        sha256:
+          "15f997bc0d13808b0b0fbd0786e684a3c8a52adcd8071844b76123fdacbf2b90",
+      },
+      vocab: {
+        name: "vocab.fren.spm",
+        size: 814404,
+        sha256:
+          "783abf3abe075afdf8d85d233994bef2c3a064e935ab1bed946820aff6ac002a",
+      },
+    },
+  },
 ];
 
 export const modelPackName = (pin: Pick<ModelPin, "from" | "to">) =>

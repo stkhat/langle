@@ -1,0 +1,77 @@
+{
+  "v": 1,
+  "from": "en",
+  "to": "zh",
+  "gemmPrecision": "int8shiftAlphaAll",
+  "files": {
+    "lex": {
+      "size": 4485184,
+      "sha256": "8575d8daa10e2dbff316dcdf8e1ce475357bcc2c92bdc63b736a2d5add22f681",
+      "parts": [
+        {
+          "path": "lex.50.50.enzh.s2t.bin",
+          "size": 4485184,
+          "sha256": "8575d8daa10e2dbff316dcdf8e1ce475357bcc2c92bdc63b736a2d5add22f681"
+        }
+      ]
+    },
+    "model": {
+      "size": 43849787,
+      "sha256": "4e5accc141373565ddc8fa1565bceaa8d0c3482a82cab8131c719ebcc6c2157c",
+      "parts": [
+        {
+          "path": "model.enzh.intgemm.alphas.bin.1",
+          "size": 8388608,
+          "sha256": "37d7531bc6481ca383574f48bd6be31228efeed9ed6c72348f0993fb506711ef"
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.2",
+          "size": 8388608,
+          "sha256": "a638faec22a7643341f926793cce290efad70c4a6a8134db455eb67827972427"
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.3",
+          "size": 8388608,
+          "sha256": "295e7317ffc4f19be82e2dedcca8a4b09e0ba3825bfc07b999273581aa985a3e"
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.4",
+          "size": 8388608,
+          "sha256": "03e3897ebbe474ac3f04d04e37ca3ed76e4cfd34b95fd998e5e281af0ebad350"
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.5",
+          "size": 8388608,
+          "sha256": "36609e78bcb0be8a4507a4a54366427488be3ded7c09ad993f4533fb02c6035d"
+        },
+        {
+          "path": "model.enzh.intgemm.alphas.bin.6",
+          "size": 1906747,
+          "sha256": "837742aa3cd8601f4e217c968e17dd48a29a95b1e42b7c6d5d0b9cf9bf52bbcd"
+        }
+      ]
+    },
+    "srcvocab": {
+      "size": 806952,
+      "sha256": "bd9b65504acc6d9726dd281f7defc2adb7c2c22d0688fe2f84697de25197c8c5",
+      "parts": [
+        {
+          "path": "srcvocab.enzh.spm",
+          "size": 806952,
+          "sha256": "bd9b65504acc6d9726dd281f7defc2adb7c2c22d0688fe2f84697de25197c8c5"
+        }
+      ]
+    },
+    "trgvocab": {
+      "size": 772004,
+      "sha256": "aded6993c36e440284d11cec3f6b8aef9c0e43188a772d80be342a713adf223d",
+      "parts": [
+        {
+          "path": "trgvocab.enzh.spm",
+          "size": 772004,
+          "sha256": "aded6993c36e440284d11cec3f6b8aef9c0e43188a772d80be342a713adf223d"
+        }
+      ]
+    }
+  }
+}

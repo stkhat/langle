@@ -1,0 +1,51 @@
+{
+  "v": 1,
+  "from": "en",
+  "to": "hi",
+  "gemmPrecision": "int8shiftAlphaAll",
+  "files": {
+    "lex": {
+      "size": 3504820,
+      "sha256": "b473f6fe41cdb7c1dbeeb714fc50314feab77b0af2b2da6f7830ee14492dd847",
+      "parts": [
+        {
+          "path": "lex.50.50.enhi.s2t.bin",
+          "size": 3504820,
+          "sha256": "b473f6fe41cdb7c1dbeeb714fc50314feab77b0af2b2da6f7830ee14492dd847"
+        }
+      ]
+    },
+    "model": {
+      "size": 17141051,
+      "sha256": "18682fa6aa1c1b2f78a6fcbcb354755094d623e65436ef7821720c5213e11a49",
+      "parts": [
+        {
+          "path": "model.enhi.intgemm.alphas.bin.1",
+          "size": 8388608,
+          "sha256": "dc3ed41e539864ab379724eca13e5ccc21ce0dc236787ce41923a4bc48735c0b"
+        },
+        {
+          "path": "model.enhi.intgemm.alphas.bin.2",
+          "size": 8388608,
+          "sha256": "d2fd3a595ebb48bffbf5623b9b7cb5edcf3fb4383910409efc2fa5b21f7bc698"
+        },
+        {
+          "path": "model.enhi.intgemm.alphas.bin.3",
+          "size": 363835,
+          "sha256": "04bbc97d6fbbec48283bc1cf5a29c28ae8bee493b9dab16ead0178352c96fede"
+        }
+      ]
+    },
+    "vocab": {
+      "size": 925360,
+      "sha256": "8017cbf812bae400794c424699b89de90db06ac7a4ca67a420013a9f68b270c1",
+      "parts": [
+        {
+          "path": "vocab.enhi.spm",
+          "size": 925360,
+          "sha256": "8017cbf812bae400794c424699b89de90db06ac7a4ca67a420013a9f68b270c1"
+        }
+      ]
+    }
+  }
+}
