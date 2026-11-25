@@ -2,6 +2,8 @@
 
 Checked 2026-11-26 on branch `claude/chrome-store-d1-d2-1dd390` (base `908b6cdd`), its source and its production build (`npm run build`, `.output/chrome-mv3/`). Input for the privacy policy (plan [D2](../plans/chrome-store-launch.md)), the listing's privacy fields (E2, E3) and the reviewer notes (E7). Every fact cites code or the build; anything else is marked **not verified**. Chrome's own behaviour (what its APIs do with data) is cited from its documentation only where marked, and was not measured here.
 
+
+**After C12 (PR #291, 2026-11-26):** C-a to C-e are built. Parts 1, 2 and 4 below describe the code before them where rows 5, 8 and 20 and the incognito, Clear history and link facts are concerned; the policy (`site/langle/privacy/`) describes the code after them. Left as they are (reported by the fix): Never run on keeps saved words' own sources and sentences from that host; the phone app's recents (only where `appHost` exists, not in Chrome) are not cleared; machine translations of definitions are still cached from incognito tabs (no URL or sentence). On Netflix, a title that started while the site was off gets subtitles only from the next title or a reload (its player reads the list once).
 ## The production build
 
 - Manifest (`.output/chrome-mv3/manifest.json`): `permissions: ["storage", "alarms", "identity"]`; **no** `host_permissions`, `optional_permissions`, `web_accessible_resources`, `key`, `oauth2`, `content_security_policy` (so MV3's default CSP), `incognito` or `minimum_chrome_version`

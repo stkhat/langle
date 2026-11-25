@@ -312,6 +312,12 @@ How it works underneath: [architecture](architecture.md) "Meaning in context". E
   - Built 2026-11-16 (M3): replaced the "AI explanations inside the window · Coming later" row. The rows are read again when the learning or native language changes (Portuguese answers: no rows). A download Chrome started elsewhere shows Download, which joins it
 - Counts in this section ("N sentences", "· N") take the plural forms of `t()`
 
+## Website (mock page `Website`, 2026-11-26)
+
+The public site at `https://kskt-dev.github.io/langle/`, built from `site/` (copied to the root of `kskt-dev/kskt-dev.github.io`). Two static pages, no script, no external requests, light and dark by the system setting, one 760 px column with a 16 px gutter:
+- **Home** (`Website — home`): the header (icon, Langle, Privacy policy), a heading and one paragraph saying what Langle does, three short points (Just hover; Your words, with where you met them; Your data stays yours), Support with the contact address, a footer with © and the policy link
+- **Privacy policy** (`Website — privacy policy`, `/langle/privacy/`): the same header and footer (Home), the date, then What Langle reads, What Langle keeps on your device, Browser sync, Google Drive (optional), Other services, Limited Use, Deleting your data, Changes, Contact. It states only what the build does ([store data review](../notes/store-data-review.md)); change it with any change to what Langle reads, keeps or sends
+
 ## Mobile app (mock page `Mobile app`, 2026-11-22; the video UI and articles built in M3)
 The phone app of [notes/mobile.md](../notes/mobile.md): our own app that opens `m.youtube.com` and web articles and runs Langle in them. One design for iOS and Android, drawn at 390 × 844 (landscape 844 × 390); the phone's status bar and keyboard draw over it. Touch targets are at least 44 px. Colors, highlights and the dictionary's content are the extension's.
 - **An app on the outside, a browser underneath.** Any site opens (search or an address), so the stores see a real browser, but nothing on screen looks like one: no URL is shown
