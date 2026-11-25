@@ -194,3 +194,9 @@ Taken from the [Open Multilingual Wordnet 1.4](https://omwn.org/) release. The E
 - [OpenCC (Open Chinese Convert)](https://github.com/BYVoid/OpenCC) 1.4.2, its `TSPhrases`, `TSCharacters` and `CJK_Compatibility_Ideographs` dictionaries (the `opencc` npm package, a development dependency): Carbo Kuo (BYVoid) and the OpenCC contributors
 - License: [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 - Used at build time only (`scripts/data/recipes/simplified.ts`): `data/packs/en-zh/` holds Chinese text converted with these dictionaries, none of their files
+
+## Firefox Translations models and Bergamot (the phone app's on-device translator on Android)
+
+- Models: Mozilla's released translation models ([model registry](https://mozilla.github.io/translations/model-registry/), trained by [mozilla/translations](https://github.com/mozilla/translations)), pinned by SHA-256 in `scripts/data/mt-models.ts`, unchanged but split into parts (`npm run data:mt-models`). Only their `manifest.json` is in the repository: `data/packs/mt-<from>-<to>/`, published as `@langle/mt-<from>-<to>`, downloaded by the Android app only
+- Engine: [bergamot-translator](https://github.com/mozilla/translations/tree/1de4a085d3a7afb625c51a60aabb5ad298e4059f/inference) v0.6.0, Firefox's WebAssembly build, and Firefox 145's JS glue, pinned in `scripts/mobile/bergamot.ts` and packaged in the Android app (not in the repository)
+- License: [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/); full text in `scripts/data/licenses/mpl-2.0.txt`, each model package's `LICENSE` and the engine's `LICENSE` in the app
