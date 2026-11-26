@@ -89,7 +89,7 @@ Only what Langle calls (counted 2026-11-24). Anything else is left `undefined`, 
 | `i18n.detectLanguage` | always unsure (`isReliable: false`): the web views have no detector. Articles then run only where `<html lang>` names the learning language, and every block counts as that language |
 | `action.setIcon` | does nothing. `action.openPopup` opens the Langle sheet |
 | `alarms` | native timers while the app runs. They are not kept across restarts: pack downloads resume at start anyway |
-| `identity` | left out until own-cloud sync is built for the app (its own design: Google needs the app's OAuth clients and the system sign-in sheet). Until then the app offers no cloud provider |
+| `identity` | left out: the app signs in to Google natively through `appHost.googleAuth` ("M7: own-cloud sync in the app"). Until M7 is built the app offers no cloud provider |
 
 Things the extension does not have (the translation host first) go into a separate `appHost` object, which pages detect by checking that it exists (`TranslatorBackend` picks the bridge provider this way, mobile-translation.md "Parts"). Its calls are `openPage`, `shareFile` and the translation host's (mobile-translation.md "The bridge"); `appHost.translator` (`{ models: "packs" | "system" }`) is a value native code puts in `__langleAppInfo` as `translator` once it has a translation host, left out before. The routers send the translation calls to one slot of the app (`onTranslation`) and answer "<api> is not available here." while it is empty; `postToHost` sends the host its `appHost.models.onProgress` events.
 
@@ -322,3 +322,45 @@ The app is the browser, so blocking runs in the shells, outside any extension AP
 - **Vitest (browser)**: each scriptlet on fixed inputs; the m.youtube.com fixture's player response with ad fields and captions, run through `json-prune` with the arguments of the list's own youtube.com rule (a pinned copy in the fixtures): the ad fields are gone, and the adapter's caption capture still finds the track. The Settings section with a fake `appHost`.
 - **Native**: JUnit and XCTest for the list store (expiry, conditional requests, a failed fetch keeps the old list, the engine swapped only when built), the resource-type guess (Android), and the switches (a site's reload, `on` false removes every rule).
 - **On the emulator, then the Simulator** (one at a time): two articles in each of English, French and German with ads, before and after (requests to ad hosts, screenshots); the TED baseline and one auto-caption video on m.youtube.com: no ad, subtitles shown, no warning; ⋮ off and on for a site; a list update with an unchanged `ETag`; Settings' section; the error log read and cleared.
+## M7: own-cloud sync in the app (designed with the user on 2026-11-26)
+
+The phone app syncs through the same Google Drive files as the extension (architecture "Sync to the user's own cloud storage"): the file format, the merge, `CloudSyncBackend` and the Drive files half run unchanged in the app's background. Only the sign-in is native, behind the bridge. Background: [notes/mobile.md](../notes/mobile.md) "Open issues and risks" 1 and 5.
+
+### Decisions
+
+- **Connect is offered in the first run and in Settings** (the user's choice, 2026-11-26): a first-run step after "How Langle uses your data", so someone who already uses Langle on a computer brings their words before choosing languages, and Settings › Sync and backup. Drawn in the mock first (M7-0) and reviewed by the user.
+- **Sign-in through the platform, never in a WebView** (Google refuses OAuth in embedded browsers):
+  - iOS: `ASWebAuthenticationSession` with an iOS OAuth client of Langle's Cloud project: the authorization code flow with PKCE (no secret), the redirect on the client's reversed-id scheme. The refresh token is kept in the Keychain, this device only (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, not in iCloud Keychain); access tokens only in memory.
+  - Android: Google Identity Services' `AuthorizationClient` (Google Play services) with an Android OAuth client (package name and the signing certificate's SHA-1). Custom Tabs with a custom scheme is not used: Google turns custom URI schemes off for new Android clients (2023). Play services keeps the grant and renews tokens; the app keeps no refresh token. A phone without Play services offers no provider.
+  - Both clients in the same Cloud project as the extension's Web client, so all of them see the same `appDataFolder` (two clients of one project already did on desktop).
+- **The Drive calls stay in the background's JS** (`core/cloud/google-drive.ts` over `fetch` from the app origin), if the spike (M7a) finds Google's API answers that origin's cross-origin requests; otherwise the shells answer those requests for it (the spike decides, and the fallback is written down there).
+
+### Parts
+
+- **`appHost.googleAuth`** (bridge, feature-detected; missing where the shell cannot sign in, e.g. no Play services): `token({ interactive, refused? }) → { token, expiresAt }` and `forget()`, the auth half's interface (architecture "Parts"). `interactive` shows the system sheet with Google's account chooser (`prompt=select_account` on iOS); without it the shell renews silently or answers `unauthorized`. `refused` is a token that just got a 401: the shell drops it and renews. A closed or declined sheet answers `cancelled`, which the backend treats as the user's answer (no error, nothing changes). Golden envelopes in TS, JUnit and XCTest like the translation calls.
+- **The background** (`start.ts` `cloudProviders()`): where `appHost.googleAuth` exists, Google Drive's auth half is `createAppGoogleAuth(appHost.googleAuth)` (`background/sync/app-google-auth.ts`), in place of `launchWebAuthFlow`. The files half, the account address (`about.get`), timing, errors and status are the extension's.
+- **The app's lifecycle**: alarms run only while the app does, so the shells tell the background when the app goes to the background and comes back (`appHost` events `app.hidden` / `app.visible`):
+  - `app.hidden`: pending writes are done now instead of after 30 s. iOS holds a background task (`beginBackgroundTask`) until the background answers or the system ends it; Android keeps the extension host running until it answers or 20 s pass. Writes not done are still remembered and done at the next start.
+  - `app.visible`: the other devices' files are read (`cloudCheck`), as when the popup opens. Home, Words and the Langle sheet send `cloudCheck` when they open, like the popup and the Word list.
+- **Account choice and Disconnect**: Disconnect forgets the device's tokens (iOS: the Keychain item; Android: the cached token) and revokes nothing at Google, since that would sign out the user's other devices. The next Connect shows the account chooser (Android: how, without revoking, is measured in M7a).
+- **First connect on a phone that already has words**: the usual merge (architecture "Merge"); nothing is replaced. In the first run's step the phone has no words yet; once connected and the first check is done, the languages step shows the pair the other devices use, chosen. The phone writes only the settings it changes, so the defaults of a fresh install never override the computer's (field times, architecture "Merge" › Settings).
+- **What the app syncs**: what the extension syncs. The phone's own settings (`phoneSubtitlePosition`, `phoneFullscreenTranscript`) were already synced fields; recents and `adBlocking` stay in `storage.local`, never synced.
+- **"Connect Google Drive on this device too"** never shows in the app: `cloudProvider` reaches a device through browser sync, which the app has none of. A computer that uses only Chrome sync sends nothing to Drive, so its words reach the phone only after Drive is connected there too; the first-run step and Settings say so (copy in the mock).
+
+### UI (the mock, M7-0; then [ui.md](ui.md) "Mobile app")
+
+- **First run**: "How Langle uses your data" names Google Drive as the desktop's does when the build can connect (Keeps: "… on this phone and, if you connect it, your Google Drive"; Sends: the Drive line). Then a step "Use Langle on a computer too?" with Connect Google Drive and Not now, before the languages.
+- **Settings**: the list's "Backup" becomes "Sync and backup" (value "Google Drive" while connected, else none). Its section: the desktop's "Your own cloud storage" rows in the phone layout (offer, connected with the account's address and the status box, the three errors), then the backup file row. Sentence history gets "Also save to Google Drive" while connected.
+- **Home and the Langle sheet**: "Saved to Google Drive · 2 min ago" (the mock's `drive` mode); the errors as the popup shows them (red line; Reconnect where the popup has it).
+- **Privacy page**: the app's sign-in (the system sheet; Google Play services on Android) under Google Drive (optional).
+
+### Google Cloud (the user, guided)
+
+- Create the iOS client (bundle id `dev.langle.app`) and the Android client (package name; the SHA-1 of the debug keystore now, Play's app-signing key before release) in Langle's Cloud project. Client ids are public and go into the shells' config like `google-clients.ts`.
+- While the consent screen is in Testing, only test users can connect, and Google's refresh tokens expire after 7 days: the iOS app asks to reconnect weekly until the project is published ("Before publishing" in status.md).
+
+### Testing
+
+- **Vitest**: `app-google-auth.ts` over a fake `appHost.googleAuth` (token, `refused`, `forget`, `cancelled`, failures → `unauthorized`); `CloudSyncBackend` with the fake provider and `app.hidden` (pending writes at once) and `app.visible` (a check); the first-run step and Settings › Sync and backup with a fake `appHost`, compared with the mock.
+- **Native**: XCTest for the iOS token logic against a fake token endpoint (PKCE, refresh, `invalid_grant` → `unauthorized`, Keychain store and forget); JUnit for the Android wrapper over a fake `AuthorizationClient` (silent, resolution needed, refused token, forget). Golden envelopes for the new calls on all three sides.
+- **On the emulator (a Google Play image), then the Simulator**, one at a time, the user signing in (Claude never enters credentials): connect in the first run and in Settings; a word saved on the phone shows in the user's Chrome (a check build connected to the same account) and the other way, after leaving and reopening the app; Disconnect, then Connect shows the chooser; Reconnect needed after the token is refused; the error log read and cleared.
