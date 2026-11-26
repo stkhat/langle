@@ -33,6 +33,16 @@ object SharedLink {
     return SEARCH + PageText.encodeComponent(search)
   }
 
+  /** Android's `Intent.ACTION_SEND`. */
+  const val ACTION_SEND = "android.intent.action.SEND"
+
+  /**
+   * The address an Android intent shares: an `ACTION_SEND` of text, its `EXTRA_TEXT` as
+   * [resolve] reads text (`EXTRA_SUBJECT` is not used); null for any other intent.
+   */
+  fun ofIntent(action: String?, type: String?, text: String?): String? =
+    if (action == ACTION_SEND && type?.startsWith("text/") == true) resolve(null, text) else null
+
   private fun isSpace(c: Char) = c <= ' ' || c in SPACES
 
   private fun trim(text: String) = text.trim(::isSpace)

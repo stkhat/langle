@@ -5,6 +5,7 @@ import dev.langle.core.ShellEffect.CloseSheet
 import dev.langle.core.ShellEffect.DropTabPage
 import dev.langle.core.ShellEffect.GoBack
 import dev.langle.core.ShellEffect.Load
+import dev.langle.core.ShellEffect.MoveTaskBack
 import dev.langle.core.ShellEffect.OpenFirstRun
 import dev.langle.core.ShellEffect.PauseMedia
 import dev.langle.core.ShellEffect.PresentSheet
@@ -239,6 +240,158 @@ class ShellTest {
       assertEquals(emptyList<ShellEffect>(), shell.handle(RouterAction.ActivateTab(Tab(shell.pageTab, "about:blank", true))))
       assertEquals(HOME, shell.screen)
       assertEquals(shell.tabId(AppTab.HOME), active)
+    }
+  }
+
+  /** docs/specs/mobile-app.md "M8: Share → Langle", Android. */
+  @Nested
+  inner class ShareFromAnotherApp {
+    private val send = SharedLink.ACTION_SEND
+
+    /** What MainActivity does with an intent, on a cold start and in onNewIntent alike. */
+    private fun intent(action: String?, type: String?, text: String?): List<ShellEffect> =
+      SharedLink.ofIntent(action, type, text)?.let(shell::shared).orEmpty()
+
+    @Test
+    fun `the intent's text is read as SharedLink reads it, and only an ACTION_SEND of text counts`() {
+      assertEquals("https://m.youtube.com/watch?v=abc&si=x", SharedLink.ofIntent(send, "text/plain", "https://youtu.be/abc?si=x"))
+      assertEquals(ARTICLE, SharedLink.ofIntent(send, "text/plain", "An article $ARTICLE"))
+      assertEquals("https://m.youtube.com/results?search_query=ted", SharedLink.ofIntent(send, "text/plain", "ted"))
+      assertNull(SharedLink.ofIntent(send, "text/plain", null))
+      assertNull(SharedLink.ofIntent(send, "text/plain", "  "))
+      assertNull(SharedLink.ofIntent(send, "image/png", ARTICLE))
+      assertNull(SharedLink.ofIntent(send, null, ARTICLE))
+      assertNull(SharedLink.ofIntent("android.intent.action.MAIN", null, null))
+      assertNull(SharedLink.ofIntent("android.intent.action.VIEW", "text/plain", ARTICLE))
+    }
+
+    @Test
+    fun `a cold start opens the shared page over Home`() {
+      assertEquals(listOf(CloseSheet, Load(Screen.Page, VIDEO), Show(Screen.Page)), intent(send, "text/plain", VIDEO))
+      assertEquals(Screen.Page, shell.screen)
+      assertEquals(shell.pageTab, active)
+    }
+
+    @Test
+    fun `a running app opens it from any screen in the one page, the sheet closed`() {
+      shell.openPage(ARTICLE)
+      shell.select(AppTab.WORDS)
+      assertEquals(listOf(CloseSheet, Load(Screen.Page, VIDEO), Show(Screen.Page)), intent(send, "text/plain", VIDEO))
+      shell.handle(RouterAction.OpenPopup)
+      assertEquals(
+        listOf(CloseSheet, Load(Screen.Page, "https://m.youtube.com/results?search_query=ted")),
+        intent(send, "text/plain", "ted").dropLast(1),
+      )
+    }
+
+    @Test
+    fun `a launcher intent opens nothing`() {
+      assertEquals(emptyList<ShellEffect>(), intent("android.intent.action.MAIN", null, null))
+      assertEquals(HOME, shell.screen)
+    }
+
+    @Test
+    fun `back on the shared entry shows Home under it and moves the app back, the page kept`() {
+      shell.shared(VIDEO)
+      shell.navigated(Screen.Page, VIDEO, entry = 0)
+      assertTrue(shell.handlesBack(canGoBack = false))
+      assertEquals(listOf(PauseMedia, Show(HOME), MoveTaskBack), shell.back(canGoBack = false, entry = 0))
+      assertEquals(HOME, shell.screen)
+      assertEquals(VIDEO, shell.pageUrl)
+      // Coming to the front again: Home. Continue's first row shows the page again at once.
+      assertEquals(listOf(CloseSheet, Show(Screen.Page)), shell.openPage(VIDEO))
+      assertEquals(listOf(PauseMedia, Show(HOME)), shell.back(canGoBack = false, entry = 0))
+    }
+
+    @Test
+    fun `back on the shared entry moves the app back even with the page's earlier history behind it`() {
+      shell.openPage(ARTICLE)
+      shell.navigated(Screen.Page, ARTICLE, entry = 0)
+      shell.shared(VIDEO)
+      shell.navigated(Screen.Page, VIDEO, entry = 1)
+      assertEquals(listOf(PauseMedia, Show(HOME), MoveTaskBack), shell.back(canGoBack = true, entry = 1))
+    }
+
+    @Test
+    fun `back before the shared page's load committed moves the app back`() {
+      shell.openPage(ARTICLE)
+      shell.navigated(Screen.Page, ARTICLE, entry = 0)
+      shell.shared(VIDEO)
+      assertEquals(listOf(PauseMedia, Show(HOME), MoveTaskBack), shell.back(canGoBack = true, entry = 0))
+    }
+
+    @Test
+    fun `a redirect or the history API on the same entry keeps the mark`() {
+      shell.shared("http://example.com/a")
+      shell.navigated(Screen.Page, "https://example.com/a", entry = 0)
+      shell.navigated(Screen.Page, "https://example.com/a?ref=x", entry = 0)
+      assertEquals(listOf(PauseMedia, Show(HOME), MoveTaskBack), shell.back(canGoBack = false, entry = 0))
+    }
+
+    @Test
+    fun `the mark goes once the page moves to another entry`() {
+      shell.shared(VIDEO)
+      shell.navigated(Screen.Page, VIDEO, entry = 0)
+      shell.navigated(Screen.Page, ARTICLE, entry = 1)
+      assertEquals(listOf(GoBack(Screen.Page)), shell.back(canGoBack = true, entry = 1))
+      shell.navigated(Screen.Page, VIDEO, entry = 0)
+      assertEquals(listOf(PauseMedia, Show(HOME)), shell.back(canGoBack = false, entry = 0))
+    }
+
+    @Test
+    fun `the mark goes once the page is opened from Home`() {
+      shell.shared(VIDEO)
+      shell.navigated(Screen.Page, VIDEO, entry = 0)
+      shell.home()
+      shell.openPage(VIDEO)
+      assertEquals(listOf(PauseMedia, Show(HOME)), shell.back(canGoBack = false, entry = 0))
+    }
+
+    @Test
+    fun `sharing the kept page shows it at once and marks its entry`() {
+      shell.openPage(VIDEO)
+      shell.navigated(Screen.Page, VIDEO, entry = 3)
+      shell.home()
+      assertEquals(listOf(CloseSheet, Show(Screen.Page)), shell.shared(VIDEO))
+      assertEquals(listOf(PauseMedia, Show(HOME), MoveTaskBack), shell.back(canGoBack = true, entry = 3))
+    }
+
+    @Test
+    fun `a share right after installing waits for the first run and opens when it closes`() {
+      shell.expectFirstRun()
+      assertEquals(emptyList<ShellEffect>(), shell.shared(ARTICLE))
+      assertEquals(HOME, shell.screen)
+      created("$ORIGIN/welcome.html")
+      val id = shell.firstRunTab!!
+      // A newer share replaces the waiting one.
+      assertEquals(emptyList<ShellEffect>(), shell.shared(VIDEO))
+      assertEquals(VIDEO, shell.heldShare)
+      assertEquals(Screen.FirstRun, shell.screen)
+      // Start: the tab it came from is shown, then the setup's tab is removed.
+      shell.handle(RouterAction.ActivateTab(Tab(shell.tabId(AppTab.HOME), "", true)))
+      tabs.remove(id)
+      assertEquals(
+        listOf(CloseFirstRun, CloseSheet, Load(Screen.Page, VIDEO), Show(Screen.Page)),
+        shell.handle(RouterAction.CloseTab(Tab(id, "$ORIGIN/welcome.html", false))),
+      )
+      assertNull(shell.heldShare)
+      shell.navigated(Screen.Page, VIDEO, entry = 0)
+      assertEquals(listOf(PauseMedia, Show(HOME), MoveTaskBack), shell.back(canGoBack = false, entry = 0))
+    }
+
+    @Test
+    fun `Not now opens the waiting share too`() {
+      created("$ORIGIN/welcome.html")
+      shell.shared(VIDEO)
+      assertEquals(listOf(CloseFirstRun, Show(HOME), CloseSheet, Load(Screen.Page, VIDEO), Show(Screen.Page)), shell.back(canGoBack = false))
+    }
+
+    @Test
+    fun `a share waits only while a first run is open or about to open`() {
+      shell.expectFirstRun()
+      shell.shared(VIDEO)
+      assertEquals(listOf(CloseSheet, Load(Screen.Page, VIDEO), Show(Screen.Page)), shell.firstRunNotComing())
+      assertEquals(listOf(CloseSheet, Load(Screen.Page, ARTICLE), Show(Screen.Page)), shell.shared(ARTICLE))
     }
   }
 }
