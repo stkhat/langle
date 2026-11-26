@@ -83,6 +83,18 @@ describe("langle-app manifest", () => {
     expect(existsSync(`${DIR}/home.html`)).toBe(true);
   });
 
+  test("ships the ad-blocking scriptlets as the engine's resources", () => {
+    const resources = JSON.parse(
+      readFileSync(`${DIR}/adblock/resources.json`, "utf8"),
+    ) as { name: string; content: string }[];
+    expect(resources.map((resource) => resource.name)).toContain(
+      "json-prune.js",
+    );
+    for (const { content } of resources)
+      expect(atob(content)).toMatch(/^function langle_\w+\(\) \{/);
+    expect(existsSync(".output/chrome-mv3/adblock/resources.json")).toBe(false);
+  });
+
   test("asks only for permissions the app has", () => {
     const manifest = readManifest();
     expect(
