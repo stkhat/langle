@@ -69,10 +69,12 @@ tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.con
 }
 
 // The ad-blocking library is built from mobile/adblock/ and never committed: an APK without it
-// would block nothing, so packaging the native libraries fails without it.
+// would block nothing, so packaging the native libraries fails without it. The ABIs are those
+// scripts/mobile/adblock.ts builds (its `ANDROID`): an ABI left out here would not install on
+// devices of only that ABI, or would run there without blocking.
 val checkAdblockLibrary by tasks.registering {
   val dir = layout.projectDirectory.dir("../../adblock/build/android/jniLibs")
-  val abis = listOf("arm64-v8a", "x86_64")
+  val abis = listOf("arm64-v8a", "armeabi-v7a", "x86_64")
   doLast {
     val missing = abis.filterNot { dir.file("$it/liblangle_adblock.so").asFile.isFile }
     if (missing.isNotEmpty())
