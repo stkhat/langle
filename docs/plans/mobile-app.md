@@ -37,7 +37,7 @@
 - [x] M4f: export and import in the app (branch `claude/mobile-m4f`): `appHost.shareFile` and the share sheet (with Save to device on Android), the shells' file pickers; notes/mobile.md "Device checks (M4f, Android)" and "(M4f, iOS)"
 - [x] M5: the translation hosts ("M5" below; the real-iPhone checks moved to M9)
 - [ ] M6: ad blocking on articles and YouTube ("M6" below; spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking")
-- [ ] M7: own-cloud sync in the app (Google Drive; notes/mobile.md "Open issues and risks" 5)
+- [ ] M7: own-cloud sync in the app (Google Drive; "M7" below; spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app")
 - [ ] M8: Share and Open with
 - [ ] M9 (release checks), on a real iPhone, last (the user's decision of 2026-11-26: every milestone that needs no real device comes first): Apple's consent sheet (declined once for the Language data row's state, then accepted), a tapped word's English definition translated, the subtitles translated on the device with `refuseTlang` on, translate-ahead and the cards, the lists without starting the engine, the release after 60 s and on leaving the app, speed, and the quality of Apple's traditional models (notes/mobile.md "Open issues and risks" 4). The device tooling for it is on the local branch `claude/mobile-m6` (not pushed): `check.sh`'s `LANGLE_DEVICE` / `LANGLE_TEAM`, `Documents/check.log`, `-translateStrategy lowLatency`, `cmd translate-set`
 
@@ -850,3 +850,54 @@ Branch `claude/mobile-m6c-ios`. After M6c-android (its list store's rules are th
 ### M6e: device checks (two agents, Opus, one after the other)
 
 Branches `claude/mobile-m6e-android`, then `claude/mobile-m6e-ios`. The spec's "On the emulator, then the Simulator" list; findings and fixes in notes/mobile.md "Device checks (M6e, …)"; status.md updated.
+## M7: own-cloud sync in the app (planned 2026-11-26)
+
+Spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app". Every M7 branch starts from `main` and runs `npm run verify -- --skip-firefox` before every push.
+
+**Progress**
+
+- [x] M7 designed (2026-11-26, with the user): spec "M7"
+- [ ] M7-0: the first-run Drive step, Settings › Sync and backup and the Drive lines in the mock and ui.md (the parent session); reviewed by the user
+- [ ] M7a: the clients and the sign-in spike (branch `claude/mobile-m7a`)
+- [ ] M7b: `appHost.googleAuth`, the background's app auth and the lifecycle events (branch `claude/mobile-m7b`)
+- [ ] M7c: the first-run step and Settings › Sync and backup in the phone layout (branch `claude/mobile-m7c`)
+- [ ] M7d-android: the Android sign-in and lifecycle (branch `claude/mobile-m7d-android`)
+- [ ] M7d-ios: the iOS sign-in and lifecycle (branch `claude/mobile-m7d-ios`)
+- [ ] M7e: device checks, Android then iOS (branches `claude/mobile-m7e-android`, `claude/mobile-m7e-ios`)
+
+**Running order** (at most three agents at once; one agent per step; one of the Simulator and the emulator at a time, never during `verify`, and after M6's device steps have released it):
+
+- Wave 1: M7-0 (the parent, in the mock) and M7a (it starts with the user's Cloud Console steps).
+- Wave 2: M7b (after M7a; if the spike needs the shells to make the Drive requests, the parent takes the fallback to the user first) and M7c (after M7-0 is reviewed).
+- Wave 3: M7d-android, then M7d-ios (it may code while Android has the emulator, and stops with "ready for the device").
+- M7e last, Android first, then iOS, after every other M7 branch is merged.
+- **Every agent**: "Before you start (every agent)" above. Each step ends with a draft PR, the body read back, `gh pr ready`; the parent merges with `~/.claude/scripts/merge-when-green.sh <n> --cleanup`.
+
+### M7-0: the mock (the parent session)
+
+- On the mock's `Mobile app` page: the first run's data screen with the Drive lines (Keeps, Sends); a new step `MobileFirstRunDrive` ("Use Langle on a computer too?", Connect Google Drive, Not now) before `MobileFirstRunLanguages`; `MobileSettings`' "Backup" renamed "Sync and backup"; its section `MobileSettingsSync` with the states of the desktop's `CloudSync` (offer, connected with the address and status box, Reconnect needed, full, update) and the backup row; Home's and the sheet's error line.
+- ui.md "Mobile app" to match; the user reviews before M7c.
+
+### M7a: the clients and the sign-in spike (one agent, Opus)
+
+- Guide the user through creating the iOS client (`dev.langle.app`) and the Android client (package name, the debug keystore's SHA-1; `keytool` prints it) in Langle's Cloud project; the user does the clicks.
+- A throwaway build (not merged; in `mobile/prototypes/`) that signs in natively and reads and writes one file in `appDataFolder` from the app's background WebView, on the emulator (a Google Play system image, signed in to a test user's account by the user) and on the Simulator. The user signs in.
+- Answer, in notes/mobile.md "Drive sign-in (M7a)": whether the app origin's `fetch` to the Drive API passes CORS on both shells (list, multipart create, media update, `alt=media`) or the fallback is needed; that the app sees the extension's files (the same `appDataFolder`); Android: how a silent renewal and a refused token work (`authorize` without UI, clearing a cached token), whether Connect after Disconnect shows the chooser without `revokeAccess`, and if `revokeAccess` is needed, whether it ends the desktop's grant; iOS: the refresh token's renewal, and its 7-day end in Testing.
+- Stop and report if any of these fails; the parent takes it to the user.
+
+### M7b: the bridge and the background (one agent, Opus)
+
+- `appHost.googleAuth` (`token`, `forget`) and the `app.hidden` / `app.visible` events in `core/app-host.ts`, the shim and the bridge protocol, with golden envelopes in TS, JUnit and XCTest; the Kotlin and Swift routers answer "not available here" until M7d fills the slot.
+- `background/sync/app-google-auth.ts` and its choice in `start.ts`; `CloudSyncBackend`'s flush on `app.hidden` and check on `app.visible`; Home, Words and the Langle sheet send `cloudCheck` when they open. Tests as the spec's "Testing" says.
+
+### M7c: the pages (one agent, Opus; after M7-0 is reviewed)
+
+- The first-run step and its place before the languages (the languages step shows the synced pair once connected), Settings › Sync and backup, the Drive lines of the first run, Home and the sheet, in the phone layout, all only where `appHost.googleAuth` exists; the privacy page's sign-in line. Rendered and compared with the mock.
+
+### M7d-android and M7d-ios: the shells (one agent each, Opus)
+
+- The router's `googleAuth` slot over `AuthorizationClient` (Android) and `ASWebAuthenticationSession` with PKCE and the Keychain (iOS), as M7a found them; the lifecycle events (iOS background task; Android keeps the host until the answer or 20 s). Native tests as the spec says. Then a first look on the emulator or the Simulator: connect, one word both ways with the user's Chrome.
+
+### M7e: device checks (two agents, Opus, one after the other)
+
+Branches `claude/mobile-m7e-android`, then `claude/mobile-m7e-ios`. The spec's "On the emulator, then the Simulator" list; findings and fixes in notes/mobile.md "Device checks (M7e, …)"; status.md updated.
