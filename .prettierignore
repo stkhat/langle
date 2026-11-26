@@ -37,3 +37,7 @@ mobile/ios/build-output
 
 # SwiftPM's build folder (swift test in mobile/ios/LangleCore; git-ignored)
 mobile/**/.build
+
+# The ad-blocking crate: cargo's outputs, and a fixture kept byte for byte
+mobile/adblock/target
+mobile/adblock/tests/fixtures
