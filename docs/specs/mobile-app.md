@@ -9,7 +9,7 @@ How the phone app runs Langle's extension code on `m.youtube.com` and web articl
 - **Android needs isolated worlds** (the user's choice, 2026-11-24): androidx.webkit 1.16 or later and a System WebView with `JS_INJECTION_IN_FRAME_AND_WORLD`. Without it the app says "Update Android System WebView" and Langle does not run on pages. Browsing still works.
 - **The app's screens are web UI in a thin native shell** (the user's choice, 2026-11-24):
   - Home, Words, Settings and the Langle sheet are Preact pages in WebViews on the app's own origin. They reuse the extension's pages, with phone layouts.
-  - Native code draws only the tab bar, the title bar, the frames of the sheets, and the share and open-with entries.
+  - Native code draws only the tab bar, the title bar, the frames of the sheets, and the share entry (M8).
 
 ## Parts
 ```
@@ -154,7 +154,7 @@ Each milestone has its own branch and its own draft PR. At most three subagents 
 2. **M1 Android shell** and **M2 iOS shell**, in parallel. Each one has the engine implementation, the router, the key-value store, the extension host, the app origin, and a minimal screen (one page and an address field). It is done when Langle runs on an article end to end.
 3. **M3**: the `m.youtube.com` `PlatformAdapter`, and touch in place of hover (tap → dictionary sheet, long-press selection), portrait and fullscreen landscape. This is shared TS, checked first in desktop Chromium with a phone viewport. Designed below ("M3: m.youtube.com and touch").
 4. **M4**: the app's screens from the mock (Home, title bar, Langle sheet, Words, Settings, first run). Designed below ("M4: the app's screens").
-5. Then, each with its own short design pass where the notes leave a decision open: the translation hosts (M5; mobile-translation.md "Build order" 3), ad blocking (M6, below), own-cloud sync in the app (M7), Share / Open with (M8), and last the release checks on a real iPhone (M9; the user's decision, 2026-11-26: every milestone that needs no real device comes first).
+5. Then, each with its own short design pass where the notes leave a decision open: the translation hosts (M5; mobile-translation.md "Build order" 3), ad blocking (M6, below), own-cloud sync in the app (M7), Share → Langle (M8, below), and last the release checks on a real iPhone (M9; the user's decision, 2026-11-26: every milestone that needs no real device comes first).
 
 ## M3: m.youtube.com and touch (approved with the user on 2026-11-24)
 What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` page. This section is how the shared TS gets there.
@@ -314,3 +314,42 @@ The app is the browser, so blocking runs in the shells, outside any extension AP
 - **Vitest (browser)**: each scriptlet on fixed inputs; the m.youtube.com fixture's player response with ad fields and captions, run through `json-prune` with the arguments of the list's own youtube.com rule (a pinned copy in the fixtures): the ad fields are gone, and the adapter's caption capture still finds the track. The Settings section with a fake `appHost`.
 - **Native**: JUnit and XCTest for the list store (expiry, conditional requests, a failed fetch keeps the old list, the engine swapped only when built), the resource-type guess (Android), and the switches (a site's reload, `on` false removes every rule).
 - **On the emulator, then the Simulator** (one at a time): two articles in each of English, French and German with ads, before and after (requests to ad hosts, screenshots); the TED baseline and one auto-caption video on m.youtube.com: no ad, subtitles shown, no warning; ⋮ off and on for a site; a list update with an unchanged `ETag`; Settings' section; the error log read and cleared.
+
+## M8: Share → Langle (designed with the user on 2026-11-26)
+Another app's Share opens its link (or text) in Langle. What the phone shows is [ui.md](ui.md) "Mobile app" ("Open in Langle from another app") and the mock's `MobileShare` and `MobileShareSaved`.
+
+### Decisions (the user's choices, 2026-11-26)
+- **Share is the only way in, on both platforms.** Langle registers no "Open with" for links and is not a browser the system can choose (no `ACTION_VIEW` filter on Android, no default-browser entitlement on iOS). A YouTube link cannot be claimed anyway: the YouTube app owns youtube.com's links (verified App Links on Android 12 and later, universal links on iOS), so a tap on one opens the YouTube app without a chooser. The way in for a video is the YouTube app's Share, or Share on a long-pressed link.
+- **iOS tries to open Langle, and keeps the item when it cannot** (the user's choice, 2026-11-27, after first choosing public API only). A share extension has no public API to open its app (`NSExtensionContext.open` is for Today and iMessage extensions). The extension uses the call Chrome and Firefox use: it walks the responder chain to the `UIApplication` and calls `open(_:options:completionHandler:)` with Langle's own URL scheme. That call is unofficial: reported to work on iOS 26 and 27 and broken on the iOS 26.5 Simulator, and of unclear App Review standing (guideline 2.5.1); the user accepts both risks. A spike (M8b-0) checks it on the Simulator first. The extension always keeps the item first, so when the call fails (or is removed after a review) it says so ("Saved. Open Langle to see it.") and Langle opens the item the next time it comes to the front.
+- **Android's Back from a shared page goes back to the app that shared it** (as Chrome does). iOS needs nothing: the system's "◀ App" link in the status bar does it.
+
+### The shared item → an address (both shells, one rule)
+1. A URL item is taken as it is; from text, the first `http://` or `https://` link in it, without trailing punctuation (`.,;:!?)]}'"」』）` and the like).
+2. A YouTube link opens the `m.youtube.com` page: `youtu.be/<id>?<query>` → `https://m.youtube.com/watch?v=<id>&<query>` (`t` and the rest kept); `youtube.com` and `www.youtube.com` `/<path>?<query>` → `https://m.youtube.com/<path>?<query>`. `m.youtube.com` stays. Any other link (`music.youtube.com` included) opens as it is.
+3. Text without a link becomes Home's search: `https://m.youtube.com/results?search_query=<the text, trimmed>`. Empty text does nothing.
+- Kotlin (`core`) and Swift (`LangleCore`) each implement it as `SharedLink.resolve(url?, text?) → address?`, checked against the shared cases in `mobile/protocol/shared-links.json` by JUnit and XCTest, as the protocol's golden files are.
+
+### Opening it
+- The address loads into the one browsing page, as any page opened over Home does (M4 "One browsing page").
+- **Before the first run is done** (a share right after installing): the first run shows first; the address waits and opens once it is closed (Start or Not now). One address waits at most; a newer share replaces it.
+
+### Android
+- `MainActivity` gets an `ACTION_SEND` filter for `text/plain` (category `DEFAULT`), named Langle in the share sheet. `EXTRA_TEXT` is the text (YouTube's Share sends the bare link); `EXTRA_SUBJECT` is not used. A cold start reads the intent in `onCreate`, a running app in `onNewIntent` (`singleTask`).
+- **Back**: the shell marks the page's first history entry as opened from another app. Back on that entry shows Home under it and moves the task back (`moveTaskToBack(true)`), so the other app shows; the page is kept (Continue's first row), and the next time Langle comes to the front it shows Home. The mark goes once the page moves to another entry or is opened from Home.
+
+### iOS
+- **The share extension** `LangleShare` (a new target in the app): it shows for one web URL or one text (`NSExtensionActivationRule`: `NSExtensionActivationSupportsWebURLWithMaxCount` 1, `…SupportsText` true). It writes the item (`{ url?, text?, sharedAt }`) to the App Group's container (`group.<app id>`, both targets entitled) as `shared.json`, then opens `langle://shared` (the app's URL scheme, `CFBundleURLTypes`) through the responder chain and ends the request.
+  - **When the open fails** (the completion handler says false, or no `UIApplication` is found in the chain): its sheet (`MobileShareSaved`): the Langle mark, the item's title or host, "Saved. Open Langle to see it." and Done, which ends the request. Native SwiftUI with the app's own native strings, as the title bar's.
+- **The app** reads `shared.json` at launch, on `langle://shared` (`onOpenURL`) and each time the scene becomes active, deletes it, and opens `SharedLink.resolve` of it. One item is kept: a newer share overwrites it. `langle://` carries nothing else: any other `langle://` address only brings the app to the front, so another app cannot open pages through it.
+- Back is unchanged.
+
+### Testing
+- **Native**: JUnit and XCTest for `SharedLink.resolve` on the shared cases; JUnit for the intent (cold and warm), Back from a shared page's first entry (Home, then the task moved back; the mark gone after a navigation) and the address held through the first run; XCTest for the shared file (write, read once, a newer item replaces it) and the address held through the first run.
+- **On the emulator, then the Simulator** (one at a time): Android: Share from the YouTube app → the watch page with Langle's subtitles → Back shows the YouTube app → Langle shows Home with the video first in Continue; an article shared from Chrome; text shared from another app → a search. iOS: Share from Safari on an article and on a YouTube address → Langle comes to the front with the page; the same with the open call switched off in a check build → the extension's sheet → Langle opens the page when brought to the front; text shared from Notes → a search. The error log read and cleared.
+- The App Group's provisioning and the open call on a real iPhone are checked in M9.
+
+### Build order
+- **M8-0** (the parent session): `MobileShareSaved` in the mock and ui.md; reviewed by the user.
+- **M8a**: `SharedLink` and its cases, and the Android shell; its emulator checks.
+- **M8b-0** (a spike, may run beside M8a: it needs only the Simulator, M8a only the emulator, one at a time): a bare share extension opening its app through the responder chain on the iOS 26.4 and 27 Simulators. If it fails on both, the design goes back to the user (public API only, the sheet always).
+- **M8b** (after M8a): the iOS extension and the app's side; its Simulator checks.
