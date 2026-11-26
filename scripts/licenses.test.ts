@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  adblockLicense,
   engineLicenses,
   licensesFile,
   licenseTexts,
@@ -177,6 +178,14 @@ describe("licensesFile", () => {
       expect(file).toMatch(new RegExp(`^${part} `, "m"));
     expect(file).toContain("Mozilla Public License Version 2.0");
     expect(file).toContain("Jean-loup Gailly and Mark Adler");
+  });
+
+  it("lists the phone app's ad-blocking engine at the version its crate pins", () => {
+    const file = licensesFile([join(modules, "preact")], undefined, [
+      adblockLicense(),
+    ]);
+    expect(file).toMatch(/^adblock-rust 0\.13\.6 \(MPL-2\.0\)$/m);
+    expect(file).toContain("Mozilla Public License Version 2.0");
   });
 
   it("refuses a package with no license text", () => {
