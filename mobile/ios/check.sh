@@ -2,12 +2,15 @@
 # Drives the iOS app on the booted Simulator (run outside Claude Code's sandbox).
 #
 #   check.sh build                  xcodebuild into mobile/ios/build (stage a build first:
-#                                   scripts/bundle-build.sh [check])
+#                                   scripts/bundle-build.sh [check]; the ad-blocking library:
+#                                   npm run mobile:adblock -- ios)
 #   check.sh install                installs the built app on the booted Simulator
 #   check.sh launch [args…]         relaunches the app; args: -url <url>, -reset 1 (a first run)
-#   check.sh cmd <name>             errors | clear-errors | state | translate-state, or a native
+#   check.sh cmd <name>             errors | clear-errors | state | translate-state | adblock |
+#                                   adblock-update, or a native
 #                                   control: home | words | settings | back-home | edge-back |
-#                                   langle | close-sheet; the result goes to the log
+#                                   langle | close-sheet | more (⋮) | more-ads (⋮'s "Block ads
+#                                   on this site"); the result goes to the log
 #   check.sh js <target> <js|@file>  runs <js> (an async function body) in host | page | langle |
 #                                   sheet | first (the first run) | tab (the shown tab's page)
 #   check.sh fullscreen             the page's fullscreen, the screen and a test element in the
@@ -26,6 +29,11 @@ app="$here/build/Build/Products/Debug-iphonesimulator/Langle.app"
 
 case "${1:-}" in
 build)
+  # Xcode's own error names the missing framework but not how to make it.
+  if [ ! -f "$here/../adblock/build/ios/LangleAdblock.xcframework/Info.plist" ]; then
+    echo "error: no mobile/adblock/build/ios/LangleAdblock.xcframework; run npm run mobile:adblock -- ios" >&2
+    exit 1
+  fi
   xcodebuild -project "$here/Langle.xcodeproj" -scheme Langle -configuration Debug \
     -destination 'generic/platform=iOS Simulator' -derivedDataPath "$here/build" -quiet build
   ;;

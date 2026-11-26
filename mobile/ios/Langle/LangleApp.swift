@@ -19,6 +19,7 @@ struct LangleApp: App {
     }
     .onChange(of: scenePhase) { _, phase in
       if phase == .background { model.leftScreen() }
+      if phase == .active { model.cameOnScreen() }
     }
   }
 }
@@ -85,6 +86,17 @@ struct ShellView: View {
 
   /// A page over Home: the title bar (it slides away while the page scrolls down), the page.
   private var pageScreen: some View {
+    ZStack(alignment: .topTrailing) {
+      pageColumn
+      // ⋮'s menu: a tap anywhere else closes it (and reaches nothing under it).
+      if model.menuOpen, model.barShown, !model.fullscreen {
+        Color.white.opacity(0.001).ignoresSafeArea().onTapGesture { model.menuOpen = false }
+        MoreMenu(model: model).padding(.top, 58).padding(.trailing, 8)
+      }
+    }
+  }
+
+  private var pageColumn: some View {
     VStack(spacing: 0) {
       if model.refusal != nil, !model.fullscreen {
         Text(model.refusal ?? "").font(.footnote).foregroundStyle(Palette.muted).padding(8)

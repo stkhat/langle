@@ -111,6 +111,8 @@ public final class Router {
   /// `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` with nil
   /// once it shows, or with why it could not.
   public var onShareFile: ((SharedFile, _ done: @escaping (String?) -> Void) -> Void)?
+  /// After any write that changed a storage area (the shim's or `setStorage`): what changed.
+  public var onStorageChanged: ((KeyValueStore.Area, [String: KeyValueStore.Change]) -> Void)?
   /// The app's translation host (docs/specs/mobile-translation.md "M5: the hosts"): the calls in
   /// `translationApis`, with the context that asked (the host answers a page not on screen with
   /// null at once) and the call's one argument; the app answers through `done`. Nil until the app
@@ -272,8 +274,18 @@ public final class Router {
       for context in contexts {
         postEvent(context, "storage.onChanged", [value, .string(area.rawValue)])
       }
+      onStorageChanged?(area, changes)
     }
     return nil
+  }
+
+  /// Native code's own write (the ad-blocking switches, the list store): heard as the shim's are.
+  public func setStorage(_ area: KeyValueStore.Area, _ items: [String: JSONValue]) {
+    do {
+      _ = try storage(area, "set", [.object(items)])
+    } catch {
+      onError?("storage.\(area.rawValue).set: \(error)")
+    }
   }
 
   // MARK: tabs
