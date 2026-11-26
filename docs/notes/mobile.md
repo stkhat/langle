@@ -681,6 +681,32 @@ Checked on the emulator (`Medium_Phone_API_37.0`, System WebView 145) with the c
 - **⋮**: the switch row matches the mock; turning it off adds the site to `offSites` and reloads without cosmetics or blocked requests; on reloads with them. A reload keeps the document's title, which WebView then does not report again: the title bar now reads it from the page after the load.
 - **Error log**: empty throughout (no fetch or build failures). The page's console had one error of the site's own script (Bombora "did not initialize within 2 seconds", a tracker it waits for that was blocked).
 
+## Drive sign-in (M7a, 2026-11-27)
+Spike for spec [mobile-app.md](../specs/mobile-app.md) "M7". The OAuth clients were made by the user in Langle's Cloud project (the extension's), consent screen in Testing with `drive.appdata`:
+- iOS client `191564468385-kil3pjtfv2ai5p0bud9fh7n5rj68c2pl` (bundle id `dev.langle.app`, redirect scheme `com.googleusercontent.apps.191564468385-kil3pjtfv2ai5p0bud9fh7n5rj68c2pl`).
+- Android client `191564468385-pdi5tf39l63lr0oec0b1l4j2l63n2veu` (package `dev.langle.app`, the debug keystore's SHA-1).
+- Client ids are public; neither has a secret.
+
+Throwaway builds in `mobile/prototypes/`: `android-drive-spike` (`run.sh`), `ios-drive-spike` (`check.sh`), and `drive-spike-web/drive.js`, which both serve on the app origin as the real hosts do (`AppOrigin` / `AppSchemeHandler`). The shell signs in and hands the access token to that page. Its JS calls Drive with `fetch` the way `core/cloud/google-drive.ts` does: list `appDataFolder`, multipart create, `PATCH uploadType=media`, `alt=media` (its own file, compared, and one of the extension's), `about` (address present or not), then deletes its file. That file has no `appProperties.path`, so the extension never lists it. The spikes install as `dev.langle.app` because the clients are registered for that package and bundle id; their web storage uses their own profile or store, not the real app's.
+
+**Android** (emulator `Medium_Phone_API_37.0`, Google Play image, WebView Dev 160, Play services 26.45; play-services-auth 21.6.0; the user's test account already on the device):
+- **CORS**: every call from `https://appassets.androidplatform.net` passed, `response.type` `cors`: list 200, create 200, update 200, `alt=media` 200 (own file matched), `about` 200, delete 204, Google's `tokeninfo` 200. The fallback (the shell makes the Drive requests) is not needed.
+- **The extension's files**: the list showed 10 files of 4 devices, all the extension's paths:
+  - `devices/5d88d1eb-…/main.json.gz`, `history-2026-11.json.gz`, `occurrences-2026-11.json.gz`
+  - `devices/b537bf4d-…/main.json.gz`, `history-2026-11.json.gz`
+  - `devices/d8107e61-…/main.json.gz`, `history-2026-11.json.gz`, `occurrences-2026-11.json.gz`
+  - `devices/e913b4c2-…/main.json.gz`, `history-2026-11.json.gz`
+  
+  One of them, read with `alt=media`, came back at its listed size (997 B). `tokeninfo` names the Android client as `azp`, scope `drive.appdata`, about 3,600 s left.
+- **First Connect**: `authorize` without a grant answers `hasResolution()` (no UI; 8.8 s on the first call after install). Launching its `PendingIntent` showed Google's "Choose an account" dialog (the app's label, the device's account, "Add another account"), then consent. The result came back through `getAuthorizationResultFromIntent`: an access token, `grantedScopes` = `drive.appdata`. `toGoogleSignInAccount()` was null, so the app does not get the account from the result.
+- **Silent renewal**: once granted, `authorize` returns a token without UI: the cached one in 33 ms. After the app was force-stopped and started again, a fresh one came in 1.5 s, still without UI.
+- **A refused token**: a made-up token gets 401, `WWW-Authenticate: Bearer realm="https://accounts.google.com/", error="invalid_token"`, body `error.status` `UNAUTHENTICATED`, `errors[0].reason` `authError`. The extension's `driveError` already maps 401 to `unauthorized`. `clearToken(token)` succeeds. The next silent `authorize` returns a new token (0.8–16 s on the emulator). So `token({ refused })` = `clearToken` + silent `authorize`.
+- **`clearToken` revokes nothing**: the cleared token still worked at Drive (list 200) until it expired. Disconnect = `clearToken` plus dropping the token from memory.
+- **Connect after Disconnect**: plain `authorize` after `clearToken` returned a new token at once, with no UI: Play services keeps the grant and the chosen account. With `setPrompt(AuthorizationRequest.Prompt.SELECT_ACCOUNT)` (play-services-auth 21.x) it answered `hasResolution()` and showed "Choose an account" again. So Connect uses `SELECT_ACCOUNT`, and **`revokeAccess` is not needed**. It was not called, so its effect on the desktop's grant was not measured.
+- **Cancel**: closing the dialog (Back) gives `RESULT_CANCELED`. `getAuthorizationResultFromIntent` then throws `ApiException` 16 ("Cancelled by user"): that is `cancelled`.
+
+**iOS**: (pending)
+
 ## Open issues and risks
 1. **Google sign-in.** Google blocks sign-in from browsers embedded in other apps (OAuth `disallowed_useragent` since 2021-09-30; its help page says sign-in may be blocked in browsers "embedded inside another app"). Browsers built on the same engines (Brave / Firefox / DuckDuckGo on iOS, Firefox on Android) can sign in, so detection seems to rely on signals such as the user agent, not the engine. Android WebView's UA contains `; wv`. Unverified for our app and a policy gray area. Watching and captions work without sign-in; age-restricted and members-only videos need it.
 2. **PO token in the real engines** (see above).
