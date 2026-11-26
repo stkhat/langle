@@ -857,7 +857,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app". Ev
 **Progress**
 
 - [x] M7 designed (2026-11-26, with the user): spec "M7"
-- [ ] M7-0: the first-run Drive step, Settings › Sync and backup and the Drive lines in the mock and ui.md (the parent session); reviewed by the user
+- [ ] M7-0: the first-run Drive step, Settings › Sync and backup and the Drive lines in the mock and ui.md (the parent session; drawn 2026-11-26); waiting for the user's review
 - [ ] M7a: the clients and the sign-in spike (branch `claude/mobile-m7a`)
 - [ ] M7b: `appHost.googleAuth`, the background's app auth and the lifecycle events (branch `claude/mobile-m7b`)
 - [ ] M7c: the first-run step and Settings › Sync and backup in the phone layout (branch `claude/mobile-m7c`)
