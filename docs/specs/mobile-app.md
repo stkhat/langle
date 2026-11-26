@@ -305,9 +305,10 @@ The app is the browser, so blocking runs in the shells, outside any extension AP
 - **Langle's captions on YouTube**: the scriptlets remove only the ad fields of the player response (`adPlacements`, `playerAds`, `adSlots`; m.youtube.com's rules leave `adBreakHeartbeatParams`); Langle's page script reads `captions` through `getPlayerResponse()` as before. Both run in the page's world at document start; the order between them does not matter, as each reads the response when the player builds it.
 - **The switches**: stored in the app's `storage.local` as `adBlocking: { on, offSites }` (not synced; the desktop has no use for it). A site is the page's registrable domain (the engine's public-suffix list). The shells read the key from their key-value store and follow `storage.onChanged`. Turning blocking off or on for the page's site reloads the page.
   - ⋮ "Block ads on this site": a switch, shown on every page while `on` is true.
-  - Settings › Ad blocking (`options.html`, only where `appHost` exists): "Block ads" (`on`), the sites where it is off (each with Remove), and when the lists were last updated (the list store writes `adBlockingLists: { updatedAt }`).
+  - Settings › Ad blocking (`options.html`, only where `appHost` exists): "Block ads" (`on`), the sites where it is off (each with Remove), and when the lists were last updated (the list store writes `adBlockingLists: { updatedAt }`, milliseconds since the epoch, after a fetch that succeeds, whether or not a list changed; until then the section says the lists are not downloaded yet).
 - **Failures**: YouTube's warnings or a stopped player are not acted on by the app; the user turns blocking off for youtube.com with ⋮. Ads stitched into the video stream on the server are not removed.
-- **Privacy**: the site's privacy page names the lists' hosts.
+- **Privacy**: the site's privacy page names the lists' hosts and when they are contacted.
+- **Notices**: About's notices page in the app credits the lists (their licences, read from each list's header) and adblock-rust (MPL-2.0); `THIRD_PARTY_LICENSES.txt` carries adblock-rust's license text.
 
 ### Testing
 - **Rust**: `cargo test` for the crate's interface (build, serialize and load, `check`, `cosmetic`, `webkitRules`) on small fixed lists.
