@@ -1,0 +1,264 @@
+{
+  "cases": [
+    {
+      "name": "a bare https link",
+      "text": "https://example.com/news/article-1",
+      "address": "https://example.com/news/article-1"
+    },
+    {
+      "name": "a bare link with a trailing newline",
+      "text": "https://example.com/a\n",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "an http link",
+      "text": "http://example.com/page?id=3",
+      "address": "http://example.com/page?id=3"
+    },
+    {
+      "name": "a link inside text",
+      "text": "Read this: https://example.com/story?id=7 it is good",
+      "address": "https://example.com/story?id=7"
+    },
+    {
+      "name": "trailing period",
+      "text": "See https://example.com/a.",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "trailing ASCII punctuation",
+      "text": "Is it https://example.com/a?!",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "trailing comma and more text",
+      "text": "Links: https://example.com/a, https://example.com/b",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "in ASCII parentheses",
+      "text": "(see https://example.com/a)",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "a closing parenthesis the link opened is kept",
+      "text": "https://en.wikipedia.org/wiki/Mercury_(planet)",
+      "address": "https://en.wikipedia.org/wiki/Mercury_(planet)"
+    },
+    {
+      "name": "in ASCII quotes",
+      "text": "\"https://example.com/a\"",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "in single quotes",
+      "text": "'https://example.com/a'",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "in square brackets",
+      "text": "[https://example.com/a]",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "in Japanese corner brackets",
+      "text": "記事「https://example.com/a」を読んで",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "in Japanese white corner brackets",
+      "text": "『https://example.com/a』",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "in full-width parentheses",
+      "text": "（https://example.com/a）",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "followed by a Japanese full stop",
+      "text": "ここです https://example.com/a。",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "followed by a Japanese comma",
+      "text": "https://example.com/a、https://example.com/b",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "followed by full-width exclamation and question marks",
+      "text": "https://example.com/a！？",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "followed by an ideographic space",
+      "text": "https://example.com/a　次へ",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "in curly quotes",
+      "text": "“https://example.com/a”",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "a title on the line before the link",
+      "text": "A good article\nhttps://example.com/a",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "an upper-case scheme",
+      "text": "HTTPS://example.com/A",
+      "address": "HTTPS://example.com/A"
+    },
+    {
+      "name": "a scheme without a host is not a link",
+      "text": "https:// is how it starts",
+      "address": "https://m.youtube.com/results?search_query=https%3A%2F%2F%20is%20how%20it%20starts"
+    },
+    {
+      "name": "the first real link after a scheme without a host",
+      "text": "https:// then https://example.com/a",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "a URL item is preferred over text",
+      "url": "https://example.com/from-url",
+      "text": "A title https://example.com/from-text",
+      "address": "https://example.com/from-url"
+    },
+    {
+      "name": "a URL item alone",
+      "url": "https://example.com/a?b=c#d",
+      "address": "https://example.com/a?b=c#d"
+    },
+    {
+      "name": "a URL item that is not http falls back to the text",
+      "url": "file:///private/var/a.html",
+      "text": "https://example.com/a",
+      "address": "https://example.com/a"
+    },
+    {
+      "name": "youtu.be with t and si",
+      "text": "https://youtu.be/dQw4w9WgXcQ?si=AbC-12_x&t=42",
+      "address": "https://m.youtube.com/watch?v=dQw4w9WgXcQ&si=AbC-12_x&t=42"
+    },
+    {
+      "name": "youtu.be without a query",
+      "text": "https://youtu.be/dQw4w9WgXcQ",
+      "address": "https://m.youtube.com/watch?v=dQw4w9WgXcQ"
+    },
+    {
+      "name": "youtu.be over http, inside text",
+      "text": "Watch this http://youtu.be/dQw4w9WgXcQ?t=10.",
+      "address": "https://m.youtube.com/watch?v=dQw4w9WgXcQ&t=10"
+    },
+    {
+      "name": "youtu.be with a URL item",
+      "url": "https://youtu.be/dQw4w9WgXcQ?t=5",
+      "address": "https://m.youtube.com/watch?v=dQw4w9WgXcQ&t=5"
+    },
+    {
+      "name": "youtu.be without an id opens as it is",
+      "text": "https://youtu.be/",
+      "address": "https://youtu.be/"
+    },
+    {
+      "name": "youtube.com watch",
+      "text": "https://youtube.com/watch?v=dQw4w9WgXcQ&t=1m2s",
+      "address": "https://m.youtube.com/watch?v=dQw4w9WgXcQ&t=1m2s"
+    },
+    {
+      "name": "www.youtube.com watch",
+      "text": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL1&index=2",
+      "address": "https://m.youtube.com/watch?v=dQw4w9WgXcQ&list=PL1&index=2"
+    },
+    {
+      "name": "www.youtube.com in upper case over http",
+      "text": "http://WWW.YouTube.com/watch?v=dQw4w9WgXcQ",
+      "address": "https://m.youtube.com/watch?v=dQw4w9WgXcQ"
+    },
+    {
+      "name": "m.youtube.com stays",
+      "text": "https://m.youtube.com/watch?v=dQw4w9WgXcQ&t=3",
+      "address": "https://m.youtube.com/watch?v=dQw4w9WgXcQ&t=3"
+    },
+    {
+      "name": "shorts",
+      "text": "https://youtube.com/shorts/abcDEF12345?si=xyz",
+      "address": "https://m.youtube.com/shorts/abcDEF12345?si=xyz"
+    },
+    {
+      "name": "live",
+      "text": "https://www.youtube.com/live/abcDEF12345?si=xyz",
+      "address": "https://m.youtube.com/live/abcDEF12345?si=xyz"
+    },
+    {
+      "name": "a channel",
+      "text": "https://www.youtube.com/@TED",
+      "address": "https://m.youtube.com/@TED"
+    },
+    {
+      "name": "youtube.com without a path",
+      "text": "https://www.youtube.com",
+      "address": "https://m.youtube.com/"
+    },
+    {
+      "name": "music.youtube.com opens as it is",
+      "text": "https://music.youtube.com/watch?v=dQw4w9WgXcQ&si=q",
+      "address": "https://music.youtube.com/watch?v=dQw4w9WgXcQ&si=q"
+    },
+    {
+      "name": "a host that only ends in youtube.com opens as it is",
+      "text": "https://notyoutube.com/watch?v=x",
+      "address": "https://notyoutube.com/watch?v=x"
+    },
+    {
+      "name": "text without a link is a search",
+      "text": "how to learn English",
+      "address": "https://m.youtube.com/results?search_query=how%20to%20learn%20English"
+    },
+    {
+      "name": "a search is trimmed",
+      "text": "  ted talk \n",
+      "address": "https://m.youtube.com/results?search_query=ted%20talk"
+    },
+    {
+      "name": "a Japanese search",
+      "text": "英語 リスニング",
+      "address": "https://m.youtube.com/results?search_query=%E8%8B%B1%E8%AA%9E%20%E3%83%AA%E3%82%B9%E3%83%8B%E3%83%B3%E3%82%B0"
+    },
+    {
+      "name": "a search with reserved characters",
+      "text": "rock & roll? 100%",
+      "address": "https://m.youtube.com/results?search_query=rock%20%26%20roll%3F%20100%25"
+    },
+    {
+      "name": "a search keeps encodeURIComponent's unescaped marks",
+      "text": "it's (a)-b_c.d!~*",
+      "address": "https://m.youtube.com/results?search_query=it's%20(a)-b_c.d!~*"
+    },
+    {
+      "name": "a search trims ideographic spaces",
+      "text": "　発音　",
+      "address": "https://m.youtube.com/results?search_query=%E7%99%BA%E9%9F%B3"
+    },
+    {
+      "name": "a non-http scheme is text without a link",
+      "text": "mailto:someone@example.com",
+      "address": "https://m.youtube.com/results?search_query=mailto%3Asomeone%40example.com"
+    },
+    {
+      "name": "an address without a scheme is a search",
+      "text": "example.com",
+      "address": "https://m.youtube.com/results?search_query=example.com"
+    },
+    { "name": "empty text", "text": "", "address": null },
+    { "name": "whitespace text", "text": " \n\t　", "address": null },
+    { "name": "nothing", "address": null },
+    {
+      "name": "a URL item that is not http and no text",
+      "url": "mailto:someone@example.com",
+      "address": null
+    }
+  ]
+}

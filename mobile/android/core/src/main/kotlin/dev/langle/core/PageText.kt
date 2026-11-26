@@ -70,7 +70,7 @@ object PageText {
   }
 
   /** JavaScript's `encodeURIComponent`. */
-  private fun encodeComponent(text: String): String =
+  internal fun encodeComponent(text: String): String =
     buildString {
       for (byte in text.toByteArray(Charsets.UTF_8)) {
         val code = byte.toInt() and 0xff
