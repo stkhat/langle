@@ -297,6 +297,25 @@
           receives nothing from it.
         </li>
         <li>
+          <strong>Filter lists, in the phone app.</strong> The Langle phone app
+          blocks ads and trackers with three public filter lists, which it
+          downloads unchanged from their own sites: EasyList and EasyPrivacy
+          from <code>easylist.to</code> (if that fails,
+          <code>secure.fanboy.co.nz</code> or
+          <code>easylist-downloads.adblockplus.org</code>), and uBlock filters
+          from <code>ublockorigin.github.io</code> (if that fails, jsDelivr,
+          <code>cdn.jsdelivr.net</code>). The app first downloads them when you
+          press Start on the first-run screen, after you agree to it, and then,
+          while you use the app, again for each list once that list's own expiry
+          time has passed (every few days; for one part of uBlock filters, every
+          few hours), asking only whether the list has changed. These hosts
+          receive your IP address and which list is requested; they receive
+          nothing about the pages you open or your words. Whether blocking is
+          on, and the sites where you turned it off, are kept on the phone in
+          Langle's own storage. Nothing counts or records what was blocked. The
+          browser extension downloads no filter lists.
+        </li>
+        <li>
           <strong>Nothing else.</strong> Langle sends no analytics, crash
           reports or usage data. Errors are written only to the browser's
           console.

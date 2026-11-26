@@ -46,9 +46,13 @@ export function RowLabel(props: {
       >
         {props.title}
       </span>
-      <span style={{ fontSize: "13px", lineHeight: 1.45, color: color.muted }}>
-        {props.desc}
-      </span>
+      {props.desc !== "" && (
+        <span
+          style={{ fontSize: "13px", lineHeight: 1.45, color: color.muted }}
+        >
+          {props.desc}
+        </span>
+      )}
       {props.children}
     </Tag>
   );

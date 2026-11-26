@@ -13,13 +13,23 @@ final class WebKitEngine: BrowsingEngine {
   static let langleWorld = WKContentWorld.world(name: "langle")
 
   let schemeHandler: AppSchemeHandler
+  /// Ad blocking on browsing pages, or nil (none).
+  var blocking: PageBlocking?
+  private let browsingPages = NSHashTable<WebKitPage>.weakObjects()
 
   init(schemeHandler: AppSchemeHandler) {
     self.schemeHandler = schemeHandler
   }
 
   func createPage(profile: PageProfile, delegate: PageDelegate) -> Page {
-    WebKitPage(profile: profile, schemeHandler: schemeHandler, delegate: delegate)
+    let page = WebKitPage(profile: profile, schemeHandler: schemeHandler, delegate: delegate, engine: self)
+    if profile == .browsing { browsingPages.add(page) }
+    return page
+  }
+
+  /// `blocking`'s rules or switches changed: browsing pages take them for their next requests.
+  func blockingChanged() {
+    for page in browsingPages.allObjects { page.applyRules(for: page.url) }
   }
 
   /// Empties the app's data store (`check.sh launch … -reset 1`, a first run again). It clears
@@ -32,12 +42,37 @@ final class WebKitEngine: BrowsingEngine {
   }
 }
 
+/// Ad blocking as browsing pages ask it (AdBlocker, docs/specs/mobile-app.md "M6: ad blocking"):
+/// the lists' network rules while a page's site gets blocking, and the stylesheet of a document's
+/// classes and ids. The document-start scripts come with the page's other scripts (`willLoad`).
+@MainActor
+protocol PageBlocking: AnyObject {
+  /// Whether a page of `url` gets blocking now (an engine in use, the switches for its site).
+  func blocks(_ url: URL) -> Bool
+  /// The lists' compiled rules (empty until they are ready).
+  var ruleLists: [WKContentRuleList] { get }
+  /// A document's classes and ids (`message`, JSON); `reply` gets their stylesheet.
+  func hiddenCss(_ message: String, reply: @escaping (String) -> Void)
+}
+
 /// Keeps WKUserContentController from retaining the page (it holds its handlers strongly).
-private final class WeakHandler: NSObject, WKScriptMessageHandler {
+private final class WeakHandler: NSObject, WKScriptMessageHandler, WKScriptMessageHandlerWithReply {
   weak var page: WebKitPage?
   init(_ page: WebKitPage) { self.page = page }
   func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
     page?.received(message)
+  }
+
+  /// `langleAdblock` (Langle's world on browsing pages): a document's classes and ids in, the
+  /// stylesheet they need back.
+  func userContentController(
+    _ controller: WKUserContentController, didReceive message: WKScriptMessage,
+    replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void
+  ) {
+    guard let page, let body = message.body as? String, let blocking = page.engine?.blocking else {
+      return replyHandler("", nil)
+    }
+    blocking.hiddenCss(body) { css in replyHandler(css, nil) }
   }
 }
 
@@ -60,9 +95,15 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
   var view: UIView { webView }
   var url: URL? { webView.url }
 
-  init(profile: PageProfile, schemeHandler: AppSchemeHandler, delegate: PageDelegate) {
+  /// The engine, for its ad blocking (browsing pages).
+  private(set) weak var engine: WebKitEngine?
+  /// The ad-blocking rule lists on this page's content controller now.
+  private var appliedRules: [WKContentRuleList] = []
+
+  init(profile: PageProfile, schemeHandler: AppSchemeHandler, delegate: PageDelegate, engine: WebKitEngine) {
     self.profile = profile
     self.delegate = delegate
+    self.engine = engine
     let config = WKWebViewConfiguration()
     switch profile {
     case .browsing:
@@ -87,6 +128,8 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
     #endif
     if profile == .browsing {
       config.userContentController.add(handler, contentWorld: .page, name: Self.fullscreenName)
+      config.userContentController.addScriptMessageHandler(
+        handler, contentWorld: WebKitEngine.langleWorld, name: AdBlocker.bridgeName)
     }
     webView.isInspectable = true
     webView.navigationDelegate = self
@@ -209,6 +252,19 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
 
   private var lastRequested: URL?
 
+  /// The lists' rules while `url`'s site gets blocking, none otherwise: set when a main-frame
+  /// navigation is decided (before its request goes out) and when the rules or switches change.
+  func applyRules(for url: URL?) {
+    guard profile == .browsing else { return }
+    var wanted: [WKContentRuleList] = []
+    if let blocking = engine?.blocking, let url, blocking.blocks(url) { wanted = blocking.ruleLists }
+    guard wanted.map(ObjectIdentifier.init) != appliedRules.map(ObjectIdentifier.init) else { return }
+    let controller = webView.configuration.userContentController
+    for list in appliedRules { controller.remove(list) }
+    for list in wanted { controller.add(list) }
+    appliedRules = wanted
+  }
+
   func setUserScripts(_ scripts: [UserScript]) {
     let controller = webView.configuration.userContentController
     controller.removeAllUserScripts()
@@ -281,12 +337,14 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
         return
       }
       lastRequested = url
+      applyRules(for: url)
       delegate?.page(self, willLoad: url)
     }
     decisionHandler(.allow)
   }
 
   func webView(_ webView: WKWebView, didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!) {
+    applyRules(for: webView.url)
     if let url = webView.url { delegate?.page(self, willLoad: url) }
   }
 

@@ -125,6 +125,9 @@ class Router(val options: Options = Options(), private val persistence: Persiste
    */
   var onTranslation: ((from: ContextSpec, api: String, request: JsonElement?, done: (Answer) -> Unit) -> Unit)? = null
 
+  /** After any write that changed a storage area (the shim's or [setStorage]): what changed. */
+  var onStorageChanged: ((area: KeyValueStore.Area, changes: Map<String, KeyValueStore.Change>) -> Unit)? = null
+
   private val contexts = mutableListOf<Connection>()
   private val forwards = linkedMapOf<String, Forward>()
   private val hostWaiters = mutableListOf<Waiter>()
@@ -263,8 +266,14 @@ class Router(val options: Options = Options(), private val persistence: Persiste
     if (changes.isNotEmpty()) {
       val value = JsonObject(changes.mapValues { it.value.value })
       for (context in contexts.toList()) postEvent(context, "storage.onChanged", listOf(value, JsonPrimitive(area.key)))
+      onStorageChanged?.invoke(area, changes)
     }
     return null
+  }
+
+  /** Native code's own write (the ad-blocking switches, the list store): heard as the shim's are. */
+  fun setStorage(area: KeyValueStore.Area, items: Map<String, JsonElement>) {
+    storage(area, "set", listOf(JsonObject(items)))
   }
 
   // tabs

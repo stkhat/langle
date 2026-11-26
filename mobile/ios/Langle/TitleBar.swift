@@ -78,15 +78,10 @@ struct TitleBar: View {
       }
   }
 
+  /// ⋮ opens `MoreMenu` (drawn over the page by the page screen).
   private var menu: some View {
-    Menu {
-      Button("Forward", systemImage: "chevron.forward", action: model.goForward)
-        .disabled(!model.canGoForward)
-      if let url = model.pageURL {
-        ShareLink(item: url) { Label("Share", systemImage: "square.and.arrow.up") }
-        Button("Copy link", systemImage: "doc.on.doc") { UIPasteboard.general.url = url }
-        Button("Open in another browser", systemImage: "safari") { UIApplication.shared.open(url) }
-      }
+    Button {
+      model.menuOpen.toggle()
     } label: {
       Image(systemName: "ellipsis")
         .rotationEffect(.degrees(90))
@@ -94,6 +89,104 @@ struct TitleBar: View {
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
     }
+    .disabled(model.pageURL == nil)
     .accessibilityLabel("More")
+  }
+}
+
+/// The title bar's ⋮ menu (mock `MobileArticleMenu`): Forward, Share, Copy link, Open in another
+/// browser, then under a divider the switch "Block ads on this site" with the site's registrable
+/// domain under it, while ad blocking is on. 272 pt wide, 2 pt under the bar, 8 pt from the
+/// right edge; each choice closes it.
+struct MoreMenu: View {
+  @ObservedObject var model: AppModel
+
+  var body: some View {
+    let url = model.pageURL
+    VStack(alignment: .leading, spacing: 0) {
+      item("Forward", enabled: model.canGoForward, action: model.goForward)
+      item("Share", enabled: url != nil) { if let url { FileShare.shareLink(url) } }
+      item("Copy link", enabled: url != nil) { UIPasteboard.general.url = url }
+      item("Open in another browser", enabled: url != nil) { if let url { UIApplication.shared.open(url) } }
+      if let ads = model.adSwitch {
+        Palette.line.frame(height: 1).padding(.vertical, 6).padding(.horizontal, 4)
+        adSwitch(site: ads.site, blocking: ads.blocking)
+      }
+    }
+    .padding(6)
+    .frame(width: 272)
+    .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+    .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.line, lineWidth: 1) }
+    .shadow(color: Palette.ink.opacity(0.18), radius: 15, y: 10)
+  }
+
+  private func item(_ label: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+    Button {
+      model.menuOpen = false
+      action()
+    } label: {
+      Text(label)
+        .font(.system(size: 15))
+        .foregroundStyle(Palette.ink)
+        .lineLimit(1)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: 44, maxHeight: 44, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(MenuRowStyle())
+    .disabled(!enabled)
+    .opacity(enabled ? 1 : 0.38)
+  }
+
+  private func adSwitch(site: String, blocking: Bool) -> some View {
+    Button {
+      model.menuOpen = false
+      model.setSiteBlocking(!blocking)
+    } label: {
+      HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Block ads on this site").font(.system(size: 15)).foregroundStyle(Palette.ink)
+          Text(site).font(.system(size: 13)).foregroundStyle(Palette.muted).lineLimit(1)
+            .truncationMode(.tail)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        SwitchTrack(on: blocking)
+      }
+      .padding(.leading, 12)
+      .padding(.trailing, 8)
+      .padding(.vertical, 6)
+      .frame(minHeight: 56)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(MenuRowStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("Block ads on this site, \(site)")
+    .accessibilityValue(blocking ? "On" : "Off")
+    .accessibilityAddTraits(.isToggle)
+  }
+}
+
+/// The mock's switch: 52 × 32, green on, grey off, a white knob.
+private struct SwitchTrack: View {
+  let on: Bool
+
+  var body: some View {
+    Capsule()
+      .fill(on ? Color(rgb: 0x0B8A6C) : Color(rgb: 0xC9CDD6))
+      .frame(width: 52, height: 32)
+      .overlay(alignment: on ? .trailing : .leading) {
+        Circle().fill(Color.white).frame(width: 26, height: 26)
+          .shadow(color: Palette.ink.opacity(0.25), radius: 1.5, y: 1)
+          .padding(3)
+      }
+  }
+}
+
+/// A menu row's pressed state: the mock's hover grey.
+private struct MenuRowStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label
+      .background(
+        configuration.isPressed ? Color(rgb: 0xF1F2F5) : .clear, in: RoundedRectangle(cornerRadius: 8))
   }
 }

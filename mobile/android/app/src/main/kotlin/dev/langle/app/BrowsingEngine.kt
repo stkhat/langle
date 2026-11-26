@@ -12,6 +12,27 @@ interface BrowsingEngine {
   val supportsLangle: Boolean
 
   fun createPage(profile: PageProfile, delegate: PageDelegate): Page
+
+  /** Ad blocking on browsing pages, or null (none). */
+  var blocking: PageBlocking?
+
+  /** [blocking]'s rules or switches changed: browsing pages ask it again for their next documents. */
+  fun blockingChanged()
+}
+
+/**
+ * Ad blocking as browsing pages ask it (AdBlocker, docs/specs/mobile-app.md "M6: ad blocking"):
+ * subresources before they go out, and each host's document-start scripts before its documents.
+ */
+interface PageBlocking {
+  /** The type of a subresource of [pageUrl] that is blocked, or null (WebView's request threads). */
+  fun blockedType(url: String, pageUrl: String, headers: Map<String, String>): String?
+
+  /** The document-start scripts for pages of [url]'s host, or null while it gets none (main thread). */
+  fun documentScripts(url: String): List<UserScript>?
+
+  /** A document's classes and ids ([message], JSON); [reply] gets their stylesheet, on the main thread. */
+  fun hiddenCss(message: String, reply: (String) -> Unit)
 }
 
 /**
