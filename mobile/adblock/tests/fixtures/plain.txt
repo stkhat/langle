@@ -1,0 +1,16 @@
+[Adblock Plus 2.0]
+! Title: Fixture list (plain)
+! Expires: 4 days
+||ads.example^
+||tracker.example^$third-party
+||images.example^$image
+@@||ads.example/allowed.js
+news.example##.banner
+##div[data-ad-slot]
+##.generic-ad
+###top-ad
+news.example##.sponsored:style(opacity: 0 !important)
+news.example##.promo:remove()
+news.example##.box:has-text(Sponsored)
+news.example##+js(set-constant, ads.enabled, false)
+news.example##+js(trusted-replace-node-text, script, plain, list)

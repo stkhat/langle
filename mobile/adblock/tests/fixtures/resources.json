@@ -1,0 +1,4 @@
+[
+ {"name": "set-constant.js", "aliases": ["set.js"], "kind": {"mime": "application/javascript"}, "content": "ZnVuY3Rpb24gbGFuZ2xlX3NldF9jb25zdGFudCgpIHsKd2luZG93Ll9fbGFuZ2xlU2V0ID0gWy4uLmFyZ3VtZW50c107Cn0K"},
+ {"name": "trusted-replace-node-text.js", "aliases": ["trusted-rpnt.js"], "kind": {"mime": "application/javascript"}, "content": "ZnVuY3Rpb24gbGFuZ2xlX3RydXN0ZWRfcmVwbGFjZV9ub2RlX3RleHQoKSB7CndpbmRvdy5fX2xhbmdsZVRydXN0ZWQgPSBbLi4uYXJndW1lbnRzXTsKfQo=", "permission": 1}
+]

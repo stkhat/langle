@@ -1,0 +1,27 @@
+[package]
+name = "langle-adblock"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The phone app's ad-blocking engine: Brave's adblock-rust behind a small C interface (docs/specs/mobile-app.md \"M6: ad blocking\")."
+
+[lib]
+name = "langle_adblock"
+# staticlib for iOS's XCFramework, cdylib for Android's .so, rlib for the tests and the spike.
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+# Pinned: the scriptlet resources' format (scripts/adblock-resources.ts) and the serialized
+# engines the shells cache are this version's. Without the default `single-thread`, so the
+# engine is Send + Sync (Android checks requests on several threads); `css-validation` sorts
+# procedural rules (`:has-text` …) out of the plain selectors; `content-blocking` is webkitRules.
+adblock = { version = "=0.13.6", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling", "content-blocking", "css-validation"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "unwind"
+strip = true

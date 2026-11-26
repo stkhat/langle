@@ -1,0 +1,5 @@
+! Title: Fixture list (trusted)
+video.example##+js(trusted-replace-node-text, script, trusted, list)
+video.example##+js(set, player.ads, null)
+video.example##+js(no-such-scriptlet, a)
+@@||video.example^$generichide
