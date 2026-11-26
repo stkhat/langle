@@ -21,6 +21,9 @@ import dev.langle.core.toJsonText
  *   the title bar shows, whether the page is in fullscreen, the orientation and the window size;
  * - `translate-state`: whether the translation engine runs (its page exists), is off, and the
  *   pairs it loaded;
+ * - `adblock`: whether the ad-blocking engine is loaded, when the lists were last all current,
+ *   whether some are due, the switches, and how many requests were answered empty;
+ * - `adblock-update`: fetches every list now (conditional requests), whether due or not;
  * - `translate`: `from`, `to` and `text` through the translation host, as an on-screen page asks;
  * - `translate-kill`: ends the translation page's renderer, as a crash would.
  */
@@ -104,6 +107,24 @@ object CheckCommands {
         }
       }
       "translate-kill" -> say("translate-kill ${activity.translationEngine?.terminateRenderer() ?: false}")
+      "adblock" -> {
+        val blocker = activity.adBlocker
+        say(
+          if (blocker == null) "adblock none (library loaded=${AdblockNative.loaded})"
+          else
+            "adblock engine=${blocker.store.engine != null} updatedAt=${blocker.store.updatedAt()} due=${blocker.store.isDue()} " +
+              "switches=${blocker.switches.value.toJsonText()} blocked=${blocker.blockedCount.get()}" +
+              (intent.getStringExtra("url")?.let { url ->
+                val scripts = blocker.documentScripts(url)
+                " scripts=${scripts?.joinToString { "${it.world}:${it.source.length}" } ?: "none"}"
+              } ?: ""),
+        )
+      }
+      "adblock-update" -> {
+        val blocker = activity.adBlocker ?: return true.also { say("adblock-update none") }
+        blocker.store.update(force = true)
+        say("adblock-update started")
+      }
       else -> say("unknown command $command")
     }
     return true

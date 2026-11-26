@@ -102,6 +102,28 @@ class RouterTest {
     }
 
     @Test
+    fun `tells native code of every change, and posts native writes to the contexts`() {
+      val h = Harness(local = mapOf("a" to 1))
+      val host = h.connect(ContextSpec.Host)
+      val posted = host.record("storage.onChanged")
+      val heard = mutableListOf<Pair<KeyValueStore.Area, Map<String, KeyValueStore.Change>>>()
+      h.router.onStorageChanged = { area, changes -> heard += area to changes }
+      host.call("storage.local.set", mapOf("a" to 2))
+      h.router.setStorage(KeyValueStore.Area.LOCAL, mapOf("adBlocking" to j(mapOf("on" to false))))
+      h.router.setStorage(KeyValueStore.Area.LOCAL, mapOf("adBlocking" to j(mapOf("on" to false))))
+      h.settle()
+      assertEquals(
+        listOf(
+          KeyValueStore.Area.LOCAL to mapOf("a" to KeyValueStore.Change(j(1), j(2))),
+          KeyValueStore.Area.LOCAL to mapOf("adBlocking" to KeyValueStore.Change(null, j(mapOf("on" to false)))),
+        ),
+        heard,
+      )
+      assertEquals(listOf(j(mapOf("adBlocking" to mapOf("newValue" to mapOf("on" to false)))), j("local")), posted.last())
+      assertEquals(2, posted.size)
+    }
+
+    @Test
     fun `gives old and new values, and posts nothing when nothing changed`() {
       val h = Harness(local = mapOf("a" to 1, "b" to 2))
       val host = h.connect(ContextSpec.Host)

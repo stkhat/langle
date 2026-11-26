@@ -15,7 +15,6 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.ViewCompat
@@ -42,6 +41,7 @@ class ScreenController(
   private val router: Router,
   origin: AppOrigin,
   private val injector: ContentInjector?,
+  private val adBlocker: AdBlocker?,
   notice: String?,
   hostSlot: FrameLayout,
 ) {
@@ -96,6 +96,7 @@ class ScreenController(
     browsing.onDocument = { url ->
       router.tabs.setUrl(tabId, url)
       onPageOpened?.invoke()
+      adBlocker?.inUse()
       pageTitle = null
       ogSite = null
       barScroll.reset()
@@ -365,6 +366,16 @@ class ScreenController(
         showTitle()
       }
     }
+    // A reload keeps its title, which WebView then does not report again.
+    if (pageTitle == null) {
+      browsing.page.evaluate(ScriptWorld.PAGE, TITLE) { result ->
+        val title = result.trim().takeIf { it.isNotEmpty() && !it.startsWith("error ") }
+        if (pageTitle == null && title != null) {
+          pageTitle = title
+          showTitle()
+        }
+      }
+    }
   }
 
   /**
@@ -397,31 +408,30 @@ class ScreenController(
   val isBarShown: Boolean
     get() = barShown
 
-  /** ⋮: Forward, Share, Copy link, Open in another browser. */
+  /** ⋮: Forward, Share, Copy link, Open in another browser; the site's ad blocking under a divider. */
   private fun more(anchor: View) {
     val url = browsing.page.url ?: return
-    val menu = PopupMenu(activity, anchor)
-    menu.menu.add(0, 1, 0, R.string.forward).isEnabled = browsing.page.canGoForward
-    menu.menu.add(0, 2, 1, R.string.share)
-    menu.menu.add(0, 3, 2, R.string.copy_link)
-    menu.menu.add(0, 4, 3, R.string.open_elsewhere)
-    menu.setOnMenuItemClickListener { item ->
-      when (item.itemId) {
-        1 -> browsing.page.goForward()
-        2 -> {
+    val items =
+      listOf(
+        MoreMenu.Item(R.string.forward, browsing.page.canGoForward) { browsing.page.goForward() },
+        MoreMenu.Item(R.string.share, true) {
           val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, url)
           pageTitle?.let { send.putExtra(Intent.EXTRA_SUBJECT, it) }
           activity.startActivity(Intent.createChooser(send, null))
-        }
-        3 -> {
+        },
+        MoreMenu.Item(R.string.copy_link, true) {
           activity.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(pageTitle ?: url, url))
           Toast.makeText(activity, R.string.link_copied, Toast.LENGTH_SHORT).show()
-        }
-        4 -> openElsewhere(url)
-      }
-      true
-    }
-    menu.show()
+        },
+        MoreMenu.Item(R.string.open_elsewhere, true) { openElsewhere(url) },
+      )
+    // Only while ad blocking is on, on a page with a site (Settings › Ad blocking has the rest).
+    val blocker = adBlocker
+    val site = blocker?.siteOf(url)
+    val ads =
+      if (blocker == null || site == null || !blocker.switches.on) null
+      else MoreMenu.AdSwitch(site, blocker.switches.blocks(site)) { blocker.setSite(site, it) }
+    MoreMenu(activity).show(anchor, items, ads)
   }
 
   /**
@@ -484,7 +494,8 @@ class ScreenController(
 
     /** Named commands (the page's world): the page's own site name, and pausing its media. */
     const val SITE_NAME = """return document.querySelector('meta[property="og:site_name"]')?.content ?? "";"""
-    const val CANONICAL = """return document.querySelector('link[rel="canonical"]')?.href ?? "";"""
+    const val TITLE = """return document.title;"""
+    const val CANONICAL ="""return document.querySelector('link[rel="canonical"]')?.href ?? "";"""
     const val PAUSE_MEDIA = """for (const m of document.querySelectorAll("video, audio")) m.pause(); return "paused";"""
   }
 }

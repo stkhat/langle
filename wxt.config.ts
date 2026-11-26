@@ -83,10 +83,20 @@ export default defineConfig({
         contents: licenses.file({ app: wxt.config.browser === "langle-app" }),
       });
       if (wxt.config.browser === "langle-app")
-        files.push({
-          relativeDest: RESOURCES_FILE,
-          contents: await scriptletResources(),
-        });
+        files.push(
+          {
+            relativeDest: RESOURCES_FILE,
+            contents: await scriptletResources(),
+          },
+          // The lists the app fetches (mobile/protocol/filter-lists.json, shared with iOS).
+          {
+            relativeDest: "adblock/filter-lists.json",
+            absoluteSrc: join(
+              wxt.config.root,
+              "mobile/protocol/filter-lists.json",
+            ),
+          },
+        );
     },
   },
 });

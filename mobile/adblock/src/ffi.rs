@@ -31,7 +31,7 @@ pub struct LangleAdblockBytes {
 }
 
 /// An engine: thread-safe, so `check` may be called from several threads at once.
-pub struct LangleAdblockEngine(Engine);
+pub struct LangleAdblockEngine(pub(crate) Engine);
 
 thread_local! {
     static LAST_ERROR: RefCell<Option<String>> = const { RefCell::new(None) };
@@ -41,7 +41,13 @@ fn set_error(message: String) {
     LAST_ERROR.with(|e| *e.borrow_mut() = Some(message));
 }
 
-fn guard<T>(fallback: T, body: impl FnOnce() -> Result<T, String>) -> T {
+/// The calling thread's last failure, as langle_adblock_last_error gives it.
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+pub(crate) fn last_error() -> Option<String> {
+    LAST_ERROR.with(|e| e.borrow().clone())
+}
+
+pub(crate) fn guard<T>(fallback: T, body: impl FnOnce() -> Result<T, String>) -> T {
     LAST_ERROR.with(|e| *e.borrow_mut() = None);
     match catch_unwind(AssertUnwindSafe(body)) {
         Ok(Ok(value)) => value,
