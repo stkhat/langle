@@ -783,7 +783,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking" (the user's choic
 **Progress**
 
 - [x] M6 designed (2026-11-26, with the user): spec "M6: ad blocking"
-- [ ] M6-0: ⋮ "Block ads on this site" and Settings › Ad blocking in the mock and ui.md (the parent session); reviewed by the user
+- [x] M6-0: ⋮ "Block ads on this site" and Settings › Ad blocking in the mock and ui.md (the parent session); reviewed by the user
 - [x] M6a: the adblock-rust crate and the spike (branch `claude/mobile-m6a`): go on every bar (APK +6.1 MB with both ABIs, iOS +3.7 MB; an update 0.65–1.08 s on the emulator; `check` 0.04–0.12 ms at the 99th percentile; 109,881 WebKit rules, the largest list 56,753 of WebKit's 150,000), notes/mobile.md "adblock-rust (M6a)"
 - [x] M6b: the scriptlets and the captions test (branch `claude/mobile-m6b`)
 - [ ] M6c-android: the Android list store, requests, cosmetics and ⋮ (branch `claude/mobile-m6c-android`)
