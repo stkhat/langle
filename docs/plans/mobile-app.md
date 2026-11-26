@@ -793,7 +793,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking" (the user's choic
 - [x] M6c-android: the Android list store, requests, cosmetics and ⋮ (branch `claude/mobile-m6c-android`): checked on the emulator, notes/mobile.md "Ad blocking on Android (M6c-android)"
 - [x] M6d: Settings › Ad blocking, the notices and the privacy page (branch `claude/mobile-m6d`)
 - [x] M6c-ios: the same on iOS (branch `claude/mobile-m6c-ios`): checked on the Simulator, notes/mobile.md "Ad blocking on iOS (M6c-ios)"
-- [ ] M6e: device checks, Android then iOS (branches `claude/mobile-m6e-android`, `claude/mobile-m6e-ios`)
+- [ ] M6e: device checks, Android then iOS (branches `claude/mobile-m6e-android`, `claude/mobile-m6e-ios`). Android done (2026-11-27): notes/mobile.md "Device checks (M6e, Android)"; iOS to do
 
 **Running order** (at most three agents at once; one agent per step; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`; the device rules of M5's "Running order" apply):
 
