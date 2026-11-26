@@ -16,15 +16,21 @@
   /// - `translate-state`: whether the translation engine runs and for which pairs, whether it is
   ///   off after failures, and the pages' translation calls since the launch by kind (`translate`,
   ///   `translate-list` for `start: false`, `translatorStatus`, `prepareTranslator`);
+  /// - `adblock`: whether the ad-blocking engine is loaded, when the lists were last all current,
+  ///   whether some are due, the switches, the WebKit rule lists in use, whether the page gets
+  ///   blocking and its document-start scripts (world:length);
+  /// - `adblock-update`: fetches every list now (conditional requests), whether due or not;
   /// - `home`, `words`, `settings`, `back-home` (‹), `edge-back` (the edge swipe), `langle` (L),
-  ///   `close-sheet`: the shell's native controls, for checks without taps.
+  ///   `close-sheet`, `more` (⋮, opens or closes its menu), `more-ads` (the menu's "Block ads on
+  ///   this site"): the shell's native controls, for checks without taps.
   @MainActor
   final class CheckCommands {
     static let shared = CheckCommands()
     private weak var model: AppModel?
     private static let names = [
       "errors", "clear-errors", "eval", "state", "translate-state", "home", "words", "settings",
-      "back-home", "edge-back", "langle", "close-sheet",
+      "back-home", "edge-back", "langle", "close-sheet", "more", "more-ads", "adblock",
+      "adblock-update",
     ]
 
     func start(model: AppModel) {
@@ -85,6 +91,25 @@
         case "close-sheet":
           model.closeSheet()
           say("close-sheet done")
+        case "more":
+          if model.pageURL != nil { model.menuOpen.toggle() }
+          say("more open=\(model.menuOpen) ads=\(model.adSwitch.map { "\($0.site):\($0.blocking)" } ?? "none")")
+        case "more-ads":
+          guard let ads = model.adSwitch else { return say("more-ads none") }
+          model.menuOpen = false
+          model.setSiteBlocking(!ads.blocking)
+          say("more-ads \(ads.site) blocking=\(!ads.blocking)")
+        case "adblock":
+          guard let blocker = model.adBlocker else { return say("adblock none") }
+          let page = model.browsing.page.url
+          let scripts = page.map { blocker.documentScripts($0).map { "\($0.world):\($0.source.count)" } } ?? []
+          say(
+            "adblock engine=\(blocker.store.engine != nil) updatedAt=\(blocker.store.updatedAt().map { String(Int64($0)) } ?? "none") due=\(blocker.store.isDue()) switches=\(blocker.switches.value.json) ruleLists=\(blocker.rules.all.count) pageBlocks=\(page.map(blocker.blocks) ?? false) scripts=[\(scripts.joined(separator: ", "))]"
+          )
+        case "adblock-update":
+          guard let blocker = model.adBlocker else { return say("adblock-update none") }
+          blocker.store.update(force: true)
+          say("adblock-update started")
         default:
           say("unknown command \(command)")
         }

@@ -33,6 +33,8 @@ final class AppModel: ObservableObject {
   @Published private(set) var canGoBack = false
   @Published private(set) var canGoForward = false
   @Published private(set) var barShown = true
+  /// The title bar's ⋮ menu is open.
+  @Published var menuOpen = false
   private var barScroll = TitleBarScroll()
   private var rotation: RotationWatch?
 
@@ -40,6 +42,8 @@ final class AppModel: ObservableObject {
   private(set) var router: Router!
   private(set) var shell: Shell!
   private(set) var host: ExtensionHost?
+  /// Ad blocking on the browsing page (nil without the bundled build's `adblock/` files).
+  private(set) var adBlocker: AdBlocker?
   /// Apple Translation and the host that answers the pages' translation calls with it.
   let translation = AppleTranslation()
   private var translationHost: TranslationHost?
@@ -58,12 +62,16 @@ final class AppModel: ObservableObject {
   static let buildFolder = Bundle.main.resourceURL!.appendingPathComponent("langle-app")
   static let storeFolder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
     .appendingPathComponent("LangleStore")
+  /// The filter lists' copies and the engine built from them (the list store's `adblock/`).
+  static let adblockFolder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    .appendingPathComponent("adblock")
   /// Langle's mark (the toolbar icon of the bundled build).
   static let mark = UIImage(contentsOfFile: buildFolder.appendingPathComponent("icon/128.png").path)
 
   func start(arguments: UserDefaults = .standard) async {
     if arguments.bool(forKey: "reset") {
       try? FileManager.default.removeItem(at: Self.storeFolder)
+      try? FileManager.default.removeItem(at: Self.adblockFolder)
       await WebKitEngine.removeAppStore()
       Log.app.info("app data reset")
     }
@@ -96,6 +104,7 @@ final class AppModel: ObservableObject {
       #endif
       translationHost.handle(from, api, request, done)
     }
+    adBlocker = startAdBlocking(handler)
 
     if let manifest {
       let injector = ContentInjector(manifest: manifest, read: handler.file)
@@ -118,16 +127,60 @@ final class AppModel: ObservableObject {
     #endif
   }
 
+  // MARK: ad blocking
+
+  /// The list store and its engine (docs/specs/mobile-app.md "M6: ad blocking"): the lists and
+  /// the scriptlets come with the bundled build, the lists' copies and the engine live in the
+  /// app's files. The kept engine loads at once; fetching waits for the first run's Start.
+  private func startAdBlocking(_ handler: AppSchemeHandler) -> AdBlocker? {
+    guard let listsFile = handler.file("/adblock/filter-lists.json"),
+      let resources = handler.file("/adblock/resources.json")
+    else {
+      Log.app.error("ad blocking is off: the bundled build has no adblock/ files (scripts/bundle-build.sh)")
+      return nil
+    }
+    let lists = FilterList.read(String(decoding: listsFile, as: UTF8.self))
+    let blocker = AdBlocker(router: router, dir: Self.adblockFolder, lists: lists, resources: resources)
+    blocker.onRulesChanged = { [weak self] in self?.engine.blockingChanged() }
+    blocker.onSwitches = { [weak self] old, new in
+      guard let self, let url = browsing?.page.url, url.absoluteString != "about:blank" else { return }
+      if AdBlockingSwitches.reloads(old, new, site: blocker.site(of: url)) { browsing.page.reload() }
+    }
+    router.onStorageChanged = { [weak blocker] area, changes in blocker?.storageChanged(area, changes) }
+    engine.blocking = blocker
+    blocker.start()
+    return blocker
+  }
+
+  /// ⋮ "Block ads on this site", while blocking is on and the page has a site.
+  var adSwitch: (site: String, blocking: Bool)? {
+    guard let adBlocker, adBlocker.switches.on, let url = pageURL, let site = adBlocker.site(of: url)
+    else { return nil }
+    return (site, adBlocker.switches.blocks(site))
+  }
+
+  func setSiteBlocking(_ blocking: Bool) {
+    guard let adBlocker, let site = adSwitch?.site else { return }
+    adBlocker.setSite(site, blocking: blocking)
+  }
+
+  /// The app came on screen: the lists that are due are fetched.
+  func cameOnScreen() { adBlocker?.inUse() }
+
   private func makeBrowsingPage() {
     let tabId = shell.browsingTab
     let injector = self.injector
     browsing = ContextPage(
       engine: engine, profile: .browsing, router: router, world: .langle,
       spec: { _ in .content(tabId: tabId) },
-      scripts: { injector?.webPageScripts(for: $0) ?? [] })
+      // The scriptlets first: they must see the page's objects before anything else.
+      scripts: { [weak self] url in
+        (self?.adBlocker?.documentScripts(url) ?? []) + (injector?.webPageScripts(for: url) ?? [])
+      })
     browsing.onCommit = { [weak self] url in
       guard let self else { return }
       shell.committed(tab: tabId, url: url.absoluteString)
+      adBlocker?.inUse()
       // The new document's own site name: an ask made when the address changed (a back or
       // forward changes it before the commit) may have read the document it replaced.
       if url.absoluteString != "about:blank" {
@@ -320,6 +373,7 @@ final class AppModel: ObservableObject {
   private func syncScreen() {
     let now = shell.screen
     guard now != screen else { return }
+    menuOpen = false
     if sheet != nil { closeSheet() }
     if screen == .page {
       barShown = true

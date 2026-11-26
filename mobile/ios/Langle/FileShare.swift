@@ -21,10 +21,22 @@ enum FileShare {
       Log.app.error("could not write \(file.name, privacy: .public): \(String(describing: error), privacy: .public)")
       return done(error.localizedDescription)
     }
-    guard let presenter = topViewController() else {
-      return done("There is no window to show the share sheet in.")
-    }
-    let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    guard
+      show([url], then: {
+        Log.app.info("sharing \(file.name, privacy: .public) (\(file.text.utf8.count) bytes)")
+        done(nil)
+      })
+    else { return done("There is no window to show the share sheet in.") }
+  }
+
+  /// ⋮ Share: the page's address in the share sheet.
+  static func shareLink(_ url: URL) {
+    _ = show([url], then: {})
+  }
+
+  private static func show(_ items: [Any], then: @escaping () -> Void) -> Bool {
+    guard let presenter = topViewController() else { return false }
+    let sheet = UIActivityViewController(activityItems: items, applicationActivities: nil)
     // iPad shows it as a popover: in the middle of the screen, with no arrow.
     if let popover = sheet.popoverPresentationController {
       let view = presenter.view!
@@ -32,10 +44,8 @@ enum FileShare {
       popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
       popover.permittedArrowDirections = []
     }
-    presenter.present(sheet, animated: true) {
-      Log.app.info("sharing \(file.name, privacy: .public) (\(file.text.utf8.count) bytes)")
-      done(nil)
-    }
+    presenter.present(sheet, animated: true, completion: then)
+    return true
   }
 
   /// The view controller on top of the key window (a sheet shown over the tabs included).
