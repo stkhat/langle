@@ -52,7 +52,7 @@ interface SourceLicense {
  * domain (CC0 too), MIT, CC BY-SA, and the attribution-only CC BY, ODC-BY and WordNet-style
  * licenses (permission with a copyright notice and disclaimer on every copy).
  */
-const LICENSES = {
+export const LICENSES = {
   publicDomain: { name: "public domain" },
   cc0: {
     name: "CC0 1.0",

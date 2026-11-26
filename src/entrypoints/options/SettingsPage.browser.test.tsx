@@ -17,6 +17,7 @@ import type {
   Request,
   SyncStatus,
 } from "../../messaging/protocol";
+import type { AdBlocking, AdBlockingView } from "../../core/ad-blocking";
 import type { TranslatorStatus } from "../../core/app-host";
 import type { SyncPlace } from "../../core/browser-env";
 import type { PackState, PackStates } from "../../core/packs/state";
@@ -83,6 +84,8 @@ interface FakeOptions {
   phone?: boolean;
   /** The phone app's `appHost` exists (default: no). */
   app?: boolean;
+  /** The app's stored ad-blocking switches and lists' date (default: on, none). */
+  adBlocking?: AdBlockingView;
 }
 
 const MB = 1024 * 1024;
@@ -99,6 +102,12 @@ function fake(options: FakeOptions = {}) {
   };
   const settingsWatchers = settingsListeners(settings);
   const packWatchers = listeners<PackStates>();
+  let adBlocking: AdBlockingView = options.adBlocking ?? {
+    on: true,
+    offSites: [],
+  };
+  const adBlockingWatchers = listeners<AdBlockingView>();
+  const adBlockingWrites: AdBlocking[] = [];
   const removed = new Set<string>();
   const sent: Request[] = [];
   const downloads: { name: string; text: string }[] = [];
@@ -187,11 +196,29 @@ function fake(options: FakeOptions = {}) {
     now: () => NOW,
     saveFile: (name, text) => void downloads.push({ name, text }),
     refreshMs: 60_000,
+    adBlocking: {
+      watch(listener) {
+        const unwatch = adBlockingWatchers.watch(listener);
+        queueMicrotask(() => listener(adBlocking));
+        return unwatch;
+      },
+      async set(state) {
+        adBlockingWrites.push(state);
+        adBlocking = { ...adBlocking, ...state };
+        adBlockingWatchers.emit(adBlocking);
+      },
+    },
   };
   return {
     deps,
     sent,
     downloads,
+    adBlockingWrites,
+    /** ⋮ or the list store changes the stored ad blocking. */
+    storeAdBlocking(view: AdBlockingView) {
+      adBlocking = view;
+      adBlockingWatchers.emit(view);
+    },
     settings: () => settings,
     changeSettings(patch: Partial<Settings>) {
       settings = mergeSettings(patch, settings);
@@ -1748,6 +1775,7 @@ describe("SettingsPage on a phone", () => {
       "Dictionaries and AI",
       "Video subtitles",
       "Sites",
+      "Ad blockingOn",
       "Sentence history",
       "Backup",
       "About",
@@ -1832,6 +1860,149 @@ describe("SettingsPage on a phone", () => {
     const sites = screen.getByRole("region", { name: "Sites" });
     await expect.element(sites).toBeVisible();
     expect(sites.element().textContent).toContain("from the toolbar popup.");
+  });
+
+  describe("Ad blocking", () => {
+    const UPDATED = new Date(2026, 10, 6, 9, 30).getTime();
+
+    async function openAdBlocking(options: FakeOptions = {}) {
+      const opened = await openPhone(options);
+      await pushed(opened.screen, "Ad blocking").click();
+      const section = opened.screen.getByRole("region", {
+        name: "Ad blocking",
+      });
+      await expect.element(section).toBeVisible();
+      return { ...opened, section };
+    }
+
+    it("shows the switch, the sites where it is off and the lists' date, as drawn", async () => {
+      const { screen, section } = await openAdBlocking({
+        adBlocking: {
+          on: true,
+          offSites: ["citytimes.com", "recipebox.net"],
+          listsUpdatedAt: UPDATED,
+        },
+      });
+      await expect
+        .element(screen.getByRole("heading", { name: "Ad blocking", level: 1 }))
+        .toBeVisible();
+      const text = section.element().textContent ?? "";
+      expect(text).toContain(
+        "Ads and trackers are stopped on the pages you open in Langle.",
+      );
+      const toggle = section.getByRole("switch", { name: "Block ads" });
+      await expect.element(toggle).toHaveAttribute("aria-checked", "true");
+      const box = toggle.element().getBoundingClientRect();
+      expect([box.width, box.height]).toEqual([52, 32]);
+      const row = toggle.element().closest(".row")!;
+      expect(row.getBoundingClientRect().height).toBe(64);
+      expect(getComputedStyle(row).backgroundColor).toBe("rgb(255, 255, 255)");
+
+      const off = section.getByRole("region", { name: "Off on these sites" });
+      const removes = off.getByRole("button").elements();
+      expect(removes.map((b) => b.getAttribute("aria-label"))).toEqual([
+        "Remove citytimes.com",
+        "Remove recipebox.net",
+      ]);
+      expect(removes.map((b) => b.textContent)).toEqual(["Remove", "Remove"]);
+      expect(removes[0]!.getBoundingClientRect().height).toBe(44);
+      const site = removes[0]!.parentElement!;
+      // As drawn: 12px above and below Remove's 44.
+      expect(site.getBoundingClientRect().height).toBe(68);
+      expect(site.textContent).toBe("citytimes.comRemove");
+      expect(text).toContain(
+        "Filter lists updated Nov 6: EasyList, EasyPrivacy, uBlock filters.",
+      );
+      expect(text).not.toContain("None.");
+    });
+
+    it("turns blocking off and on, and the list shows it", async () => {
+      const f = await openAdBlocking({
+        adBlocking: { on: true, offSites: ["a.com"] },
+      });
+      const toggle = f.section.getByRole("switch", { name: "Block ads" });
+      await toggle.click();
+      await expect.element(toggle).toHaveAttribute("aria-checked", "false");
+      expect(f.adBlockingWrites).toEqual([{ on: false, offSites: ["a.com"] }]);
+      await f.screen.getByRole("button", { name: "Settings" }).click();
+      await expect
+        .element(pushed(f.screen, "Ad blocking"))
+        .toHaveTextContent("Ad blockingOff");
+      await pushed(f.screen, "Ad blocking").click();
+      await f.screen.getByRole("switch", { name: "Block ads" }).click();
+      expect(f.adBlockingWrites.at(-1)).toEqual({
+        on: true,
+        offSites: ["a.com"],
+      });
+    });
+
+    it("removes a site, and says how to add one when there are none", async () => {
+      const f = await openAdBlocking({
+        adBlocking: { on: true, offSites: ["a.com", "youtube.com"] },
+      });
+      await f.section
+        .getByRole("button", { name: "Remove youtube.com" })
+        .click();
+      expect(f.adBlockingWrites).toEqual([{ on: true, offSites: ["a.com"] }]);
+      await f.section.getByRole("button", { name: "Remove a.com" }).click();
+      expect(f.adBlockingWrites.at(-1)).toEqual({ on: true, offSites: [] });
+      await expect
+        .element(
+          f.section.getByText(
+            "None. To turn it off for one site, use ⋮ on its page.",
+          ),
+        )
+        .toBeVisible();
+      expect(
+        f.section
+          .getByRole("region", { name: "Off on these sites" })
+          .getByRole("button")
+          .elements(),
+      ).toHaveLength(0);
+    });
+
+    it("follows ⋮ and the list store, and says when the lists were never downloaded", async () => {
+      const f = await openAdBlocking();
+      await expect
+        .element(
+          f.section.getByText(
+            "Filter lists not downloaded yet: EasyList, EasyPrivacy, uBlock filters.",
+          ),
+        )
+        .toBeVisible();
+      f.storeAdBlocking({
+        on: true,
+        offSites: ["news.example.co.uk"],
+        listsUpdatedAt: new Date(2025, 11, 30).getTime(),
+      });
+      await expect
+        .element(f.section.getByRole("button", { name: /news\.example/ }))
+        .toBeVisible();
+      // A date of another year names its year.
+      await expect
+        .element(
+          f.section.getByText(
+            "Filter lists updated Dec 30, 2025: EasyList, EasyPrivacy, uBlock filters.",
+          ),
+        )
+        .toBeVisible();
+    });
+
+    it("is not in the browser's settings, on a computer or in touch mode", async () => {
+      for (const phone of [false, true]) {
+        const f = fake({ phone });
+        const screen = await render(<SettingsPage deps={f.deps} />);
+        const nav = screen.getByRole("navigation", {
+          name: "Settings sections",
+        });
+        await expect.element(nav).toBeVisible();
+        expect(nav.element().textContent).not.toContain("Ad blocking");
+        expect(
+          screen.getByRole("region", { name: "Ad blocking" }).query(),
+        ).toBeNull();
+        cleanup();
+      }
+    });
   });
 
   it("sets the phone's own subtitle position and fullscreen transcript, with no keyboard shortcuts", async () => {

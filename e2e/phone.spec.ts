@@ -285,6 +285,123 @@ test("m.youtube.com: a long-press across words on the subtitle opens the phrase'
 });
 
 /**
+ * The phone app's `appHost` on the extension's own pages (core/app-host.ts): what
+ * Settings asks of it answers "nothing here".
+ */
+function fakeAppHost() {
+  Object.assign(globalThis, {
+    appHost: {
+      openPage: async () => {},
+      shareFile: async () => {},
+      translate: async () => null,
+      translatorStatus: async () => "unavailable",
+      prepareTranslator: async () => "unavailable",
+      models: {
+        ensure: async () => {},
+        remove: async () => {},
+        onProgress: () => () => {},
+      },
+    },
+  });
+}
+
+/**
+ * A touch screen for an extension page, which takes its phone layout from the pointer
+ * (`TOUCH_QUERY`): the context's emulation does not reach extension pages.
+ */
+async function touchPointer(page: Page) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setDeviceMetricsOverride", {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 1,
+    mobile: true,
+  });
+  await cdp.send("Emulation.setTouchEmulationEnabled", {
+    enabled: true,
+    maxTouchPoints: 5,
+  });
+  await cdp.send("Emulation.setEmulatedMedia", {
+    features: [
+      { name: "hover", value: "none" },
+      { name: "pointer", value: "coarse" },
+      { name: "any-hover", value: "none" },
+      { name: "any-pointer", value: "coarse" },
+    ],
+  });
+}
+
+/** The extension page's `chrome.storage.local`, inside `evaluate`. */
+declare const chrome: {
+  storage: {
+    local: {
+      get(key: string): Promise<Record<string, unknown>>;
+      set(items: object): Promise<void>;
+    };
+  };
+};
+
+test("Settings › Ad blocking in the app: the switch and Remove change storage.local, which the shells follow", async ({
+  context,
+  extensionId,
+}) => {
+  await context.addInitScript(fakeAppHost);
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html`);
+  await touchPointer(options);
+  const updatedAt = new Date(new Date().getFullYear(), 0, 2, 8, 0).getTime();
+  // ⋮ turned it off on two sites, and the list store fetched the lists.
+  await options.evaluate(
+    (updatedAt) =>
+      chrome.storage.local.set({
+        adBlocking: { on: true, offSites: ["citytimes.com", "recipebox.net"] },
+        adBlockingLists: { updatedAt },
+      }),
+    updatedAt,
+  );
+  const list = options.getByRole("navigation", {
+    name: en["settings.navLabel"],
+  });
+  const row = list.getByRole("button", {
+    name: new RegExp(`^${en["settings.section.adBlocking"]}`),
+  });
+  await expect(row).toHaveText(
+    en["settings.section.adBlocking"] + en["settings.adBlocking.on"],
+    COLD_LOAD,
+  );
+  await row.tap();
+  const section = options.getByRole("region", {
+    name: en["settings.section.adBlocking"],
+  });
+  await expect(section).toContainText(
+    en["settings.adBlocking.updated"].replace("{date}", "Jan 2"),
+  );
+  const stored = () =>
+    options.evaluate(
+      async () => (await chrome.storage.local.get("adBlocking")).adBlocking,
+    );
+
+  await section
+    .getByRole("button", {
+      name: en["settings.sites.remove"].replace("{site}", "recipebox.net"),
+    })
+    .tap();
+  await expect.poll(stored).toEqual({ on: true, offSites: ["citytimes.com"] });
+  const toggle = section.getByRole("switch", {
+    name: en["settings.adBlocking.block"],
+  });
+  await toggle.tap();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await expect.poll(stored).toEqual({ on: false, offSites: ["citytimes.com"] });
+
+  // ⋮ on citytimes.com turns it back on there: Settings follows.
+  await options.evaluate(() =>
+    chrome.storage.local.set({ adBlocking: { on: false, offSites: [] } }),
+  );
+  await expect(section).toContainText(en["settings.adBlocking.none"]);
+});
+
+/**
  * Fullscreen as the Android WebView gives it (`element`: m.youtube.com puts the player's
  * container in fullscreen) or as the iPhone app gives it (`app`: no element fullscreen;
  * m.youtube.com asks for its video, and the app's stand-in shows the video's player).

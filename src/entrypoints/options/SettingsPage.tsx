@@ -1,6 +1,11 @@
 import type { JSX } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { TouchMode } from "../../content/touch/touch-mode";
+import {
+  DEFAULT_AD_BLOCKING,
+  type AdBlocking,
+  type AdBlockingView,
+} from "../../core/ad-blocking";
 import type { BrowserEnv } from "../../core/browser-env";
 import type { ExplanationProvider } from "../../core/explain/provider";
 import type { SupportLinks } from "../../core/links";
@@ -31,6 +36,7 @@ import { PhoneRows } from "../../ui/RowLabel";
 import { color, FONT, PAGE_BUTTON_CSS } from "../../ui/styles";
 import { PHONE_SETTINGS_CSS } from "./rows";
 import { AboutSection } from "./sections/About";
+import { AdBlockingSection } from "./sections/AdBlocking";
 import { AppearanceSection, THEMES } from "./sections/Appearance";
 import { DictionariesSection } from "./sections/Dictionaries";
 import { HighlightingSection } from "./sections/Highlighting";
@@ -62,6 +68,11 @@ export interface SettingsDeps extends BackupDeps, PackStatusDeps {
   refreshMs: number;
   /** The page's touch mode but in tests (`usePhoneLayout`). */
   touch?: TouchMode;
+  /** The phone app's ad-blocking switches (Settings › Ad blocking, only in the app). */
+  adBlocking: {
+    watch: (listener: (view: AdBlockingView) => void) => () => void;
+    set: (state: AdBlocking) => Promise<void>;
+  };
 }
 
 const SECTIONS = [
@@ -72,6 +83,8 @@ const SECTIONS = [
   { id: "dictionaries", label: "settings.section.dictionaries" },
   { id: "video", label: "settings.section.video" },
   { id: "sites", label: "settings.section.sites" },
+  // The phone app's only (`appHost`).
+  { id: "adblocking", label: "settings.section.adBlocking" },
   { id: "history", label: "settings.section.history" },
   { id: "sync", label: "settings.section.sync" },
   { id: "about", label: "settings.section.about" },
@@ -140,6 +153,9 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
   const [cloud, setCloud] = useState<CloudStatus>();
   const [history, setHistory] = useState<HistoryStatus>();
   const [packs, setPacks] = useState<PackStatus>();
+  const app = deps.env.features.appHost;
+  const [adBlocking, setAdBlocking] =
+    useState<AdBlockingView>(DEFAULT_AD_BLOCKING);
   const [now, setNow] = useState(deps.now);
   const active = useSectionInView();
   const packStatus = useRef<PackStatusFollower>(undefined);
@@ -167,6 +183,9 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
       settingsView.stored(next);
       void refreshSync();
     });
+    const unwatchAdBlocking = app
+      ? deps.adBlocking.watch(setAdBlocking)
+      : undefined;
     const timer = setInterval(() => {
       setNow(deps.now());
       void refreshSync();
@@ -174,6 +193,7 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
     }, deps.refreshMs);
     return () => {
       unwatch();
+      unwatchAdBlocking?.();
       packStatus.current?.stop();
       clearInterval(timer);
     };
@@ -237,6 +257,17 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
     sites: (
       <SitesSection key="sites" {...section} app={deps.env.features.appHost} />
     ),
+    adblocking: (
+      <AdBlockingSection
+        key="adblocking"
+        view={adBlocking}
+        now={now}
+        change={(state) => {
+          setAdBlocking((view) => ({ ...view, ...state }));
+          deps.adBlocking.set(state).catch(warn);
+        }}
+      />
+    ),
     history: (
       <HistorySection
         key="history"
@@ -271,6 +302,7 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
   };
   const label = (id: SectionId, key: MessageKey) =>
     t(id === "sync" ? syncSectionLabel(deps.env) : key);
+  const shown = SECTIONS.filter(({ id }) => app || id !== "adblocking");
 
   if (phone) {
     /** What a row of the sections' list shows beside its name (mock MobileSettings). */
@@ -281,6 +313,9 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
           "settings.appearance.system",
       ),
       level: fmt(settings.knownLevel),
+      adblocking: t(
+        adBlocking.on ? "settings.adBlocking.on" : "settings.adBlocking.off",
+      ),
     };
     function push(id: SectionId | undefined) {
       setOpen(id);
@@ -322,7 +357,7 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
                 flex: "none",
               }}
             >
-              {SECTIONS.map(({ id, label: key }, i) => (
+              {shown.map(({ id, label: key }, i) => (
                 <button
                   key={id}
                   type="button"
@@ -414,7 +449,7 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
           >
             <BrandHeader size="settings" title={t("settings.title")} />
           </div>
-          {SECTIONS.map((section) => (
+          {shown.map((section) => (
             <a
               key={section.id}
               class="nav"
@@ -438,7 +473,7 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
           gap: "24px",
         }}
       >
-        {SECTIONS.map(({ id }) => sections[id])}
+        {shown.map(({ id }) => sections[id])}
       </main>
     </div>
   );

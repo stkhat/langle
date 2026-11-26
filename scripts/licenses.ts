@@ -156,6 +156,31 @@ export function engineLicenses(dir = ENGINE_LICENSES_DIR): ShippedCode[] {
   }));
 }
 
+const ADBLOCK_CARGO = new URL("../mobile/adblock/Cargo.toml", import.meta.url)
+  .pathname;
+
+/** The adblock-rust version `mobile/adblock/Cargo.toml` pins (`adblock = { version = "=…"`). */
+export function adblockVersion(cargo = ADBLOCK_CARGO): string {
+  const pin = /^adblock\s*=\s*\{[^}]*version\s*=\s*"=([^"]+)"/m.exec(
+    readFileSync(cargo, "utf8"),
+  );
+  if (!pin) throw new Error(`No pinned adblock version in ${cargo}`);
+  return pin[1]!;
+}
+
+/**
+ * Brave's adblock-rust, which both shells ship inside `mobile/adblock`, with the license
+ * file of its crate: `scripts/engine-licenses/adblock-rust.txt`.
+ */
+export function adblockLicense(dir = ENGINE_LICENSES_DIR): ShippedCode {
+  return {
+    name: "adblock-rust",
+    version: adblockVersion(),
+    license: "MPL-2.0",
+    text: readFileSync(join(dir, "adblock-rust.txt"), "utf8").trim(),
+  };
+}
+
 /**
  * The licenses file: every package, by name, with its version, its license as its
  * package.json declares it and the full text of its license files. Throws for a package
@@ -217,8 +242,12 @@ export function bundledLicenses(root: string) {
         }
       },
     }),
-    /** `app`: the phone app's build, which also ships the translation engine. */
+    /** `app`: the phone app's build, which also ships the translation and ad-blocking engines. */
     file: ({ app = false } = {}) =>
-      licensesFile(dirs, undefined, app ? engineLicenses() : []),
+      licensesFile(
+        dirs,
+        undefined,
+        app ? [...engineLicenses(), adblockLicense()] : [],
+      ),
   };
 }

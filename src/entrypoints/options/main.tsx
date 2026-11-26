@@ -3,7 +3,12 @@ import { chromePromptApi } from "../../content/explain/chrome-prompt-api";
 import { createBrowserEnv } from "../../core/browser-env";
 import { supportLinks } from "../../core/links";
 import { send } from "../../messaging/client";
-import { watchPackState, watchSettings } from "../../messaging/storage";
+import {
+  setAdBlocking,
+  watchAdBlocking,
+  watchPackState,
+  watchSettings,
+} from "../../messaging/storage";
 import { saveFile } from "../../ui/backup/save-file";
 import { mountSetUpPage } from "../../ui/mount-page";
 import { SettingsPage, type SettingsDeps } from "./SettingsPage";
@@ -23,6 +28,7 @@ mountSetUpPage(() => {
     now: Date.now,
     saveFile,
     refreshMs: 30_000,
+    adBlocking: { watch: watchAdBlocking, set: setAdBlocking },
   };
   return { theme: deps, app: <SettingsPage deps={deps} /> };
 });
