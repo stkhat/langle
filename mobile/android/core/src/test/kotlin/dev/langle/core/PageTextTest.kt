@@ -83,6 +83,25 @@ class PageTextTest {
   }
 
   @Nested
+  inner class ReportedTitle {
+    @Test
+    fun `is the page's title`() {
+      assertEquals("Bread | Site", PageText.reportedTitle(" Bread | Site ", "https://example.com/bread"))
+      assertEquals("example.com news", PageText.reportedTitle("example.com news", "https://example.com/"))
+    }
+
+    @Test
+    fun `is none when blank or only the page's address`() {
+      val url = "https://www.independent.co.uk/news/world/a-b3091723.html"
+      assertNull(PageText.reportedTitle(url, url))
+      assertNull(PageText.reportedTitle("www.independent.co.uk/news/world/a-b3091723.html", url))
+      assertNull(PageText.reportedTitle("example.com", "https://example.com/"))
+      assertNull(PageText.reportedTitle("  ", url))
+      assertNull(PageText.reportedTitle(null, url))
+    }
+  }
+
+  @Nested
   inner class SamePage {
     @Test
     fun `is the same address, the fragment aside`() {
