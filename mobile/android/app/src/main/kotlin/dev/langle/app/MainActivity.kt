@@ -17,7 +17,9 @@ import android.window.OnBackInvokedDispatcher
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import dev.langle.core.AdBlockingSwitches
 import dev.langle.core.FilePersistence
+import dev.langle.core.FilterList
 import dev.langle.core.Manifest
 import dev.langle.core.ModelStore
 import dev.langle.core.ManifestRefusal
@@ -50,6 +52,9 @@ class MainActivity : Activity() {
   var translation: TranslationHost? = null
     private set
   var translationEngine: WebViewTranslationEngine? = null
+    private set
+  /** Ad blocking on the browsing page (null without the crate's library or the build's files). */
+  var adBlocker: AdBlocker? = null
     private set
   private val downloads = Executors.newSingleThreadExecutor()
   /** Whether the activity is on the screen (between onStart and onStop). */
@@ -92,12 +97,17 @@ class MainActivity : Activity() {
     router.onError = { Log.e("LangleBridge", it) }
     router.onAction = ::perform
     router.onShareFile = files::share
+    adBlocker = startAdBlocking(origin)
 
     val hostSlot = FrameLayout(this)
     val injector = manifest?.let { ContentInjector(it, origin::file) }
     if (injector != null) origin.generated["/host.html"] = injector.hostPage()
 
-    screens = ScreenController(this, engine, router, origin, injector, notice, hostSlot)
+    screens = ScreenController(this, engine, router, origin, injector, adBlocker, notice, hostSlot)
+    adBlocker?.onSwitches = { old, new ->
+      val url = screens.browsing.page.url
+      if (url != null && AdBlockingSwitches.reloads(old, new, adBlocker?.siteOf(url))) screens.browsing.page.reload()
+    }
     screens.onChanged = ::updateBack
     val browsing = screens.browsing
     // Spike S2: renderers are per profile, so only this page needs to come back.
@@ -119,6 +129,29 @@ class MainActivity : Activity() {
     intent.getStringExtra("url")?.let { screens.apply(screens.shell.openPage(it)) }
     updateBack()
     if (BuildConfig.DEBUG) CheckCommands.ready()
+  }
+
+  // ad blocking
+
+  /**
+   * The list store and its engine (docs/specs/mobile-app.md "M6: ad blocking"): the lists and the
+   * scriptlets come with the bundled build, the lists' copies and the engine live in the app's
+   * files. The kept engine loads at once; fetching waits for the first run's Start.
+   */
+  private fun startAdBlocking(origin: AppOrigin): AdBlocker? {
+    if (!AdblockNative.loaded) return null
+    val lists = origin.file("/adblock/filter-lists.json")?.let { FilterList.read(it.toString(Charsets.UTF_8)) }
+    val resources = origin.file("/adblock/resources.json")
+    if (lists == null || resources == null) {
+      Log.e(TAG, "ad blocking is off: the bundled build has no adblock/ files (scripts/bundle-build.sh)")
+      return null
+    }
+    val blocker = AdBlocker(router, File(filesDir, "adblock"), lists, resources, main)
+    blocker.onRulesChanged = engine::blockingChanged
+    router.onStorageChanged = blocker::storageChanged
+    engine.blocking = blocker
+    blocker.start()
+    return blocker
   }
 
   // translation
@@ -146,6 +179,7 @@ class MainActivity : Activity() {
   override fun onStart() {
     super.onStart()
     shown = true
+    adBlocker?.inUse()
   }
 
   override fun onStop() {
@@ -274,6 +308,7 @@ class MainActivity : Activity() {
   override fun onDestroy() {
     translation?.uiHidden()
     downloads.shutdown()
+    adBlocker?.close()
     screens.close()
     host?.context?.close()
     super.onDestroy()

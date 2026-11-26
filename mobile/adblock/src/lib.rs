@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub mod ffi;
+#[cfg(target_os = "android")]
+pub mod jni;
 
 /// The permission bit of uBO's trusted scriptlets (scripts/adblock-resources.ts
 /// `TRUSTED_PERMISSION`): only lists marked `trusted` in mobile/protocol/filter-lists.json are

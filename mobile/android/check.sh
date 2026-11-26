@@ -6,7 +6,8 @@
 #   check.sh install                installs the debug APK
 #   check.sh launch [url]           restarts the app (clears logcat), opening <url>
 #   check.sh reset                  clears the app's data: the next launch is a first run
-#   check.sh cmd <name>             errors | clear-errors | state, and prints the result
+#   check.sh cmd <name>             errors | clear-errors | state | adblock | adblock-update, and
+#                                   prints the result
 #   check.sh js <target> <js>       runs <js> (an async function body) in host | page | langle |
 #                                   sheet | home | words | settings | firstrun, and prints what
 #                                   it returns

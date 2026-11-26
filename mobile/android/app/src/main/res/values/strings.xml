@@ -13,6 +13,7 @@
     <string name="share">Share</string>
     <string name="copy_link">Copy link</string>
     <string name="open_elsewhere">Open in another browser</string>
+    <string name="block_ads_site">Block ads on this site</string>
     <string name="link_copied">Link copied</string>
     <string name="no_browser">No other app opens this link</string>
     <string name="close_langle">Close Langle</string>
