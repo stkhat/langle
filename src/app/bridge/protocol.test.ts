@@ -5,7 +5,8 @@ import { isParseError, parseEnvelope } from "./protocol";
 
 const GOLDEN = join(import.meta.dirname, "../../../mobile/protocol");
 const golden = readdirSync(GOLDEN)
-  .filter((file) => file.endsWith(".json"))
+  // filter-lists.json is the ad-blocking lists both shells fetch, not an envelope.
+  .filter((file) => file.endsWith(".json") && file !== "filter-lists.json")
   .map((file) => ({
     file,
     value: JSON.parse(readFileSync(join(GOLDEN, file), "utf8")) as unknown,

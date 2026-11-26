@@ -3,6 +3,10 @@ import { join } from "node:path";
 import { defineConfig } from "wxt";
 import preact from "@preact/preset-vite";
 import pkg from "./package.json" with { type: "json" };
+import {
+  RESOURCES_FILE,
+  scriptletResources,
+} from "./scripts/adblock-resources.ts";
 import { bundledLicenses } from "./scripts/licenses.ts";
 import { localeFiles, localesPlugin } from "./scripts/locales.ts";
 import { noticesPlugin } from "./scripts/notices.ts";
@@ -70,13 +74,19 @@ export default defineConfig({
     },
     // Runs once every entrypoint is built: the licenses of all the packages they ship.
     // The phone app's also lists the translation engine its APK ships.
-    "build:publicAssets": (wxt, files) => {
+    // The phone app also gets its ad-blocking scriptlets as the engine's resources.
+    "build:publicAssets": async (wxt, files) => {
       // The interface's locales other than English, loaded when chosen.
       files.push(...localeFiles());
       files.push({
         relativeDest: LICENSES_FILE,
         contents: licenses.file({ app: wxt.config.browser === "langle-app" }),
       });
+      if (wxt.config.browser === "langle-app")
+        files.push({
+          relativeDest: RESOURCES_FILE,
+          contents: await scriptletResources(),
+        });
     },
   },
 });

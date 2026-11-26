@@ -785,7 +785,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking" (the user's choic
 - [x] M6 designed (2026-11-26, with the user): spec "M6: ad blocking"
 - [ ] M6-0: ⋮ "Block ads on this site" and Settings › Ad blocking in the mock and ui.md (the parent session); reviewed by the user
 - [ ] M6a: the adblock-rust crate and the spike (branch `claude/mobile-m6a`)
-- [ ] M6b: the scriptlets and the captions test (branch `claude/mobile-m6b`)
+- [x] M6b: the scriptlets and the captions test (branch `claude/mobile-m6b`)
 - [ ] M6c-android: the Android list store, requests, cosmetics and ⋮ (branch `claude/mobile-m6c-android`)
 - [ ] M6d: Settings › Ad blocking, the notices and the privacy page (branch `claude/mobile-m6d`)
 - [ ] M6c-ios: the same on iOS (branch `claude/mobile-m6c-ios`)

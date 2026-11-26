@@ -1,0 +1,59 @@
+{
+  "lists": [
+    {
+      "id": "easylist",
+      "title": "EasyList",
+      "url": "https://easylist.to/easylist/easylist.txt",
+      "fallbacks": [
+        "https://secure.fanboy.co.nz/easylist.txt",
+        "https://easylist-downloads.adblockplus.org/easylist.txt"
+      ],
+      "licence": "GPL-3.0-or-later OR CC-BY-SA-3.0",
+      "home": "https://easylist.to/"
+    },
+    {
+      "id": "easyprivacy",
+      "title": "EasyPrivacy",
+      "url": "https://easylist.to/easylist/easyprivacy.txt",
+      "fallbacks": [
+        "https://secure.fanboy.co.nz/easyprivacy.txt",
+        "https://easylist-downloads.adblockplus.org/easyprivacy.txt"
+      ],
+      "licence": "GPL-3.0-or-later OR CC-BY-SA-3.0",
+      "home": "https://easylist.to/"
+    },
+    {
+      "id": "ublock-filters",
+      "title": "uBlock filters",
+      "url": "https://ublockorigin.github.io/uAssets/filters/filters.txt",
+      "fallbacks": [
+        "https://cdn.jsdelivr.net/gh/uBlockOrigin/uAssets@master/filters/filters.txt"
+      ],
+      "licence": "GPL-3.0-only",
+      "home": "https://github.com/uBlockOrigin/uAssets",
+      "trusted": true
+    },
+    {
+      "id": "ublock-quick-fixes",
+      "title": "uBlock filters – Quick fixes",
+      "url": "https://ublockorigin.github.io/uAssets/filters/quick-fixes.txt",
+      "fallbacks": [
+        "https://cdn.jsdelivr.net/gh/uBlockOrigin/uAssets@master/filters/quick-fixes.txt"
+      ],
+      "licence": "GPL-3.0-only",
+      "home": "https://github.com/uBlockOrigin/uAssets",
+      "trusted": true
+    },
+    {
+      "id": "ublock-unbreak",
+      "title": "uBlock filters – Unbreak",
+      "url": "https://ublockorigin.github.io/uAssets/filters/unbreak.txt",
+      "fallbacks": [
+        "https://cdn.jsdelivr.net/gh/uBlockOrigin/uAssets@master/filters/unbreak.txt"
+      ],
+      "licence": "GPL-3.0-only",
+      "home": "https://github.com/uBlockOrigin/uAssets",
+      "trusted": true
+    }
+  ]
+}
