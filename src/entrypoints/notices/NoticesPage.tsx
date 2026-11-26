@@ -2,6 +2,7 @@ import { NEW_TAB } from "../../ui/external-link";
 import {
   LICENSES_FILE,
   type NoticePack,
+  type NoticeSource,
   type NoticesData,
 } from "../../core/notices";
 import { t } from "../../i18n/t";
@@ -31,6 +32,26 @@ function License(props: { license: { name: string; url?: string } }) {
   );
 }
 
+/** A source: its title linked, its license, its authors and what it gives. */
+function Source(props: { source: NoticeSource }) {
+  const { source } = props;
+  return (
+    <li>
+      <span>
+        <a href={source.url} {...NEW_TAB}>
+          {source.title}
+        </a>
+        {" · "}
+        <License license={source.license} />
+      </span>
+      <span class="d">
+        {source.via ? `${source.by}; ${source.via}` : source.by}
+      </span>
+      <span class="d">{t("notices.used", { used: source.used })}</span>
+    </li>
+  );
+}
+
 function Pack(props: { pack: NoticePack }) {
   const { pack } = props;
   return (
@@ -43,19 +64,23 @@ function Pack(props: { pack: NoticePack }) {
       </p>
       <ul class="src">
         {pack.sources.map((source) => (
-          <li key={source.title}>
-            <span>
-              <a href={source.url} {...NEW_TAB}>
-                {source.title}
-              </a>
-              {" · "}
-              <License license={source.license} />
-            </span>
-            <span class="d">
-              {source.via ? `${source.by}; ${source.via}` : source.by}
-            </span>
-            <span class="d">{t("notices.used", { used: source.used })}</span>
-          </li>
+          <Source key={source.title} source={source} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The phone app's filter lists, then the engine that blocks with them. */
+function AdBlocking(props: { data: NonNullable<NoticesData["adBlocking"]> }) {
+  const title = t("notices.adBlocking.title");
+  return (
+    <section class="card" aria-label={title}>
+      <h2 class="h2">{title}</h2>
+      <p class="meta">{t("notices.adBlocking.lead")}</p>
+      <ul class="src">
+        {[...props.data.lists, props.data.engine].map((source) => (
+          <Source key={source.title} source={source} />
         ))}
       </ul>
     </section>
@@ -97,6 +122,7 @@ export function NoticesPage(props: { data: NoticesData }) {
       {props.data.packs.map((pack) => (
         <Pack key={pack.package} pack={pack} />
       ))}
+      {props.data.adBlocking && <AdBlocking data={props.data.adBlocking} />}
       <section class="card" aria-labelledby="notices-full">
         <h2 id="notices-full" class="h2">
           {t("notices.full")}

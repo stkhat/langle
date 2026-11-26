@@ -115,10 +115,14 @@ const monthDayYear = perLocale(
     }),
 );
 
-/** "Today", "Nov 6" within this year, else "Nov 6, 2025" (local dates). */
-export function shortDate(at: number, now: number): string {
-  if (sameDay(at, now)) return t("time.today");
+/** "Nov 6" within this year, else "Nov 6, 2025" (local dates). */
+export function calendarDate(at: number, now: number): string {
   return new Date(at).getFullYear() === new Date(now).getFullYear()
     ? monthDay().format(at)
     : monthDayYear().format(at);
+}
+
+/** "Today", else `calendarDate`. */
+export function shortDate(at: number, now: number): string {
+  return sameDay(at, now) ? t("time.today") : calendarDate(at, now);
 }

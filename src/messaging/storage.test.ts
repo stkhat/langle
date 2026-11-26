@@ -2,8 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { browser } from "wxt/browser";
 import { fakeBrowser } from "wxt/testing/fake-browser";
 import { setSettings } from "../background/settings-store";
+import { AD_BLOCKING_KEY, AD_BLOCKING_LISTS_KEY } from "../core/ad-blocking";
 import { PACK_STATE_KEY, type PackStates } from "../core/packs/state";
-import { watchPackState, watchSettings } from "./storage";
+import {
+  setAdBlocking,
+  watchAdBlocking,
+  watchPackState,
+  watchSettings,
+} from "./storage";
 
 beforeEach(() => {
   fakeBrowser.reset();
@@ -58,6 +64,55 @@ describe("watchPackState", () => {
     watchPackState(seen)();
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(seen).not.toHaveBeenCalled();
+  });
+});
+
+describe("watchAdBlocking", () => {
+  it("gives the switches and the lists' date, the defaults while none are stored", async () => {
+    const seen = vi.fn();
+    const unwatch = watchAdBlocking(seen);
+    await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(1));
+    expect(seen).toHaveBeenLastCalledWith({
+      on: true,
+      offSites: [],
+      listsUpdatedAt: undefined,
+    });
+
+    await browser.storage.local.set({
+      [AD_BLOCKING_LISTS_KEY]: { updatedAt: 1_800_000_000_000 },
+    });
+    await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(2));
+    await setAdBlocking({ on: false, offSites: ["youtube.com"] });
+    await vi.waitFor(() => expect(seen).toHaveBeenCalledTimes(3));
+    expect(seen).toHaveBeenLastCalledWith({
+      on: false,
+      offSites: ["youtube.com"],
+      listsUpdatedAt: 1_800_000_000_000,
+    });
+    expect(
+      (await browser.storage.local.get(AD_BLOCKING_KEY))[AD_BLOCKING_KEY],
+    ).toEqual({ on: false, offSites: ["youtube.com"] });
+
+    unwatch();
+    await setAdBlocking({ on: true, offSites: [] });
+    await browser.storage.local.set({ other: 1 });
+    expect(seen).toHaveBeenCalledTimes(3);
+  });
+
+  it("reads what is stored, and what is not of the right kind as the defaults", async () => {
+    await browser.storage.local.set({
+      [AD_BLOCKING_KEY]: { on: "no", offSites: ["a.com", 3, "a.com"] },
+      [AD_BLOCKING_LISTS_KEY]: { updatedAt: "yesterday" },
+    });
+    const seen = vi.fn();
+    watchAdBlocking(seen);
+    await vi.waitFor(() =>
+      expect(seen).toHaveBeenCalledWith({
+        on: true,
+        offSites: ["a.com"],
+        listsUpdatedAt: undefined,
+      }),
+    );
   });
 });
 

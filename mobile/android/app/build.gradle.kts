@@ -31,6 +31,8 @@ android {
     // The Bergamot translator's engine files (npm run mobile:bergamot; git-ignored), served
     // to the translator's page as assets bergamot/….
     getByName("main").assets.directories += "engine"
+    // The ad-blocking crate's library (npm run mobile:adblock -- android; git-ignored).
+    getByName("main").jniLibs.directories += "../../adblock/build/android/jniLibs"
   }
   androidResources {
     // aapt's default also leaves out folders starting with "_"; the bundled build keeps them all.
@@ -64,6 +66,24 @@ val checkEngineFiles by tasks.registering {
 }
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
   dependsOn(checkEngineFiles)
+}
+
+// The ad-blocking library is built from mobile/adblock/ and never committed: an APK without it
+// would block nothing, so packaging the native libraries fails without it.
+val checkAdblockLibrary by tasks.registering {
+  val dir = layout.projectDirectory.dir("../../adblock/build/android/jniLibs")
+  val abis = listOf("arm64-v8a", "x86_64")
+  doLast {
+    val missing = abis.filterNot { dir.file("$it/liblangle_adblock.so").asFile.isFile }
+    if (missing.isNotEmpty())
+      throw GradleException(
+        "The ad-blocking library is missing from mobile/adblock/build/android/jniLibs/ " +
+          "(${missing.joinToString()}). Run `npm run mobile:adblock -- android` at the repository root.",
+      )
+  }
+}
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("JniLibFolders") }.configureEach {
+  dependsOn(checkAdblockLibrary)
 }
 
 tasks.withType<Test>().configureEach {

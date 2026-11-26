@@ -30,11 +30,12 @@ export default defineConfig({
   srcDir: "src",
   manifestVersion: 3,
   // The data sources and licenses page's data (`virtual:langle-notices`), and the
-  // bundled packages' licenses. The phone app also lists its translation models.
+  // bundled packages' licenses. The phone app also lists its translation models and
+  // its ad blocking's filter lists and engine.
   vite: ({ browser }) => ({
     plugins: [
       preact(),
-      noticesPlugin({ models: browser === "langle-app" }),
+      noticesPlugin({ app: browser === "langle-app" }),
       // The codes of the interface's locales; the locales themselves are files.
       localesPlugin(),
       licenses.plugin(),
@@ -83,10 +84,20 @@ export default defineConfig({
         contents: licenses.file({ app: wxt.config.browser === "langle-app" }),
       });
       if (wxt.config.browser === "langle-app")
-        files.push({
-          relativeDest: RESOURCES_FILE,
-          contents: await scriptletResources(),
-        });
+        files.push(
+          {
+            relativeDest: RESOURCES_FILE,
+            contents: await scriptletResources(),
+          },
+          // The lists the app fetches (mobile/protocol/filter-lists.json, shared with iOS).
+          {
+            relativeDest: "adblock/filter-lists.json",
+            absoluteSrc: join(
+              wxt.config.root,
+              "mobile/protocol/filter-lists.json",
+            ),
+          },
+        );
     },
   },
 });

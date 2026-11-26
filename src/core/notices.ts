@@ -13,6 +13,11 @@ export const LICENSES_FILE = "THIRD_PARTY_LICENSES.txt";
 export interface NoticesData {
   /** Every language pack, as its npm package carries its notices. */
   packs: NoticePack[];
+  /**
+   * The phone app's ad blocking: the filter lists it downloads and the engine it
+   * blocks with. Missing in the extension.
+   */
+  adBlocking?: { lists: NoticeSource[]; engine: NoticeSource };
   /** The full notices a license asks every copy to carry (WordNet-style). */
   notices: { title: string; text: string }[];
 }
@@ -33,7 +38,7 @@ export interface NoticePack {
   sources: NoticeSource[];
 }
 
-interface NoticeSource {
+export interface NoticeSource {
   title: string;
   url: string;
   /** How the data was taken from the source, if not directly. */
