@@ -154,7 +154,7 @@ Each milestone has its own branch and its own draft PR. At most three subagents 
 2. **M1 Android shell** and **M2 iOS shell**, in parallel. Each one has the engine implementation, the router, the key-value store, the extension host, the app origin, and a minimal screen (one page and an address field). It is done when Langle runs on an article end to end.
 3. **M3**: the `m.youtube.com` `PlatformAdapter`, and touch in place of hover (tap → dictionary sheet, long-press selection), portrait and fullscreen landscape. This is shared TS, checked first in desktop Chromium with a phone viewport. Designed below ("M3: m.youtube.com and touch").
 4. **M4**: the app's screens from the mock (Home, title bar, Langle sheet, Words, Settings, first run). Designed below ("M4: the app's screens").
-5. Then the translation hosts (mobile-translation.md "Build order" 3), ad blocking, own-cloud sync in the app, Share / Open with, and the release checks already listed in the notes. Each one gets its own short design pass where the notes leave a decision open.
+5. Then, each with its own short design pass where the notes leave a decision open: the translation hosts (M5; mobile-translation.md "Build order" 3), ad blocking (M6, below), own-cloud sync in the app (M7), Share / Open with (M8), and last the release checks on a real iPhone (M9; the user's decision, 2026-11-26: every milestone that needs no real device comes first).
 
 ## M3: m.youtube.com and touch (approved with the user on 2026-11-24)
 What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` page. This section is how the shared TS gets there.
@@ -273,3 +273,34 @@ What the phone shows is [ui.md](ui.md) "Mobile app" and the mock's `Mobile app` 
 - **E2E** (`phone` project): Home → search → a page → L → the sheet's subtitle settings change the page.
 - **Native**: JUnit and XCTest for the site name, back's order (history, then Home), and switching tabs from the sheet.
 - **On the emulator, then the Simulator** (one at a time): first run → Home → a video and an article → the sheet → Words and Settings → back to Home and Continue; screenshots next to the mock's boards; the error log empty.
+
+## M6: ad blocking (designed with the user on 2026-11-26)
+The app is the browser, so blocking runs in the shells, outside any extension API (as Brave does on both stores). Background: [notes/mobile.md](../notes/mobile.md) "Ad blocking" and the prototypes. The desktop extension is unchanged.
+
+### Decisions (the user's choices, 2026-11-26)
+- **Engine: Brave's adblock-rust** (MPL-2.0) in both shells, after a short spike (S3) that measures what it adds to the APK and the app, how long a list update takes on the emulator and the Simulator, and whether its WebKit conversion fits WebKit's limits. If the spike fails, the fallback (lists parsed and converted in TS, small matchers in Kotlin) goes back to the user.
+- **Lists: EasyList, EasyPrivacy and uBlock filters** (uBO's `filters.txt`, `quick-fixes.txt` and `unbreak.txt`; YouTube's rules are there). Data, credited in About's notices with their licences.
+- **Fetched from the lists' own homes**: first at Start (with the language packs; nothing is fetched before the user agrees), then when the app is in use and a list is past its own `! Expires:` (4 days when it names none), as a conditional request (`ETag` / `Last-Modified`). No mirror of ours, no copy in the app. Until the first fetch succeeds, nothing is blocked.
+- **YouTube's video ads: scriptlets of our own**, with uBO's names and arguments, shipped in the app. The downloaded lists say which scriptlet runs where and with which arguments, so most YouTube changes are followed by a list update, without an app update.
+- **Switches: the title bar's ⋮ and Settings.** ⋮ gets "Block ads on this site"; Settings gets an "Ad blocking" section. On by default. Nothing counts or shows what was blocked. Drawn in the mock first (M6-0) and reviewed by the user.
+
+### Parts
+- **`mobile/adblock/`**: a small Rust crate over adblock-rust (pinned), with a C interface: build an engine from the lists' texts and serialize it; load a serialized engine; `check(url, pageUrl, type) → block | allow`; `cosmetic(pageUrl) → { css, scriptlets }`; `webkitRules(lists) → JSON`. Built by `npm run mobile:adblock` (as `mobile:bergamot`: not committed, the app builds fail without it) into a `.so` per Android ABI (arm64-v8a, x86_64 for the emulator) and an iOS XCFramework (device and Simulator).
+- **The list store** (native, one per shell, same rules): the three lists' URLs and fallbacks in `mobile/protocol/filter-lists.json`, shared by both shells. Each list's text, `ETag`, `Last-Modified` and fetch time are kept in the app's files. After any list changes, the engine is built again off the main thread and swapped in when ready; a failed fetch or build keeps the engine in use and writes an error-log entry.
+- **Requests**:
+  - Android: `shouldInterceptRequest` asks the engine for every subresource of the browsing profile. The main frame is never blocked. WebView gives no resource type, so it is read from the request's `Accept` header and the URL's extension (else `other`). A blocked request gets an empty response.
+  - iOS: the converted rules as `WKContentRuleList`s (split where a list passes WebKit's rule limit), compiled by `WKContentRuleListStore` and cached by the lists' versions; no per-request code.
+- **Elements and scriptlets**: when a page starts, the shell asks the engine for the page's `cosmetic` resources and injects them at document start: the stylesheet with `insertStyleSheet`, the scriptlets as a script in the page's world (`addUserScript(…, world: Page, runAt: Start)`). On iOS the user scripts are set when the main frame's navigation is decided, before it commits.
+- **Scriptlets** (`src/app/adblock/scriptlets/`, TS built into the `langle-app` output, handed to the engine as its resources): the scriptlets that the youtube.com rules of the three lists use (`json-prune` and the few others found in the lists when built), written from their documented behaviour, not copied from uBO (its code is GPLv3). A rule naming a scriptlet we do not have is skipped (an info entry in check builds).
+- **Langle's captions on YouTube**: the scriptlets remove only the ad fields of the player response (`adPlacements`, `playerAds`, `adSlots` …); Langle's page script reads `captions` through `getPlayerResponse()` as before. Both run in the page's world at document start; the order between them does not matter, as each reads the response when the player builds it.
+- **The switches**: stored in the app's `storage.local` as `adBlocking: { on, offSites }` (not synced; the desktop has no use for it). A site is the page's registrable domain (the engine's public-suffix list). The shells read the key from their key-value store and follow `storage.onChanged`. Turning blocking off or on for the page's site reloads the page.
+  - ⋮ "Block ads on this site": a switch, shown on every page while `on` is true.
+  - Settings › Ad blocking (`options.html`, only where `appHost` exists): "Block ads" (`on`), the sites where it is off (each with Remove), and when the lists were last updated (the list store writes `adBlockingLists: { updatedAt }`).
+- **Failures**: YouTube's warnings or a stopped player are not acted on by the app; the user turns blocking off for youtube.com with ⋮. Ads stitched into the video stream on the server are not removed.
+- **Privacy**: the site's privacy page names the lists' hosts.
+
+### Testing
+- **Rust**: `cargo test` for the crate's interface (build, serialize and load, `check`, `cosmetic`, `webkitRules`) on small fixed lists.
+- **Vitest (browser)**: each scriptlet on fixed inputs; the m.youtube.com fixture's player response with ad fields and captions, run through `json-prune` with the arguments of the list's own youtube.com rule (a pinned copy in the fixtures): the ad fields are gone, and the adapter's caption capture still finds the track. The Settings section with a fake `appHost`.
+- **Native**: JUnit and XCTest for the list store (expiry, conditional requests, a failed fetch keeps the old list, the engine swapped only when built), the resource-type guess (Android), and the switches (a site's reload, `on` false removes every rule).
+- **On the emulator, then the Simulator** (one at a time): two articles in each of English, French and German with ads, before and after (requests to ad hosts, screenshots); the TED baseline and one auto-caption video on m.youtube.com: no ad, subtitles shown, no warning; ⋮ off and on for a site; a list update with an unchanged `ETag`; Settings' section; the error log read and cleared.

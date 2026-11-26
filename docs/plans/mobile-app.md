@@ -1,4 +1,4 @@
-# Mobile app: implementation plan (M0, spikes S1 and S2, M1 to M5)
+# Mobile app: implementation plan (M0, spikes S1 and S2, M1 to M9)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -35,6 +35,11 @@
 - [x] M4d: Words, Settings and the first run in the phone layout (branch `claude/mobile-m4d`)
 - [x] M4e: the device checks of the whole of M4 (branch `claude/mobile-m4e`), notes/mobile.md "Device checks of M4 (M4e, Android)" and "(M4e, iOS)", with "Open items for M4"
 - [x] M4f: export and import in the app (branch `claude/mobile-m4f`): `appHost.shareFile` and the share sheet (with Save to device on Android), the shells' file pickers; notes/mobile.md "Device checks (M4f, Android)" and "(M4f, iOS)"
+- [x] M5: the translation hosts ("M5" below; the real-iPhone checks moved to M9)
+- [ ] M6: ad blocking on articles and YouTube ("M6" below; spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking")
+- [ ] M7: own-cloud sync in the app (Google Drive; notes/mobile.md "Open issues and risks" 5)
+- [ ] M8: Share and Open with
+- [ ] M9 (release checks), on a real iPhone, last (the user's decision of 2026-11-26: every milestone that needs no real device comes first): Apple's consent sheet (declined once for the Language data row's state, then accepted), a tapped word's English definition translated, the subtitles translated on the device with `refuseTlang` on, translate-ahead and the cards, the lists without starting the engine, the release after 60 s and on leaving the app, speed, and the quality of Apple's traditional models (notes/mobile.md "Open issues and risks" 4). The device tooling for it is on the local branch `claude/mobile-m6` (not pushed): `check.sh`'s `LANGLE_DEVICE` / `LANGLE_TEAM`, `Documents/check.log`, `-translateStrategy lowLatency`, `cmd translate-set`
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
@@ -677,12 +682,11 @@ Spec [mobile-translation.md](../specs/mobile-translation.md) "M5: the hosts" (th
 - [x] M5a: the bridge and the bridge provider (shared TS) (branch `claude/mobile-m5a`)
 - [x] M5b: the model packs' pipeline, the engine files, `mt-en-ja` (branch `claude/mobile-m5b`)
 - [x] M5c: the Android host (branch `claude/mobile-m5c`): checked on the emulator (download, a translated definition, ~300 MB given back on release, a killed renderer restarted on the next sentence; notes/mobile.md "The Android translation host (M5c)")
-- [x] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`): the Simulator cannot translate (`unsupported` for every strategy), so the sheet and translation wait for the real iPhone (M6, decided 2026-11-26) (notes/mobile.md "The iOS translation host (M5d)")
+- [x] M5d: the iOS host and the Settings row (branch `claude/mobile-m5d`): the Simulator cannot translate (`unsupported` for every strategy), so the sheet and translation wait for the real iPhone (M9, decided 2026-11-26) (notes/mobile.md "The iOS translation host (M5d)")
 - [x] M5e: the other 17 model packs (branch `claude/mobile-m5e`)
 - [x] M5f: subtitles missing on an early load (branch `claude/mobile-m5f`): the player drops a track set before it lists its caption tracks; `captureFor` now waits for the list (notes/mobile.md "Subtitles missing on an early load (M5f)")
 - [x] M5g (Android): device checks on the emulator (branch `claude/mobile-m5g-android`): every check passed after two fixes, a model pack listed under its pair in Settings and YouTube asked again when its player makes no caption request (notes/mobile.md "Device checks (M5g, Android)")
-- [x] M5g (iOS): Simulator only; translation on a real iPhone in M6 (branch `claude/mobile-m5g-ios`; the user's decision of 2026-11-26). Everything that does not need Apple's translator passed with no fix; the app's check build gained `translate-state` (notes/mobile.md "Device checks (M5g, iOS Simulator)")
-- [ ] M6 (release checks), on a real iPhone: Apple's consent sheet (declined once for the Language data row's state, then accepted), a tapped word's English definition translated, the subtitles translated on the device with `refuseTlang` on, translate-ahead and the cards, the lists without starting the engine, the release after 60 s and on leaving the app, speed, and the quality of Apple's traditional models (notes/mobile.md "Open issues and risks" 4)
+- [x] M5g (iOS): Simulator only; translation on a real iPhone in M9 (branch `claude/mobile-m5g-ios`; the user's decision of 2026-11-26). Everything that does not need Apple's translator passed with no fix; the app's check build gained `translate-state` (notes/mobile.md "Device checks (M5g, iOS Simulator)")
 
 **Running order** (at most three agents at once; one agent per step; a device check is one agent per device; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`):
 
@@ -769,5 +773,80 @@ Branch `claude/mobile-m5f`. notes/mobile.md "Open items for M4": on Android, two
 From `main` with every M5 branch merged; check build, fresh install, the muted TED video (`iG9CE55wbtY`) and the E2E article.
 
 - **Android** (`claude/mobile-m5g-android`), then **iOS** (`claude/mobile-m5g-ios`), each with real taps (adb; the Simulator tool): the model download (Android's row; iOS's sheet, declined once for the row's state, then accepted), a tapped word's hover meaning, the dictionary window, the subtitles translated on the device with the check switch on (and with it off: `tlang` or on-device, whichever the video gets), translate-ahead (cards translated before they play), the cards, the lists without starting the engine, the release after 60 s and on leaving the app, and the early-load subtitles over several loads.
-- **iOS is checked on the Simulator only** (the user, 2026-11-26): the Simulator's Apple Translation reports every pair `unsupported` (M5d), so the sheet, the translated output and the release move to the real-iPhone check in M6 (Progress above). On the Simulator: the first run and the Language data row with the status `unavailable`, the hover meaning and the dictionary window, the subtitles with `refuseTlang` off and on, the cards and translate-ahead with no translator, the lists, and the early-load subtitles.
+- **iOS is checked on the Simulator only** (the user, 2026-11-26): the Simulator's Apple Translation reports every pair `unsupported` (M5d), so the sheet, the translated output and the release move to the real-iPhone check in M9 (Progress above). On the Simulator: the first run and the Language data row with the status `unavailable`, the hover meaning and the dictionary window, the subtitles with `refuseTlang` off and on, the cards and translate-ahead with no translator, the lists, and the early-load subtitles.
 - Error log read, every entry fixed or explained, cleared. Fixes go in the branch. notes/mobile.md, status.md, tick M5g. Draft PR "Mobile app M5g: device checks (Android|iOS)", `gh pr ready`.
+
+## M6: ad blocking (planned 2026-11-26)
+
+Spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking" (the user's choices of 2026-11-26 are at its top). Every M6 branch starts from `main` and runs `npm run verify -- --skip-firefox` before every push.
+
+**Progress**
+
+- [x] M6 designed (2026-11-26, with the user): spec "M6: ad blocking"
+- [ ] M6-0: ⋮ "Block ads on this site" and Settings › Ad blocking in the mock and ui.md (the parent session); reviewed by the user
+- [ ] M6a: the adblock-rust crate and the spike (branch `claude/mobile-m6a`)
+- [ ] M6b: the scriptlets and the captions test (branch `claude/mobile-m6b`)
+- [ ] M6c-android: the Android list store, requests, cosmetics and ⋮ (branch `claude/mobile-m6c-android`)
+- [ ] M6d: Settings › Ad blocking, the notices and the privacy page (branch `claude/mobile-m6d`)
+- [ ] M6c-ios: the same on iOS (branch `claude/mobile-m6c-ios`)
+- [ ] M6e: device checks, Android then iOS (branches `claude/mobile-m6e-android`, `claude/mobile-m6e-ios`)
+
+**Running order** (at most three agents at once; one agent per step; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`; the device rules of M5's "Running order" apply):
+
+- Wave 1: M6-0 (the parent, in the mock), M6a, M6b.
+- Wave 2: M6c-android and M6d (after M6a and M6b are merged and M6-0 is reviewed). If M6a's spike fails, stop and take the fallback to the user.
+- Wave 3: M6c-ios (it may code while M6c-android has the emulator, and stops with "ready for the device").
+- M6e last, Android first, then iOS, after every other M6 branch is merged.
+- **Every agent**: "Before you start (every agent)" above. Each step ends with a draft PR, the body read back, `gh pr ready`; the parent merges with `~/.claude/scripts/merge-when-green.sh <n> --cleanup`.
+
+### M6-0: the mock (the parent session)
+
+- On the mock's `Mobile app` page: the title bar's ⋮ menu (`MobileArticle`, `MobileYouTube`) with "Block ads on this site" as a switch row under Forward, Share, Copy link, Open in another browser; Settings' list gets "Ad blocking" (after Sites), and its section board: "Block ads", the sites where it is off with Remove, and "Filter lists updated …".
+- ui.md "Mobile app" to match; the user reviews before M6c-android and M6d.
+
+### M6a: the adblock-rust crate and the spike (one agent, Opus)
+
+Branch `claude/mobile-m6a`. Needs the emulator, then the Simulator.
+
+- **The crate** `mobile/adblock/`: adblock-rust pinned, the C interface of the spec, `cargo test` on small fixed lists. `npm run mobile:adblock` installs nothing; it checks for `cargo`, the Rust targets and the NDK and says what is missing (the user installs them; record the commands in development.md "Mobile app").
+- **The spike, measured and written to notes/mobile.md "adblock-rust (M6a)"**: the size added to the debug and release APK and to the iOS app; the time to build and serialize the engine from the three real lists, and to load it, on the emulator and the Simulator; `check` per request on the emulator (median and 99th percentile over a page load); the number of WebKit rules from the three lists and `WKContentRuleListStore`'s compile time; whether a page-world user script set when the main frame's navigation is decided runs before m.youtube.com's own scripts.
+- **Go or no-go** against: APK and app each grow by at most 10 MB; an update finishes in under 10 s on the emulator; `check` under 1 ms at the 99th percentile; the rules fit. A miss stops the milestone and goes to the user with the numbers.
+
+### M6b: the scriptlets and the captions test (one agent, Opus)
+
+Branch `claude/mobile-m6b`. No device.
+
+- **Which scriptlets**: a script (`scripts/mobile/scriptlets-used.ts`) reads the three lists and prints the `+js(…)` names with their counts, youtube.com's first. Write those youtube.com uses, and the others above a count the parent agrees, in `src/app/adblock/scriptlets/`, from uBO's documented behaviour (its wiki), not its code. Unit tests per scriptlet.
+- **The resources file**: the build writes them in adblock-rust's resource format into the `langle-app` output for the shells.
+- **Captions**: the m.youtube.com fixture's player response with ad fields and captions, through `json-prune` with a pinned copy of the list's youtube.com rule: ad fields gone, the adapter's capture still finds the track (browser test).
+
+### M6c-android: requests, cosmetics and ⋮ on Android (one agent, Opus)
+
+Branch `claude/mobile-m6c-android`. After M6a and M6b are merged and M6-0 is reviewed.
+
+- The list store (`mobile/android/core`, JUnit on a fake clock and a fake fetcher), `mobile/protocol/filter-lists.json`, fetched at Start and on expiry; the engine built off the main thread and swapped.
+- `shouldInterceptRequest`: the main frame never blocked, the type guessed from `Accept` and the extension (JUnit table), an empty response when blocked.
+- Cosmetics and scriptlets at document start through `insertStyleSheet` and a page-world user script.
+- ⋮ "Block ads on this site"; `adBlocking` read from the key-value store and followed; a change reloads the page.
+- On the emulator: one article and the TED video before and after; the error log read and cleared.
+
+### M6d: Settings › Ad blocking, the notices and the privacy page (one agent, Opus)
+
+Branch `claude/mobile-m6d`. After M6-0 is reviewed; no device needed (Vitest with a fake `appHost`, then the phone E2E project).
+
+- The section in `options.html`, only where `appHost` exists, as drawn in M6-0; strings through `t()` in every interface language.
+- About's notices: EasyList, EasyPrivacy, uBlock filters (their licences) and adblock-rust (MPL-2.0).
+- The site's privacy page: the lists' hosts and when they are contacted.
+
+### M6c-ios: requests, cosmetics and ⋮ on iOS (one agent, Opus)
+
+Branch `claude/mobile-m6c-ios`. After M6c-android (its list store's rules are the reference).
+
+- The list store in Swift (XCTest, same cases as JUnit); `webkitRules` compiled into `WKContentRuleList`s, cached by the lists' versions, swapped on the page when ready.
+- Cosmetics and scriptlets set when the main frame's navigation is decided.
+- ⋮ and `adBlocking` as on Android.
+- On the Simulator: the same article and video; the error log read and cleared.
+
+### M6e: device checks (two agents, Opus, one after the other)
+
+Branches `claude/mobile-m6e-android`, then `claude/mobile-m6e-ios`. The spec's "On the emulator, then the Simulator" list; findings and fixes in notes/mobile.md "Device checks (M6e, …)"; status.md updated.
