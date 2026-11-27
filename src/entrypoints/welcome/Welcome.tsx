@@ -402,7 +402,7 @@ function DriveStep(props: {
             onClick={() => void connect()}
           >
             {busy
-              ? t("setup.drive.connecting")
+              ? t("cloud.connecting")
               : t("settings.cloud.connectButton", { provider: name })}
           </button>
           <button type="button" class="btn" onClick={() => done()}>

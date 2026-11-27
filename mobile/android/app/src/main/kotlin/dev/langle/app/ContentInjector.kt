@@ -22,17 +22,24 @@ import dev.langle.core.toJsonText
  * hello once its scripts have run. Wrapped that way, a script's top-level `let`, `const` and
  * `function` stay its own (WXT's bundles are IIFEs).
  */
-class ContentInjector(val manifest: Manifest, private val read: (String) -> ByteArray?) {
+class ContentInjector(
+  val manifest: Manifest,
+  /** Whether the app can sign in to Google (Play services is there; docs/specs/mobile-app.md "M7"). */
+  private val googleAuth: Boolean = false,
+  private val read: (String) -> ByteArray?,
+) {
   private val sources = mutableMapOf<String, String>()
 
   /**
    * `window.__langleAppInfo = …;` for a context (`content`, `page` or `host`). `translator`:
    * the app translates on the device with model packs (the translation host,
-   * docs/specs/mobile-translation.md "The bridge").
+   * docs/specs/mobile-translation.md "The bridge"). `googleAuth`: only when the app can sign in,
+   * so the pages offer Google Drive only then.
    */
   fun appInfo(context: String): String {
-    val info = jsonObject("origin" to APP_ORIGIN, "manifest" to manifest.value, "context" to context, "translator" to TRANSLATOR)
-    return "window.__langleAppInfo = ${info.toJsonText()};"
+    val fields = mutableListOf<Pair<String, Any?>>("origin" to APP_ORIGIN, "manifest" to manifest.value, "context" to context, "translator" to TRANSLATOR)
+    if (googleAuth) fields += "googleAuth" to true
+    return "window.__langleAppInfo = ${jsonObject(*fields.toTypedArray()).toJsonText()};"
   }
 
   private fun source(path: String): String? =

@@ -853,6 +853,14 @@ The check build on the emulator (Medium_Phone_API_37.0, Android 17), installed f
   - **Langle's subtitles on the shared video**: the emulator's network was degraded through the check (a `generate_204` took 3–26 s inside it, 0.2 s on the Mac; the pack download failed once and finished on its own later), also after a cold restart. The page mounted Langle's parts, but the subtitle band stayed empty, and it was just as empty when the same video was opened by `check.sh launch` (one `timedtext` answer of 300 bytes). So this comes from the network, not the share. The share path loads the address into the same page as Home does.
 - **The error log**: the pack mirror's `info` entries, `warning`s for one pack file the mirrors failed to serve (served at a later try), "No player response for arj7oStGLkU" and "No answer from the page to getPlayerResponse" (the watch pages that loaded too slowly on that network); no errors. Cleared.
 
+## Drive sign-in on Android (M7d, 2026-11-27)
+The real app on the emulator (Medium_Phone_API_37.0, Google Play image), on a device not connected before, with the user's own account (the user tapped the chooser and the consent).
+- **Connect** from Settings › Sync and backup showed Google's "Choose an account" (`SELECT_ACCOUNT`), then the consent for Drive's app data. After it: `googleDrive` with the account's address, 5 devices' files, 31111 bytes.
+- **Token**: silent renewals came back in 82 ms with no sheet. Play services' answer has no `expires_in` in `tokenResponseParams`, so the assumed 30 minutes applies.
+- **Both directions**: two words saved on the phone ("serendipity", "ephemeral") showed in the user's Chrome; the phone's list (384 English words) held words saved in Chrome, e.g. "algorithm" with its Gmail sentence, merged at the first check.
+- **`app.hidden`**: a word saved and then Home: written to Drive 9 s and 7 s after Home (two tries), before the 30 s timer. `HostKeepAlive` was already gone 1 s after Home (the answer came first). **`app.visible`**: back in the app, a check ran (`lastCheckedAt` moved). Drive grew to 31414 bytes.
+- **The error log**: empty. Cleared.
+
 ## Open issues and risks
 1. **Google sign-in.** Google blocks sign-in from browsers embedded in other apps (OAuth `disallowed_useragent` since 2021-09-30; its help page says sign-in may be blocked in browsers "embedded inside another app"). Browsers built on the same engines (Brave / Firefox / DuckDuckGo on iOS, Firefox on Android) can sign in, so detection seems to rely on signals such as the user agent, not the engine. Android WebView's UA contains `; wv`. Unverified for our app and a policy gray area. Watching and captions work without sign-in; age-restricted and members-only videos need it.
 2. **PO token in the real engines** (see above).

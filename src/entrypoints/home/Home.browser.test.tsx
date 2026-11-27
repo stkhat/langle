@@ -200,6 +200,13 @@ describe("Home", () => {
           lastSavedAt: NOW - 3 * 60 * MINUTE,
         },
       });
+      let release = () => {};
+      const send = f.deps.send;
+      f.deps.send = (async (request: Request) => {
+        if (request.type === "cloudConnect")
+          await new Promise<void>((resolve) => (release = resolve));
+        return send(request as never);
+      }) as HomeDeps["send"];
       const screen = await render(<Home deps={f.deps} stage="ready" />);
       await expect.element(screen.getByText("Reconnect needed")).toBeVisible();
       await expect
@@ -208,13 +215,18 @@ describe("Home", () => {
       const reconnect = screen.getByRole("button", { name: "Reconnect" });
       expect(reconnect.element().getBoundingClientRect().height).toBe(40);
       await reconnect.click();
+      await expect
+        .element(screen.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      release();
+      await expect
+        .element(screen.getByText("Saved to Google Drive · 1 minute ago"))
+        .toBeVisible();
+      expect(screen.getByText("Connecting…").query()).toBeNull();
       expect(f.sent).toContainEqual({
         type: "cloudConnect",
         provider: "googleDrive",
       });
-      await expect
-        .element(screen.getByText("Saved to Google Drive · 1 minute ago"))
-        .toBeVisible();
     });
 
     it("says the storage is full or an update is needed, without a button", async () => {

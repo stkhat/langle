@@ -88,6 +88,8 @@ interface FakeOptions {
   googleAuth?: boolean;
   /** The app's stored ad-blocking switches and lists' date (default: on, none). */
   adBlocking?: AdBlockingView;
+  /** This request waits for `release()`, which may make it fail (default: none waits). */
+  hold?: Request["type"];
 }
 
 const MB = 1024 * 1024;
@@ -113,9 +115,16 @@ function fake(options: FakeOptions = {}) {
   const removed = new Set<string>();
   const sent: Request[] = [];
   const downloads: { name: string; text: string }[] = [];
+  let release: (error?: Error) => void = () => {};
   const deps: SettingsDeps = {
     send: (async (request: Request) => {
       sent.push(request);
+      if (request.type === options.hold) {
+        const error = await new Promise<Error | undefined>(
+          (resolve) => (release = resolve),
+        );
+        if (error) throw error;
+      }
       switch (request.type) {
         case "getSettings":
           return settings;
@@ -220,6 +229,8 @@ function fake(options: FakeOptions = {}) {
     sent,
     downloads,
     adBlockingWrites,
+    /** Lets the held request go on, or fail with `error`. */
+    release: (error?: Error) => release(error),
     /** ⋮ or the list store changes the stored ad blocking. */
     storeAdBlocking(view: AdBlockingView) {
       adBlocking = view;
@@ -1446,6 +1457,68 @@ describe("SettingsPage", () => {
       });
     });
 
+    it("reads Connecting… on the pressed Connect until it is connected", async () => {
+      const f = await open({ cloud: CAN_CONNECT, hold: "cloudConnect" });
+      const sync = section(f.screen, "Sync and backup");
+      await sync.getByRole("button", { name: "Connect Google Drive" }).click();
+      const connecting = sync.getByRole("button", { name: "Connecting…" });
+      await expect.element(connecting).toBeDisabled();
+      await expect
+        .element(sync.getByRole("button", { name: "Export" }))
+        .toBeEnabled();
+      f.release();
+      await expect.element(sync.getByText(DESC)).toBeVisible();
+      expect(sync.getByText("Connecting…").query()).toBeNull();
+    });
+
+    it("goes back to Connect when connecting fails or the window is closed", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const f = await open({ cloud: CAN_CONNECT, hold: "cloudConnect" });
+      const sync = section(f.screen, "Sync and backup");
+      await sync.getByRole("button", { name: "Connect Google Drive" }).click();
+      await expect
+        .element(sync.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      f.release(new Error("closed"));
+      await expect
+        .element(sync.getByRole("button", { name: "Connect Google Drive" }))
+        .toBeEnabled();
+      warn.mockRestore();
+    });
+
+    it("reads Connecting… on Reconnect, never while disconnecting", async () => {
+      const cloud: CloudStatus = { ...CONNECTED, error: "reconnect" };
+      const settings = { cloudProvider: "googleDrive" } as const;
+      const f = await open({ cloud, settings, hold: "cloudConnect" });
+      const sync = section(f.screen, "Sync and backup");
+      await sync.getByRole("button", { name: "Reconnect" }).click();
+      await expect
+        .element(sync.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      await expect
+        .element(sync.getByRole("button", { name: "Disconnect" }))
+        .toBeDisabled();
+      f.release();
+      await expect
+        .element(sync.getByText("Saved to Google Drive · 2 minutes ago"))
+        .toBeVisible();
+      expect(sync.getByText("Connecting…").query()).toBeNull();
+      cleanup();
+
+      const g = await open({ cloud, settings, hold: "cloudDisconnect" });
+      const again = section(g.screen, "Sync and backup");
+      await again.getByRole("button", { name: "Disconnect" }).click();
+      await expect
+        .element(again.getByRole("button", { name: "Reconnect" }))
+        .toBeDisabled();
+      await expect
+        .element(again.getByRole("button", { name: "Disconnect" }))
+        .toBeDisabled();
+      expect(again.getByText("Connecting…").query()).toBeNull();
+      g.release();
+      await expect.element(syncSwitch(again)).toBeVisible();
+    });
+
     it("says the storage is full, with Disconnect only", async () => {
       const f = await open({
         cloud: { ...CONNECTED, error: "full", lastSavedAt: NOW - 2 * DAY },
@@ -2112,6 +2185,49 @@ describe("SettingsPage on a phone", () => {
         type: "cloudConnect",
         provider: "googleDrive",
       });
+    });
+
+    it("reads Connecting… on the pressed Connect or Reconnect until it is done", async () => {
+      const f = await openPhone({
+        googleAuth: true,
+        cloud: CAN_CONNECT,
+        hold: "cloudConnect",
+      });
+      await pushed(f.screen, "Sync and backup").click();
+      const region = sync(f.screen);
+      await region
+        .getByRole("button", { name: "Connect Google Drive" })
+        .click();
+      await expect
+        .element(region.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      f.release();
+      await expect
+        .element(region.getByText("Saved to Google Drive · 2 minutes ago"))
+        .toBeVisible();
+      expect(region.getByText("Connecting…").query()).toBeNull();
+      cleanup();
+
+      const g = await openPhone({
+        googleAuth: true,
+        cloud: { ...CONNECTED, error: "reconnect" },
+        settings: { cloudProvider: "googleDrive" },
+        hold: "cloudConnect",
+      });
+      await pushed(g.screen, "Sync and backup").click();
+      const card = sync(g.screen);
+      await card.getByRole("button", { name: "Reconnect" }).click();
+      await expect
+        .element(card.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      await expect
+        .element(card.getByRole("button", { name: "Disconnect" }))
+        .toBeDisabled();
+      g.release();
+      await expect
+        .element(card.getByRole("button", { name: "Disconnect" }))
+        .toBeEnabled();
+      expect(card.getByText("Connecting…").query()).toBeNull();
     });
 
     it("shows the connection, and Google Drive as the row's value", async () => {
