@@ -32,7 +32,18 @@ export interface BrowserEnv {
      * Netflix and no sponsors, whose own store takes the ratings.
      */
     appHost: boolean;
+    /**
+     * The phone app's `appHost.googleAuth`: the shell signs in to Google itself, so the
+     * app can connect Google Drive. Missing where it cannot (no Play services), and
+     * then the app offers no cloud provider.
+     */
+    appGoogleAuth: boolean;
   };
+}
+
+function hasGoogleAuth(g: object): boolean {
+  const host = (g as { appHost?: { googleAuth?: unknown } }).appHost;
+  return host?.googleAuth !== undefined;
 }
 
 /**
@@ -54,6 +65,7 @@ export function createBrowserEnv(
     features: {
       fileSystemAccess: "showDirectoryPicker" in g,
       appHost: "appHost" in g,
+      appGoogleAuth: hasGoogleAuth(g),
     },
   };
 }

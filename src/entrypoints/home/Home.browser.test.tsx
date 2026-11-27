@@ -4,6 +4,7 @@ import { cleanup, render } from "vitest-browser-preact";
 import type { PackStates } from "../../core/packs/state";
 import { mergeSettings } from "../../core/settings";
 import type {
+  CloudStatus,
   Counts,
   PackStatus,
   RecentPage,
@@ -81,9 +82,14 @@ function fake(
     counts?: Counts;
     sync?: SyncStatus;
     packStatus?: PackStatus;
+    /** The app can sign in to Google, and `cloudStatus` answers this. */
+    cloud?: CloudStatus;
   } = {},
 ) {
-  const settings = mergeSettings({});
+  let cloud = options.cloud;
+  const settings = mergeSettings(
+    cloud?.provider ? { cloudProvider: cloud.provider } : {},
+  );
   const settingsWatchers = settingsListeners(settings);
   const packWatchers = listeners<PackStates>();
   const sent: Request[] = [];
@@ -102,6 +108,13 @@ function fake(
           return recents.slice(0, request.limit);
         case "packStatus":
           return options.packStatus ?? READY;
+        // Home asks these only with `googleAuth`, which is set only with `cloud`.
+        case "cloudStatus":
+          return cloud;
+        case "cloudConnect":
+          cloud = { ...cloud!, lastSavedAt: NOW - MINUTE };
+          delete cloud.error;
+          return null;
         case "cloudCheck":
           return null;
         default:
@@ -112,6 +125,7 @@ function fake(
     watchPackState: packWatchers.watch,
     openPage: vi.fn(),
     openSetup: vi.fn(),
+    googleAuth: cloud !== undefined,
     now: () => NOW,
     refreshMs: 60_000,
   };
@@ -157,6 +171,91 @@ describe("Home", () => {
     const f = fake({ sync: { ...SYNC, lastSavedAt: undefined } });
     const screen = await render(<Home deps={f.deps} stage="ready" />);
     await expect.element(screen.getByText("Not saved yet")).toBeVisible();
+  });
+
+  describe("saved to Google Drive", () => {
+    const DRIVE: CloudStatus = {
+      available: ["googleDrive"],
+      provider: "googleDrive",
+      lastSavedAt: NOW - 2 * MINUTE,
+      bytes: 1024,
+      devices: 2,
+    };
+
+    it("says so instead of this phone, with the check", async () => {
+      const screen = await render(
+        <Home deps={fake({ cloud: DRIVE }).deps} stage="ready" />,
+      );
+      const line = screen.getByText("Saved to Google Drive · 2 minutes ago");
+      await expect.element(line).toBeVisible();
+      expect(line.element().querySelector("svg")).not.toBeNull();
+      expect(screen.getByText(/this phone/).query()).toBeNull();
+    });
+
+    it("asks to reconnect, and Reconnect opens Google's sheet", async () => {
+      const f = fake({
+        cloud: {
+          ...DRIVE,
+          error: "reconnect",
+          lastSavedAt: NOW - 3 * 60 * MINUTE,
+        },
+      });
+      let release = () => {};
+      const send = f.deps.send;
+      f.deps.send = (async (request: Request) => {
+        if (request.type === "cloudConnect")
+          await new Promise<void>((resolve) => (release = resolve));
+        return send(request as never);
+      }) as HomeDeps["send"];
+      const screen = await render(<Home deps={f.deps} stage="ready" />);
+      await expect.element(screen.getByText("Reconnect needed")).toBeVisible();
+      await expect
+        .element(screen.getByText("Last saved to Google Drive 3 hours ago"))
+        .toBeVisible();
+      const reconnect = screen.getByRole("button", { name: "Reconnect" });
+      expect(reconnect.element().getBoundingClientRect().height).toBe(40);
+      await reconnect.click();
+      await expect
+        .element(screen.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      release();
+      await expect
+        .element(screen.getByText("Saved to Google Drive · 1 minute ago"))
+        .toBeVisible();
+      expect(screen.getByText("Connecting…").query()).toBeNull();
+      expect(f.sent).toContainEqual({
+        type: "cloudConnect",
+        provider: "googleDrive",
+      });
+    });
+
+    it("says the storage is full or an update is needed, without a button", async () => {
+      for (const [error, line] of [
+        ["full", "Google Drive storage is full"],
+        ["update", "Update Langle on this phone"],
+      ] as const) {
+        const screen = await render(
+          <Home
+            deps={fake({ cloud: { ...DRIVE, error } }).deps}
+            stage="ready"
+          />,
+        );
+        await expect.element(screen.getByText(line)).toBeVisible();
+        expect(
+          screen.getByRole("button", { name: "Reconnect" }).query(),
+        ).toBeNull();
+        cleanup();
+      }
+    });
+
+    it("asks nothing of the cloud where the app cannot sign in to Google", async () => {
+      const f = fake();
+      const screen = await render(<Home deps={f.deps} stage="ready" />);
+      await expect
+        .element(screen.getByText("Saved on this phone · 2 minutes ago"))
+        .toBeVisible();
+      expect(f.sent.map((r) => r.type)).not.toContain("cloudStatus");
+    });
   });
 
   it("opens what the search field parses: an address or a YouTube search", async () => {

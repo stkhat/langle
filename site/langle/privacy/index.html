@@ -25,7 +25,7 @@
     </header>
     <main class="wrap policy">
       <h1>Privacy policy</h1>
-      <p class="p date">Last updated 26 November 2026</p>
+      <p class="p date">Last updated 27 November 2026</p>
       <p class="p">
         <strong>Langle has no servers.</strong> It saves your data only on your
         device and in your own cloud services: your browser's sync and, if you
@@ -211,6 +211,17 @@
           <strong>Sign-in token.</strong> Google gives Langle an access token
           that lasts about an hour. It is kept only on that device. In the
           Chrome Web Store's terms, this is authentication information.
+        </li>
+        <li>
+          <strong>Sign-in in the phone app.</strong> In the Langle phone app,
+          you connect from the first run's “Use Langle on a computer too?” or
+          from Settings → Sync and backup, and the phone's own Google sheet
+          signs you in (on Android, through Google Play services), with the same
+          single permission. On an iPhone, Google also gives a refresh token so
+          the app can stay connected; it is kept only in the iPhone's Keychain,
+          for this app on this device. On Android, Google Play services keeps
+          the grant and the app keeps no long-lived token. Disconnect forgets
+          the tokens the phone keeps.
         </li>
         <li>
           <strong>Disconnect</strong> stops saving to Drive on that device and

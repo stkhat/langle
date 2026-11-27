@@ -15,10 +15,11 @@ import type { SyncPlace } from "../../core/browser-env";
 import { Popup, type PopupDeps } from "./Popup";
 import { heldWrites, listeners, settingsListeners } from "../../testing/stubs";
 import { fixedTouchMode } from "../../testing/touch";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 
 const NOW = Date.UTC(2026, 10, 10, 12, 0, 0);
 const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
 
 const ARTICLE: PageSummary = {
   supported: true,
@@ -66,6 +67,8 @@ interface FakeOptions {
   place?: SyncPlace;
   /** The page is in touch mode: the phone layout. */
   phone?: boolean;
+  /** The phone app can sign in to Google (default: no). */
+  googleAuth?: boolean;
 }
 
 const readyPack = (pack: string, size: number) =>
@@ -159,6 +162,7 @@ function fake(options: FakeOptions = {}) {
     watchSettings: settingsWatchers.watch,
     watchPackState: packWatchers.watch,
     sync: options.place ?? { kind: "browser", browser: "Chrome" },
+    appGoogleAuth: options.googleAuth ?? false,
     ...(options.phone && { touch: fixedTouchMode(true) }),
     links: {
       coffee: "",
@@ -193,6 +197,18 @@ function fake(options: FakeOptions = {}) {
     },
     packWatchers: packWatchers.count,
   };
+}
+
+/** Makes `cloudConnect` wait (Google's window is open); returns what lets it go on. */
+function holdConnect(deps: PopupDeps): () => void {
+  let release = () => {};
+  const send = deps.send;
+  deps.send = (async (request: Request) => {
+    if (request.type === "cloudConnect")
+      await new Promise<void>((resolve) => (release = resolve));
+    return send(request as never);
+  }) as PopupDeps["send"];
+  return () => release();
 }
 
 afterEach(cleanup);
@@ -558,6 +574,7 @@ describe("Popup", () => {
         cloud: { available: ["googleDrive"], bytes: 0, devices: 0 },
         settings: connected,
       });
+      const release = holdConnect(f.deps);
       const screen = await render(<Popup deps={f.deps} />);
       const note = screen.getByText("Connect Google Drive on this device too");
       await expect.element(note).toBeVisible();
@@ -571,8 +588,13 @@ describe("Popup", () => {
       ).toBeTruthy();
       await screen.getByRole("button", { name: "Connect" }).click();
       await expect
+        .element(screen.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      release();
+      await expect
         .element(screen.getByText("Saved to Google Drive · 2 minutes ago"))
         .toBeVisible();
+      expect(screen.getByText("Connecting…").query()).toBeNull();
       expect(f.sent).toContainEqual({
         type: "cloudConnect",
         provider: "googleDrive",
@@ -599,6 +621,7 @@ describe("Popup", () => {
         },
         settings: connected,
       });
+      const release = holdConnect(f.deps);
       const screen = await render(<Popup deps={f.deps} />);
       const line = screen.getByText("Reconnect needed");
       await expect.element(line).toBeVisible();
@@ -607,6 +630,10 @@ describe("Popup", () => {
         .element(screen.getByText("Last saved to Google Drive 3 hours ago"))
         .toBeVisible();
       await screen.getByRole("button", { name: "Reconnect" }).click();
+      await expect
+        .element(screen.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      release();
       await expect
         .element(screen.getByText("Saved to Google Drive · 2 minutes ago"))
         .toBeVisible();
@@ -929,6 +956,92 @@ describe("the phone layout", () => {
     expect(screen.getByRole("navigation").query()).toBeNull();
     // Subtitles are a video's.
     expect(subtitles(screen).query()).toBeNull();
+  });
+
+  describe("in the app, with Google Drive", () => {
+    const app = (cloud: CloudStatus, googleAuth = true) =>
+      fake({
+        page: ARTICLE,
+        phone: true,
+        place: { kind: "device" },
+        googleAuth,
+        cloud,
+        settings: { cloudProvider: "googleDrive" },
+      });
+    const top = (screen: Awaited<ReturnType<typeof render>>, text: string) =>
+      screen.getByText(text).element().getBoundingClientRect().top;
+
+    it("puts the size and devices at the right of the saved line, or under it at the right", async () => {
+      const screen = await render(<Popup deps={app(CONNECTED).deps} />);
+      const saved = "Saved to Google Drive · 2 minutes ago";
+      const size = "1.4 MB · 3 devices";
+      await expect.element(screen.getByText(saved)).toBeVisible();
+      const right = (text: string) =>
+        screen.getByText(text).element().getBoundingClientRect().right;
+      const line = screen.getByText(saved).element().parentElement!;
+      expect(right(size)).toBe(line.getBoundingClientRect().right);
+      expect(top(screen, size)).toBeCloseTo(top(screen, saved), -1);
+      await page.viewport(390, 844);
+      // The saved line stays whole; the size goes under it.
+      expect(screen.getByText(saved).element().getClientRects()).toHaveLength(
+        1,
+      );
+      expect(top(screen, size)).toBeGreaterThan(top(screen, saved));
+      expect(right(size)).toBe(line.getBoundingClientRect().right);
+      // Vitest's own size, for the tests after.
+      await page.viewport(414, 896);
+    });
+
+    it("says what stopped it, with Reconnect only when signing in again helps", async () => {
+      const f = app({
+        ...CONNECTED,
+        error: "reconnect",
+        lastSavedAt: NOW - 3 * HOUR,
+      });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.element(screen.getByText("Reconnect needed")).toBeVisible();
+      await expect
+        .element(screen.getByText("Last saved to Google Drive 3 hours ago"))
+        .toBeVisible();
+      const reconnect = screen.getByRole("button", { name: "Reconnect" });
+      expect(reconnect.element().getBoundingClientRect().height).toBe(40);
+      await reconnect.click();
+      expect(f.sent).toContainEqual({
+        type: "cloudConnect",
+        provider: "googleDrive",
+      });
+      cleanup();
+
+      const update = await render(
+        <Popup deps={app({ ...CONNECTED, error: "update" }).deps} />,
+      );
+      await expect
+        .element(update.getByText("Update Langle on this phone"))
+        .toBeVisible();
+      expect(
+        update.getByRole("button", { name: "Reconnect" }).query(),
+      ).toBeNull();
+    });
+
+    it("never asks to connect on this device too, and shows no Drive without Google sign-in", async () => {
+      const offered = {
+        available: ["googleDrive" as const],
+        bytes: 0,
+        devices: 0,
+      };
+      const screen = await render(<Popup deps={app(offered).deps} />);
+      await expect
+        .element(screen.getByText("Saved on this phone · 2 minutes ago"))
+        .toBeVisible();
+      expect(screen.getByText(/Google Drive/).query()).toBeNull();
+      cleanup();
+
+      const without = await render(<Popup deps={app(CONNECTED, false).deps} />);
+      await expect
+        .element(without.getByText("Saved on this phone · 2 minutes ago"))
+        .toBeVisible();
+      expect(without.getByText(/Google Drive/).query()).toBeNull();
+    });
   });
 
   it("keeps the desktop's popup on a desktop, Subtitles staying in the player's menu", async () => {

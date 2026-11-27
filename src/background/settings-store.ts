@@ -7,6 +7,7 @@ import {
   type TimedSettings,
 } from "../core/cloud/settings";
 import {
+  DEFAULT_SETTINGS,
   mergeSettings,
   SETTINGS_KEY,
   SETTINGS_TIMES_KEY,
@@ -147,6 +148,30 @@ export function cloudSettings(
 export async function settingsStored(): Promise<boolean> {
   const stored = await browser.storage.sync.get(SETTINGS_KEY);
   return stored[SETTINGS_KEY] !== undefined;
+}
+
+/**
+ * The stored pair, unless no one chose it: none while no settings are stored, nor while
+ * the stored pair is still the default one with no field time (the settings were stored
+ * for something else, as connecting cloud storage before the first run's languages does).
+ */
+export async function chosenPair(): Promise<Pick<
+  Settings,
+  "learningLang" | "nativeLang"
+> | null> {
+  const stored = await browser.storage.sync.get([
+    SETTINGS_KEY,
+    SETTINGS_TIMES_KEY,
+  ]);
+  if (stored[SETTINGS_KEY] === undefined) return null;
+  const { learningLang, nativeLang } = mergeSettings(stored[SETTINGS_KEY]);
+  const times = timesOf(stored[SETTINGS_TIMES_KEY])?.times ?? {};
+  const unchosen =
+    learningLang === DEFAULT_SETTINGS.learningLang &&
+    nativeLang === DEFAULT_SETTINGS.nativeLang &&
+    times.learningLang === undefined &&
+    times.nativeLang === undefined;
+  return unchosen ? null : { learningLang, nativeLang };
 }
 
 /**

@@ -44,6 +44,8 @@ dependencies {
   implementation(project(":core"))
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.webkit)
+  // Google sign-in for Drive sync: AuthorizationClient (docs/notes/mobile.md "Drive sign-in (M7a)").
+  implementation(libs.play.services.auth)
   testImplementation(platform(libs.junit.bom))
   testImplementation(libs.junit.jupiter)
   testRuntimeOnly(libs.junit.platform.launcher)

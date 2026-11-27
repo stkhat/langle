@@ -10,7 +10,7 @@ import {
 import { errorText } from "../core/util";
 import type { LanguagePair, Reply, SetupStatus } from "../messaging/protocol";
 import { getSetupStage } from "../messaging/setup";
-import { getSettings, settingsStored, storeChosenPair } from "./settings-store";
+import { chosenPair, storeChosenPair } from "./settings-store";
 
 /** The part of `runtime.MessageSender` the setup uses. */
 interface Sender {
@@ -45,11 +45,16 @@ const storeSetup = (setup: Setup) =>
 /** Where the device stands. Browser sync is not read before the user agreed. */
 async function status(): Promise<SetupStatus> {
   const stage = await getSetupStage();
-  if (stage === "consent" || !(await settingsStored()))
-    return { stage, pair: null };
-  const { learningLang, nativeLang } = await getSettings();
-  return { stage, pair: { learningLang, nativeLang } };
+  if (stage === "consent") return { stage, pair: null };
+  return { stage, pair: await chosenPair() };
 }
+
+/**
+ * Asked for by the first run's Drive step (ui.md "First run", phone app) once the user
+ * agreed: what cloud storage this build offers, and connecting it, so the languages
+ * step can show the pair the other devices use.
+ */
+const AFTER_CONSENT = new Set(["cloudStatus", "cloudConnect"]);
 
 function offeredPair(value: object): LanguagePair {
   const { learningLang, nativeLang } = value as Partial<
@@ -125,7 +130,14 @@ export function createSetup({ pageUrl, tab, ranBefore }: SetupDeps) {
             case "startLangle":
               return { ok: true, value: await start(message, from) };
           }
-          if ((await getSetupStage()) !== "ready")
+          const stage = await getSetupStage();
+          if (
+            stage === "languages" &&
+            typeof message.type === "string" &&
+            AFTER_CONSENT.has(message.type)
+          )
+            requirePage(from);
+          else if (stage !== "ready")
             return { ok: false, error: "Langle is not set up yet" };
         } catch (error) {
           return { ok: false, error: errorText(error) };

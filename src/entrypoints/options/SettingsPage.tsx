@@ -27,7 +27,7 @@ import type {
 } from "../../messaging/protocol";
 import type { BackupDeps } from "../../ui/backup/BackupButtons";
 import { BrandHeader } from "../../ui/BrandHeader";
-import { cloudView } from "../../ui/format/cloud";
+import { appCloud, cloudView } from "../../ui/format/cloud";
 import { fmt } from "../../ui/format/format";
 import { ChevronRightIcon } from "../../ui/icons";
 import { usePhoneLayout } from "../../ui/phone-layout";
@@ -207,14 +207,17 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
     });
   }
   const section = { settings, change };
-  const view = cloudView(cloud, settings);
+  const view = cloudView(cloud, settings, appCloud(deps.env));
 
   /** Connects or disconnects (a sign-in window may open), then shows where it stands. */
   function cloudRequest(request: CloudRequest) {
-    return deps
-      .send(request)
-      .catch(warn)
-      .finally(() => void refreshSync());
+    return (
+      deps
+        .send(request)
+        .catch(warn)
+        // Resolved once the rows have the new status, so "Connecting…" lasts until then.
+        .then(refreshSync)
+    );
   }
 
   const sections: Record<SectionId, JSX.Element> = {
@@ -301,7 +304,7 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
     ),
   };
   const label = (id: SectionId, key: MessageKey) =>
-    t(id === "sync" ? syncSectionLabel(deps.env) : key);
+    t(id === "sync" ? syncSectionLabel(deps.env, view) : key);
   const shown = SECTIONS.filter(({ id }) => app || id !== "adblocking");
 
   if (phone) {
@@ -316,6 +319,7 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
       adblocking: t(
         adBlocking.on ? "settings.adBlocking.on" : "settings.adBlocking.off",
       ),
+      ...(view?.kind === "connected" && { sync: view.name }),
     };
     function push(id: SectionId | undefined) {
       setOpen(id);
