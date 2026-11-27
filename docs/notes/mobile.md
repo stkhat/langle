@@ -432,6 +432,39 @@ The check build on the emulator (Medium_Phone_API_37.0, Android 17), a fresh ins
 - On the first run, the default store also listed hosts that only the older prototype app had visited (cnn.com, dailymail.co.uk); on the next run it listed only Wikipedia's. Not looked into; a Simulator artefact is likely.
 - Limits: Simulator only, iOS 27.2 only (no 26.4 runtime installed), app in the foreground the whole time. Not checked: a real iPhone, the app in the background or the screen locked, memory pressure (whether iOS kills the hidden host's content process; `webViewWebContentProcessDidTerminate` is logged but never fired), storage eviction under low disk, and the real `langle-app` build (not ready).
 
+## Share extension spike (M8b-0, 2026-11-27)
+`mobile/prototypes/ios-share-spike` (spec [mobile-app.md](../specs/mobile-app.md) "M8: Share → Langle"; a hand-written project as above, driven by `check.sh`). A bare app `dev.langle.spike.share` with the URL scheme `langlespike://` and a share extension `ShareExt` (`NSExtensionActivationSupportsWebURLWithMaxCount` 1, `…SupportsText` true, a plain `UIViewController` as principal class, `APPLICATION_EXTENSION_API_ONLY`). Both targets have the App Group `group.dev.langle.spike.share`. The extension writes `{ url?, text?, sharedAt }` as `shared.json` to the group's container, then opens `langlespike://shared` in the mode `check.sh mode` sets. The app reads and deletes the file at launch, on `onOpenURL` and on each scene `active`. Both processes log to `log.txt` in the group's container. Driven through the Simulator tool with real taps.
+
+**Only the iOS 27.2 Simulator runtime is installed** (iPhone 17, iOS 27.2, Xcode 27.2 27B52, deployment target 26.4). The 26.4 Simulator was not run, and the reported break on the iOS 26.5 Simulator was not checked. No runtime was downloaded.
+
+- **Signing**: the Simulator build is signed ad hoc, with no team and no provisioning profile. Xcode puts the entitlements in the binary's `__TEXT,__entitlements` section (`*-Simulated.xcent`), and `codesign -d --entitlements` shows none. With that, `containerURL(forSecurityApplicationGroupIdentifier:)` returned the same `…/Shared/AppGroup/<uuid>` folder in both processes, and the hand-off worked every time. A real iPhone needs the group registered and the profile (M9).
+- **The responder-chain call compiles in the extension**: `UIApplication.open(_:options:completionHandler:)` reached by walking `next`, under `APPLICATION_EXTENSION_API_ONLY = YES`, with no error or warning. The chain from the view controller was `ShareViewController > UIView > _UIViewServiceRootViewController > _UIDropShadowClippingView > UIDropShadowView > UITransitionView > UIWindow > _UIHostedWindowScene > UIApplication`, the same in every run.
+- **`NSExtensionContext.open`** completed with false in every run, and nothing opened.
+
+| Source → mode | App state | Open completion | App in front | What the app read |
+|---|---|---|---|---|
+| Safari, article (`en.wikipedia.org/wiki/Language`) → `both` (public call, then the chain, end in its completion) | running | true, 213 ms | yes, `onOpenURL` 30 ms after the call returned, scene active 0.5 s later | the URL, in `onOpenURL` |
+| Safari, article → `both` | killed | true, 35 ms | yes, cold launch 0.26 s after the call | the URL, at launch (`onOpenURL` then found no file) |
+| Safari, article → `chain` (the chain only) | running | true, 47 ms | yes | the URL, in `onOpenURL` |
+| Safari, article → `chain-late` (end the request, then the chain from `completeRequest`'s completion) | running | true, 39 ms | yes | the URL, in `onOpenURL` |
+| Safari, article → `ctx` (public call only) | running | false | no: Safari stayed | `shared.json` kept; read on the next scene `active` when the app was brought up |
+| Safari, article → `none` (no call; "Saved" shown 2 s, then end) | killed | – | no | `shared.json` kept; read at the next launch |
+| Safari, YouTube watch page → `both` | running | true, 39 ms | yes | `https://www.youtube.com/watch?v=iG9CE55wbtY` |
+| Safari, YouTube watch page → `chain-late` | killed | true, 42 ms | yes, cold launch | the same URL, at launch |
+| Reminders, selected text (Share… in the edit menu) → `both` | running | true, 77 ms | yes | `{"text":"Languagelearningtips"}`, in `onOpenURL` |
+
+- **Verdict: works on the iOS 27.2 Simulator**, with the condition that it is unofficial and checked only on that runtime. The responder-chain open brought the app to the front in all 7 runs, from Safari (an article and a YouTube page) and from Reminders (text), whether the app was running or killed, and whether the request ended before or after the open.
+- **What the system showed**: no confirmation prompt. The sheet closed and the app came up with "◀ Safari" in the status bar (Back to the source app works as the spec says). The extension's own view showed only for the moment before the open, and in mode `none`.
+- **Safari's item**: a YouTube page opened as `www.youtube.com/watch?v=<id>&t=42s` (Safari shows `m.youtube.com`) came with **two** `public.url` attachments. The first, the one kept, is the canonical `https://www.youtube.com/watch?v=<id>` **without `t`**. The second was not looked at. The article came with one. `attributedContentText` is the page title ("Language - Wikipedia"); for text it is the text itself.
+- **Reminders**: the text came as `public.plain-text` only. Notes is not on the Simulator, so Reminders stood in for it.
+- **For M8b to copy**:
+  - Write the file first, then open through the chain. Ending the request in the open's completion or before the open both work; end it in the completion, as the spec says.
+  - Read at launch as well as on `onOpenURL` and on `active`: on a cold start the launch read gets the item and the other two find nothing.
+  - Do not call `NSExtensionContext.open`: it always says false.
+  - Look at the second `public.url` attachment from Safari, which may keep the full address (`t`), before choosing which one to keep.
+  - Treat "no `UIApplication` in the chain" and a false completion as the fallback sheet's two triggers. Neither happened here.
+- Not checked: the iOS 26.x Simulators and a real iPhone (M9), the YouTube app's own Share (no YouTube app on the Simulator), Notes, the extension under memory pressure, and App Review.
+
 ## Translated captions (2026-11-22)
 **Result: YouTube refused `tlang` (HTTP 429, 1,103 B) on all three engines, and the original track loaded in the same runs. Waiting and fresh cookies did not prevent it. An app on any engine must expect the refusal.**
 
