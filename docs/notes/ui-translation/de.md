@@ -61,3 +61,7 @@ Changed keys:
 
 ## The browser's sync (`{syncName}`)
 `env.syncName` is "{browser}-Synchronisierung", with the browser's name filled in. Feminine: „in der / an die / der Speicher der {syncName}“. The switch says „speichern“.
+
+## The phone app's own bars (`app.*`, M6f)
+The shells draw these themselves (tab bar, title bar, ⋮, toasts, accessibility labels); the background sends them in the interface language. The tab names are the pages' own (`app.words` = `wordlist.phoneTitle`, `app.settings` = `settings.title`), `app.search` is `home.search`, and `app.on` / `app.off` are `settings.adBlocking.on` / `.off`. `app.editAddress` is `home.search` without the site. `{reasons}` in `app.buildRefused` stays English (the manifest keys the build lacks). Second pass:
+- Home → Start (short enough for the 11 pt tab label; Startseite is the browser's home page); Forward → Vorwärts; the WebView notice addresses the user with Sie.

@@ -77,3 +77,7 @@ Changed keys:
 
 ## The browser's sync (`{syncName}`)
 `env.syncName` is "{browser} 同步", with the browser's name filled in. No space before a following Chinese word (「Chrome 同步空间」). The switch says 保存到, not 通过…同步.
+
+## The phone app's own bars (`app.*`, M6f)
+The shells draw these themselves (tab bar, title bar, ⋮, toasts, accessibility labels); the background sends them in the interface language. The tab names are the pages' own (`app.words` = `wordlist.phoneTitle`, `app.settings` = `settings.title`), `app.search` is `home.search`, and `app.on` / `app.off` are `settings.adBlocking.on` / `.off`. `app.editAddress` is `home.search` without the site. `{reasons}` in `app.buildRefused` stays English (the manifest keys the build lacks). Second pass:
+- Home → 首页; Tabs → 标签栏 (the bar of the app's tabs, not a browser's 标签页); a full-width colon in `app.buildRefused` and a full-width comma in the switch's label.

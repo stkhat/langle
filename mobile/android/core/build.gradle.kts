@@ -15,6 +15,26 @@ kotlin {
   compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
+// The shell's built-in English (docs/specs/mobile-app.md "Native strings follow the interface
+// language"): en.json's `app.` keys, generated at build time as the resource
+// native-strings-en.json (NativeStrings.ENGLISH), never copied by hand.
+val generateNativeStrings by tasks.registering {
+  // Locals only: the configuration cache keeps no script references for the action.
+  val source = rootDir.resolve("../../src/i18n/locales/en.json")
+  val outDir = layout.buildDirectory.dir("generated/native-strings")
+  inputs.file(source)
+  outputs.dir(outDir)
+  doLast {
+    @Suppress("UNCHECKED_CAST")
+    val all = groovy.json.JsonSlurper().parse(source) as Map<String, Any?>
+    val app = all.filterKeys { it.startsWith("app.") }.filterValues { it is String }
+    val out = outDir.get().file("native-strings-en.json").asFile
+    out.parentFile.mkdirs()
+    out.writeText(groovy.json.JsonOutput.toJson(app))
+  }
+}
+sourceSets.main { resources.srcDir(generateNativeStrings) }
+
 dependencies {
   api(libs.kotlinx.serialization.json)
   testImplementation(platform(libs.junit.bom))

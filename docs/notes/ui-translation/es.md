@@ -65,3 +65,7 @@ Changed keys:
 
 ## The browser's sync (`{syncName}`)
 `env.syncName` is "sincronización de {browser}", with the browser's name filled in. Feminine, with its article: «en la / de la / a la {syncName}».
+
+## The phone app's own bars (`app.*`, M6f)
+The shells draw these themselves (tab bar, title bar, ⋮, toasts, accessibility labels); the background sends them in the interface language. The tab names are the pages' own (`app.words` = `wordlist.phoneTitle`, `app.settings` = `settings.title`), `app.search` is `home.search`, and `app.on` / `app.off` are `settings.adBlocking.on` / `.off`. `app.editAddress` is `home.search` without the site. `{reasons}` in `app.buildRefused` stays English (the manifest keys the build lacks). Second pass:
+- Home → Inicio, as YouTube es-419; link → enlace, as the other keys; Tabs → Pestañas.

@@ -126,6 +126,20 @@ describe("installShim", () => {
     expect(native.calls).toEqual([{ api: "appHost.shareFile", args: [file] }]);
   });
 
+  test("appHost.nativeStrings is a call with the locale, the direction and the strings", async () => {
+    const native = fakeBridge();
+    installShim(native.bridge, INFO);
+    const set = {
+      locale: "ja",
+      dir: "ltr" as const,
+      strings: { "app.home": "ホーム" },
+    };
+    await appHostOf()?.nativeStrings?.(set);
+    expect(native.calls).toEqual([
+      { api: "appHost.nativeStrings", args: [set] },
+    ]);
+  });
+
   test("appHost's translation calls pass their request to native code and read its answer", async () => {
     const native = fakeBridge((api) =>
       api === "appHost.translate"

@@ -72,3 +72,7 @@ Changed keys:
 
 ## The browser's sync (`{syncName}`)
 `env.syncName` is "sincronizzazione di {browser}", with the browser's name filled in. Feminine, with its article: «nella / della / alla {syncName}».
+
+## The phone app's own bars (`app.*`, M6f)
+The shells draw these themselves (tab bar, title bar, ⋮, toasts, accessibility labels); the background sends them in the interface language. The tab names are the pages' own (`app.words` = `wordlist.phoneTitle`, `app.settings` = `settings.title`), `app.search` is `home.search`, and `app.on` / `app.off` are `settings.adBlocking.on` / `.off`. `app.editAddress` is `home.search` without the site. `{reasons}` in `app.buildRefused` stays English (the manifest keys the build lacks). Second pass:
+- Home stays Home, as YouTube's Italian UI; Tabs → Schede; On / Off copy the ad-blocking row (Attivo / Disattivato).

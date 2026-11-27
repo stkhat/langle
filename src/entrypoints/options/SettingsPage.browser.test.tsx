@@ -84,6 +84,8 @@ interface FakeOptions {
   phone?: boolean;
   /** The phone app's `appHost` exists (default: no). */
   app?: boolean;
+  /** The app's `appHost.googleAuth` exists (default: no). */
+  googleAuth?: boolean;
   /** The app's stored ad-blocking switches and lists' date (default: on, none). */
   adBlocking?: AdBlockingView;
 }
@@ -178,7 +180,11 @@ function fake(options: FakeOptions = {}) {
     env: {
       name: "Chrome",
       sync: options.place ?? { kind: "browser", browser: "Chrome" },
-      features: { fileSystemAccess: true, appHost: options.app ?? false },
+      features: {
+        fileSystemAccess: true,
+        appHost: options.app ?? false,
+        appGoogleAuth: options.googleAuth ?? false,
+      },
     },
     ...(options.phone && { touch: fixedTouchMode(true) }),
     ...(options.explainProvider && {
@@ -2063,6 +2069,124 @@ describe("SettingsPage on a phone", () => {
     await expect
       .element(backup.getByRole("button", { name: "Export" }))
       .toBeVisible();
+  });
+
+  describe("Sync and backup with Google Drive (the app signs in to Google)", () => {
+    const sync = (screen: Awaited<ReturnType<typeof render>>) =>
+      screen.getByRole("region", { name: "Sync and backup" });
+    const LEAD =
+      "Langle has no server. Everything is kept on this phone and, if you like, your own Google Drive.";
+
+    it("offers Google Drive in a card of its own over the backup file", async () => {
+      const f = await openPhone({ googleAuth: true, cloud: CAN_CONNECT });
+      await pushed(f.screen, "Sync and backup").click();
+      const region = sync(f.screen);
+      await expect.element(region.getByText(LEAD)).toBeVisible();
+      await expect
+        .element(
+          region.getByText(
+            "Save everything, including sources and sentences, to your Google Drive. Connect it in Langle on your computer too, and both stay the same.",
+          ),
+        )
+        .toBeVisible();
+      const cards = [...region.element().querySelectorAll(".stack")];
+      expect(cards.map((card) => card.textContent)).toEqual([
+        expect.stringMatching(/^Your own cloud storage/),
+        expect.stringMatching(/^Backup file/),
+      ]);
+      const connect = region.getByRole("button", {
+        name: "Connect Google Drive",
+      });
+      expect(connect.element().getBoundingClientRect().height).toBe(44);
+      const exportButton = region.getByRole("button", { name: "Export" });
+      const importButton = region.getByRole("button", { name: "Import" });
+      // Side by side, sharing the card.
+      expect(exportButton.element().getBoundingClientRect().top).toBe(
+        importButton.element().getBoundingClientRect().top,
+      );
+      await connect.click();
+      await expect
+        .element(region.getByText("Saved to Google Drive · 2 minutes ago"))
+        .toBeVisible();
+      expect(f.sent).toContainEqual({
+        type: "cloudConnect",
+        provider: "googleDrive",
+      });
+    });
+
+    it("shows the connection, and Google Drive as the row's value", async () => {
+      const f = await openPhone({
+        googleAuth: true,
+        cloud: { ...CONNECTED, account: "alex.kim@gmail.com" },
+        settings: { cloudProvider: "googleDrive" },
+      });
+      await expect
+        .element(pushed(f.screen, "Sync and backup"))
+        .toHaveTextContent("Sync and backupGoogle Drive");
+      await pushed(f.screen, "Sync and backup").click();
+      const region = sync(f.screen);
+      for (const text of [
+        LEAD,
+        "Google Drive (alex.kim@gmail.com). Everything is saved there, in a folder only Langle can open.",
+        "Saved to Google Drive · 2 minutes ago",
+        "1.4 MB · 3 devices",
+        "Last checked other devices: 1 minute ago",
+      ])
+        await expect.element(region.getByText(text)).toBeVisible();
+      expect(region.element().textContent).not.toContain("on this device too");
+      await region.getByRole("button", { name: "Disconnect" }).click();
+      expect(f.sent).toContainEqual({ type: "cloudDisconnect" });
+      // Never "on this device too": the app has no browser sync to learn the choice.
+      await expect
+        .element(region.getByRole("button", { name: "Connect Google Drive" }))
+        .toBeVisible();
+    });
+
+    it("says what stopped it, with this phone's words", async () => {
+      for (const [error, line, note, reconnect] of [
+        [
+          "reconnect",
+          "Reconnect needed",
+          "Last saved 3 hours ago. New changes wait on this phone until you reconnect.",
+          true,
+        ],
+        [
+          "full",
+          "Google Drive storage is full",
+          "Last saved 3 hours ago. Langle saves again when there is space; nothing is lost on this phone.",
+          false,
+        ],
+        ["update", "Update Langle on this phone", undefined, false],
+      ] as const) {
+        const f = await openPhone({
+          googleAuth: true,
+          cloud: { ...CONNECTED, error, lastSavedAt: NOW - 3 * HOUR },
+          settings: { cloudProvider: "googleDrive" },
+        });
+        await pushed(f.screen, "Sync and backup").click();
+        const region = sync(f.screen);
+        await expect.element(region.getByText(line)).toBeVisible();
+        if (note) await expect.element(region.getByText(note)).toBeVisible();
+        expect(
+          region.getByRole("button", { name: "Reconnect" }).query() !== null,
+        ).toBe(reconnect);
+        await expect
+          .element(region.getByRole("button", { name: "Disconnect" }))
+          .toBeVisible();
+        cleanup();
+      }
+    });
+
+    it("stays Backup where the app cannot sign in to Google", async () => {
+      const { screen } = await openPhone({
+        cloud: CAN_CONNECT,
+        settings: { cloudProvider: "googleDrive" },
+      });
+      await pushed(screen, "Backup").click();
+      const backup = screen.getByRole("region", { name: "Backup" });
+      await expect.element(backup).toBeVisible();
+      expect(backup.element().textContent).not.toContain("Google");
+    });
   });
 
   it("keeps Ko-fi, the sponsor page and Netflix on a computer", async () => {

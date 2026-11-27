@@ -59,6 +59,15 @@ describe("the background on the app's shim", () => {
       .toContain(`${ORIGIN}/welcome.html`);
   });
 
+  test("sends native code the app's strings in the device's language before the setup", async () => {
+    // The test browser's language is English, whose messages need no fetch.
+    await expect.poll(() => native.nativeStrings()?.locale).toBe("en");
+    expect(native.nativeStrings()).toMatchObject({
+      dir: "ltr",
+      strings: { "app.home": "Home", "app.more": "More" },
+    });
+  });
+
   test("answers a content script before the setup", async () => {
     await expect(
       content.runtime.sendMessage({ type: "setupStatus" }),

@@ -17,15 +17,17 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import dev.langle.core.NativeStrings
 
 /**
  * The bar over a page opened from Home (mock `MobileLangleSheet`): ‹ (Home), the page's title
  * over its site (a tap edits the address), L (the Langle sheet) and ⋮. 56 dp high, white, with a
- * line under it.
+ * line under it. Its labels are the interface language's ([redraw]); Arabic mirrors it.
  */
 @SuppressLint("ViewConstructor")
 class TitleBar(
   context: Context,
+  private val strings: NativeStrings,
   mark: Bitmap?,
   private val onHome: () -> Unit,
   private val onGo: (text: String) -> Unit,
@@ -36,6 +38,9 @@ class TitleBar(
   private val title: TextView
   private val site: TextView
   private val input: EditText
+  private val back: ImageButton
+  private val langle: ImageButton
+  private val more: ImageButton
   private var address = ""
 
   val isEditing: Boolean
@@ -48,7 +53,8 @@ class TitleBar(
     setPadding(context.dp(4), context.dp(6), context.dp(4), context.dp(6) + context.dp(1))
     isClickable = true // taps on the bar stay off the page under it
 
-    addView(iconButton(R.drawable.ic_back, R.string.home) { onHome() }, square())
+    back = iconButton(R.drawable.ic_back) { onHome() }
+    addView(back, square())
     title =
       text(15f, Palette.INK).apply { typeface = SEMIBOLD }
     site = text(12f, Palette.MUTED)
@@ -58,7 +64,6 @@ class TitleBar(
         gravity = Gravity.CENTER_VERTICAL
         setPadding(context.dp(6), 0, context.dp(6), 0)
         background = context.touchFeedback(borderless = false)
-        contentDescription = context.getString(R.string.edit_address)
         addView(title)
         addView(site, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply { topMargin = context.dp(1) })
         setOnClickListener { startEditing() }
@@ -67,7 +72,6 @@ class TitleBar(
     input =
       EditText(context).apply {
         visibility = GONE
-        hint = context.getString(R.string.edit_address)
         isSingleLine = true
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
         setTextColor(Palette.INK)
@@ -93,19 +97,29 @@ class TitleBar(
         setOnFocusChangeListener { _, focused -> if (!focused) stopEditing() }
       }
     addView(input, LayoutParams(0, context.dp(40), 1f).apply { marginStart = context.dp(4) })
-    val langle =
+    langle =
       ImageButton(context).apply {
         if (mark != null) setImageBitmap(mark)
         scaleType = ImageView.ScaleType.FIT_CENTER
         setPadding(context.dp(8), context.dp(8), context.dp(8), context.dp(8))
         background = context.touchFeedback(borderless = true)
-        contentDescription = context.getString(R.string.langle)
         setOnClickListener { onLangle() }
       }
     addView(langle, square())
-    val more = iconButton(R.drawable.ic_more, R.string.more) {}
+    more = iconButton(R.drawable.ic_more) {}
     more.setOnClickListener { onMore(more) }
     addView(more, square())
+    redraw()
+  }
+
+  /** The labels and the direction in the interface language, again after each change of it. */
+  fun redraw() {
+    followDirection(strings)
+    back.contentDescription = strings["app.home"]
+    titleBox.contentDescription = strings["app.editAddress"]
+    input.hint = strings["app.editAddress"]
+    langle.contentDescription = strings["app.name"]
+    more.contentDescription = strings["app.more"]
   }
 
   /** The page's title and site; [url] when it has no title, and the address to edit. */
@@ -139,12 +153,11 @@ class TitleBar(
 
   private fun square() = LayoutParams(context.dp(44), context.dp(44))
 
-  private fun iconButton(icon: Int, description: Int, click: () -> Unit) =
+  private fun iconButton(icon: Int, click: () -> Unit) =
     ImageButton(context).apply {
       setImageResource(icon)
       imageTintList = ColorStateList.valueOf(Palette.INK)
       background = context.touchFeedback(borderless = true)
-      contentDescription = context.getString(description)
       setOnClickListener { click() }
     }
 

@@ -72,3 +72,7 @@ Changed keys:
 
 ## The browser's sync (`{syncName}`)
 `env.syncName` is "{browser} senkronizasyonu", with the browser's name filled in. Ends in the possessive -u, so suffixes take the buffer n: {syncName}na, {syncName}ndaki.
+
+## The phone app's own bars (`app.*`, M6f)
+The shells draw these themselves (tab bar, title bar, ⋮, toasts, accessibility labels); the background sends them in the interface language. The tab names are the pages' own (`app.words` = `wordlist.phoneTitle`, `app.settings` = `settings.title`), `app.search` is `home.search`, and `app.on` / `app.off` are `settings.adBlocking.on` / `.off`. `app.editAddress` is `home.search` without the site. `{reasons}` in `app.buildRefused` stays English (the manifest keys the build lacks). Second pass:
+- Home → Ana Sayfa; Langle takes its suffix with an apostrophe (Langle'ı kapat); WebView'u, read as Google's Turkish UI reads it.

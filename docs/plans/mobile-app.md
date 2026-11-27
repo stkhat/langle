@@ -794,7 +794,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking" (the user's choic
 - [x] M6d: Settings › Ad blocking, the notices and the privacy page (branch `claude/mobile-m6d`)
 - [x] M6c-ios: the same on iOS (branch `claude/mobile-m6c-ios`): checked on the Simulator, notes/mobile.md "Ad blocking on iOS (M6c-ios)"
 - [x] M6e: device checks, Android then iOS (branches `claude/mobile-m6e-android`, `claude/mobile-m6e-ios`). Android done (2026-11-27): notes/mobile.md "Device checks (M6e, Android)"; iOS done (2026-11-27): notes/mobile.md "Device checks (M6e, iOS)"
-- [ ] M6f: native strings follow the interface language (branch `claude/mobile-m6f`; the user's decision of 2026-11-27, spec "The shells (native)")
+- [x] M6f: native strings follow the interface language (branch `claude/mobile-m6f`; the user's decision of 2026-11-27, spec "The shells (native)"). Done (2026-11-27), checked on the emulator and the iPhone 17 Simulator: notes/mobile.md "Native strings (M6f, 2026-11-27)"
 
 **Running order** (at most three agents at once; one agent per step; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`; the device rules of M5's "Running order" apply):
 
@@ -875,7 +875,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app". Ev
 - [x] M7-0: the first-run Drive step, Settings › Sync and backup and the Drive lines in the mock and ui.md (the parent session; drawn 2026-11-26; reviewed and merged in #311, 2026-11-27)
 - [x] M7a: the clients and the sign-in spike (branch `claude/mobile-m7a`; 2026-11-27): both clients made; the app origin's `fetch` passes CORS for every Drive call on both shells (no fallback), the app sees the extension's files, Android Connect uses `SELECT_ACCOUNT` (no `revokeAccess`), iOS refreshes without a secret; notes/mobile.md "Drive sign-in (M7a)"
 - [x] M7b: `appHost.googleAuth`, the background's app auth and the lifecycle events (branch `claude/mobile-m7b`; 2026-11-27): `appHost.googleAuth.token`/`forget` and `app.hidden`/`app.visible` in the protocol, the shim and six new golden envelopes (TS, JUnit, XCTest pass; the routers answer "not available here"); `createAppGoogleAuth` is the app's auth half where `__langleAppInfo.googleAuth` is true (no provider in an app without it); `app.hidden` writes at once, `app.visible` checks; Home sends `cloudCheck` (Words and the sheet already did)
-- [ ] M7c: the first-run step and Settings › Sync and backup in the phone layout (branch `claude/mobile-m7c`)
+- [x] M7c: the first-run step and Settings › Sync and backup in the phone layout (branch `claude/mobile-m7c`; 2026-11-27): the Drive step, the five Sync and backup states, the first run's Drive lines, Home and the sheet, all feature-detected on `appHost.googleAuth`, rendered at 390×844 and matched to the mock; the setup lets the setup page connect after consent and reports no pair until one is chosen
 - [ ] M7d-android: the Android sign-in and lifecycle (branch `claude/mobile-m7d-android`)
 - [ ] M7d-ios: the iOS sign-in and lifecycle (branch `claude/mobile-m7d-ios`)
 - [ ] M7e: device checks, Android then iOS (branches `claude/mobile-m7e-android`, `claude/mobile-m7e-ios`)

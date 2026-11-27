@@ -118,6 +118,13 @@ class Router(val options: Options = Options(), private val persistence: Persiste
   var onShareFile: ((file: SharedFile, done: (error: String?) -> Unit) -> Unit)? = null
 
   /**
+   * `appHost.nativeStrings`: the background's strings for the shell's bars, menu and notices in
+   * the interface language (the app keeps them in its [NativeStrings]). Without it the call is
+   * still answered: a shell that draws no strings of its own has nothing to change.
+   */
+  var onNativeStrings: ((set: NativeStringSet) -> Unit)? = null
+
+  /**
    * The app's translation host and model downloads (docs/specs/mobile-translation.md "M5: the
    * hosts"): the calls in [TRANSLATION_APIS], with the context that asked (the host answers a page
    * not on screen with null at once) and the call's one argument; the app answers through `done`.
@@ -380,6 +387,11 @@ class Router(val options: Options = Options(), private val persistence: Persiste
         val file = SharedFile.from(first) ?: throw BridgeError(SharedFile.ERROR)
         val share = onShareFile ?: throw BridgeError(NO_SHARING)
         share(file) { error -> done(if (error == null) Answer.Value(null) else Answer.Failure(error)) }
+      }
+      "appHost.nativeStrings" -> {
+        val set = NativeStringSet.from(first) ?: throw BridgeError(NativeStringSet.ERROR)
+        onNativeStrings?.invoke(set)
+        done(Answer.Value(null))
       }
       in TRANSLATION_APIS -> {
         val host = onTranslation ?: throw BridgeError(notAvailable(api))

@@ -1,4 +1,5 @@
 import { appHostOf } from "../../core/app-host";
+import { createBrowserEnv } from "../../core/browser-env";
 import { send } from "../../messaging/client";
 import { getSetupStage, watchSetupStage } from "../../messaging/setup";
 import { watchPackState, watchSettings } from "../../messaging/storage";
@@ -23,6 +24,7 @@ getSetupStage()
       openSetup() {
         send({ type: "openSetup" }).catch(warn);
       },
+      googleAuth: createBrowserEnv().features.appGoogleAuth,
       now: Date.now,
       refreshMs: 5000,
     };

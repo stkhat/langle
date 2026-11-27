@@ -13,6 +13,12 @@ export interface AppHost {
    */
   shareFile(file: SharedFile): Promise<void>;
   /**
+   * Gives the shells the strings they draw themselves (their bars, ⋮, toasts and
+   * labels) in the interface language; they keep the last ones for a cold start.
+   * Sent by the background (`followNativeStrings`); missing where the shells have none.
+   */
+  nativeStrings?(set: NativeStringSet): Promise<void>;
+  /**
    * How this app's translator gets its models (mobile-translation.md "The bridge"):
    * `packs`, Langle's model packs downloaded with the pair's packs (Android); `system`,
    * the phone's own (iOS). Missing while the app has no translation host.
@@ -85,6 +91,16 @@ export interface SharedFile {
   name: string;
   mime: string;
   text: string;
+}
+
+/**
+ * `appHost.nativeStrings`: every `app.` key of en.json in `locale` (English where the
+ * locale lacks one), with the direction the shells lay their bars out in.
+ */
+export interface NativeStringSet {
+  locale: string;
+  dir: "ltr" | "rtl";
+  strings: Record<string, string>;
 }
 
 /** `appHost.translator`. */

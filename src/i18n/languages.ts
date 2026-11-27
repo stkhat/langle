@@ -15,7 +15,7 @@ export const languageName = (code: string) => {
 
 /** The language pair, as the popup and the word list show it: "English → Japanese". */
 export const languagePair = (learning: string, native: string) =>
-  t("app.languagePair", {
+  t("language.pair", {
     learning: languageName(learning),
     native: languageName(native),
   });

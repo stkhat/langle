@@ -80,3 +80,7 @@ Changed keys:
 
 ## The browser's sync (`{syncName}`)
 `env.syncName` is "{browser} の同期", with the browser's name filled in. No space between it and a following particle (「Chrome の同期に」); the switch says 保存, not 同期で同期.
+
+## The phone app's own bars (`app.*`, M6f)
+The shells draw these themselves (tab bar, title bar, ⋮, toasts, accessibility labels); the background sends them in the interface language. The tab names are the pages' own (`app.words` = `wordlist.phoneTitle`, `app.settings` = `settings.title`), `app.search` is `home.search`, and `app.on` / `app.off` are `settings.adBlocking.on` / `.off`. `app.editAddress` is `home.search` without the site. `{reasons}` in `app.buildRefused` stays English (the manifest keys the build lacks). Second pass:
+- Home → ホーム, More → その他, Forward → 進む (Chrome の表記). `app.editAddress` keeps the 読点 of `home.search`. The WebView notice is an instruction the user must follow, so ～してください.

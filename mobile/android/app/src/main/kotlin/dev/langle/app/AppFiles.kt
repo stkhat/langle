@@ -55,7 +55,7 @@ class AppFiles(private val activity: Activity) {
           .setDataAndType(uri, bare ?: UNKNOWN_TYPE)
           .putExtra(Intent.EXTRA_TITLE, file.name)
       val chooser = Intent.createChooser(send, file.name)
-      val label = activity.getString(R.string.save_to_device)
+      val label = AppStrings.of(activity)["app.saveToDevice"]
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         // Android 14+: an action of the app's own, a chip with its icon and whole label above the
         // targets (a first target would show the app's icon and name, the label cut short).

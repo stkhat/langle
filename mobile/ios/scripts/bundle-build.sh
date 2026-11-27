@@ -6,24 +6,28 @@
 #   bundle-build.sh --copy-into <dir>
 #                             Xcode's build phase: copies the staged build into the app bundle
 #
-# The staged build sits in mobile/ios/build-output/langle-app/ (git-ignored).
+# The staged build sits in mobile/ios/build-output/langle-app/ (git-ignored), and next to it
+# native-strings-en.json: the shell's built-in English, en.json's `app.` keys
+# (scripts/mobile/native-strings-en.ts), copied into the app bundle beside langle-app/.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
 ios=$(dirname "$here")
 repo=$(cd "$ios/../.." && pwd)
 staged="$ios/build-output/langle-app"
+english="$ios/build-output/native-strings-en.json"
 
 case "${1:-}" in
 --copy-into)
   dest="${2:?usage: bundle-build.sh --copy-into <dir>}"
-  if [ ! -f "$staged/manifest.json" ]; then
+  if [ ! -f "$staged/manifest.json" ] || [ ! -f "$english" ]; then
     echo "error: no langle-app build staged; run mobile/ios/scripts/bundle-build.sh first" >&2
     exit 1
   fi
   rm -rf "$dest"
   mkdir -p "$dest"
   cp -R "$staged/." "$dest/"
+  cp "$english" "$(dirname "$dest")/native-strings-en.json"
   exit 0
   ;;
 check)
@@ -43,4 +47,5 @@ esac
 rm -rf "$staged"
 mkdir -p "$staged"
 cp -R "$out/." "$staged/"
+(cd "$repo" && node scripts/mobile/native-strings-en.ts "$english")
 echo "staged $out -> $staged"

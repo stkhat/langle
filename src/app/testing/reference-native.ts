@@ -1,5 +1,6 @@
 import type {
   ModelPackRequest,
+  NativeStringSet,
   PairCodes,
   TranslateRequest,
   TranslatorStatus,
@@ -146,6 +147,7 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
   const hostWaiters = new Set<() => void>();
   const log: string[] = [];
   let started = false;
+  let nativeStrings: NativeStringSet | undefined;
   let nextTab = 1;
   let nextReply = 0;
 
@@ -472,6 +474,10 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
         log.push(`appHost.shareFile ${file.name} ${file.mime} ${file.text}`);
         return undefined;
       }
+      // The shells keep the strings and draw their bars with them.
+      case "appHost.nativeStrings":
+        nativeStrings = nativeStringSet(args[0]);
+        return undefined;
       case "appHost.translate":
       case "appHost.translatorStatus":
       case "appHost.prepareTranslator":
@@ -597,6 +603,8 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
     }),
     /** Calls with nothing to answer: `runtime.reload`, `action.openPopup`, `tabs.reload`. */
     log,
+    /** The last strings `appHost.nativeStrings` gave, which the shells draw. */
+    nativeStrings: () => nativeStrings && structuredClone(nativeStrings),
   };
 }
 
@@ -626,6 +634,29 @@ function sharedFile(value: unknown): {
   )
     throw new Error(SHARE_FILE_ERROR);
   return { name, mime, text };
+}
+
+/** The error a bad `appHost.nativeStrings` gets, the same text in all three routers. */
+export const NATIVE_STRINGS_ERROR =
+  "appHost.nativeStrings needs a locale, a direction and strings.";
+
+/**
+ * `appHost.nativeStrings`' set, checked as the shells check it before keeping it: a
+ * locale that is not empty, `ltr` or `rtl`, and strings that are all text.
+ */
+function nativeStringSet(value: unknown): NativeStringSet {
+  const { locale, dir, strings } = (value ?? {}) as Record<string, unknown>;
+  if (
+    typeof locale !== "string" ||
+    locale === "" ||
+    (dir !== "ltr" && dir !== "rtl") ||
+    typeof strings !== "object" ||
+    strings === null ||
+    Array.isArray(strings) ||
+    !Object.values(strings).every((text) => typeof text === "string")
+  )
+    throw new Error(NATIVE_STRINGS_ERROR);
+  return { locale, dir, strings: { ...(strings as Record<string, string>) } };
 }
 
 /** 1–255 UTF-16 units, not starting with a dot, with no slash, backslash or control character. */

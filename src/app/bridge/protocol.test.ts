@@ -41,6 +41,7 @@ describe("parseEnvelope", () => {
       "models-ensure.json",
       "models-progress.json",
       "models-remove.json",
+      "native-strings.json",
       "open-page.json",
       "prepare-translator.json",
       "reply-error.json",

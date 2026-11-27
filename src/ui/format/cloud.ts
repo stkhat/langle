@@ -2,6 +2,7 @@ import {
   CLOUD_PROVIDER_NAMES,
   type CloudProviderId,
 } from "../../core/cloud/provider";
+import type { BrowserEnv, SyncPlace } from "../../core/browser-env";
 import type { Settings } from "../../core/settings";
 import { t } from "../../i18n/t";
 import type { CloudStatus } from "../../messaging/protocol";
@@ -26,20 +27,45 @@ export type CloudView =
       status: CloudStatus;
     };
 
-/** Undefined until both the status and the settings are known. */
+/**
+ * The phone app (`SyncPlace` `device`), and whether its shell signs in to Google
+ * (`BrowserEnv.features.appGoogleAuth`).
+ */
+export interface AppCloud {
+  googleAuth: boolean;
+}
+
+/** `app` for `cloudView`: set only where nothing is synced (the phone app). */
+export function appCloud(env: {
+  sync: SyncPlace;
+  features: Pick<BrowserEnv["features"], "appGoogleAuth">;
+}): AppCloud | undefined {
+  return env.sync.kind === "device"
+    ? { googleAuth: env.features.appGoogleAuth }
+    : undefined;
+}
+
+/**
+ * Undefined until both the status and the settings are known. In the phone app
+ * (`app`), a provider can be connected only where its shell signs in
+ * (`appHost.googleAuth`), and "on this device too" never shows: no browser sync
+ * brings another device's choice there (mobile-app.md "M7").
+ */
 export function cloudView(
   status: CloudStatus | undefined,
   settings: Pick<Settings, "cloudProvider"> | undefined,
+  app?: AppCloud,
 ): CloudView | undefined {
   if (!status || !settings) return undefined;
   const named = (provider: CloudProviderId) => ({
     provider,
     name: CLOUD_PROVIDER_NAMES[provider],
   });
+  if (app && !app.googleAuth) return { kind: "unavailable" };
   if (status.provider)
     return { kind: "connected", ...named(status.provider), status };
   const chosen = settings.cloudProvider;
-  if (chosen !== "none" && status.available.includes(chosen))
+  if (!app && chosen !== "none" && status.available.includes(chosen))
     return { kind: "too", ...named(chosen) };
   const first = status.available[0];
   return first ? { kind: "offer", ...named(first) } : { kind: "unavailable" };
@@ -79,10 +105,12 @@ export function cloudSizeLine(
 /**
  * The red line for what stopped saving or reading ("Reconnect needed", storage full,
  * update needed); none while it works. A retry is not shown: it goes on by itself.
+ * `phone`: the phone app, which says "this phone" for "this device".
  */
 export function cloudErrorLine(
   status: Pick<CloudStatus, "error">,
   name: string,
+  phone = false,
 ): string | undefined {
   switch (status.error) {
     case "reconnect":
@@ -90,7 +118,7 @@ export function cloudErrorLine(
     case "full":
       return t("cloud.error.full", { provider: name });
     case "update":
-      return t("cloud.error.update");
+      return t(phone ? "cloud.error.updatePhone" : "cloud.error.update");
     default:
       return undefined;
   }

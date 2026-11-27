@@ -11,7 +11,19 @@ import {
   pairNote,
   type PackStatusDeps,
 } from "../../messaging/pack-status";
-import type { Counts, RecentPage, SyncStatus } from "../../messaging/protocol";
+import type { CloudProviderId } from "../../core/cloud/provider";
+import type {
+  CloudStatus,
+  Counts,
+  RecentPage,
+  SyncStatus,
+} from "../../messaging/protocol";
+import { CloudErrorRow } from "../../ui/CloudErrorRow";
+import {
+  cloudErrorLine,
+  cloudView,
+  type CloudView,
+} from "../../ui/format/cloud";
 import { fmt, formatTime, relativeTime } from "../../ui/format/format";
 import { syncSavedLine } from "../../ui/format/sync";
 import { LangleMark } from "../../ui/LangleMark";
@@ -27,6 +39,11 @@ export interface HomeDeps extends PackStatusDeps {
   openPage(url: string): void;
   /** Opens the first run, before this device is set up. */
   openSetup(): void;
+  /**
+   * `BrowserEnv.features.appGoogleAuth`: the app can sign in to Google, so the saved line
+   * can be Google Drive's.
+   */
+  googleAuth: boolean;
   now(): number;
   /** How often the counts, the saved line and the recent pages are asked again. */
   refreshMs: number;
@@ -122,20 +139,36 @@ function Pending(props: {
   );
 }
 
+const warn = (error: unknown) => console.warn("Langle:", error);
+
 function Ready({ deps }: { deps: HomeDeps }) {
   const [settings, setSettings] = useState<Settings>();
   const [counts, setCounts] = useState<Counts>();
   const [sync, setSync] = useState<SyncStatus>();
+  const [cloud, setCloud] = useState<CloudStatus>();
   const [recents, setRecents] = useState<RecentPage[]>([]);
   const [data, setData] = useState<DataNote | null>(null);
   const [now, setNow] = useState(deps.now);
 
+  function refreshCloud() {
+    if (deps.googleAuth)
+      deps.send({ type: "cloudStatus" }).then(setCloud, warn);
+  }
+
+  /** Google's sheet opens; the line follows once it is answered. */
+  function reconnect(provider: CloudProviderId) {
+    deps
+      .send({ type: "cloudConnect", provider })
+      .catch(warn)
+      .finally(refreshCloud);
+  }
+
   useEffect(() => {
-    const warn = (error: unknown) => console.warn("Langle:", error);
     let lang: string | undefined;
     const refresh = () => {
       setNow(deps.now());
       deps.send({ type: "syncStatus" }).then(setSync, warn);
+      refreshCloud();
       deps
         .send({ type: "recentsList", limit: RECENTS_ASKED })
         .then(setRecents, warn);
@@ -223,7 +256,12 @@ function Ready({ deps }: { deps: HomeDeps }) {
           />
           <CountTile value={counts?.phrases} label={t("kind.phrases")} />
         </div>
-        {sync && <SavedLine status={sync} now={now} />}
+        <SavedLines
+          sync={sync}
+          cloud={cloudView(cloud, settings, { googleAuth: deps.googleAuth })}
+          now={now}
+          onReconnect={reconnect}
+        />
       </section>
       {recents.length > 0 && (
         <Continue
@@ -354,12 +392,55 @@ function CountTile(props: {
   );
 }
 
-/** "Saved on this phone · 2 minutes ago", or "Not saved yet". */
-function SavedLine(props: { status: SyncStatus; now: number }) {
-  const { status } = props;
-  const line = syncSavedLine(status, (at) =>
-    t("popup.sync.savedDevice", { when: relativeTime(at, props.now) }),
+/**
+ * "Saved to Google Drive · 2 minutes ago" while the phone saves to the user's cloud
+ * storage (or what stopped it, with Reconnect when that helps); otherwise "Saved on this
+ * phone · 2 minutes ago", or "Not saved yet".
+ */
+function SavedLines(props: {
+  sync: SyncStatus | undefined;
+  cloud: CloudView | undefined;
+  now: number;
+  onReconnect(provider: CloudProviderId): void;
+}) {
+  const { cloud, now } = props;
+  if (cloud?.kind === "connected") {
+    const { status } = cloud;
+    if (cloudErrorLine(status, cloud.name))
+      return (
+        <CloudErrorRow
+          view={cloud}
+          now={now}
+          thisPhone
+          onReconnect={() => props.onReconnect(cloud.provider)}
+        />
+      );
+    return status.lastSavedAt === undefined ? (
+      <SavedLine line={t("sync.notSaved")} saved={false} />
+    ) : (
+      <SavedLine
+        line={t("cloud.saved", {
+          provider: cloud.name,
+          when: relativeTime(status.lastSavedAt, now),
+        })}
+        saved
+      />
+    );
+  }
+  const { sync } = props;
+  if (!sync) return null;
+  return (
+    <SavedLine
+      line={syncSavedLine(sync, (at) =>
+        t("popup.sync.savedDevice", { when: relativeTime(at, now) }),
+      )}
+      saved={sync.enabled && sync.lastSavedAt !== undefined}
+    />
   );
+}
+
+/** The saved line, with the check once something was saved. */
+function SavedLine({ line, saved }: { line: string; saved: boolean }) {
   return (
     <span
       style={{
@@ -370,7 +451,7 @@ function SavedLine(props: { status: SyncStatus; now: number }) {
         color: color.ink3,
       }}
     >
-      {status.enabled && status.lastSavedAt !== undefined && (
+      {saved && (
         <svg
           width="14"
           height="14"

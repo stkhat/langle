@@ -313,6 +313,32 @@ final class TabsTests: XCTestCase {
     XCTAssertEqual(shared.count, 2)
   }
 
+  func test_appHost_nativeStrings_keeps_a_locale_a_direction_and_text_strings_for_the_bars() {
+    let h = Harness()
+    let host = h.connect(.host)
+    let strings: JSONValue = ["app.home": "الرئيسية", "app.more": "المزيد"]
+    let set: JSONValue = ["locale": "ar", "dir": "rtl", "strings": strings]
+    // Answered without a hook too: nothing to redraw.
+    XCTAssertEqual(host.call("appHost.nativeStrings", set).value, .some(nil))
+    var taken: [NativeStringSet] = []
+    h.router.onNativeStrings = { taken.append($0) }
+    XCTAssertEqual(host.call("appHost.nativeStrings", set).value, .some(nil))
+    XCTAssertEqual(
+      taken, [NativeStringSet(locale: "ar", rtl: true, strings: ["app.home": "الرئيسية", "app.more": "المزيد"])])
+    let bad: [JSONValue] = [
+      ["locale": "", "dir": "rtl", "strings": strings],
+      ["locale": "ar", "dir": "up", "strings": strings],
+      ["locale": "ar", "dir": "rtl", "strings": ["app.home": 1]],
+      ["locale": "ar", "dir": "rtl", "strings": ["Home"]],
+      ["locale": "ar", "dir": "rtl"],
+      "ar",
+    ]
+    for value in bad {
+      XCTAssertEqual(host.call("appHost.nativeStrings", value).error, NativeStringSet.error, "\(value)")
+    }
+    XCTAssertEqual(taken.count, 1)
+  }
+
   // The sign-in comes in M7d; until then each call fails at once.
   func test_google_sign_in_is_not_available_yet() {
     let h = Harness()
