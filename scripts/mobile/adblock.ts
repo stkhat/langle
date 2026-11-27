@@ -1,6 +1,7 @@
 // Builds the phone app's ad-blocking crate (mobile/adblock/, docs/specs/mobile-app.md "M6: ad
-// blocking") for both shells: a .so per Android ABI (arm64-v8a for phones, x86_64 for x86
-// emulators) and an iOS XCFramework (device and Apple-silicon Simulator). The outputs are
+// blocking") for both shells: a .so per Android ABI (arm64-v8a and armeabi-v7a for phones,
+// x86_64 for x86 emulators and ChromeOS) and an iOS XCFramework (device and Apple-silicon
+// Simulator). The outputs are
 // git-ignored, under mobile/adblock/build/:
 //   android/jniLibs/<abi>/liblangle_adblock.so
 //   ios/LangleAdblock.xcframework   (module LangleAdblock, include/langle_adblock.h)
@@ -15,9 +16,16 @@ const CRATE = resolve(import.meta.dirname, "../../mobile/adblock");
 const OUT = join(CRATE, "build");
 const LIB = "liblangle_adblock";
 
-/** The Android ABIs and their Rust targets. */
+/**
+ * The Android ABIs and their Rust targets: every ABI an Android 10 (minSdk 29) device runs apps
+ * in, but 32-bit x86, which no phone of that age uses (notes/mobile.md "Device checks (M6e,
+ * Android)"). An APK with native libraries but none for a device's ABIs does not install there
+ * (INSTALL_FAILED_NO_MATCHING_ABIS). The app's build checks the same list
+ * (mobile/android/app/build.gradle.kts, `checkAdblockLibrary`).
+ */
 const ANDROID = {
   "arm64-v8a": "aarch64-linux-android",
+  "armeabi-v7a": "armv7-linux-androideabi",
   x86_64: "x86_64-linux-android",
 };
 /** The app's minSdk (mobile/android/app/build.gradle.kts). */

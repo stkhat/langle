@@ -6,3 +6,5 @@ A change here changes all three sides.
 
 `filter-lists.json` is not an envelope: it is the ad-blocking filter lists both shells fetch (docs/specs/mobile-app.md "M6: ad blocking"), each with its fallback URLs and licence.
 Lists marked `trusted` are parsed with the permission the trusted-* scriptlets need (`scripts/adblock-resources.ts`).
+
+`shared-links.json` is not an envelope either: the cases of `SharedLink.resolve(url?, text?)`, the address another app's Share opens (docs/specs/mobile-app.md "M8: Share → Langle"), checked by JUnit (`SharedLinkTest`) and XCTest (`SharedLinkTests`). A missing `url` or `text` is none; an `address` of `null` opens nothing.
