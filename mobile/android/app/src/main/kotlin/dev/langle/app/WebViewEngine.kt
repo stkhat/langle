@@ -187,6 +187,9 @@ private class WebViewPage(
   override val canGoForward: Boolean
     get() = web.canGoForward()
 
+  override val historyIndex: Int
+    get() = web.copyBackForwardList().currentIndex.coerceAtLeast(0)
+
   private fun makeWebView(): WebView {
     val web = WebView(context)
     // Before any other use of the WebView.

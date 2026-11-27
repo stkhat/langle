@@ -361,7 +361,7 @@ public enum PageAddress {
   private static let component = CharacterSet(
     charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()")
 
-  private static func searching(_ text: String) -> String {
+  static func searching(_ text: String) -> String {
     search + (text.addingPercentEncoding(withAllowedCharacters: component) ?? "")
   }
 
