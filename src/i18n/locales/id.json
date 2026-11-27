@@ -22,6 +22,8 @@
   "app.buildRefused": "Langle tidak bisa berjalan: {reasons}",
   "app.saveToDevice": "Simpan ke perangkat",
   "app.saveFailed": "File tidak bisa disimpan",
+  "app.shareSaved": "Tersimpan. Buka Langle untuk melihatnya.",
+  "app.done": "Selesai",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "Buka setelan",
   "action.retry": "Coba lagi",

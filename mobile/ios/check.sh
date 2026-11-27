@@ -18,6 +18,10 @@
 #   check.sh log [seconds]          the app's log for the last <seconds> (default 60)
 #   check.sh kill                   terminates the app
 #   check.sh screenshot <file.png>  saves a screenshot of the Simulator
+#   check.sh share-mode <open|saved>
+#                                   the share extension (DEBUG): open Langle (the default), or
+#                                   skip the open so its "Saved" sheet shows
+#   check.sh shared                 the app group's LangleShared folder: what is kept there
 #
 # Commands reach the app as Darwin notifications (DEBUG builds only, CheckCommands.swift);
 # results are in the unified log, subsystem dev.langle.app, category "check".
@@ -80,8 +84,23 @@ kill)
 screenshot)
   xcrun simctl io booted screenshot "${2:?usage: check.sh screenshot <file.png>}"
   ;;
+share-mode)
+  shared="$(xcrun simctl get_app_container booted "$bundle" group.dev.langle.app)/LangleShared"
+  mkdir -p "$shared"
+  case "${2:?usage: check.sh share-mode <open|saved>}" in
+  open) rm -f "$shared/share-mode.txt" ;;
+  saved) printf 'saved\n' >"$shared/share-mode.txt" ;;
+  *) echo "usage: check.sh share-mode <open|saved>" >&2; exit 2 ;;
+  esac
+  echo "share-mode=$2"
+  ;;
+shared)
+  shared="$(xcrun simctl get_app_container booted "$bundle" group.dev.langle.app)/LangleShared"
+  ls -la "$shared"
+  [ -f "$shared/shared.json" ] && cat "$shared/shared.json" && echo || echo "(no shared.json)"
+  ;;
 *)
-  sed -n '2,17p' "$0"
+  sed -n '2,24p' "$0"
   exit 2
   ;;
 esac

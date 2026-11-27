@@ -76,15 +76,12 @@ final class AppModel: ObservableObject {
   /// The filter lists' copies and the engine built from them (the list store's `adblock/`).
   static let adblockFolder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
     .appendingPathComponent("adblock")
-  /// The app group the share extension (M8) shares with the app.
-  static let appGroup = "group.dev.langle.app"
-  /// What the app keeps for its extensions too (the native strings): the app group's container,
-  /// else Application Support (a build without the group).
-  static let sharedFolder =
-    (FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
-    ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0])
-    .appendingPathComponent("LangleShared")
+  /// What the app keeps for its share extension too (the native strings), and what the extension
+  /// leaves for the app (the shared item): `LangleShared` in the app group's container.
+  static let sharedFolder = AppGroup.folder
   static let sharedStore = FilePersistence(directory: sharedFolder)
+  /// Another app's Share, kept by the share extension (docs/specs/mobile-app.md "M8").
+  static let inbox = SharedInbox(directory: sharedFolder)
   /// The built-in English, generated into the build from en.json (scripts/bundle-build.sh).
   static let english: [String: String] = {
     guard let url = Bundle.main.url(forResource: "native-strings-en", withExtension: "json"),
@@ -125,6 +122,15 @@ final class AppModel: ObservableObject {
     router.onShareFile = { file, done in FileShare.present(file, done: done) }
     router.onNativeStrings = { [weak self] set in self?.takeStrings(set) }
     shell = Shell(origin: AppSchemeHandler.origin, tabs: router.tabs)
+    // Langle was just installed: the host's `runtime.onInstalled` opens the first run, and a share
+    // waits for it. Should it not open (the host failed), the share opens anyway.
+    if router.installed == nil {
+      shell.expectFirstRun()
+      DispatchQueue.main.asyncAfter(deadline: .now() + Self.firstRunWait) { [weak self] in
+        guard let self else { return }
+        follow(shell.firstRunNotComing())
+      }
+    }
     let translationHost = TranslationHost(engine: translation, clock: DispatchClock()) {
       [weak self] spec in self?.onScreen(spec) ?? false
     }
@@ -157,6 +163,32 @@ final class AppModel: ObservableObject {
     #if DEBUG
       CheckCommands.shared.start(model: self)
     #endif
+    takeShared()
+  }
+
+  // MARK: Share → Langle
+
+  /// How long a share right after installing waits for the first run to open (as Android's).
+  private static let firstRunWait: TimeInterval = 15
+
+  /// `langle://shared` (the share extension), or any other `langle://` address: the app is in
+  /// front already; only the kept item is opened, so another app cannot open pages through it.
+  func opened(url: URL) {
+    Log.app.info("opened \(url.absoluteString, privacy: .public)")
+    takeShared()
+  }
+
+  /// The item the share extension kept (at launch, on `langle://shared` and each time the scene
+  /// becomes active): read once and opened in the one page, or held through the first run.
+  func takeShared() {
+    guard started, let item = Self.inbox.take() else { return }
+    guard let address = item.address else {
+      return Log.app.info("shared item with nothing to open")
+    }
+    Log.app.info("shared: \(address, privacy: .public)")
+    menuOpen = false
+    if sheet != nil { closeSheet() }
+    follow(shell.shared(address))
   }
 
   /// A new set from the background: kept for the next start, and every bar redraws.

@@ -292,11 +292,14 @@ export function createCloudSyncBackend({
       ? local.set({ [CLOUD_SYNC_KEY]: state })
       : local.remove(CLOUD_SYNC_KEY);
 
-  const providerOf = (s: CloudSyncState) => {
-    const provider = providers[s.provider];
-    if (!provider) throw new Error(`No provider ${s.provider}`);
-    return provider;
-  };
+  /**
+   * The connection's provider, or undefined when this build has none of that id (the
+   * phone lost Google Play services, an update dropped it): then the cloud is not used
+   * here, with no reads, writes or timers, and the status shows it as not connected.
+   * The connection is kept, so a build that has the provider again carries on.
+   */
+  const providerOf = (s: CloudSyncState): CloudProvider | undefined =>
+    providers[s.provider];
 
   /** Runs `op` with a token; a 401 renews it once without a window. */
   async function withToken<T>(
@@ -414,6 +417,7 @@ export function createCloudSyncBackend({
     const s = state;
     if (!s || s.error === "reconnect") return false;
     const provider = providerOf(s);
+    if (!provider) return false;
     const historyOn = (await settings.get()).values.cloudHistory;
     try {
       await withToken(provider, async (token) => {
@@ -506,11 +510,12 @@ export function createCloudSyncBackend({
   async function save() {
     const s = state;
     if (!s || s.error === "reconnect") return;
+    const provider = providerOf(s);
+    if (!provider) return;
     const timed = await settings.get();
     const historyOn = timed.values.cloudHistory;
     const switched = historyOn !== s.history;
     if (!s.mainPending && !s.monthsPending && !switched) return;
-    const provider = providerOf(s);
     const covered = generation;
     const device = await deviceId();
     const copy = await db.transaction(
@@ -602,7 +607,8 @@ export function createCloudSyncBackend({
         s.monthsPending ||= months;
         if (flags[0] !== s.mainPending || flags[1] !== s.monthsPending)
           await persist();
-        scheduleWrite();
+        // Without the provider the change waits in the flags for a build that has it.
+        if (providerOf(s)) scheduleWrite();
       })
       .catch((error: unknown) => console.error(error));
   }
@@ -641,7 +647,9 @@ export function createCloudSyncBackend({
   return {
     connect(id) {
       const provider = providers[id];
-      if (!provider) return Promise.reject(new Error(`No provider ${id}`));
+      // One this build does not have (a page shown before it went): nothing changes,
+      // and the status the page reads next offers what this build has.
+      if (!provider) return Promise.resolve();
       return enqueue(async () => {
         try {
           await provider.auth.token({ interactive: true });
@@ -695,7 +703,7 @@ export function createCloudSyncBackend({
       await load();
       const s = state;
       const available = CLOUD_PROVIDERS.filter((id) => providers[id]);
-      if (!s) return { available, bytes: 0, devices: 0 };
+      if (!s || !providerOf(s)) return { available, bytes: 0, devices: 0 };
       const paths = Object.keys(s.sizes);
       const status: CloudStatus = {
         available,
@@ -742,6 +750,11 @@ export function createCloudSyncBackend({
       await enqueue(async () => {
         await load();
         if (!state) return;
+        // An alarm an earlier build set would only wake the worker for nothing.
+        if (!providerOf(state)) {
+          await alarms.clear(CLOUD_CHECK_ALARM);
+          return;
+        }
         await alarms.create(CLOUD_CHECK_ALARM, {
           periodInMinutes: CHECK_PERIOD_MINUTES,
         });

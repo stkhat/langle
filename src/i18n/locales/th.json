@@ -22,6 +22,8 @@
   "app.buildRefused": "Langle ทำงานไม่ได้: {reasons}",
   "app.saveToDevice": "บันทึกลงในอุปกรณ์",
   "app.saveFailed": "บันทึกไฟล์ไม่ได้",
+  "app.shareSaved": "บันทึกแล้ว เปิด Langle เพื่อดู",
+  "app.done": "เสร็จสิ้น",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "เปิดการตั้งค่า",
   "action.retry": "ลองอีกครั้ง",

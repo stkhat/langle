@@ -161,8 +161,13 @@ class TitleBar(
       setOnClickListener { click() }
     }
 
+  /**
+   * The page's title or site: text in the page's language, so it starts at the bar's start, as on
+   * iOS, not at its own (an English title sits at the right of an Arabic bar).
+   */
   private fun text(sp: Float, color: Int) =
     TextView(context).apply {
+      textAlignment = TEXT_ALIGNMENT_VIEW_START
       setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
       setTextColor(color)
       isSingleLine = true

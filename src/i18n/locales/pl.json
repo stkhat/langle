@@ -22,6 +22,8 @@
   "app.buildRefused": "Nie można uruchomić Langle: {reasons}",
   "app.saveToDevice": "Zapisz na urządzeniu",
   "app.saveFailed": "Nie udało się zapisać pliku",
+  "app.shareSaved": "Zapisano. Otwórz Langle, aby to zobaczyć.",
+  "app.done": "Gotowe",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "Otwórz ustawienia",
   "action.retry": "Ponów",

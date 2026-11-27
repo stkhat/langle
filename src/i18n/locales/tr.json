@@ -22,6 +22,8 @@
   "app.buildRefused": "Langle çalışamıyor: {reasons}",
   "app.saveToDevice": "Cihaza kaydet",
   "app.saveFailed": "Dosya kaydedilemedi",
+  "app.shareSaved": "Kaydedildi. Görmek için Langle'ı açın.",
+  "app.done": "Bitti",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "Ayarları aç",
   "action.retry": "Yeniden dene",

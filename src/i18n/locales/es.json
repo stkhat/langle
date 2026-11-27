@@ -22,6 +22,8 @@
   "app.buildRefused": "Langle no puede ejecutarse: {reasons}",
   "app.saveToDevice": "Guardar en el dispositivo",
   "app.saveFailed": "No se pudo guardar el archivo",
+  "app.shareSaved": "Guardado. Abre Langle para verlo.",
+  "app.done": "Listo",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "Abrir configuración",
   "action.retry": "Reintentar",
