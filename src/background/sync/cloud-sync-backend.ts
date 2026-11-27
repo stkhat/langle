@@ -9,6 +9,7 @@
  * account's address, and the status. Tokens are the auth half's, never here.
  */
 import { browser } from "wxt/browser";
+import type { AppHost } from "../../core/app-host";
 import {
   encodeFile,
   decodeFile,
@@ -127,6 +128,12 @@ export interface CloudSyncBackendOptions {
   local?: LocalArea;
   /** Defaults to `browser.alarms`. */
   alarms?: Alarms;
+  /**
+   * The phone app's lifecycle (`appHost`; mobile-app.md "M7"): alarms run only while the
+   * app does, so going to the background does the pending writes now, and coming back
+   * reads the other devices' files.
+   */
+  lifecycle?: Pick<AppHost, "onHidden" | "onVisible">;
   now?: () => number;
   timers?: Timers;
   /** The merge's limits (tests make them small). */
@@ -249,6 +256,7 @@ export function createCloudSyncBackend({
   browserSync,
   local = browser.storage.local,
   alarms = browser.alarms,
+  lifecycle,
   now = Date.now,
   timers = globalThis,
   limits = {},
@@ -613,6 +621,16 @@ export function createCloudSyncBackend({
     if (alarm.name === CLOUD_CHECK_ALARM) requestCheck();
   };
 
+  /** The app went to the background: the writes waiting for their 30 s are done now. */
+  function flush(): Promise<void> {
+    timers.clearTimeout(writeTimer);
+    writeTimer = undefined;
+    return enqueue(async () => {
+      await load();
+      await save();
+    });
+  }
+
   function cancelTimers() {
     timers.clearTimeout(writeTimer);
     timers.clearTimeout(retryTimer);
@@ -713,6 +731,9 @@ export function createCloudSyncBackend({
         }),
         history.onChange((kind) => pending(kind === "forgotten", true)),
         settings.watch(() => pending(true, false)),
+        ...(lifecycle
+          ? [lifecycle.onHidden(flush), lifecycle.onVisible(requestCheck)]
+          : []),
       ];
       unsubscribe = () => {
         alarms.onAlarm.removeListener(onAlarm);

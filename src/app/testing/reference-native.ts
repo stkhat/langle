@@ -484,6 +484,10 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
       case "appHost.models.ensure":
       case "appHost.models.remove":
         return translation(context, api, args[0]);
+      // The shells fill the slot in M7d; until then, as here, it is not available.
+      case "appHost.googleAuth.token":
+      case "appHost.googleAuth.forget":
+        throw new Error(notAvailable(api));
       case "alarms.create": {
         const [name, info] = (
           typeof args[0] === "string" ? args : ["", args[0]]

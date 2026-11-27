@@ -10,6 +10,8 @@ export interface AppInfo {
   manifest: Record<string, unknown>;
   /** How the app's translator gets its models (`appHost.translator`); none without a host. */
   translator?: AppTranslator;
+  /** Whether the shell can sign in to Google (`appHost.googleAuth`). */
+  googleAuth?: boolean;
 }
 
 type SendResponse = (response?: unknown) => void;

@@ -1,0 +1,7 @@
+{
+  "v": 1,
+  "kind": "reply",
+  "id": "c10",
+  "ok": true,
+  "value": { "token": "ya29.new-token", "expiresAt": 1764240000000 }
+}

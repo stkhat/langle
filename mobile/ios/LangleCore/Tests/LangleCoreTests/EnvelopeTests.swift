@@ -15,6 +15,7 @@ func repoFile(_ path: String) throws -> String {
 final class EnvelopeTests: XCTestCase {
   let golden = ["call", "hello", "reply-ok", "reply-error", "event", "event-reply", "open-page", "get-current", "share-file", "native-strings",
     "translate", "translator-status", "prepare-translator", "models-ensure", "models-remove", "models-progress",
+    "google-auth-token", "google-auth-token-reply", "google-auth-cancelled", "google-auth-forget", "app-hidden", "app-visible",
   ]
 
   func test_parses_and_produces_every_golden_envelope() throws {

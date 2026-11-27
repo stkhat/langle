@@ -41,7 +41,7 @@
 - [x] M8 designed (2026-11-26, with the user): spec [mobile-app.md](../specs/mobile-app.md) "M8: Share → Langle" (Share only on both platforms, no Open with; on iOS the extension opens Langle through the responder chain, its sheet only when that fails: the user's choice of 2026-11-27)
 - [x] M8-0: the extension's sheet (`MobileShareSaved`) in the mock and ui.md (2026-11-27)
 - [x] M8a: `SharedLink` and the Android shell (branch `claude/mobile-m8a`): checked on the emulator, notes/mobile.md "Device checks (M8a, Android)"
-- [ ] M8b-0: the spike: a share extension opening its app on the iOS 26.4 and 27 Simulators
+- [x] M8b-0 (`claude/mobile-m8b-0`, 2026-11-27): the spike: a share extension opening its app. Works on the iOS 27.2 Simulator (the only runtime installed): the responder-chain open brought the app to the front in all 7 runs (Safari article and YouTube, Reminders text; running or killed); `NSExtensionContext.open` always false; the App Group hand-off works with ad-hoc Simulator signing. Notes: [mobile.md](../notes/mobile.md) "Share extension spike (M8b-0)"
 - [ ] M8b: the iOS share extension
 - [ ] M9 (release checks), on a real iPhone, last (the user's decision of 2026-11-26: every milestone that needs no real device comes first): Apple's consent sheet (declined once for the Language data row's state, then accepted), a tapped word's English definition translated, the subtitles translated on the device with `refuseTlang` on, translate-ahead and the cards, the lists without starting the engine, the release after 60 s and on leaving the app, speed, and the quality of Apple's traditional models (notes/mobile.md "Open issues and risks" 4). The device tooling for it is on the local branch `claude/mobile-m6` (not pushed): `check.sh`'s `LANGLE_DEVICE` / `LANGLE_TEAM`, `Documents/check.log`, `-translateStrategy lowLatency`, `cmd translate-set`
 
@@ -874,7 +874,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app". Ev
 - [x] M7 designed (2026-11-26, with the user): spec "M7"
 - [x] M7-0: the first-run Drive step, Settings › Sync and backup and the Drive lines in the mock and ui.md (the parent session; drawn 2026-11-26; reviewed and merged in #311, 2026-11-27)
 - [x] M7a: the clients and the sign-in spike (branch `claude/mobile-m7a`; 2026-11-27): both clients made; the app origin's `fetch` passes CORS for every Drive call on both shells (no fallback), the app sees the extension's files, Android Connect uses `SELECT_ACCOUNT` (no `revokeAccess`), iOS refreshes without a secret; notes/mobile.md "Drive sign-in (M7a)"
-- [ ] M7b: `appHost.googleAuth`, the background's app auth and the lifecycle events (branch `claude/mobile-m7b`)
+- [x] M7b: `appHost.googleAuth`, the background's app auth and the lifecycle events (branch `claude/mobile-m7b`; 2026-11-27): `appHost.googleAuth.token`/`forget` and `app.hidden`/`app.visible` in the protocol, the shim and six new golden envelopes (TS, JUnit, XCTest pass; the routers answer "not available here"); `createAppGoogleAuth` is the app's auth half where `__langleAppInfo.googleAuth` is true (no provider in an app without it); `app.hidden` writes at once, `app.visible` checks; Home sends `cloudCheck` (Words and the sheet already did)
 - [ ] M7c: the first-run step and Settings › Sync and backup in the phone layout (branch `claude/mobile-m7c`)
 - [ ] M7d-android: the Android sign-in and lifecycle (branch `claude/mobile-m7d-android`)
 - [ ] M7d-ios: the iOS sign-in and lifecycle (branch `claude/mobile-m7d-ios`)

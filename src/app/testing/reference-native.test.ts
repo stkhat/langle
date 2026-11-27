@@ -408,6 +408,17 @@ describe("tabs", () => {
     expect(native.nativeStrings()).toEqual(set);
   });
 
+  test("Google sign-in is not available until the shells fill it (M7d)", async () => {
+    const { connect } = setup();
+    const host = connect({ kind: "host" });
+    await expect(
+      host.bridge.call("appHost.googleAuth.token", { interactive: true }),
+    ).rejects.toThrow("appHost.googleAuth.token is not available here.");
+    await expect(host.bridge.call("appHost.googleAuth.forget")).rejects.toThrow(
+      "appHost.googleAuth.forget is not available here.",
+    );
+  });
+
   test("the translation calls go to the app's translation host, and are not available without one", async () => {
     const pair = { from: "en", to: "ja" };
     const calls = [

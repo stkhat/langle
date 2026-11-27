@@ -26,11 +26,17 @@ describe("parseEnvelope", () => {
 
   test("has every kind of envelope among the golden files", () => {
     expect(golden.map(({ file }) => file).sort()).toEqual([
+      "app-hidden.json",
+      "app-visible.json",
       "bad-version.json",
       "call.json",
       "event-reply.json",
       "event.json",
       "get-current.json",
+      "google-auth-cancelled.json",
+      "google-auth-forget.json",
+      "google-auth-token-reply.json",
+      "google-auth-token.json",
       "hello.json",
       "models-ensure.json",
       "models-progress.json",

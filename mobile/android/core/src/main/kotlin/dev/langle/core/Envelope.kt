@@ -50,6 +50,15 @@ val CALL_APIS: Set<String> =
     "appHost.prepareTranslator",
     "appHost.models.ensure",
     "appHost.models.remove",
+    "appHost.googleAuth.token",
+    "appHost.googleAuth.forget",
+  )
+
+/** Google sign-in for Drive sync (docs/specs/mobile-app.md "M7"); not available until M7d fills it. */
+val GOOGLE_AUTH_APIS: Set<String> =
+  linkedSetOf(
+    "appHost.googleAuth.token",
+    "appHost.googleAuth.forget",
   )
 
 /** The calls the app's translation host and model downloads answer (`Router.onTranslation`). */
@@ -74,6 +83,8 @@ val EVENT_APIS: Set<String> =
     "storage.onChanged",
     "alarms.onAlarm",
     "appHost.models.onProgress",
+    "app.hidden",
+    "app.visible",
   )
 
 /** Why a text is not an envelope (the TS side's words). */

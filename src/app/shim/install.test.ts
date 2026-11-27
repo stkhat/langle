@@ -199,6 +199,87 @@ describe("installShim", () => {
     expect(heard).toEqual([progress]);
   });
 
+  test("appHost.googleAuth is there only when the app said it can sign in", () => {
+    installShim(fakeBridge().bridge, INFO);
+    expect(appHostOf()!.googleAuth).toBeUndefined();
+    installShim(fakeBridge().bridge, { ...INFO, googleAuth: true });
+    expect(appHostOf()!.googleAuth).toBeDefined();
+  });
+
+  test("appHost.googleAuth's calls pass the request and read native code's answer", async () => {
+    const answers: unknown[] = [
+      { token: "ya29.a", expiresAt: 1_764_240_000_000 },
+      { error: "cancelled" },
+      { error: "retry" },
+      { error: "something else" },
+      { token: "", expiresAt: 1 },
+      undefined,
+    ];
+    const native = fakeBridge((api) =>
+      api === "appHost.googleAuth.token" ? answers.shift() : undefined,
+    );
+    installShim(native.bridge, { ...INFO, googleAuth: true });
+    const auth = appHostOf()!.googleAuth!;
+    await expect(auth.token({ interactive: true })).resolves.toEqual({
+      token: "ya29.a",
+      expiresAt: 1_764_240_000_000,
+    });
+    await expect(
+      auth.token({ interactive: false, refused: "ya29.a" }),
+    ).resolves.toEqual({ error: "cancelled" });
+    await expect(auth.token({ interactive: false })).resolves.toEqual({
+      error: "retry",
+    });
+    // Anything else is no token.
+    for (let i = 0; i < 3; i++)
+      await expect(auth.token({ interactive: false })).resolves.toEqual({
+        error: "unauthorized",
+      });
+    await auth.forget();
+    expect(native.calls).toEqual([
+      { api: "appHost.googleAuth.token", args: [{ interactive: true }] },
+      {
+        api: "appHost.googleAuth.token",
+        args: [{ interactive: false, refused: "ya29.a" }],
+      },
+      ...Array.from({ length: 4 }, () => ({
+        api: "appHost.googleAuth.token",
+        args: [{ interactive: false }],
+      })),
+      { api: "appHost.googleAuth.forget", args: [] },
+    ]);
+  });
+
+  test("app.hidden is answered once every listener is done; app.visible reaches its listeners", async () => {
+    const native = fakeBridge();
+    installShim(native.bridge, INFO);
+    const app = appHostOf()!;
+    const heard: string[] = [];
+    let finish = () => {};
+    const stopHidden = app.onHidden(
+      () =>
+        new Promise<void>((resolve) => {
+          heard.push("hidden");
+          finish = () => {
+            heard.push("written");
+            resolve();
+          };
+        }),
+    );
+    const stopVisible = app.onVisible(() => heard.push("visible"));
+    const answered = native.emit("app.hidden").then(() => heard.push("answer"));
+    await Promise.resolve();
+    expect(heard).toEqual(["hidden"]);
+    finish();
+    await answered;
+    await native.emit("app.visible");
+    stopHidden();
+    stopVisible();
+    await native.emit("app.hidden");
+    await native.emit("app.visible");
+    expect(heard).toEqual(["hidden", "written", "answer", "visible"]);
+  });
+
   test("appHost.translator is what the app said, and missing when it said nothing", () => {
     installShim(fakeBridge().bridge, INFO);
     expect(appHostOf()!.translator).toBeUndefined();

@@ -54,6 +54,8 @@ public enum Envelope: Equatable, Sendable {
     "appHost.prepareTranslator",
     "appHost.models.ensure",
     "appHost.models.remove",
+    "appHost.googleAuth.token",
+    "appHost.googleAuth.forget",
   ]
 
   /// What native code tells a script (protocol.ts `EVENT_APIS`).
@@ -64,6 +66,8 @@ public enum Envelope: Equatable, Sendable {
     "storage.onChanged",
     "alarms.onAlarm",
     "appHost.models.onProgress",
+    "app.hidden",
+    "app.visible",
   ]
 
   private static let callSet = Set(callApis)
