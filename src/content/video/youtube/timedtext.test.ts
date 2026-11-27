@@ -4,6 +4,7 @@ import { youtubeCaptionInfo } from "../../../core/subtitles/youtube-json3";
 import { refreshedPlayerResponse } from "../../../../tests/fake-youtube-player";
 import {
   autoTranslateCode,
+  lacksToken,
   pickOriginalTrack,
   sameResponse,
   trackUrl,
@@ -144,5 +145,18 @@ describe("autoTranslateCode", () => {
     expect(
       autoTranslateCode(info, { ...en, translatable: false }, "ja"),
     ).toBeUndefined();
+  });
+});
+
+describe("lacksToken", () => {
+  const T = "https://www.youtube.com/api/timedtext?v=x&lang=en&fmt=json3";
+  it("is true for a request whose baseUrl asks for the PO token and that has none", () => {
+    expect(lacksToken(`${T}&exp=xpo,xwmhp,xpe`)).toBe(true);
+    expect(lacksToken(`${T}&exp=xpe&pot=`)).toBe(true);
+  });
+  it("is false with the token, or when the baseUrl asks for none", () => {
+    expect(lacksToken(`${T}&exp=xpe&potc=1&pot=TOKEN`)).toBe(false);
+    expect(lacksToken(T)).toBe(false);
+    expect(lacksToken(`${T}&exp=xpo`)).toBe(false);
   });
 });
