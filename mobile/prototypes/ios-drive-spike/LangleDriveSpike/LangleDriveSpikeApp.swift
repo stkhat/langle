@@ -139,7 +139,20 @@ final class Spike: NSObject, ObservableObject, WKScriptMessageHandler, ASWebAuth
     let text = message.body as? String ?? ""
     MainActor.assumeIsolated {
       let what = (try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])?["what"] as? String ?? "js"
-      log.info("M7A js.\(what, privacy: .public) \(text, privacy: .public)")
+      // The unified log cuts long lines: one line per step.
+      if let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
+        let steps = object["steps"] as? [[String: Any]]
+      {
+        for step in steps {
+          var short = step
+          short["paths"] = nil
+          short["sizes"] = nil
+          let data = (try? JSONSerialization.data(withJSONObject: short, options: [.sortedKeys])) ?? Data()
+          log.info("M7A js.\(what, privacy: .public).step \(String(decoding: data, as: UTF8.self), privacy: .public)")
+        }
+      } else {
+        log.info("M7A js.\(what, privacy: .public) \(text, privacy: .public)")
+      }
       lines = "js.\(what) \(text)\n\n" + lines.prefix(4000)
       if what == "loaded" {
         isLoaded = true
