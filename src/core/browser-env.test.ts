@@ -31,6 +31,14 @@ describe("createBrowserEnv", () => {
     });
   });
 
+  it("leaves the phone app without the browser store's review page", () => {
+    const appHost = { openPage: () => {} };
+    expect(createBrowserEnv("chrome", {}).reviewUrl).toMatch(
+      /^https:\/\/chromewebstore\.google\.com\//,
+    );
+    expect(createBrowserEnv("chrome", { appHost }).reviewUrl).toBe("");
+  });
+
   it("defaults to the build target", () => {
     expect(createBrowserEnv().name).toBe(
       import.meta.env.BROWSER === "firefox" ? "Firefox" : "Chrome",

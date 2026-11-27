@@ -17,7 +17,7 @@ Mock approved by the user 2026-11-21 (`Toolbar`, `Settings`, `WordList` with its
 - [x] Word list sponsor spot (sponsor, affiliate, open)
 - [x] Browser tests for each; screenshots compared with the mock in light and dark
 - [x] Docs: ui.md, architecture.md (Ads), status.md "Before publishing"
-- [ ] The user's accounts and pages (below), then their URLs in `links.ts` and `REVIEW_URLS`
+- [ ] The user's accounts and pages (below), then their URLs in `links.ts` and `REVIEW_URLS`: Ko-fi and the Chrome Web Store reviews page done 2026-11-28; the feedback form deferred
 - [ ] A first sponsor or affiliate card in `SPONSOR_CARD`, with its logo under `public/sponsors/`
 
 ## The user's tasks
