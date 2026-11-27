@@ -61,7 +61,14 @@ export function createBrowserEnv(
       "appHost" in g
         ? { kind: "device" }
         : { kind: "browser", browser: firefox ? "Firefox" : "Chrome" },
-    reviewUrl: firefox ? REVIEW_URLS.firefoxAddOns : REVIEW_URLS.chromeWebStore,
+    // The phone app is rated in its own app stores, whose pages come with its release;
+    // until then its Rate is hidden.
+    reviewUrl:
+      "appHost" in g
+        ? ""
+        : firefox
+          ? REVIEW_URLS.firefoxAddOns
+          : REVIEW_URLS.chromeWebStore,
     features: {
       fileSystemAccess: "showDirectoryPicker" in g,
       appHost: "appHost" in g,
