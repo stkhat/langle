@@ -217,6 +217,79 @@ final class ShellScreensTests: XCTestCase {
   }
 }
 
+/// Another app's Share (docs/specs/mobile-app.md "M8: Share → Langle", "Opening it").
+final class ShellSharedTests: XCTestCase {
+  private let article = "https://en.wikipedia.org/wiki/Language"
+
+  func test_a_share_opens_in_the_one_page() {
+    let (shell, tabs) = makeShell()
+    XCTAssertEqual(shell.shared(video), .loadPage(video))
+    XCTAssertEqual(shell.screen, .page)
+    XCTAssertEqual(tabs.active?.id, shell.browsingTab)
+    XCTAssertEqual(shell.shared(article), .loadPage(article))
+    XCTAssertNil(shell.heldShare)
+  }
+
+  func test_sharing_the_kept_page_shows_it_without_a_load() {
+    let (shell, _) = makeShell()
+    _ = shell.open(video)
+    shell.home()
+    XCTAssertEqual(shell.shared(video + "#comments"), .show(.page))
+    XCTAssertEqual(shell.screen, .page)
+  }
+
+  func test_a_share_right_after_installing_waits_for_the_first_run_and_opens_when_it_closes() {
+    let (shell, tabs) = makeShell()
+    shell.expectFirstRun()
+    XCTAssertEqual(shell.shared(article), .nothing)
+    XCTAssertEqual(shell.screen, .tab(.home))
+    _ = shell.handle(created(tabs, welcome))
+    let welcomeTab = tabs.active!
+    // A newer share replaces the waiting one.
+    XCTAssertEqual(shell.shared(video), .nothing)
+    XCTAssertEqual(shell.heldShare, video)
+    XCTAssertEqual(shell.screen, .firstRun)
+    // Start: the tab it came from shows, then the setup's tab closes.
+    XCTAssertEqual(shell.handle(.activateTab(tabs.get(shell.tabId(.home))!)), .nothing)
+    tabs.remove(welcomeTab.id)
+    XCTAssertEqual(shell.handle(.closeTab(welcomeTab)), .loadPage(video))
+    XCTAssertFalse(shell.firstRunOpen)
+    XCTAssertNil(shell.heldShare)
+    XCTAssertEqual(shell.screen, .page)
+    XCTAssertEqual(tabs.active?.id, shell.browsingTab)
+  }
+
+  func test_a_share_waits_for_a_first_run_open_on_another_screen_too() {
+    let (shell, tabs) = makeShell()
+    _ = shell.handle(created(tabs, welcome))
+    let welcomeTab = tabs.active!
+    XCTAssertEqual(shell.shared(video), .nothing)
+    // The first run leaving for Settings (the device set up already) ends it: the share opens.
+    XCTAssertEqual(shell.committed(tab: welcomeTab.id, url: settings), .loadPage(video))
+    XCTAssertEqual(shell.screen, .page)
+  }
+
+  func test_a_share_waits_only_while_a_first_run_is_open_or_about_to_open() {
+    let (shell, _) = makeShell()
+    shell.expectFirstRun()
+    XCTAssertEqual(shell.shared(video), .nothing)
+    XCTAssertEqual(shell.firstRunNotComing(), .loadPage(video))
+    XCTAssertNil(shell.heldShare)
+    XCTAssertEqual(shell.shared(article), .loadPage(article))
+    XCTAssertEqual(shell.firstRunNotComing(), .nothing)
+  }
+
+  func test_the_first_run_opening_late_still_holds_the_share_until_it_closes() {
+    let (shell, tabs) = makeShell()
+    shell.expectFirstRun()
+    _ = shell.handle(created(tabs, welcome))
+    XCTAssertEqual(shell.shared(video), .nothing)
+    // The wait for the first run ran out while it was open: the share still waits for it.
+    XCTAssertEqual(shell.firstRunNotComing(), .nothing)
+    XCTAssertEqual(shell.heldShare, video)
+  }
+}
+
 final class ShellBackTests: XCTestCase {
   func test_back_goes_through_the_history_then_Home() {
     let (shell, tabs) = makeShell()

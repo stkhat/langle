@@ -22,6 +22,8 @@
   "app.buildRefused": "Langle kann nicht ausgeführt werden: {reasons}",
   "app.saveToDevice": "Auf dem Gerät speichern",
   "app.saveFailed": "Die Datei konnte nicht gespeichert werden",
+  "app.shareSaved": "Gespeichert. Öffnen Sie Langle, um es zu sehen.",
+  "app.done": "Fertig",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "Einstellungen öffnen",
   "action.retry": "Wiederholen",

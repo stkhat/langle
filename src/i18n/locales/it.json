@@ -22,6 +22,8 @@
   "app.buildRefused": "Impossibile eseguire Langle: {reasons}",
   "app.saveToDevice": "Salva sul dispositivo",
   "app.saveFailed": "Impossibile salvare il file",
+  "app.shareSaved": "Salvato. Apri Langle per vederlo.",
+  "app.done": "Fine",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "Apri impostazioni",
   "action.retry": "Riprova",

@@ -22,6 +22,8 @@
   "app.buildRefused": "Langle 无法运行：{reasons}",
   "app.saveToDevice": "保存到设备",
   "app.saveFailed": "无法保存文件",
+  "app.shareSaved": "已保存。打开 Langle 即可查看。",
+  "app.done": "完成",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "打开设置",
   "action.retry": "重试",

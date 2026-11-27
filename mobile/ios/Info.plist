@@ -2,6 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- langle://shared: the share extension brings the app to the front (docs/specs/mobile-app.md "M8"). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>dev.langle.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>langle</string>
+			</array>
+		</dict>
+	</array>
 	<!-- A browser: web pages load over http too (the E2E pages on localhost, older sites). -->
 	<key>NSAppTransportSecurity</key>
 	<dict>

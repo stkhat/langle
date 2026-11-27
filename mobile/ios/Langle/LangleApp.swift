@@ -16,10 +16,14 @@ struct LangleApp: App {
     WindowGroup {
       ShellView(model: model)
         .task { await model.start() }
+        .onOpenURL { model.opened(url: $0) }
     }
     .onChange(of: scenePhase) { _, phase in
       if phase == .background { model.leftScreen() }
-      if phase == .active { model.cameOnScreen() }
+      if phase == .active {
+        model.cameOnScreen()
+        model.takeShared()
+      }
     }
   }
 }

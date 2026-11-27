@@ -71,6 +71,10 @@ public final class Shell {
   private var tabIds: [AppTab: Int] = [:]
   private var firstRunTab: Int?
   private var sheetTabs: Set<Int> = []
+  /// A shared address waiting for the first run to close (one at most: a newer share replaces it).
+  public private(set) var heldShare: String?
+  /// A first run is about to open (Langle was just installed): a share waits for it.
+  private var firstRunExpected = false
 
   public init(origin: String, tabs: Tabs) {
     self.origin = origin
@@ -110,6 +114,40 @@ public final class Shell {
     return .loadPage(url)
   }
 
+  /// Another app's Share (docs/specs/mobile-app.md "M8: Share → Langle"): `url` in the one page,
+  /// shown without a load when it is the page kept. Before the first run is done it waits, and
+  /// opens once the first run closes.
+  public func shared(_ url: String) -> ShellStep {
+    if firstRunTab != nil || firstRunExpected {
+      heldShare = url
+      return .nothing
+    }
+    return openShared(url)
+  }
+
+  /// Langle was just installed: the first run is about to open, and a share waits for it.
+  public func expectFirstRun() { firstRunExpected = true }
+
+  /// The first run did not open after all: a share that waited for it opens.
+  public func firstRunNotComing() -> ShellStep {
+    firstRunExpected = false
+    return firstRunTab == nil ? releaseShare() ?? .nothing : .nothing
+  }
+
+  private func openShared(_ url: String) -> ShellStep {
+    if hasPage, PageTitle.samePage(pageURL, url) {
+      show(.page)
+      return .show(.page)
+    }
+    return open(url)
+  }
+
+  private func releaseShare() -> ShellStep? {
+    guard let url = heldShare else { return nil }
+    heldShare = nil
+    return openShared(url)
+  }
+
   /// A tab's page committed a new document. The first run's page leaving for a screen of its
   /// own (Settings, when the device was set up already) ends the first run there; a tab's page
   /// going to the first run (before setup) shows it in its own tab instead
@@ -126,7 +164,7 @@ public final class Shell {
     tabs.remove(id)
     firstRunTab = nil
     show(.tab(tab))
-    return .showTab(tab, load: nil)
+    return releaseShare() ?? .showTab(tab, load: nil)
   }
 
   /// `canonical` is the kept page's `rel=canonical` address, when `asksCanonical` said to ask
@@ -166,6 +204,7 @@ public final class Shell {
     }
     if path(of: tab.url) == "/welcome.html" {
       firstRunTab = tab.id
+      firstRunExpected = false
       show(.firstRun)
       return .startFirstRun(url: tab.url, tabId: tab.id)
     }
@@ -216,7 +255,7 @@ public final class Shell {
     if tab.id == firstRunTab {
       firstRunTab = nil
       show(.tab(.home))
-      return .endFirstRun
+      return releaseShare() ?? .endFirstRun
     }
     if sheetTabs.remove(tab.id) != nil { return .closeAppSheet(tabId: tab.id) }
     return .nothing
@@ -228,6 +267,7 @@ public final class Shell {
     if firstRunTab == nil {
       let id = tabs.open(url: url, active: false).id
       firstRunTab = id
+      firstRunExpected = false
       opened = id
     }
     show(.firstRun)

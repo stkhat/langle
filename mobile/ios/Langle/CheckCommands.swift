@@ -71,7 +71,7 @@
         case "state":
           let tabs = model.router.tabs.all.map { "\($0.id)\($0.active ? "*" : "") \($0.url)" }
           say(
-            "state screen=\(model.screen) title=\"\(model.title)\" site=\"\(model.site)\" bar=\(model.barShown) back=\(model.canGoBack) host=\(model.host?.isReady ?? false) tabs=[\(tabs.joined(separator: ", "))] sheet=\(model.sheet?.context.page.url?.absoluteString ?? "none") page=\(model.browsing.page.url?.absoluteString ?? "none") fullscreen=\(model.fullscreen) \(Orientation.current)"
+            "state screen=\(model.screen) title=\"\(model.title)\" site=\"\(model.site)\" bar=\(model.barShown) back=\(model.canGoBack) host=\(model.host?.isReady ?? false) tabs=[\(tabs.joined(separator: ", "))] sheet=\(model.sheet?.context.page.url?.absoluteString ?? "none") page=\(model.browsing.page.url?.absoluteString ?? "none") fullscreen=\(model.fullscreen) held=\(model.shell.heldShare ?? "none") \(Orientation.current)"
           )
         case "translate-state":
           say("translate-state \(model.translationState)")
