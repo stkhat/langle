@@ -636,7 +636,10 @@ describe("loading captions", () => {
   it("warns when the player makes no request after every ask", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     cleanups.push(() => warn.mockRestore());
-    start({ requestDelayMs: 60_000 }, { captureTimeoutMs: 200 });
+    start(
+      { requestDelayMs: 60_000 },
+      { captureTimeoutMs: 200, lateRequestWaitMs: 300 },
+    );
     expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
     expect(page.player.fake.setOption).toHaveLength(3);
     expect(warn).toHaveBeenCalledWith(
@@ -644,6 +647,36 @@ describe("loading captions", () => {
         `made no caption request for ${VIDEO_ID} after 3 asks`,
       ),
     );
+  });
+
+  it("takes a request the player makes long after its last ask (a busy phone)", async () => {
+    // m.youtube.com on a busy Android emulator: the request came about 70 s after
+    // Langle's first ask (docs/notes/youtube-captions.md "Late requests on a busy phone").
+    start(
+      { requestDelayMs: 1500 },
+      { captureTimeoutMs: 200, lateRequestWaitMs: 5000 },
+    );
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(page.player.fake.setOption).toHaveLength(3);
+  });
+
+  it("asks again when the page leaves an ask unanswered (a busy phone)", async () => {
+    start({}, { callTimeoutMs: 300 });
+    const held = holdBackPageCalls({
+      toPage: CHANNEL.toPage,
+      type: "loadTrack",
+      count: 1,
+      reinstall() {
+        uninstall();
+        uninstall = installYouTubeHooks();
+      },
+    });
+    cleanups.push(held.remove);
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(held.held()).toBe(1);
+    expect(held.calls.length).toBeGreaterThan(1);
   });
 
   it("asks for an auto-generated track at once, which the player lists only with includeAsr", async () => {
@@ -657,7 +690,11 @@ describe("loading captions", () => {
     const captions = await adapter.loadCaptions(REQUEST);
     expect(captions?.track.id).toBe("a.en");
     expect(Date.now() - begun).toBeLessThan(2000);
-    expect(page.player.fake.setOption).toHaveLength(1);
+    // Every ask is for the ASR track. (The fixtures have no `tlang=ja` of it, so a
+    // second load can follow the empty translation: not what this test is about.)
+    expect(page.player.fake.setOption.length).toBeGreaterThan(0);
+    for (const [, , track] of page.player.fake.setOption)
+      expect(track).toMatchObject({ kind: "asr", languageCode: "en" });
   });
 
   it("asks now and then while the player lists no tracks, and takes a track it took", async () => {

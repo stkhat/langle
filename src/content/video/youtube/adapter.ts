@@ -16,6 +16,7 @@ import {
 import {
   createPageBridge,
   NETWORK_CALL_TIMEOUT_MS,
+  NoAnswerError,
   retryNetworkCall,
 } from "../page-channel";
 import { createRecent } from "../recent";
@@ -56,6 +57,8 @@ export interface YouTubeAdapterOptions {
   unlistedAskEveryMs?: number;
   /** How long to wait for a request with the PO token after one without it. */
   tokenWaitMs?: number;
+  /** How long to keep listening for the player's request after the last ask. */
+  lateRequestWaitMs?: number;
   /** How long to wait for the player response once the player has loaded media. */
   playerResponseTimeoutMs?: number;
   /** How long to wait for the player response in all. */
@@ -107,8 +110,17 @@ const UNLISTED_ASK_EVERY_MS = 10_000;
  * "Device checks (M6e, Android)").
  */
 const TOKEN_WAIT_MS = 90_000;
+/**
+ * How long to keep listening for the player's request after the last ask, asking nothing
+ * more: on a busy Android emulator a player that took the track made its request about
+ * 70 s after Langle's first ask, past all ASK_TRIES waits (docs/notes/youtube-captions.md
+ * "Late requests on a busy phone").
+ */
+const LATE_REQUEST_WAIT_MS = 90_000;
 /** `askPlayer`'s answer while the player lists no caption tracks: nothing was asked. */
 const UNLISTED = Symbol("unlisted");
+/** `lateRequest`'s answer when the player made no request in the wait. */
+const NONE = Symbol("none");
 /** A try of `loadCaptions` to make again (see `loadFrom`). */
 const AGAIN = Symbol("again");
 
@@ -141,6 +153,7 @@ export function createYouTubeAdapter(
   const unlistedAskEveryMs =
     options.unlistedAskEveryMs ?? UNLISTED_ASK_EVERY_MS;
   const tokenWaitMs = options.tokenWaitMs ?? TOKEN_WAIT_MS;
+  const lateRequestWaitMs = options.lateRequestWaitMs ?? LATE_REQUEST_WAIT_MS;
   const playerResponseTimeoutMs =
     options.playerResponseTimeoutMs ?? PLAYER_RESPONSE_TIMEOUT_MS;
   const playerLoadTimeoutMs =
@@ -276,7 +289,8 @@ export function createYouTubeAdapter(
    * within the wait, or make it only after (an early load on the Android emulator,
    * docs/notes/mobile.md "Device checks (M5g, Android)"): it is asked again, up to
    * ASK_TRIES times in all, and a request that came late is taken then; after the last,
-   * Langle warns. A complete request answered with an empty body is an answer: nothing
+   * Langle keeps listening for its request, asking nothing more, up to
+   * `lateRequestWaitMs`, then warns. A complete request answered with an empty body is an answer: nothing
    * is asked again. One made before the player had the PO token it needs is not: the
    * player's request with the token is waited for, up to `tokenWaitMs`.
    */
@@ -339,14 +353,34 @@ export function createYouTubeAdapter(
           return undefined;
         }
         if (++unanswered < ASK_TRIES) continue;
+        const late = await lateRequest(id, signal);
+        if (late !== NONE) return late;
         console.warn(
-          `Langle: YouTube's player made no caption request for ${id} after ${ASK_TRIES} asks`,
+          `Langle: YouTube's player made no caption request for ${id} after ${ASK_TRIES} asks and ${lateRequestWaitMs / 1000} s`,
         );
         return undefined;
       } finally {
         clearInterval(watch);
       }
     }
+  }
+
+  /**
+   * The player's request made after the last ask, listened for up to `lateRequestWaitMs`
+   * without asking again; undefined once a complete request was answered empty, NONE if
+   * none came.
+   */
+  async function lateRequest(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<TimedtextMessage | undefined | typeof NONE> {
+    const end = Date.now() + lateRequestWaitMs;
+    for (let left = lateRequestWaitMs; left > 0; left = end - Date.now()) {
+      const late = await captures.wait(id, Math.min(left, 1000), signal);
+      if (late) return late;
+      if (answeredEmpty.get(id)) return undefined;
+    }
+    return NONE;
   }
 
   /**
@@ -359,12 +393,22 @@ export function createYouTubeAdapter(
     evenUnlisted: boolean,
     signal?: AbortSignal,
   ): Promise<TimedtextMessage | undefined | typeof UNLISTED> {
-    const loaded = await call({
-      type: "loadTrack",
-      languageCode: original.lang,
-      asr: original.kind === "asr",
-      ...(evenUnlisted && { evenUnlisted }),
-    });
+    let loaded;
+    try {
+      loaded = await call({
+        type: "loadTrack",
+        languageCode: original.lang,
+        asr: original.kind === "asr",
+        ...(evenUnlisted && { evenUnlisted }),
+      });
+    } catch (error) {
+      if (!(error instanceof NoAnswerError)) throw error;
+      // A busy page can answer after the wait and still take the track (the Android
+      // emulator, docs/notes/youtube-captions.md "Late requests on a busy phone"): an
+      // ask like one the player took without a request. YouTube's own choice, not
+      // known, stays as the page leaves it.
+      return await captures.wait(id, captureTimeoutMs, signal);
+    }
     if (!loaded) return UNLISTED;
     const { previous } = loaded;
     try {

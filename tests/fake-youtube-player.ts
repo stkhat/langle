@@ -202,6 +202,8 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
       url.searchParams.set("c", "WEB");
       url.searchParams.set("cplayer", "UNIPLAYER");
       const send = () => {
+        // A page removed since (the browser tests' next test) makes no request.
+        if (!player?.isConnected) return;
         log.requests.push(url.href);
         const xhr = new XMLHttpRequest();
         xhr.open("GET", url.href);
