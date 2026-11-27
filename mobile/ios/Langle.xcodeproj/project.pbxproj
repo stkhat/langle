@@ -8,10 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		2B0000000000000000000016 /* LangleCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000017 /* LangleCore */; };
+		2B0000000000000000000021 /* LangleAdblock.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B0000000000000000000020 /* LangleAdblock.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2B0000000000000000000005 /* Langle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Langle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B0000000000000000000020 /* LangleAdblock.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = LangleAdblock.xcframework; path = ../adblock/build/ios/LangleAdblock.xcframework; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -28,6 +30,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2B0000000000000000000016 /* LangleCore in Frameworks */,
+				2B0000000000000000000021 /* LangleAdblock.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -38,8 +41,17 @@
 			isa = PBXGroup;
 			children = (
 				2B0000000000000000000001 /* Langle */,
+				2B0000000000000000000022 /* Frameworks */,
 				2B0000000000000000000004 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		2B0000000000000000000022 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				2B0000000000000000000020 /* LangleAdblock.xcframework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		2B0000000000000000000004 /* Products */ = {
@@ -186,6 +198,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Langle;
@@ -206,6 +219,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Langle;

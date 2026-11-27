@@ -77,6 +77,23 @@ final class StorageTests: XCTestCase {
     XCTAssertEqual(order, ["host onChanged", "content onChanged", "writer resolved"])
   }
 
+  func test_tells_native_code_of_every_change_and_posts_native_writes_to_the_contexts() {
+    let h = Harness(local: ["a": 1])
+    let host = h.connect(.host)
+    let posted = host.record("storage.onChanged")
+    var heard: [(KeyValueStore.Area, [String: KeyValueStore.Change])] = []
+    h.router.onStorageChanged = { heard.append(($0, $1)) }
+    host.call("storage.local.set", ["a": 2])
+    h.router.setStorage(.local, ["adBlocking": ["on": false]])
+    h.router.setStorage(.local, ["adBlocking": ["on": false]])
+    h.settle()
+    XCTAssertEqual(heard.map(\.0), [.local, .local])
+    XCTAssertEqual(heard[0].1, ["a": KeyValueStore.Change(oldValue: 1, newValue: 2)])
+    XCTAssertEqual(heard[1].1, ["adBlocking": KeyValueStore.Change(oldValue: nil, newValue: ["on": false])])
+    XCTAssertEqual(posted.seen.last, [["adBlocking": ["newValue": ["on": false]]], "local"])
+    XCTAssertEqual(posted.seen.count, 2)
+  }
+
   func test_gives_old_and_new_values_and_posts_nothing_when_nothing_changed() {
     let h = Harness(local: ["a": 1, "b": 2])
     let host = h.connect(.host)

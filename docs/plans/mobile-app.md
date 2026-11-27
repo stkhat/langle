@@ -38,7 +38,11 @@
 - [x] M5: the translation hosts ("M5" below; the real-iPhone checks moved to M9)
 - [ ] M6: ad blocking on articles and YouTube ("M6" below; spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking")
 - [ ] M7: own-cloud sync in the app (Google Drive; "M7" below; spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app")
-- [ ] M8: Share and Open with
+- [x] M8 designed (2026-11-26, with the user): spec [mobile-app.md](../specs/mobile-app.md) "M8: Share → Langle" (Share only on both platforms, no Open with; on iOS the extension opens Langle through the responder chain, its sheet only when that fails: the user's choice of 2026-11-27)
+- [x] M8-0: the extension's sheet (`MobileShareSaved`) in the mock and ui.md (2026-11-27)
+- [ ] M8a: `SharedLink` and the Android shell
+- [ ] M8b-0: the spike: a share extension opening its app on the iOS 26.4 and 27 Simulators
+- [ ] M8b: the iOS share extension
 - [ ] M9 (release checks), on a real iPhone, last (the user's decision of 2026-11-26: every milestone that needs no real device comes first): Apple's consent sheet (declined once for the Language data row's state, then accepted), a tapped word's English definition translated, the subtitles translated on the device with `refuseTlang` on, translate-ahead and the cards, the lists without starting the engine, the release after 60 s and on leaving the app, speed, and the quality of Apple's traditional models (notes/mobile.md "Open issues and risks" 4). The device tooling for it is on the local branch `claude/mobile-m6` (not pushed): `check.sh`'s `LANGLE_DEVICE` / `LANGLE_TEAM`, `Documents/check.log`, `-translateStrategy lowLatency`, `cmd translate-set`
 
 ## Running order
@@ -788,8 +792,8 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking" (the user's choic
 - [x] M6b: the scriptlets and the captions test (branch `claude/mobile-m6b`)
 - [x] M6c-android: the Android list store, requests, cosmetics and ⋮ (branch `claude/mobile-m6c-android`): checked on the emulator, notes/mobile.md "Ad blocking on Android (M6c-android)"
 - [x] M6d: Settings › Ad blocking, the notices and the privacy page (branch `claude/mobile-m6d`)
-- [ ] M6c-ios: the same on iOS (branch `claude/mobile-m6c-ios`)
-- [ ] M6e: device checks, Android then iOS (branches `claude/mobile-m6e-android`, `claude/mobile-m6e-ios`)
+- [x] M6c-ios: the same on iOS (branch `claude/mobile-m6c-ios`): checked on the Simulator, notes/mobile.md "Ad blocking on iOS (M6c-ios)"
+- [ ] M6e: device checks, Android then iOS (branches `claude/mobile-m6e-android`, `claude/mobile-m6e-ios`). Android done (2026-11-27): notes/mobile.md "Device checks (M6e, Android)"; iOS to do
 
 **Running order** (at most three agents at once; one agent per step; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`; the device rules of M5's "Running order" apply):
 

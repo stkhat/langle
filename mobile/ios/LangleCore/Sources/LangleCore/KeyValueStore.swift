@@ -47,6 +47,11 @@ public final class KeyValueStore {
     public var oldValue: JSONValue?
     public var newValue: JSONValue?
 
+    public init(oldValue: JSONValue?, newValue: JSONValue?) {
+      self.oldValue = oldValue
+      self.newValue = newValue
+    }
+
     public var value: JSONValue {
       var o: [String: JSONValue] = [:]
       if let oldValue { o["oldValue"] = oldValue }
