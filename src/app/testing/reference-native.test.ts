@@ -4,6 +4,7 @@ import type { EventApi } from "../bridge/protocol";
 import {
   createReferenceNative,
   type ContextSpec,
+  NATIVE_STRINGS_ERROR,
   type ReferenceNativeOptions,
   SHARE_FILE_ERROR,
 } from "./reference-native";
@@ -378,6 +379,33 @@ describe("tabs", () => {
       await expect(bridge.call("appHost.shareFile", bad)).rejects.toThrow(
         SHARE_FILE_ERROR,
       );
+  });
+
+  test("appHost.nativeStrings keeps a locale, a direction and text strings for the bars", async () => {
+    const { connect, native } = setup();
+    const { bridge } = connect({ kind: "host" });
+    const set = {
+      locale: "ar",
+      dir: "rtl",
+      strings: { "app.home": "الرئيسية", "app.more": "المزيد" },
+    };
+    expect(native.nativeStrings()).toBeUndefined();
+    await expect(
+      bridge.call("appHost.nativeStrings", set),
+    ).resolves.toBeUndefined();
+    expect(native.nativeStrings()).toEqual(set);
+    for (const bad of [
+      { ...set, locale: "" },
+      { ...set, dir: "up" },
+      { ...set, strings: { "app.home": 1 } },
+      { ...set, strings: ["Home"] },
+      { locale: "ar", dir: "rtl" },
+      "ar",
+    ])
+      await expect(bridge.call("appHost.nativeStrings", bad)).rejects.toThrow(
+        NATIVE_STRINGS_ERROR,
+      );
+    expect(native.nativeStrings()).toEqual(set);
   });
 
   test("the translation calls go to the app's translation host, and are not available without one", async () => {

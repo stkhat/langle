@@ -32,6 +32,9 @@ export function createAppHost(
     shareFile: async ({ name, mime, text }) => {
       await bridge.call("appHost.shareFile", { name, mime, text });
     },
+    nativeStrings: async ({ locale, dir, strings }) => {
+      await bridge.call("appHost.nativeStrings", { locale, dir, strings });
+    },
     ...(translator && { translator }),
     translate: async ({ from, to, text, start }) => {
       const value = await bridge.call("appHost.translate", {

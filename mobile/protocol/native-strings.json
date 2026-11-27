@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "kind": "call",
+  "id": "c5",
+  "api": "appHost.nativeStrings",
+  "args": [
+    {
+      "locale": "ar",
+      "dir": "rtl",
+      "strings": {
+        "app.home": "الرئيسية",
+        "app.more": "المزيد",
+        "app.blockAdsSiteLabel": "حظر الإعلانات على هذا الموقع، {site}"
+      }
+    }
+  ]
+}

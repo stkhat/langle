@@ -24,6 +24,7 @@ import { googleClients } from "./sync/google-clients";
 import { createDriveFiles } from "../core/cloud/google-drive";
 import type { CloudProvider, CloudProviderId } from "../core/cloud/provider";
 import { createTermStore } from "./term-store";
+import { followNativeStrings } from "./native-strings";
 import { followToolbarIcon } from "./toolbar-icon";
 import { createTranslationCache } from "./translation-cache";
 import { createExplanationCache } from "./explanation-cache";
@@ -153,6 +154,18 @@ export function startBackground(): void {
     watchSettings,
     onStartup: browser.runtime.onStartup,
   });
+
+  // The phone app only: its bars and menu in the interface language.
+  const nativeStrings = appHostOf()?.nativeStrings;
+  if (nativeStrings)
+    followNativeStrings({
+      send: nativeStrings,
+      uiLanguage: () => browser.i18n.getUILanguage(),
+      getSettings,
+      watchSettings,
+      load: fetchLocale,
+      whenSetUp,
+    });
 
   // Both read what changed while they did not run when they start, so an event that
   // came before they listen is not lost; the worker is woken by the listeners above.
