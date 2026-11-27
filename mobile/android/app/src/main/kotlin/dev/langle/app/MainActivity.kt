@@ -75,28 +75,31 @@ class MainActivity : Activity() {
     val origin = AppOrigin(assets)
     engine = WebViewEngine(this, origin)
     engine.chooseFiles = files::choose
+    val strings = AppStrings.of(this)
     var notice: String? = null
     var manifest: Manifest? = null
     if (!engine.supportsLangle) {
-      notice = getString(R.string.update_webview)
+      notice = strings["app.updateWebView"]
     } else {
       try {
         val text = origin.file("/manifest.json") ?: throw ManifestRefusal(listOf("no bundled build (scripts/bundle-build.sh)"))
         manifest = Manifest.read(text.toString(Charsets.UTF_8))
       } catch (refusal: ManifestRefusal) {
-        notice = getString(R.string.build_refused, refusal.unsupported.joinToString(", "))
+        notice = strings.format("app.buildRefused", mapOf("reasons" to refusal.unsupported.joinToString(", ")))
         Log.e(TAG, "Langle does not run: ${refusal.unsupported}")
       }
     }
     router =
       Router(
         Router.Options(origin = APP_ORIGIN, version = manifest?.version ?: "0"),
-        FilePersistence(File(filesDir, "LangleStore")),
+        FilePersistence(File(filesDir, AppStrings.STORE)),
         HandlerClock(),
       )
     router.onError = { Log.e("LangleBridge", it) }
     router.onAction = ::perform
     router.onShareFile = files::share
+    // Posted, so a redraw never runs in the middle of the router's dispatch.
+    router.onNativeStrings = { set -> runOnUiThread { strings.take(set) } }
     adBlocker = startAdBlocking(origin)
 
     val hostSlot = FrameLayout(this)

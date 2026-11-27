@@ -36,7 +36,11 @@ class LangleSheet(activity: Activity, content: View, fullscreen: Boolean, onDism
     val landscape = activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val metrics = activity.resources.displayMetrics
     val width = if (landscape) min(activity.dp(520), metrics.widthPixels) else ViewGroup.LayoutParams.MATCH_PARENT
-    val root = FrameLayout(activity).apply { setOnClickListener { dialog.cancel() } }
+    val root =
+      FrameLayout(activity).apply {
+        contentDescription = AppStrings.of(activity)["app.closeSheet"]
+        setOnClickListener { dialog.cancel() }
+      }
     sheet =
       LinearLayout(activity).apply {
         orientation = LinearLayout.VERTICAL

@@ -44,6 +44,7 @@ val CALL_APIS: Set<String> =
     "alarms.clear",
     "appHost.openPage",
     "appHost.shareFile",
+    "appHost.nativeStrings",
     "appHost.translate",
     "appHost.translatorStatus",
     "appHost.prepareTranslator",

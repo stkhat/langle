@@ -12,7 +12,7 @@ fun repoFile(path: String) = File(repoRoot, path).readText()
 
 /** The golden envelopes in mobile/protocol/, shared with the TS tests and XCTest. */
 class EnvelopeTest {
-  private val golden = listOf("call", "hello", "reply-ok", "reply-error", "event", "event-reply", "open-page", "get-current", "share-file",
+  private val golden = listOf("call", "hello", "reply-ok", "reply-error", "event", "event-reply", "open-page", "get-current", "share-file", "native-strings",
     "translate", "translator-status", "prepare-translator", "models-ensure", "models-remove", "models-progress",
   )
 

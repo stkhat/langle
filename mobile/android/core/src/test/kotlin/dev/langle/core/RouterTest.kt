@@ -377,6 +377,31 @@ class RouterTest {
       assertEquals(2, shared.size)
     }
 
+    @Test
+    @DisplayName("appHost.nativeStrings keeps a locale, a direction and text strings for the bars")
+    fun `appHost_nativeStrings keeps a locale, a direction and text strings`() {
+      val h = Harness()
+      val host = h.connect(ContextSpec.Host)
+      val set = mapOf("locale" to "ar", "dir" to "rtl", "strings" to mapOf("app.home" to "الرئيسية", "app.more" to "المزيد"))
+      // Answered without a hook too: nothing to redraw.
+      assertEquals(Answer.Value(null), host.call("appHost.nativeStrings", set).answer)
+      val taken = mutableListOf<NativeStringSet>()
+      h.router.onNativeStrings = { taken += it }
+      assertEquals(Answer.Value(null), host.call("appHost.nativeStrings", set).answer)
+      assertEquals(listOf(NativeStringSet("ar", true, mapOf("app.home" to "الرئيسية", "app.more" to "المزيد"))), taken)
+      for (bad in listOf(
+        set + ("locale" to ""),
+        set + ("dir" to "up"),
+        set + ("strings" to mapOf("app.home" to 1)),
+        set + ("strings" to listOf("Home")),
+        set - "strings",
+        "ar",
+      )) {
+        assertEquals(NativeStringSet.ERROR, host.call("appHost.nativeStrings", bad).error, bad.toString())
+      }
+      assertEquals(1, taken.size)
+    }
+
     // The hosts come in M5c and M5d; until the app sets one, each call fails at once.
     @Test
     @DisplayName("the translation calls go to the app's translation host, and are not available without one")
