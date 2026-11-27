@@ -384,6 +384,8 @@ Another app's Share opens its link (or text) in Langle. What the phone shows is 
 ### Opening it
 - The address loads into the one browsing page, as any page opened over Home does (M4 "One browsing page").
 - **Before the first run is done** (a share right after installing): the first run shows first; the address waits and opens once it is closed (Start or Not now). One address waits at most; a newer share replaces it.
+  - Android (M8a): a fresh install knows the first run is coming before it opens (the extension opens it from `onInstalled`), so the address waits from the start; if no first run opens within 15 s, it opens anyway. After an update with setup unfinished the page opens and the first run shows over it, as it does for any page.
+- A share of the page already open shows it without loading it again (and marks the entry it is on). A URL item that is not `http(s)` falls back to the text that came with it.
 
 ### Android
 - `MainActivity` gets an `ACTION_SEND` filter for `text/plain` (category `DEFAULT`), named Langle in the share sheet. `EXTRA_TEXT` is the text (YouTube's Share sends the bare link); `EXTRA_SUBJECT` is not used. A cold start reads the intent in `onCreate`, a running app in `onNewIntent` (`singleTask`).

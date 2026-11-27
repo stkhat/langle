@@ -92,7 +92,8 @@ class Shell(private val origin: String, private val tabs: Tabs) {
    * The page's entry opened from another app: [PENDING] until its load commits, then its place in
    * the page's history; null when the page was not shared or moved on.
    */
-  private var sharedEntry: Int? = null
+  var sharedEntry: Int? = null
+    private set
 
   init {
     tabs.activate(tabIds.getValue(AppTab.HOME))

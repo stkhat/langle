@@ -17,7 +17,8 @@ import dev.langle.core.toJsonText
  * - `clear-errors`: clears it through the extension host's `browser.storage`, so its listeners hear;
  * - `eval`: runs `source64` (base64 of an async function body) in `target`: host | page | langle |
  *   sheet | home | words | settings | firstrun, and logs what it returns;
- * - `state`: the screen, the tabs, the sheet, the page and whether the host said hello, whether
+ * - `state`: the screen, the tabs, the sheet, the page and whether the host said hello, the page's
+ *   history entry, the shared entry's mark and the address waiting for the first run, whether
  *   the title bar shows, whether the page is in fullscreen, the orientation and the window size;
  * - `translate-state`: whether the translation engine runs (its page exists), is off, and the
  *   pairs it loaded;
@@ -84,6 +85,7 @@ object CheckCommands {
         say(
           "state screen=${screens.shell.screen} host=${activity.host?.isReady ?: false} tabs=[$tabs] " +
             "sheet=${screens.sheet?.context?.page?.url ?: "none"} page=${screens.browsing.page.url ?: "none"} " +
+            "entry=${screens.browsing.page.historyIndex} shared=${screens.shell.sharedEntry} held=${screens.shell.heldShare} " +
             "bar=${screens.isBarShown} fullscreen=${activity.isFullscreen} " +
             "orientation=${if (landscape) "landscape" else "portrait"} " +
             "window=${window.width}x${window.height}",
