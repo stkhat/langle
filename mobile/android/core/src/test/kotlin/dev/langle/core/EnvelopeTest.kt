@@ -14,6 +14,7 @@ fun repoFile(path: String) = File(repoRoot, path).readText()
 class EnvelopeTest {
   private val golden = listOf("call", "hello", "reply-ok", "reply-error", "event", "event-reply", "open-page", "get-current", "share-file",
     "translate", "translator-status", "prepare-translator", "models-ensure", "models-remove", "models-progress",
+    "google-auth-token", "google-auth-token-reply", "google-auth-cancelled", "google-auth-forget", "app-hidden", "app-visible",
   )
 
   @Test

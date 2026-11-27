@@ -43,6 +43,8 @@ const CALL_APIS = [
   "appHost.prepareTranslator",
   "appHost.models.ensure",
   "appHost.models.remove",
+  "appHost.googleAuth.token",
+  "appHost.googleAuth.forget",
 ] as const;
 
 /** What native code tells a script. */
@@ -53,6 +55,8 @@ const EVENT_APIS = [
   "storage.onChanged",
   "alarms.onAlarm",
   "appHost.models.onProgress",
+  "app.hidden",
+  "app.visible",
 ] as const;
 
 export type CallApi = (typeof CALL_APIS)[number];

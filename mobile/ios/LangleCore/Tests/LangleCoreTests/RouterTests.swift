@@ -313,6 +313,18 @@ final class TabsTests: XCTestCase {
     XCTAssertEqual(shared.count, 2)
   }
 
+  // The sign-in comes in M7d; until then each call fails at once.
+  func test_google_sign_in_is_not_available_yet() {
+    let h = Harness()
+    let host = h.connect(.host)
+    host.call("bridge.hello", ["context": "host"])
+    XCTAssertEqual(
+      host.call("appHost.googleAuth.token", ["interactive": true]).error,
+      "appHost.googleAuth.token is not available here.")
+    XCTAssertEqual(
+      host.call("appHost.googleAuth.forget").error, "appHost.googleAuth.forget is not available here.")
+  }
+
   // The hosts come in M5c and M5d; until the app sets one, each call fails at once.
   func test_the_translation_calls_go_to_the_apps_translation_host_and_are_not_available_without_one() {
     let h = Harness()
