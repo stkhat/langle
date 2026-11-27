@@ -34,6 +34,22 @@ object PageText {
   }
 
   /**
+   * The page's own title from a title WebView reports for the page at [url]: null when it is blank
+   * or only the page's address, which WebView reports while a document has no title of its own
+   * (a reload, before the page's title is read again).
+   */
+  fun reportedTitle(title: String?, url: String?): String? {
+    val text = title?.trim().orEmpty()
+    if (text.isEmpty()) return null
+    if (url != null && bareAddress(text) == bareAddress(url)) return null
+    return text
+  }
+
+  /** An address without its scheme and trailing slash, in lower case. */
+  private fun bareAddress(text: String): String =
+    text.lowercase().replaceFirst(Regex("^[a-z][a-z0-9+.-]*://"), "").trimEnd('/')
+
+  /**
    * The title line: the page's title without the site's name at its end ("Talk - YouTube" under
    * "YouTube" is "Talk"), the address while the page has no title.
    */

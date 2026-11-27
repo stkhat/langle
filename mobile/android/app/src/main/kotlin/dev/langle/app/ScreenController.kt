@@ -70,6 +70,9 @@ class ScreenController(
   private val barScroll = BarScroll(threshold = activity.dp(24))
   private var barShown = true
   private var pageTitle: String? = null
+
+  /** The address of the page's current document, to tell a reload from a new page. */
+  private var documentUrl: String? = null
   private var ogSite: String? = null
   private var shownScreen: Screen? = null
 
@@ -97,8 +100,13 @@ class ScreenController(
       router.tabs.setUrl(tabId, url)
       onPageOpened?.invoke()
       adBlocker?.inUse()
-      pageTitle = null
-      ogSite = null
+      // A reload keeps the title and site name until the document's own are read: WebView does
+      // not report a title again that has not changed.
+      if (!PageText.samePage(documentUrl, url)) {
+        pageTitle = null
+        ogSite = null
+      }
+      documentUrl = url
       barScroll.reset()
       setBar(true)
       showTitle()
@@ -108,7 +116,8 @@ class ScreenController(
       showTitle()
     }
     browsing.onTitle = { title ->
-      pageTitle = title
+      // Only the page's address is no title: the one known so far stays.
+      PageText.reportedTitle(title, browsing.page.url ?: shell.pageUrl)?.let { pageTitle = it }
       showTitle()
     }
     browsing.onLoaded = { readSiteName() }
@@ -367,14 +376,13 @@ class ScreenController(
         showTitle()
       }
     }
-    // A reload keeps its title, which WebView then does not report again.
-    if (pageTitle == null) {
-      browsing.page.evaluate(ScriptWorld.PAGE, TITLE) { result ->
-        val title = result.trim().takeIf { it.isNotEmpty() && !it.startsWith("error ") }
-        if (pageTitle == null && title != null) {
-          pageTitle = title
-          showTitle()
-        }
+    // The document's own title once it has loaded: after a reload WebView reports only the page's
+    // address (or nothing) and not the title the document keeps.
+    browsing.page.evaluate(ScriptWorld.PAGE, TITLE) { result ->
+      val title = result.takeUnless { it.startsWith("error ") }?.let { PageText.reportedTitle(it, browsing.page.url) }
+      if (title != null && title != pageTitle) {
+        pageTitle = title
+        showTitle()
       }
     }
   }

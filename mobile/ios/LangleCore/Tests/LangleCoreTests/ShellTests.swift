@@ -293,6 +293,53 @@ final class PageForSearchTests: XCTestCase {
   }
 }
 
+final class PageTitleTests: XCTestCase {
+  private let page = "https://www.independent.co.uk/news/world/a-b3091723.html"
+
+  func test_a_reload_keeps_the_title_until_the_document_reports_its_own() {
+    var title = PageTitle()
+    XCTAssertFalse(title.committed(page))
+    title.reported("Fire | The Independent", url: page)
+    XCTAssertTrue(title.committed(page))
+    title.reported("", url: page)
+    XCTAssertEqual(title.line(url: page), "Fire | The Independent")
+    title.reported("Fire, updated | The Independent", url: page)
+    XCTAssertEqual(title.line(url: page), "Fire, updated | The Independent")
+    // The fragment aside, it is the same page.
+    XCTAssertTrue(title.committed(page + "#comments"))
+    XCTAssertEqual(title.line(url: page), "Fire, updated | The Independent")
+  }
+
+  func test_a_new_page_shows_its_host_until_it_reports_a_title() {
+    var title = PageTitle()
+    title.committed(page)
+    title.reported("Fire | The Independent", url: page)
+    let next = "https://www.nau.ch/politik/park-67206340"
+    // WebKit may report the old title for the new address before the commit.
+    title.reported("Fire | The Independent", url: next)
+    XCTAssertFalse(title.committed(next))
+    XCTAssertEqual(title.line(url: next), "nau.ch")
+    title.reported("", url: next)
+    XCTAssertEqual(title.line(url: next), "nau.ch")
+    title.reported("Park | Nau.ch", url: next)
+    XCTAssertEqual(title.line(url: next), "Park | Nau.ch")
+  }
+
+  func test_a_title_that_is_only_the_address_is_none() {
+    var title = PageTitle()
+    title.committed(page)
+    title.reported(page, url: page)
+    title.reported("www.independent.co.uk/news/world/a-b3091723.html", url: page)
+    title.reported("  ", url: page)
+    XCTAssertNil(title.own)
+    XCTAssertEqual(title.line(url: page), "independent.co.uk")
+    title.reported("example.com news", url: "https://example.com/")
+    XCTAssertEqual(title.own, "example.com news")
+    title.reported("Example.com", url: "https://example.com/")
+    XCTAssertEqual(title.own, "example.com news")
+  }
+}
+
 final class TitleBarScrollTests: XCTestCase {
   func test_hides_on_scrolling_down_and_shows_on_scrolling_up() {
     var bar = TitleBarScroll()

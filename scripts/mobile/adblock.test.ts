@@ -29,7 +29,7 @@ describe("missingTools", () => {
       "Rust targets: `rustup target add aarch64-apple-ios-sim`",
     ]);
     expect(missingTools(tools, ["android"])).toEqual([
-      "Rust targets: `rustup target add aarch64-linux-android x86_64-linux-android`",
+      "Rust targets: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`",
     ]);
   });
 

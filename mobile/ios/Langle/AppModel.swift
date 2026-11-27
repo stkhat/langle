@@ -55,6 +55,8 @@ final class AppModel: ObservableObject {
   private var siteAskedFor: URL?
   private var ogSiteName: String?
   private var siteAsks = 0
+  /// The title bar's first line, kept through a reload of the same page.
+  private var pageTitle = PageTitle()
 
   /// The view the host's slot sits in (zero size, in the window).
   let hostView = UIView(frame: .zero)
@@ -181,10 +183,14 @@ final class AppModel: ObservableObject {
       guard let self else { return }
       shell.committed(tab: tabId, url: url.absoluteString)
       adBlocker?.inUse()
+      // A reload (⋮'s switch reloads) keeps the title and site name shown until the document's
+      // own are read: meanwhile WebKit reports an empty title.
+      let reload = pageTitle.committed(url.absoluteString)
       // The new document's own site name: an ask made when the address changed (a back or
       // forward changes it before the commit) may have read the document it replaced.
       if url.absoluteString != "about:blank" {
-        askSiteName(url)
+        title = pageTitle.line(url: url.absoluteString)
+        askSiteName(url, keepShown: reload)
         translationHost?.pageOpened()
       }
       barScroll.reset()
@@ -404,17 +410,21 @@ final class AppModel: ObservableObject {
       // Another video in the same document (YouTube) is a page opened too.
       translationHost?.pageOpened()
     }
-    self.title = title.isEmpty ? SiteName.of(url: url.absoluteString, ogSiteName: nil) : title
+    pageTitle.reported(title, url: url.absoluteString)
+    self.title = pageTitle.line(url: url.absoluteString)
     site = SiteName.of(url: url.absoluteString, ogSiteName: ogSiteName)
   }
 
-  /// Asks the page for its `og:site_name`; only the latest ask's answer counts.
-  private func askSiteName(_ url: URL) {
+  /// Asks the page for its `og:site_name`; only the latest ask's answer counts. `keepShown`: the
+  /// site name shown stays until the answer (a reload of the same page).
+  private func askSiteName(_ url: URL, keepShown: Bool = false) {
     siteAskedFor = url
-    ogSiteName = nil
     siteAsks += 1
     let ask = siteAsks
-    site = SiteName.of(url: url.absoluteString, ogSiteName: nil)
+    if !keepShown {
+      ogSiteName = nil
+      site = SiteName.of(url: url.absoluteString, ogSiteName: nil)
+    }
     Task { [weak self] in
       guard let self else { return }
       let named = await browsing.page.evaluate(world: .langle, source: PageCommands.siteName)

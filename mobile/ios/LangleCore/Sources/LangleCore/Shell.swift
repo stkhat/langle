@@ -275,6 +275,59 @@ public enum SiteName {
   }
 }
 
+/// The title bar's first line through a page's loads: the title the document reported, kept
+/// through a reload of the same page until the reloaded document reports its own (WebKit reports
+/// an empty title meanwhile), the host while a new page has none.
+public struct PageTitle {
+  /// The current document's own title, once reported.
+  public private(set) var own: String?
+  private var document: String?
+
+  public init() {}
+
+  /// A document committed at `url`. True when it is the page shown before (a reload): its title
+  /// and site name stay until the document's own are read.
+  @discardableResult
+  public mutating func committed(_ url: String) -> Bool {
+    let same = Self.samePage(document, url)
+    if !same { own = nil }
+    document = url
+    return same
+  }
+
+  /// WebKit reported `title` for the page at `url`; blank or only the page's address is no title.
+  public mutating func reported(_ title: String, url: String) {
+    if let text = Self.own(title, url: url) { own = text }
+  }
+
+  /// The line shown for the page at `url`.
+  public func line(url: String) -> String { own ?? SiteName.of(url: url, ogSiteName: nil) }
+
+  /// The page's own title from a reported one: nil when it is blank or only the page's address.
+  static func own(_ title: String, url: String) -> String? {
+    let text = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    if text.isEmpty || bareAddress(text) == bareAddress(url) { return nil }
+    return text
+  }
+
+  /// Whether `a` and `b` are one page (the fragment aside).
+  static func samePage(_ a: String?, _ b: String) -> Bool {
+    guard let a else { return false }
+    return a.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false).first
+      == b.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false).first
+  }
+
+  /// An address without its scheme and trailing slash, in lower case.
+  private static func bareAddress(_ text: String) -> String {
+    var bare = text.lowercased()
+    if let range = bare.range(of: "^[a-z][a-z0-9+.-]*://", options: .regularExpression) {
+      bare.removeSubrange(range)
+    }
+    while bare.hasSuffix("/") { bare.removeLast() }
+    return bare
+  }
+}
+
 /// What the title bar's address field opens, with Home's rules (src/entrypoints/home/address.ts).
 public enum PageAddress {
   public static let search = "https://m.youtube.com/results?search_query="
