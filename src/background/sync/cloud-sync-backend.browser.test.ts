@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { filePath, parseFilePath } from "../../core/cloud/format";
 import {
   mergeTimedSettings,
@@ -37,6 +37,7 @@ import {
   WRITE_DELAY_MS,
   type CloudSettings,
   type CloudSyncBackend,
+  type CloudSyncBackendOptions,
   type CloudSyncState,
 } from "./cloud-sync-backend";
 
@@ -720,6 +721,83 @@ describe("CloudSyncBackend: connect", () => {
     a.account.declines = true;
     await a.backend.connect("googleDrive");
     expect((await a.backend.status()).error).toBe("reconnect");
+  });
+});
+
+describe("CloudSyncBackend: a provider this build does not have", () => {
+  /** The worker again over `d`'s storage and database, with `providers` only. */
+  function restart(d: Device, providers: CloudSyncBackendOptions["providers"]) {
+    const backend = createCloudSyncBackend({
+      db: d.db,
+      store: d.store,
+      history: d.history,
+      settings: d.settings,
+      deviceId: d.ids,
+      providers,
+      browserSync: d.browserSync,
+      local: d.local,
+      alarms: d.alarms,
+      lifecycle: d.lifecycle,
+      now: () => time,
+      timers: d.timers,
+    });
+    running.push(backend);
+    return backend;
+  }
+
+  it("uses no cloud, logs nothing and shows it as not connected; a build that has it carries on", async () => {
+    const cloud = createFakeCloud();
+    const a = device({ id: "dev-a", cloud });
+    await startAll(a);
+    await a.backend.connect("googleDrive");
+    a.backend.stop();
+    const kept = await a.state();
+    const calls = cloud.log.length;
+    const errors = vi.spyOn(console, "error");
+
+    // The phone lost Google Play services: the stored connection names googleDrive.
+    const without = restart(a, {});
+    await without.start();
+    await save(a, "loaf");
+    a.alarms.fire(CLOUD_CHECK_ALARM);
+    without.requestCheck();
+    a.lifecycle.show();
+    await a.lifecycle.hide();
+    await a.after(WRITE_DELAY_MS);
+    a.lifecycle.show();
+    await a.after(10 * 60_000);
+    expect(cloud.log).toHaveLength(calls);
+    expect(errors).not.toHaveBeenCalled();
+    expect(a.timers.next()).toBeUndefined();
+    expect(a.alarms.set.has(CLOUD_CHECK_ALARM)).toBe(false);
+    expect(await without.status()).toEqual({
+      available: [],
+      bytes: 0,
+      devices: 0,
+    });
+    // A page shown before the provider went: connecting changes nothing.
+    await without.connect("googleDrive");
+    expect(cloud.log).toHaveLength(calls);
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+    // The connection is kept, with the change still to write.
+    expect(await a.state()).toEqual({
+      ...kept,
+      mainPending: true,
+      monthsPending: true,
+    });
+    without.stop();
+
+    // Play services came back: the change goes out, and another device gets it.
+    const again = restart(a, { googleDrive: cloud.provider(a.account) });
+    await again.start();
+    expect((await again.status()).provider).toBe("googleDrive");
+    expect(a.alarms.set.has(CLOUD_CHECK_ALARM)).toBe(true);
+    expect((await a.state())?.mainPending).toBe(false);
+    const b = device({ id: "dev-b", cloud });
+    await startAll(b);
+    await b.backend.connect("googleDrive");
+    expect(await keysOf(b)).toEqual(["loaf:learning"]);
   });
 });
 
