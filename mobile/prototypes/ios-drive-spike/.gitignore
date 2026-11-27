@@ -1,0 +1,7 @@
+build/
+xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+# Copied from ../drive-spike-web by check.sh build
+LangleDriveSpike/drive.html
+LangleDriveSpike/drive.js

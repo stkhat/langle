@@ -861,8 +861,8 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app". Ev
 **Progress**
 
 - [x] M7 designed (2026-11-26, with the user): spec "M7"
-- [ ] M7-0: the first-run Drive step, Settings › Sync and backup and the Drive lines in the mock and ui.md (the parent session; drawn 2026-11-26); waiting for the user's review
-- [ ] M7a: the clients and the sign-in spike (branch `claude/mobile-m7a`)
+- [x] M7-0: the first-run Drive step, Settings › Sync and backup and the Drive lines in the mock and ui.md (the parent session; drawn 2026-11-26; reviewed and merged in #311, 2026-11-27)
+- [x] M7a: the clients and the sign-in spike (branch `claude/mobile-m7a`; 2026-11-27): both clients made; the app origin's `fetch` passes CORS for every Drive call on both shells (no fallback), the app sees the extension's files, Android Connect uses `SELECT_ACCOUNT` (no `revokeAccess`), iOS refreshes without a secret; notes/mobile.md "Drive sign-in (M7a)"
 - [ ] M7b: `appHost.googleAuth`, the background's app auth and the lifecycle events (branch `claude/mobile-m7b`)
 - [ ] M7c: the first-run step and Settings › Sync and backup in the phone layout (branch `claude/mobile-m7c`)
 - [ ] M7d-android: the Android sign-in and lifecycle (branch `claude/mobile-m7d-android`)
@@ -901,6 +901,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app". Ev
 ### M7d-android and M7d-ios: the shells (one agent each, Opus)
 
 - The router's `googleAuth` slot over `AuthorizationClient` (Android) and `ASWebAuthenticationSession` with PKCE and the Keychain (iOS), as M7a found them; the lifecycle events (iOS background task; Android keeps the host until the answer or 20 s). Native tests as the spec says. Then a first look on the emulator or the Simulator: connect, one word both ways with the user's Chrome.
+- Any native text M7d adds (an error toast, say) stays one constant per string: M6f (the user's decision of 2026-11-27, spec "The shells (native)" on the coming `claude/mobile-m6f-design` branch) moves the shells' strings to `app.` keys the background sends. Google's own sheet is not affected.
 
 ### M7e: device checks (two agents, Opus, one after the other)
 
