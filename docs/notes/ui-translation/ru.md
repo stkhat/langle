@@ -76,3 +76,7 @@ Changed keys:
 
 ## The browser's sync (`{syncName}`)
 `env.syncName` is "синхронизация {browser}", with the browser's name filled in. Nominative only: it stands after a colon or in parentheses after «облако браузера», never where a case ending is needed.
+
+## The phone app's own bars (`app.*`, M6f)
+The shells draw these themselves (tab bar, title bar, ⋮, toasts, accessibility labels); the background sends them in the interface language. The tab names are the pages' own (`app.words` = `wordlist.phoneTitle`, `app.settings` = `settings.title`), `app.search` is `home.search`, and `app.on` / `app.off` are `settings.adBlocking.on` / `.off`. `app.editAddress` is `home.search` without the site. `{reasons}` in `app.buildRefused` stays English (the manifest keys the build lacks). Second pass:
+- Home → Главная; More → Ещё; `app.editAddress` is a noun phrase like `home.search` (Поиск или адрес сайта), not an imperative.

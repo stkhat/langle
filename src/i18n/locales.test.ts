@@ -89,6 +89,17 @@ describe.each(localeCodes())("locale %s", (code) => {
     ).toEqual([]);
   });
 
+  // The shells draw them with their own `{name}` filling, without plural rules.
+  it("writes the phone app's own strings (app.) as plain text", () => {
+    expect(
+      Object.entries(messages)
+        .filter(
+          ([key, value]) => key.startsWith("app.") && typeof value !== "string",
+        )
+        .map(([key]) => key),
+    ).toEqual([]);
+  });
+
   it("has the store listing", () => {
     const path = join(STORE_DIR, storeFolder(code), "messages.json");
     expect(existsSync(path)).toBe(true);

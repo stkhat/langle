@@ -12,14 +12,15 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.Switch
 import android.widget.TextView
+import dev.langle.core.NativeStrings
 
 /**
  * The title bar's ⋮ menu (mock `MobileArticleMenu`): the items, then under a divider the switch
  * "Block ads on this site" with the site's registrable domain under it, when ad blocking is on.
- * Each choice closes the menu.
+ * Each choice closes the menu. In the interface language; Arabic mirrors it to the left side.
  */
-class MoreMenu(private val activity: Activity) {
-  class Item(val label: Int, val enabled: Boolean, val run: () -> Unit)
+class MoreMenu(private val activity: Activity, private val strings: NativeStrings) {
+  class Item(val label: String, val enabled: Boolean, val run: () -> Unit)
 
   class AdSwitch(val site: String, val blocking: Boolean, val toggle: (blocking: Boolean) -> Unit)
 
@@ -32,6 +33,7 @@ class MoreMenu(private val activity: Activity) {
         background = rounded(Palette.WHITE, 12).apply { setStroke(activity.dp(1), Palette.LINE) }
         elevation = activity.dp(10).toFloat()
         clipToOutline = true
+        followDirection(strings)
       }
     val popup = PopupWindow(box, activity.dp(WIDTH), ViewGroup.LayoutParams.WRAP_CONTENT, true)
     for (item in items) box.addView(itemView(item) { popup.dismiss() }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, activity.dp(44)))
@@ -48,13 +50,15 @@ class MoreMenu(private val activity: Activity) {
     }
     popup.elevation = activity.dp(10).toFloat()
     popup.setBackgroundDrawable(null)
-    // Its right edge 8 dp from the screen's (the button sits 4 dp in), 2 dp under the bar.
-    popup.showAsDropDown(anchor, -activity.dp(4), activity.dp(8), Gravity.END)
+    // Its outer edge 8 dp from the screen's (the button sits 4 dp in), 2 dp under the bar; END
+    // is the anchor's left in a mirrored bar, so the offset changes sign.
+    val inward = activity.dp(4)
+    popup.showAsDropDown(anchor, if (strings.rtl) inward else -inward, activity.dp(8), Gravity.END)
   }
 
   private fun itemView(item: Item, close: () -> Unit): View =
     TextView(activity).apply {
-      text = activity.getString(item.label)
+      text = item.label
       textSize = 15f
       setTextColor(Palette.INK)
       gravity = Gravity.CENTER_VERTICAL
@@ -78,13 +82,17 @@ class MoreMenu(private val activity: Activity) {
         minimumHeight = activity.dp(56)
         setPadding(activity.dp(12), activity.dp(6), activity.dp(8), activity.dp(6))
         background = activity.touchFeedback(borderless = false)
+        contentDescription = strings.format("app.blockAdsSiteLabel", mapOf("site" to ads.site))
       }
     val words = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
     words.addView(
       TextView(activity).apply {
-        text = activity.getString(R.string.block_ads_site)
+        text = strings["app.blockAdsSite"]
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
         setTextColor(Palette.INK)
+        // A label too long for one line (Japanese) breaks between phrases, not inside a word.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU)
+          lineBreakWordStyle = android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE
       },
     )
     words.addView(
@@ -119,6 +127,8 @@ class MoreMenu(private val activity: Activity) {
           info.className = Switch::class.java.name
           info.isCheckable = true
           info.isChecked = ads.blocking
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
+            info.stateDescription = strings[if (ads.blocking) "app.on" else "app.off"]
         }
       }
     row.setOnClickListener {

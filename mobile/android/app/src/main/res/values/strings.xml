@@ -1,24 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher's name only: every other string the shell draws is the interface language's,
+     from the background (AppStrings; docs/specs/mobile-app.md "Native strings follow the
+     interface language"). -->
 <resources>
     <string name="app_name">Langle</string>
-    <string name="search_hint">Search YouTube or enter an address</string>
-    <string name="home">Home</string>
-    <string name="words">Words</string>
-    <string name="settings">Settings</string>
-    <string name="tabs">Tabs</string>
-    <string name="edit_address">Search or enter address</string>
-    <string name="langle">Langle</string>
-    <string name="more">More</string>
-    <string name="forward">Forward</string>
-    <string name="share">Share</string>
-    <string name="copy_link">Copy link</string>
-    <string name="open_elsewhere">Open in another browser</string>
-    <string name="block_ads_site">Block ads on this site</string>
-    <string name="link_copied">Link copied</string>
-    <string name="no_browser">No other app opens this link</string>
-    <string name="close_langle">Close Langle</string>
-    <string name="update_webview">Update Android System WebView to use Langle on pages.</string>
-    <string name="build_refused">Langle cannot run: %1$s</string>
-    <string name="save_to_device">Save to device</string>
-    <string name="save_failed">Could not save the file</string>
 </resources>

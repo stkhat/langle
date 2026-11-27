@@ -2,7 +2,8 @@ import SwiftUI
 
 /// The bar over a page opened from Home (mock `MobileYouTube`, `MobileArticle`): ‹ back to
 /// Home, the page's title and site (a tap edits the search or address), L for the Langle sheet
-/// and ⋮ for the rest. 56 pt, white, a 1 pt line under it.
+/// and ⋮ for the rest. 56 pt, white, a 1 pt line under it. In the interface language; Arabic
+/// mirrors it (the screen sets the direction).
 struct TitleBar: View {
   @ObservedObject var model: AppModel
   @State private var editing = false
@@ -12,15 +13,16 @@ struct TitleBar: View {
   var body: some View {
     HStack(spacing: 0) {
       Button(action: model.goHome) {
-        StrokeIcon(path: IconPath.back, width: 2).frame(width: 44, height: 44).contentShape(Rectangle())
+        StrokeIcon(path: IconPath.back, width: 2).flipsForRightToLeftLayoutDirection(true)
+          .frame(width: 44, height: 44).contentShape(Rectangle())
       }
-      .accessibilityLabel("Home")
+      .accessibilityLabel(model.strings["app.home"])
       if editing { field } else { titleButton }
       Button(action: model.openLangle) {
         LangleMark().frame(width: 44, height: 44).contentShape(Rectangle())
       }
       .disabled(model.refusal != nil)
-      .accessibilityLabel("Langle")
+      .accessibilityLabel(model.strings["app.name"])
       menu
     }
     .buttonStyle(.plain)
@@ -49,12 +51,12 @@ struct TitleBar: View {
       .contentShape(Rectangle())
     }
     .accessibilityLabel("\(model.title), \(model.site)")
-    .accessibilityHint("Search or type an address")
+    .accessibilityHint(model.strings["app.editAddress"])
   }
 
   /// The search or address, all of it selected, as Home's search field takes it.
   private var field: some View {
-    TextField("Search or type an address", text: $typed)
+    TextField(model.strings["app.editAddress"], text: $typed)
       .font(.system(size: 15))
       .keyboardType(.webSearch)
       .textInputAutocapitalization(.never)
@@ -90,24 +92,25 @@ struct TitleBar: View {
         .contentShape(Rectangle())
     }
     .disabled(model.pageURL == nil)
-    .accessibilityLabel("More")
+    .accessibilityLabel(model.strings["app.more"])
   }
 }
 
 /// The title bar's ⋮ menu (mock `MobileArticleMenu`): Forward, Share, Copy link, Open in another
 /// browser, then under a divider the switch "Block ads on this site" with the site's registrable
 /// domain under it, while ad blocking is on. 272 pt wide, 2 pt under the bar, 8 pt from the
-/// right edge; each choice closes it.
+/// trailing edge (the left in Arabic); each choice closes it.
 struct MoreMenu: View {
   @ObservedObject var model: AppModel
 
   var body: some View {
     let url = model.pageURL
+    let strings = model.strings
     VStack(alignment: .leading, spacing: 0) {
-      item("Forward", enabled: model.canGoForward, action: model.goForward)
-      item("Share", enabled: url != nil) { if let url { FileShare.shareLink(url) } }
-      item("Copy link", enabled: url != nil) { UIPasteboard.general.url = url }
-      item("Open in another browser", enabled: url != nil) { if let url { UIApplication.shared.open(url) } }
+      item(strings["app.forward"], enabled: model.canGoForward, action: model.goForward)
+      item(strings["app.share"], enabled: url != nil) { if let url { FileShare.shareLink(url) } }
+      item(strings["app.copyLink"], enabled: url != nil) { UIPasteboard.general.url = url }
+      item(strings["app.openElsewhere"], enabled: url != nil) { if let url { UIApplication.shared.open(url) } }
       if let ads = model.adSwitch {
         Palette.line.frame(height: 1).padding(.vertical, 6).padding(.horizontal, 4)
         adSwitch(site: ads.site, blocking: ads.blocking)
@@ -145,7 +148,7 @@ struct MoreMenu: View {
     } label: {
       HStack(spacing: 12) {
         VStack(alignment: .leading, spacing: 2) {
-          Text("Block ads on this site").font(.system(size: 15)).foregroundStyle(Palette.ink)
+          Text(model.strings["app.blockAdsSite"]).font(.system(size: 15)).foregroundStyle(Palette.ink)
           Text(site).font(.system(size: 13)).foregroundStyle(Palette.muted).lineLimit(1)
             .truncationMode(.tail)
         }
@@ -160,8 +163,8 @@ struct MoreMenu: View {
     }
     .buttonStyle(MenuRowStyle())
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("Block ads on this site, \(site)")
-    .accessibilityValue(blocking ? "On" : "Off")
+    .accessibilityLabel(model.strings.format("app.blockAdsSiteLabel", ["site": site]))
+    .accessibilityValue(model.strings[blocking ? "app.on" : "app.off"])
     .accessibilityAddTraits(.isToggle)
   }
 }

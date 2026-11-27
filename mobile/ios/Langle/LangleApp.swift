@@ -43,7 +43,7 @@ struct ShellView: View {
         Color.white.ignoresSafeArea()
       }
       if let sheet = model.sheet {
-        SheetFrame(sheet: sheet, close: model.closeSheet).zIndex(1)
+        SheetFrame(sheet: sheet, closeLabel: model.strings["app.closeSheet"], close: model.closeSheet).zIndex(1)
       }
     }
     .animation(.easeOut(duration: 0.25), value: model.sheet?.id)
@@ -74,7 +74,8 @@ struct ShellView: View {
         }
       }
       .ignoresSafeArea(edges: .top)
-      TabBar(current: currentTab, select: model.select)
+      TabBar(current: currentTab, strings: model.strings, select: model.select)
+        .environment(\.layoutDirection, direction)
     }
   }
 
@@ -86,23 +87,29 @@ struct ShellView: View {
 
   /// A page over Home: the title bar (it slides away while the page scrolls down), the page.
   private var pageScreen: some View {
-    ZStack(alignment: .topTrailing) {
+    // Under ⋮: the right edge, the left in Arabic (the page itself is not mirrored).
+    ZStack(alignment: model.strings.rtl ? .topLeading : .topTrailing) {
       pageColumn
       // ⋮'s menu: a tap anywhere else closes it (and reaches nothing under it).
       if model.menuOpen, model.barShown, !model.fullscreen {
         Color.white.opacity(0.001).ignoresSafeArea().onTapGesture { model.menuOpen = false }
-        MoreMenu(model: model).padding(.top, 58).padding(.trailing, 8)
+        MoreMenu(model: model).environment(\.layoutDirection, direction)
+          .padding(.top, 58).padding(model.strings.rtl ? .leading : .trailing, 8)
       }
     }
   }
 
+  /// The interface language's direction, for the native bars and the menu only: the pages lay
+  /// themselves out. Arabic mirrors them.
+  private var direction: LayoutDirection { model.strings.rtl ? .rightToLeft : .leftToRight }
+
   private var pageColumn: some View {
     VStack(spacing: 0) {
-      if model.refusal != nil, !model.fullscreen {
-        Text(model.refusal ?? "").font(.footnote).foregroundStyle(Palette.muted).padding(8)
+      if let reasons = model.refusal, !model.fullscreen {
+        Text(model.strings.format("app.buildRefused", ["reasons": reasons])).font(.footnote).foregroundStyle(Palette.muted).padding(8)
       }
       if model.barShown, !model.fullscreen {
-        TitleBar(model: model).transition(.move(edge: .top))
+        TitleBar(model: model).environment(\.layoutDirection, direction).transition(.move(edge: .top))
       }
       PageContainer(page: model.browsing.page.view, edgeBack: edgeBack)
       .ignoresSafeArea(edges: model.fullscreen ? .all : .bottom)

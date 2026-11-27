@@ -62,7 +62,7 @@ class SaveFileActivity : Activity() {
 
   private fun failed(message: String, e: Exception) {
     Log.e(TAG, message, e)
-    Toast.makeText(applicationContext, R.string.save_failed, Toast.LENGTH_LONG).show()
+    Toast.makeText(applicationContext, AppStrings.of(this)["app.saveFailed"], Toast.LENGTH_LONG).show()
   }
 
   private companion object {

@@ -62,7 +62,10 @@ class ScreenController(
   private val stage = FrameLayout(activity)
   private val pageArea = FrameLayout(activity)
   private val titleBar: TitleBar
-  private val tabBar = TabBar(activity) { apply(shell.select(it)) }
+  private val strings = AppStrings.of(activity)
+  private val tabBar = TabBar(activity, strings) { apply(shell.select(it)) }
+  private var noLangleSearch: EditText? = null
+  private val unlistenStrings: () -> Unit
   /** Without Langle (an old WebView, a refused build): the notice and a search field, for every tab. */
   private val noLangle: View?
 
@@ -87,6 +90,7 @@ class ScreenController(
     titleBar =
       TitleBar(
         activity,
+        strings,
         mark,
         onHome = { apply(shell.home()) },
         onGo = { text -> PageText.pageForSearch(text)?.let { apply(shell.openPage(it)) } },
@@ -128,6 +132,14 @@ class ScreenController(
     }
 
     noLangle = if (injector == null) noLangleView(notice.orEmpty()) else null
+    // A new set from the background redraws the bars at once (the menu reads it when it opens).
+    unlistenStrings =
+      strings.listen {
+        titleBar.redraw()
+        tabBar.redraw()
+        noLangle?.followDirection(strings)
+        noLangleSearch?.hint = strings["app.search"]
+      }
     pageArea.addView(browsing.page.view, matchParent().apply { topMargin = barHeight })
     pageArea.addView(titleBar, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, barHeight))
     stage.addView(pageArea, matchParent())
@@ -230,6 +242,7 @@ class ScreenController(
   }
 
   fun close() {
+    unlistenStrings()
     sheet?.frame?.dismiss()
     tabPages.values.forEach { it.close() }
     firstRun?.close()
@@ -422,17 +435,20 @@ class ScreenController(
     val url = browsing.page.url ?: return
     val items =
       listOf(
-        MoreMenu.Item(R.string.forward, browsing.page.canGoForward) { browsing.page.goForward() },
-        MoreMenu.Item(R.string.share, true) {
+        MoreMenu.Item(strings["app.forward"], browsing.page.canGoForward) { browsing.page.goForward() },
+        MoreMenu.Item(strings["app.share"], true) {
           val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, url)
           pageTitle?.let { send.putExtra(Intent.EXTRA_SUBJECT, it) }
           activity.startActivity(Intent.createChooser(send, null))
         },
-        MoreMenu.Item(R.string.copy_link, true) {
+        MoreMenu.Item(strings["app.copyLink"], true) {
           activity.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(pageTitle ?: url, url))
-          Toast.makeText(activity, R.string.link_copied, Toast.LENGTH_SHORT).show()
+          // Android 13 and later confirm a copy themselves (the clipboard's own preview); a toast
+          // of ours would say it twice.
+          if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU)
+            Toast.makeText(activity, strings["app.linkCopied"], Toast.LENGTH_SHORT).show()
         },
-        MoreMenu.Item(R.string.open_elsewhere, true) { openElsewhere(url) },
+        MoreMenu.Item(strings["app.openElsewhere"], true) { openElsewhere(url) },
       )
     // Only while ad blocking is on, on a page with a site (Settings › Ad blocking has the rest).
     val blocker = adBlocker
@@ -440,7 +456,7 @@ class ScreenController(
     val ads =
       if (blocker == null || site == null || !blocker.switches.on) null
       else MoreMenu.AdSwitch(site, blocker.switches.blocks(site)) { blocker.setSite(site, it) }
-    MoreMenu(activity).show(anchor, items, ads)
+    MoreMenu(activity, strings).show(anchor, items, ads)
   }
 
   /**
@@ -459,7 +475,7 @@ class ScreenController(
         .map { Intent(view).setPackage(it) }
     try {
       when (browsers.size) {
-        0 -> Toast.makeText(activity, R.string.no_browser, Toast.LENGTH_SHORT).show()
+        0 -> Toast.makeText(activity, strings["app.noBrowser"], Toast.LENGTH_SHORT).show()
         1 -> activity.startActivity(browsers[0])
         else ->
           activity.startActivity(
@@ -467,7 +483,7 @@ class ScreenController(
           )
       }
     } catch (_: android.content.ActivityNotFoundException) {
-      Toast.makeText(activity, R.string.no_browser, Toast.LENGTH_SHORT).show()
+      Toast.makeText(activity, strings["app.noBrowser"], Toast.LENGTH_SHORT).show()
     }
   }
 
@@ -478,13 +494,15 @@ class ScreenController(
       orientation = LinearLayout.VERTICAL
       val pad = activity.dp(16)
       setPadding(pad, pad, pad, pad)
+      followDirection(strings)
       addView(TextView(activity).apply {
         text = notice
         setTextColor(Palette.INK)
       })
       addView(
         EditText(activity).apply {
-          hint = activity.getString(R.string.search_hint)
+          noLangleSearch = this
+          hint = strings["app.search"]
           isSingleLine = true
           inputType = EditorInfo.TYPE_CLASS_TEXT or EditorInfo.TYPE_TEXT_VARIATION_URI
           imeOptions = EditorInfo.IME_ACTION_GO
