@@ -42,7 +42,7 @@
 - [x] M8-0: the extension's sheet (`MobileShareSaved`) in the mock and ui.md (2026-11-27)
 - [x] M8a: `SharedLink` and the Android shell (branch `claude/mobile-m8a`): checked on the emulator, notes/mobile.md "Device checks (M8a, Android)"
 - [x] M8b-0 (`claude/mobile-m8b-0`, 2026-11-27): the spike: a share extension opening its app. Works on the iOS 27.2 Simulator (the only runtime installed): the responder-chain open brought the app to the front in all 7 runs (Safari article and YouTube, Reminders text; running or killed); `NSExtensionContext.open` always false; the App Group hand-off works with ad-hoc Simulator signing. Notes: [mobile.md](../notes/mobile.md) "Share extension spike (M8b-0)"
-- [ ] M8b: the iOS share extension
+- [x] M8b: the iOS share extension (branch `claude/mobile-m8b`): checked on the iOS 27.2 Simulator, notes/mobile.md "Device checks (M8b, iOS)"
 - [ ] M9 (release checks), on a real iPhone, last (the user's decision of 2026-11-26: every milestone that needs no real device comes first): Apple's consent sheet (declined once for the Language data row's state, then accepted), a tapped word's English definition translated, the subtitles translated on the device with `refuseTlang` on, translate-ahead and the cards, the lists without starting the engine, the release after 60 s and on leaving the app, speed, and the quality of Apple's traditional models (notes/mobile.md "Open issues and risks" 4). The device tooling for it is on the local branch `claude/mobile-m6` (not pushed): `check.sh`'s `LANGLE_DEVICE` / `LANGLE_TEAM`, `Documents/check.log`, `-translateStrategy lowLatency`, `cmd translate-set`
 
 ## Running order
