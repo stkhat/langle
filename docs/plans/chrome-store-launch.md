@@ -41,7 +41,7 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 - [x] C3 **Blocker**: ship the licences of the bundled code and fonts (built 2026-11-24; [architecture](../specs/architecture.md) "Licenses"). Every build writes `THIRD_PARTY_LICENSES.txt` at the root of the zip from the packages its output comes from (15 today: Inter and Nunito with the full OFL, Preact, Dexie, WXT's runtime and what it brings in, Vite's and Rolldown's helpers) and fails for a package without a license text; the data sources and licenses page links to it
 - [ ] C4 Set `minimum_chrome_version` (none today; `world: "MAIN"` alone needs 111) and test on that version
 - [ ] C5 Store icon: `icon/128.png` fills all 128 px; the store asks for about 96 px of artwork with transparent padding
-- [ ] C6 Rewrite the manifest description ("videos … you already read"); 132 characters at most
+- [x] C6 Rewrite the manifest description ("videos … you already read"); 132 characters at most. Done 2026-11-28 in every UI locale; the description draft is [chrome-store-listing](chrome-store-listing.md)
 - [x] C7 `KOFI_URL` is https://ko-fi.com/supportlangle (2026-11-28). The feedback form is deferred (U), so Send feedback stays hidden. `SPONSOR_PAGE_URL` stays empty and `SPONSOR_CARD` null, which hides the spot and both sponsor links
 - [ ] C8 Link the privacy policy from the consent screen and Settings. The consent screen's link is on since 2026-11-26 (`PRIVACY_POLICY_URL`); Settings has none yet (needs the mock first)
 - [ ] C9 Go through status "Known issues" and mark what blocks a launch. First candidates: PR 238 (draft, a settings change overwritten by an older echo), the first download (about 24 s for English → Japanese, one file at a time), no hover while a dictionary is missing
@@ -66,7 +66,7 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 
 ## E. Listing (C drafts, U enters)
 
-- [ ] E1 **Blocker**: description: features, sentence history (prominently), the download after setup, on-device AI and its device requirements, the supported pairs, Drive sync, the Ko-fi link. No keyword lists
+- [ ] E1 **Blocker** (drafted in English and Japanese: [chrome-store-listing](chrome-store-listing.md); the Ko-fi link left out on purpose): description: features, sentence history (prominently), the download after setup, on-device AI and its device requirements, the supported pairs, Drive sync, the Ko-fi link. No keyword lists
 - [ ] E2 **Blocker**: single purpose, and a justification for each of `storage`, `alarms`, `identity` and `<all_urls>`
 - [ ] E3 **Blocker**: data-use checkboxes (at least website content, web history and, with Drive, personally identifiable information (the email); go through the rest), the Limited Use certifications, "no remote code", the policy's URL. All must agree with D2 and with what the build does
 - [ ] E4 **Blocker**: 1–5 screenshots at 1280×800, with demo content we have the rights to: no Netflix titles, real creators' videos, logos or personal data
