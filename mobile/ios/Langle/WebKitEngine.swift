@@ -290,6 +290,31 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
     }
   }
 
+  /// The world of `keepRunning`'s script, apart from the page's and Langle's.
+  private static let keepRunningWorld = WKContentWorld.world(name: "langle-keep-running")
+
+  /// WebKit holds a page's process (and the network process with its IndexedDB) running while a
+  /// script call on it has not finished, also with the app off screen: an awaited promise in a
+  /// world of its own is that call, settled by `false` or after `ms` (notes/mobile.md "Device
+  /// checks (M7e, iOS)").
+  func keepRunning(_ on: Bool, ms: Double) {
+    let world = Self.keepRunningWorld
+    guard on else {
+      webView.evaluateJavaScript(
+        "for (const end of globalThis.__langleKeepRunning ?? []) end();", in: nil, in: world)
+      return
+    }
+    let source = """
+      await new Promise((resolve) => {
+        const ends = (globalThis.__langleKeepRunning ??= new Set());
+        const end = () => { ends.delete(end); clearTimeout(timer); resolve(); };
+        const timer = setTimeout(end, ms);
+        ends.add(end);
+      });
+      """
+    webView.callAsyncJavaScript(source, arguments: ["ms": ms], in: nil, in: world) { _ in }
+  }
+
   func evaluate(world: ScriptWorld, source: String) async -> String {
     do {
       let value = try await webView.callAsyncJavaScript(

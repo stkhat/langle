@@ -214,7 +214,12 @@ final class AppModel: ObservableObject {
     auth.onLog = { Log.app.info("googleAuth: \($0, privacy: .public)") }
     router.onGoogleAuth = auth.handle
     googleAuth = auth
-    let lifecycle = AppLifecycle(router: router) { [weak self] on in self?.backgroundHold.hold(on) }
+    // The background task keeps the app running, the host's script call keeps WebKit's
+    // processes running: both until the host answers or 20 s pass.
+    let lifecycle = AppLifecycle(router: router) { [weak self] on in
+      self?.backgroundHold.hold(on)
+      self?.host?.keepRunning(on)
+    }
     lifecycle.onLog = { Log.app.info("\($0, privacy: .public)") }
     self.lifecycle = lifecycle
   }

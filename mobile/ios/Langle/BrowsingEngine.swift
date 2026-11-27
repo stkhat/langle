@@ -48,6 +48,10 @@ protocol Page: AnyObject {
   func postMessage(world: ScriptWorld, frameId: Int, json: String)
   /// Runs a function body in a world and returns its result as text (named commands only).
   func evaluate(world: ScriptWorld, source: String) async -> String
+  /// Keeps the page's content process running while the app is off screen (`true`, at most
+  /// `ms`), until `false`. WebKit suspends a page's process, and the IndexedDB it uses, as soon
+  /// as the app leaves the screen, whatever background task the app holds.
+  func keepRunning(_ on: Bool, ms: Double)
   /// Leaves the page's fullscreen (the app's own, or the browser's).
   func exitFullscreen()
 }
