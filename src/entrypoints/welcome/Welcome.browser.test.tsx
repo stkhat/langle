@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { cleanup, render } from "vitest-browser-preact";
 import { mergeSettings, type Settings } from "../../core/settings";
-import type { Request, SetupStatus } from "../../messaging/protocol";
+import type {
+  CloudStatus,
+  LanguagePair,
+  Request,
+  SetupStatus,
+} from "../../messaging/protocol";
 import { settingsListeners } from "../../testing/stubs";
 import { fixedTouchMode } from "../../testing/touch";
 import { Welcome, type WelcomeDeps } from "./Welcome";
@@ -11,10 +16,21 @@ afterEach(cleanup);
 
 function fake(
   status: SetupStatus = { stage: "consent", pair: null },
-  options: Partial<WelcomeDeps> & { refuse?: boolean } = {},
+  options: Partial<WelcomeDeps> & {
+    refuse?: boolean;
+    /** What `cloudStatus` answers (none offered by default). */
+    cloud?: CloudStatus;
+    /** What connecting does: the pair the other devices use; `cancel`: the sheet was closed. */
+    connect?: LanguagePair | "cancel" | (() => Promise<never>);
+  } = {},
 ) {
-  const { refuse, ...over } = options;
+  const { refuse, connect, cloud: offered, ...over } = options;
   let current = status;
+  let cloud: CloudStatus = offered ?? {
+    available: [],
+    bytes: 0,
+    devices: 0,
+  };
   const requests: Request[] = [];
   const order: string[] = [];
   const settings = settingsListeners(mergeSettings(undefined));
@@ -29,6 +45,15 @@ function fake(
           ...current,
           stage: current.stage === "consent" ? "languages" : current.stage,
         };
+      if (request.type === "cloudStatus") return cloud;
+      if (request.type === "cloudConnect") {
+        if (typeof connect === "function") return connect();
+        if (connect !== "cancel") {
+          cloud = { ...cloud, provider: request.provider, devices: 2 };
+          if (connect) current = { ...current, pair: connect };
+        }
+        return null;
+      }
       return request.type === "startLangle" ? null : current;
     }) as WelcomeDeps["send"],
     watchSettings,
@@ -85,9 +110,8 @@ describe("How Langle uses your data", () => {
   });
 
   it("says the words and settings stay on a device that syncs nothing", async () => {
-    // Drive stays out where nothing syncs, as in Settings, whatever the build has.
     const screen = await show(
-      fake(undefined, { sync: { kind: "device" }, drive: true }).deps,
+      fake(undefined, { sync: { kind: "device" }, drive: false }).deps,
     );
     const region = screen.getByRole("region");
     for (const text of [
@@ -99,6 +123,22 @@ describe("How Langle uses your data", () => {
     expect(screen.container.textContent).not.toContain("Chrome sync");
     expect(screen.container.textContent).not.toContain("Google");
     expect(screen.container.textContent).not.toContain("cloud");
+  });
+
+  it("names Google Drive on a phone that can sign in to Google", async () => {
+    const screen = await show(
+      fake(undefined, { sync: { kind: "device" }, drive: true }).deps,
+    );
+    const region = screen.getByRole("region");
+    for (const text of [
+      "Langle has no servers. It saves your data only on this phone and, if you connect it, your own Google Drive, nowhere else. The developer receives none of it.",
+      "Your words, settings and a history of sentences, web addresses and titles on this phone, to show where you met a word.",
+      "A word you look up or play may go to the service that gives its meaning or sound.",
+      "If you connect Google Drive, your words, settings and history go there. Your Google email is kept to stay connected.",
+    ])
+      await expect.element(region).toMatchTextContent(text);
+    expect(screen.container.textContent).not.toContain("stay on this phone");
+    expect(screen.container.textContent).not.toContain("Chrome sync");
   });
 
   it("leaves out Drive in a build without it, and a policy without an address", async () => {
@@ -309,5 +349,121 @@ describe("on a phone", () => {
     expect(start.closest(".bar")).not.toBeNull();
     expect(box(start).height).toBe(50);
     expect(box(screen.getByLabelText("I speak").element()).height).toBe(50);
+  });
+});
+
+describe("Use Langle on a computer too? (phone app)", () => {
+  const OFFERED: CloudStatus = {
+    available: ["googleDrive"],
+    bytes: 0,
+    devices: 0,
+  };
+  const app = (
+    options: Parameters<typeof fake>[1] = {},
+    status: SetupStatus = LANGUAGES,
+  ) =>
+    fake(status, {
+      sync: { kind: "device" },
+      drive: true,
+      cloud: OFFERED,
+      touch: fixedTouchMode(true),
+      ...options,
+    });
+  const heading = (screen: Awaited<ReturnType<typeof show>>) =>
+    screen.getByRole("heading");
+
+  beforeEach(() => page.viewport(390, 844));
+
+  it("comes after the consent, before the languages", async () => {
+    const f = app({}, { stage: "consent", pair: null });
+    const screen = await show(f.deps);
+    await screen.getByRole("button", { name: "Agree and continue" }).click();
+    await expect
+      .element(heading(screen))
+      .toHaveTextContent("Use Langle on a computer too?");
+    await expect
+      .element(screen.getByRole("region"))
+      .toMatchTextContent(
+        "Connect your Google Drive to bring your words here and keep this phone and your computer the same.On the computer, connect Google Drive in Langle’s settings as well.",
+      );
+    const connect = screen.getByRole("button", {
+      name: "Connect Google Drive",
+    });
+    const notNow = screen.getByRole("button", { name: "Not now" });
+    expect(connect.element().closest(".bar")).not.toBeNull();
+    expect(
+      connect.element().getBoundingClientRect().bottom,
+    ).toBeLessThanOrEqual(notNow.element().getBoundingClientRect().top);
+    await notNow.click();
+    await expect.element(heading(screen)).toHaveTextContent("Your languages");
+    expect(f.requests.map((r) => r.type)).not.toContain("cloudConnect");
+  });
+
+  it("shows the pair the other devices use once connected", async () => {
+    let finish = () => {};
+    const f = app({
+      connect: { learningLang: "en", nativeLang: "pt" },
+    });
+    const send = f.deps.send;
+    f.deps.send = (async (request: Request) => {
+      if (request.type === "cloudConnect")
+        await new Promise<void>((resolve) => (finish = resolve));
+      return send(request as never);
+    }) as WelcomeDeps["send"];
+    const screen = await show(f.deps);
+    await screen.getByRole("button", { name: "Connect Google Drive" }).click();
+    const connecting = screen.getByRole("button", { name: "Connecting…" });
+    await expect.element(connecting).toBeDisabled();
+    finish();
+    await expect.element(heading(screen)).toHaveTextContent("Your languages");
+    await expect.element(screen.getByLabelText("I speak")).toHaveValue("pt");
+    await expect
+      .element(screen.getByLabelText("I’m learning"))
+      .toHaveValue("en");
+    expect(f.requests).toContainEqual({
+      type: "cloudConnect",
+      provider: "googleDrive",
+    });
+  });
+
+  it("stays as it was when the sheet was closed or connecting failed", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const connect of [
+      "cancel" as const,
+      () => Promise.reject(new Error("offline")),
+    ]) {
+      const screen = await show(app({ connect }).deps);
+      const button = screen.getByRole("button", {
+        name: "Connect Google Drive",
+      });
+      await button.click();
+      await expect.element(button).toBeEnabled();
+      await expect
+        .element(heading(screen))
+        .toHaveTextContent("Use Langle on a computer too?");
+      cleanup();
+    }
+    expect(error).toHaveBeenCalledOnce();
+    error.mockRestore();
+  });
+
+  it("is skipped where nothing is offered or it is connected already", async () => {
+    for (const options of [
+      { drive: false },
+      { cloud: { ...OFFERED, available: [] } },
+      { cloud: { ...OFFERED, provider: "googleDrive" as const } },
+    ]) {
+      const f = app(options);
+      const screen = await show(f.deps);
+      await expect.element(heading(screen)).toHaveTextContent("Your languages");
+      cleanup();
+    }
+  });
+
+  it("is not asked in a browser, where Settings offers Drive", async () => {
+    const f = app({ sync: { kind: "browser", browser: "Chrome" } });
+    const screen = await show(f.deps);
+    await expect.element(heading(screen)).toHaveTextContent("Your languages");
+    expect(f.requests.map((r) => r.type)).not.toContain("cloudStatus");
   });
 });

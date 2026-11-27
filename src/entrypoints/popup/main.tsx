@@ -68,6 +68,7 @@ function readyPopup() {
     watchSettings,
     watchPackState,
     sync: env.sync,
+    appGoogleAuth: env.features.appGoogleAuth,
     links: supportLinks(env.reviewUrl),
     openTab(url) {
       void browser.tabs.create({ url }).finally(() => window.close());

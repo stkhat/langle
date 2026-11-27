@@ -41,15 +41,28 @@ describe("createBrowserEnv", () => {
     expect(createBrowserEnv("chrome", {}).features).toEqual({
       fileSystemAccess: false,
       appHost: false,
+      appGoogleAuth: false,
     });
     expect(
       createBrowserEnv("chrome", { showDirectoryPicker: () => {} }).features,
-    ).toEqual({ fileSystemAccess: true, appHost: false });
+    ).toEqual({ fileSystemAccess: true, appHost: false, appGoogleAuth: false });
   });
 
   it("detects the phone app by its appHost, whatever the build", () => {
     const appHost = { openPage: () => {} };
     expect(createBrowserEnv("chrome", { appHost }).features.appHost).toBe(true);
     expect(createBrowserEnv("langle-app", {}).features.appHost).toBe(false);
+  });
+
+  it("detects the app's Google sign-in by appHost.googleAuth", () => {
+    const googleAuth = { token: async () => ({}), forget: async () => {} };
+    expect(
+      createBrowserEnv("langle-app", { appHost: { googleAuth } }).features
+        .appGoogleAuth,
+    ).toBe(true);
+    expect(
+      createBrowserEnv("langle-app", { appHost: { openPage: () => {} } })
+        .features.appGoogleAuth,
+    ).toBe(false);
   });
 });
