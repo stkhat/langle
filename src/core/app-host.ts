@@ -33,7 +33,52 @@ export interface AppHost {
   prepareTranslator(pair: PairCodes): Promise<TranslatorStatus>;
   /** The model packs' files, which native code downloads and keeps (Android). */
   models: AppModels;
+  /**
+   * Google sign-in through the phone (mobile-app.md "M7"): the auth half of Google
+   * Drive's sync in the app. Missing where the shell cannot sign in (no Google Play
+   * services).
+   */
+  googleAuth?: AppGoogleAuth;
+  /**
+   * The app went to the background (`app.hidden`): the shell keeps it running until
+   * every listener's promise settles (or its own time limit). Returns an unsubscribe.
+   */
+  onHidden(listener: () => Promise<void>): () => void;
+  /** The app came back to the foreground (`app.visible`). Returns an unsubscribe. */
+  onVisible(listener: () => void): () => void;
 }
+
+/** `appHost.googleAuth`, the shells' sign-in (iOS: the system sheet; Android: Play services). */
+export interface AppGoogleAuth {
+  /**
+   * An access token for `drive.appdata`. `interactive` shows Google's account chooser;
+   * without it the shell renews silently or answers `unauthorized`. `refused`: a token
+   * Drive just refused (401), dropped before a new one is had.
+   */
+  token(request: {
+    interactive: boolean;
+    refused?: string;
+  }): Promise<AppGoogleToken>;
+  /** Forgets this device's tokens; revokes nothing at Google. */
+  forget(): Promise<void>;
+}
+
+/**
+ * `appHost.googleAuth.token`'s answer: a token and when it ends (ms since the epoch), or
+ * why there is none: `cancelled` (the user closed or declined the sheet),
+ * `unauthorized` (no token without the sheet: Reconnect needed), `retry` (the renewal
+ * could not reach Google: try again later).
+ */
+export type AppGoogleToken =
+  { token: string; expiresAt: number } | { error: AppGoogleAuthError };
+
+export type AppGoogleAuthError = "cancelled" | "unauthorized" | "retry";
+
+export const APP_GOOGLE_AUTH_ERRORS: readonly AppGoogleAuthError[] = [
+  "cancelled",
+  "unauthorized",
+  "retry",
+];
 
 /** A text file to share: `name` is a plain file name (no folders), `mime` its media type. */
 export interface SharedFile {

@@ -17,6 +17,11 @@ interface LangleAppInfo {
    * translation host (mobile-translation.md "The bridge"); left out before.
    */
   translator?: { models?: unknown };
+  /**
+   * `true` where the shell can sign in to Google (`appHost.googleAuth`, mobile-app.md
+   * "M7"); left out where it cannot (no Google Play services) and before.
+   */
+  googleAuth?: unknown;
 }
 
 /** The app info's translator, when it is one the shim knows. */
@@ -49,6 +54,7 @@ export function startShim(): void {
     origin: info.origin,
     manifest: info.manifest,
     ...(translator && { translator }),
+    ...(info.googleAuth === true && { googleAuth: true }),
   });
   const hello = () => {
     bridge

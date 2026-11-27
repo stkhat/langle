@@ -842,7 +842,9 @@ async function appModels(ensure: ReferenceTranslator["ensure"]) {
   });
   const bridge = createBridge(native.connect({ kind: "host" }).transport);
   await bridge.call("bridge.hello", { context: "host" });
-  const models: AppModels = createAppHost(bridge, { models: "packs" }).models;
+  const models: AppModels = createAppHost(bridge, {
+    translator: { models: "packs" },
+  }).models;
   return { models, asked, removed };
 }
 

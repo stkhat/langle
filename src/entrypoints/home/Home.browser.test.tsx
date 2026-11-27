@@ -115,6 +115,8 @@ function fake(
           cloud = { ...cloud!, lastSavedAt: NOW - MINUTE };
           delete cloud.error;
           return null;
+        case "cloudCheck":
+          return null;
         default:
           throw new Error(`unexpected ${request.type}`);
       }
@@ -154,6 +156,15 @@ describe("Home", () => {
       .element(screen.getByText("Saved on this phone · 2 minutes ago"))
       .toBeVisible();
     expect(f.sent).toContainEqual({ type: "counts", lang: "en" });
+  });
+
+  it("asks the background to read the other devices' changes once when it opens", async () => {
+    const f = fake();
+    const screen = await render(<Home deps={f.deps} stage="ready" />);
+    await expect
+      .element(screen.getByText("Saved on this phone · 2 minutes ago"))
+      .toBeVisible();
+    expect(f.sent.filter((r) => r.type === "cloudCheck")).toHaveLength(1);
   });
 
   it("says Not saved yet before the first save", async () => {

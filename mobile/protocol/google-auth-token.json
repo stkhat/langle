@@ -1,0 +1,7 @@
+{
+  "v": 1,
+  "kind": "call",
+  "id": "c10",
+  "api": "appHost.googleAuth.token",
+  "args": [{ "interactive": false, "refused": "ya29.refused-token" }]
+}

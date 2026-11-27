@@ -355,6 +355,7 @@ class Router(val options: Options = Options(), private val persistence: Persiste
         val host = onTranslation ?: throw BridgeError(notAvailable(api))
         host(context.spec, api, first, done)
       }
+      in GOOGLE_AUTH_APIS -> throw BridgeError(notAvailable(api))
       "action.openPopup" -> {
         onAction?.invoke(RouterAction.OpenPopup)
         done(Answer.Value(null))

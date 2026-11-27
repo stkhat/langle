@@ -42,5 +42,11 @@ public let translationApis: Set<String> = [
   "appHost.models.remove",
 ]
 
+/// Google sign-in for Drive sync (docs/specs/mobile-app.md "M7"); not available until M7d fills it.
+public let googleAuthApis: Set<String> = [
+  "appHost.googleAuth.token",
+  "appHost.googleAuth.forget",
+]
+
 /// The error of a call the app cannot answer yet, the same text in all three routers.
 public func notAvailable(_ api: String) -> String { "\(api) is not available here." }
