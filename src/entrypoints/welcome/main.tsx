@@ -27,12 +27,16 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 mountPage(() => {
   const uiLanguage = browser.i18n.getUILanguage();
+  const env = createBrowserEnv();
   const deps: WelcomeDeps = {
     send,
     watchSettings,
     uiLanguage,
-    sync: createBrowserEnv().sync,
-    drive: googleClients() !== undefined,
+    sync: env.sync,
+    // The phone app signs in to Google itself, where it can.
+    drive: env.features.appHost
+      ? env.features.appGoogleAuth
+      : googleClients() !== undefined,
     privacyPolicy: PRIVACY_POLICY_URL,
     startModels: (learning, native) =>
       Promise.race([

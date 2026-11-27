@@ -54,7 +54,7 @@ val CALL_APIS: Set<String> =
     "appHost.googleAuth.forget",
   )
 
-/** Google sign-in for Drive sync (docs/specs/mobile-app.md "M7"); not available until M7d fills it. */
+/** Google sign-in for Drive sync (docs/specs/mobile-app.md "M7"; `Router.onGoogleAuth`). */
 val GOOGLE_AUTH_APIS: Set<String> =
   linkedSetOf(
     "appHost.googleAuth.token",

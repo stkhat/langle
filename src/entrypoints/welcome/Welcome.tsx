@@ -9,6 +9,10 @@ import {
   suggestedPair,
 } from "../../core/languages";
 import type { SyncPlace } from "../../core/browser-env";
+import {
+  CLOUD_PROVIDER_NAMES,
+  type CloudProviderId,
+} from "../../core/cloud/provider";
 import type { Settings } from "../../core/settings";
 import { languageOption } from "../../i18n/languages";
 import { t, uiLocale } from "../../i18n/t";
@@ -28,7 +32,11 @@ export interface WelcomeDeps {
   uiLanguage: string;
   /** `BrowserEnv.sync`: the browser's sync, or this device only (the phone app). */
   sync: SyncPlace;
-  /** This build can connect Google Drive (offered only beside browser sync, as in Settings). */
+  /**
+   * This build can connect Google Drive: in a browser, beside browser sync (as in
+   * Settings); in the phone app, where it can sign in to Google (`appHost.googleAuth`),
+   * with a step of its own before the languages.
+   */
   drive: boolean;
   /** The policy's address; empty: the link is left out. */
   privacyPolicy: string;
@@ -263,7 +271,11 @@ function Consent(props: {
           <strong style={{ fontWeight: 600, color: color.ink }}>
             {t("setup.consent.noServers")}
           </strong>{" "}
-          {device ? t("setup.consent.whereDevice") : t("setup.consent.where")}
+          {!device
+            ? t("setup.consent.where")
+            : deps.drive
+              ? t("setup.consent.whereDeviceDrive")
+              : t("setup.consent.whereDevice")}
           {deps.privacyPolicy && (
             <>
               {" "}
@@ -292,11 +304,14 @@ function Consent(props: {
             ? t("setup.consent.sendsWhat", {
                 syncName: browserSyncName(deps.sync.browser),
               })
-            : t("setup.consent.sendsWhatDevice")}
-          {/* Drive is offered beside browser sync only (Settings "Sync and backup"). */}
-          {deps.drive && !device && (
+            : deps.drive
+              ? t("setup.consent.sendsWhatDeviceDrive")
+              : t("setup.consent.sendsWhatDevice")}
+          {deps.drive && (
             <span style={{ display: "block", marginTop: "4px" }}>
-              {t("setup.consent.sendsDrive")}
+              {device
+                ? t("setup.consent.sendsDriveDevice")
+                : t("setup.consent.sendsDrive")}
             </span>
           )}
         </Row>
@@ -339,6 +354,89 @@ function Choice(props: {
         ))}
       </select>
     </div>
+  );
+}
+
+/**
+ * The phone app's Drive step (mock `MobileFirstRunDrive`), before the languages: Connect
+ * opens Google's sheet; once the first check read the other devices, the languages step
+ * shows the pair they use. A closed sheet leaves the step as it was.
+ */
+function DriveStep(props: {
+  deps: WelcomeDeps;
+  phone: boolean;
+  provider: CloudProviderId;
+  /** Connected (with the setup's status after it) or Not now. */
+  done(status?: SetupStatus): void;
+}) {
+  const { deps, provider, done } = props;
+  const title = useId();
+  const [busy, setBusy] = useState(false);
+  const name = CLOUD_PROVIDER_NAMES[provider];
+
+  async function connect() {
+    setBusy(true);
+    try {
+      await deps.send({ type: "cloudConnect", provider });
+      if ((await deps.send({ type: "cloudStatus" })).provider) {
+        done(await deps.send({ type: "setupStatus" }));
+        return;
+      }
+    } catch (error) {
+      report(error);
+    }
+    setBusy(false);
+  }
+
+  return (
+    <Step
+      phone={props.phone}
+      title={title}
+      gap={20}
+      actions={
+        <>
+          <button
+            type="button"
+            class="btn go"
+            disabled={busy}
+            onClick={() => void connect()}
+          >
+            {busy
+              ? t("cloud.connecting")
+              : t("settings.cloud.connectButton", { provider: name })}
+          </button>
+          <button type="button" class="btn" onClick={() => done()}>
+            {t("setup.consent.notNow")}
+          </button>
+        </>
+      }
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <h1 id={title} class="h1">
+          {t("setup.drive.title")}
+        </h1>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "15px",
+            lineHeight: 1.5,
+            color: color.ink2,
+          }}
+        >
+          {t("setup.drive.lead")}
+        </p>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "14px",
+            lineHeight: 1.5,
+            color: color.muted,
+          }}
+        >
+          {t("setup.drive.computer")}
+        </p>
+      </div>
+    </Step>
   );
 }
 
@@ -446,6 +544,10 @@ export function Welcome(props: { deps: WelcomeDeps }) {
   const { deps } = props;
   const phone = usePhoneLayout(deps.touch);
   const [status, setStatus] = useState<SetupStatus>();
+  // The Drive step's provider; `null`: no Drive step (Not now, connected, none offered).
+  const [drive, setDrive] = useState<CloudProviderId | null>();
+  const languages = status?.stage === "languages";
+  const askDrive = deps.drive && deps.sync.kind === "device";
 
   useEffect(() => {
     deps.send({ type: "setupStatus" }).then((now) => {
@@ -454,10 +556,32 @@ export function Welcome(props: { deps: WelcomeDeps }) {
     }, report);
   }, [deps]);
 
+  // Only a provider the background offers and that is not connected yet.
+  useEffect(() => {
+    if (!languages) return;
+    if (!askDrive) return setDrive(null);
+    deps.send({ type: "cloudStatus" }).then(
+      (cloud) => setDrive(cloud.provider ? null : (cloud.available[0] ?? null)),
+      (error: unknown) => {
+        report(error);
+        setDrive(null);
+      },
+    );
+  }, [deps, languages, askDrive]);
+
+  function driveDone(next?: SetupStatus) {
+    if (next) setStatus(next);
+    setDrive(null);
+  }
+
   let step: VNode | null = null;
   if (status?.stage === "consent")
     step = <Consent deps={deps} phone={phone} agreed={setStatus} />;
-  else if (status?.stage === "languages")
+  else if (status?.stage === "languages" && drive)
+    step = (
+      <DriveStep deps={deps} phone={phone} provider={drive} done={driveDone} />
+    );
+  else if (status?.stage === "languages" && drive === null)
     step = <Languages deps={deps} phone={phone} status={status} />;
 
   if (phone)

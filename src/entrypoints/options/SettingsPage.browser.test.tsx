@@ -84,8 +84,12 @@ interface FakeOptions {
   phone?: boolean;
   /** The phone app's `appHost` exists (default: no). */
   app?: boolean;
+  /** The app's `appHost.googleAuth` exists (default: no). */
+  googleAuth?: boolean;
   /** The app's stored ad-blocking switches and lists' date (default: on, none). */
   adBlocking?: AdBlockingView;
+  /** This request waits for `release()`, which may make it fail (default: none waits). */
+  hold?: Request["type"];
 }
 
 const MB = 1024 * 1024;
@@ -111,9 +115,16 @@ function fake(options: FakeOptions = {}) {
   const removed = new Set<string>();
   const sent: Request[] = [];
   const downloads: { name: string; text: string }[] = [];
+  let release: (error?: Error) => void = () => {};
   const deps: SettingsDeps = {
     send: (async (request: Request) => {
       sent.push(request);
+      if (request.type === options.hold) {
+        const error = await new Promise<Error | undefined>(
+          (resolve) => (release = resolve),
+        );
+        if (error) throw error;
+      }
       switch (request.type) {
         case "getSettings":
           return settings;
@@ -178,7 +189,11 @@ function fake(options: FakeOptions = {}) {
     env: {
       name: "Chrome",
       sync: options.place ?? { kind: "browser", browser: "Chrome" },
-      features: { fileSystemAccess: true, appHost: options.app ?? false },
+      features: {
+        fileSystemAccess: true,
+        appHost: options.app ?? false,
+        appGoogleAuth: options.googleAuth ?? false,
+      },
     },
     ...(options.phone && { touch: fixedTouchMode(true) }),
     ...(options.explainProvider && {
@@ -214,6 +229,8 @@ function fake(options: FakeOptions = {}) {
     sent,
     downloads,
     adBlockingWrites,
+    /** Lets the held request go on, or fail with `error`. */
+    release: (error?: Error) => release(error),
     /** ⋮ or the list store changes the stored ad blocking. */
     storeAdBlocking(view: AdBlockingView) {
       adBlocking = view;
@@ -1440,6 +1457,68 @@ describe("SettingsPage", () => {
       });
     });
 
+    it("reads Connecting… on the pressed Connect until it is connected", async () => {
+      const f = await open({ cloud: CAN_CONNECT, hold: "cloudConnect" });
+      const sync = section(f.screen, "Sync and backup");
+      await sync.getByRole("button", { name: "Connect Google Drive" }).click();
+      const connecting = sync.getByRole("button", { name: "Connecting…" });
+      await expect.element(connecting).toBeDisabled();
+      await expect
+        .element(sync.getByRole("button", { name: "Export" }))
+        .toBeEnabled();
+      f.release();
+      await expect.element(sync.getByText(DESC)).toBeVisible();
+      expect(sync.getByText("Connecting…").query()).toBeNull();
+    });
+
+    it("goes back to Connect when connecting fails or the window is closed", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const f = await open({ cloud: CAN_CONNECT, hold: "cloudConnect" });
+      const sync = section(f.screen, "Sync and backup");
+      await sync.getByRole("button", { name: "Connect Google Drive" }).click();
+      await expect
+        .element(sync.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      f.release(new Error("closed"));
+      await expect
+        .element(sync.getByRole("button", { name: "Connect Google Drive" }))
+        .toBeEnabled();
+      warn.mockRestore();
+    });
+
+    it("reads Connecting… on Reconnect, never while disconnecting", async () => {
+      const cloud: CloudStatus = { ...CONNECTED, error: "reconnect" };
+      const settings = { cloudProvider: "googleDrive" } as const;
+      const f = await open({ cloud, settings, hold: "cloudConnect" });
+      const sync = section(f.screen, "Sync and backup");
+      await sync.getByRole("button", { name: "Reconnect" }).click();
+      await expect
+        .element(sync.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      await expect
+        .element(sync.getByRole("button", { name: "Disconnect" }))
+        .toBeDisabled();
+      f.release();
+      await expect
+        .element(sync.getByText("Saved to Google Drive · 2 minutes ago"))
+        .toBeVisible();
+      expect(sync.getByText("Connecting…").query()).toBeNull();
+      cleanup();
+
+      const g = await open({ cloud, settings, hold: "cloudDisconnect" });
+      const again = section(g.screen, "Sync and backup");
+      await again.getByRole("button", { name: "Disconnect" }).click();
+      await expect
+        .element(again.getByRole("button", { name: "Reconnect" }))
+        .toBeDisabled();
+      await expect
+        .element(again.getByRole("button", { name: "Disconnect" }))
+        .toBeDisabled();
+      expect(again.getByText("Connecting…").query()).toBeNull();
+      g.release();
+      await expect.element(syncSwitch(again)).toBeVisible();
+    });
+
     it("says the storage is full, with Disconnect only", async () => {
       const f = await open({
         cloud: { ...CONNECTED, error: "full", lastSavedAt: NOW - 2 * DAY },
@@ -2063,6 +2142,167 @@ describe("SettingsPage on a phone", () => {
     await expect
       .element(backup.getByRole("button", { name: "Export" }))
       .toBeVisible();
+  });
+
+  describe("Sync and backup with Google Drive (the app signs in to Google)", () => {
+    const sync = (screen: Awaited<ReturnType<typeof render>>) =>
+      screen.getByRole("region", { name: "Sync and backup" });
+    const LEAD =
+      "Langle has no server. Everything is kept on this phone and, if you like, your own Google Drive.";
+
+    it("offers Google Drive in a card of its own over the backup file", async () => {
+      const f = await openPhone({ googleAuth: true, cloud: CAN_CONNECT });
+      await pushed(f.screen, "Sync and backup").click();
+      const region = sync(f.screen);
+      await expect.element(region.getByText(LEAD)).toBeVisible();
+      await expect
+        .element(
+          region.getByText(
+            "Save everything, including sources and sentences, to your Google Drive. Connect it in Langle on your computer too, and both stay the same.",
+          ),
+        )
+        .toBeVisible();
+      const cards = [...region.element().querySelectorAll(".stack")];
+      expect(cards.map((card) => card.textContent)).toEqual([
+        expect.stringMatching(/^Your own cloud storage/),
+        expect.stringMatching(/^Backup file/),
+      ]);
+      const connect = region.getByRole("button", {
+        name: "Connect Google Drive",
+      });
+      expect(connect.element().getBoundingClientRect().height).toBe(44);
+      const exportButton = region.getByRole("button", { name: "Export" });
+      const importButton = region.getByRole("button", { name: "Import" });
+      // Side by side, sharing the card.
+      expect(exportButton.element().getBoundingClientRect().top).toBe(
+        importButton.element().getBoundingClientRect().top,
+      );
+      await connect.click();
+      await expect
+        .element(region.getByText("Saved to Google Drive · 2 minutes ago"))
+        .toBeVisible();
+      expect(f.sent).toContainEqual({
+        type: "cloudConnect",
+        provider: "googleDrive",
+      });
+    });
+
+    it("reads Connecting… on the pressed Connect or Reconnect until it is done", async () => {
+      const f = await openPhone({
+        googleAuth: true,
+        cloud: CAN_CONNECT,
+        hold: "cloudConnect",
+      });
+      await pushed(f.screen, "Sync and backup").click();
+      const region = sync(f.screen);
+      await region
+        .getByRole("button", { name: "Connect Google Drive" })
+        .click();
+      await expect
+        .element(region.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      f.release();
+      await expect
+        .element(region.getByText("Saved to Google Drive · 2 minutes ago"))
+        .toBeVisible();
+      expect(region.getByText("Connecting…").query()).toBeNull();
+      cleanup();
+
+      const g = await openPhone({
+        googleAuth: true,
+        cloud: { ...CONNECTED, error: "reconnect" },
+        settings: { cloudProvider: "googleDrive" },
+        hold: "cloudConnect",
+      });
+      await pushed(g.screen, "Sync and backup").click();
+      const card = sync(g.screen);
+      await card.getByRole("button", { name: "Reconnect" }).click();
+      await expect
+        .element(card.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      await expect
+        .element(card.getByRole("button", { name: "Disconnect" }))
+        .toBeDisabled();
+      g.release();
+      await expect
+        .element(card.getByRole("button", { name: "Disconnect" }))
+        .toBeEnabled();
+      expect(card.getByText("Connecting…").query()).toBeNull();
+    });
+
+    it("shows the connection, and Google Drive as the row's value", async () => {
+      const f = await openPhone({
+        googleAuth: true,
+        cloud: { ...CONNECTED, account: "alex.kim@gmail.com" },
+        settings: { cloudProvider: "googleDrive" },
+      });
+      await expect
+        .element(pushed(f.screen, "Sync and backup"))
+        .toHaveTextContent("Sync and backupGoogle Drive");
+      await pushed(f.screen, "Sync and backup").click();
+      const region = sync(f.screen);
+      for (const text of [
+        LEAD,
+        "Google Drive (alex.kim@gmail.com). Everything is saved there, in a folder only Langle can open.",
+        "Saved to Google Drive · 2 minutes ago",
+        "1.4 MB · 3 devices",
+        "Last checked other devices: 1 minute ago",
+      ])
+        await expect.element(region.getByText(text)).toBeVisible();
+      expect(region.element().textContent).not.toContain("on this device too");
+      await region.getByRole("button", { name: "Disconnect" }).click();
+      expect(f.sent).toContainEqual({ type: "cloudDisconnect" });
+      // Never "on this device too": the app has no browser sync to learn the choice.
+      await expect
+        .element(region.getByRole("button", { name: "Connect Google Drive" }))
+        .toBeVisible();
+    });
+
+    it("says what stopped it, with this phone's words", async () => {
+      for (const [error, line, note, reconnect] of [
+        [
+          "reconnect",
+          "Reconnect needed",
+          "Last saved 3 hours ago. New changes wait on this phone until you reconnect.",
+          true,
+        ],
+        [
+          "full",
+          "Google Drive storage is full",
+          "Last saved 3 hours ago. Langle saves again when there is space; nothing is lost on this phone.",
+          false,
+        ],
+        ["update", "Update Langle on this phone", undefined, false],
+      ] as const) {
+        const f = await openPhone({
+          googleAuth: true,
+          cloud: { ...CONNECTED, error, lastSavedAt: NOW - 3 * HOUR },
+          settings: { cloudProvider: "googleDrive" },
+        });
+        await pushed(f.screen, "Sync and backup").click();
+        const region = sync(f.screen);
+        await expect.element(region.getByText(line)).toBeVisible();
+        if (note) await expect.element(region.getByText(note)).toBeVisible();
+        expect(
+          region.getByRole("button", { name: "Reconnect" }).query() !== null,
+        ).toBe(reconnect);
+        await expect
+          .element(region.getByRole("button", { name: "Disconnect" }))
+          .toBeVisible();
+        cleanup();
+      }
+    });
+
+    it("stays Backup where the app cannot sign in to Google", async () => {
+      const { screen } = await openPhone({
+        cloud: CAN_CONNECT,
+        settings: { cloudProvider: "googleDrive" },
+      });
+      await pushed(screen, "Backup").click();
+      const backup = screen.getByRole("region", { name: "Backup" });
+      await expect.element(backup).toBeVisible();
+      expect(backup.element().textContent).not.toContain("Google");
+    });
   });
 
   it("keeps Ko-fi, the sponsor page and Netflix on a computer", async () => {
