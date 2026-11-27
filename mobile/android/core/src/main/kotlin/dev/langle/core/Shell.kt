@@ -50,6 +50,9 @@ sealed interface ShellEffect {
 
   /** The page's audio and video pause (a named command): it left the screen, and is kept. */
   data object PauseMedia : ShellEffect
+
+  /** The app goes behind the app that shared the page (Android's `moveTaskToBack`). */
+  data object MoveTaskBack : ShellEffect
 }
 
 /**
@@ -73,6 +76,23 @@ class Shell(private val origin: String, private val tabs: Tabs) {
 
   /** The browsing page's address; null until a page was opened. */
   var pageUrl: String? = null
+    private set
+
+  /** A shared address waiting for the first run to close (one at most: a newer share replaces it). */
+  var heldShare: String? = null
+    private set
+
+  /** A first run is about to open (Langle was just installed): a share waits for it. */
+  private var firstRunExpected = false
+
+  /** The browsing page's current entry, its place in the page's history. */
+  private var pageEntry = 0
+
+  /**
+   * The page's entry opened from another app: [PENDING] until its load commits, then its place in
+   * the page's history; null when the page was not shared or moved on.
+   */
+  var sharedEntry: Int? = null
     private set
 
   init {
@@ -106,9 +126,52 @@ class Shell(private val origin: String, private val tabs: Tabs) {
    * `m.youtube.com`).
    */
   fun openPage(url: String, canonical: String? = null): List<ShellEffect> {
+    sharedEntry = null
     val same = PageText.samePage(pageUrl, url) || PageText.samePage(canonical, url)
     val load = if (same) emptyList() else listOf(load(Screen.Page, url))
     return listOf(ShellEffect.CloseSheet) + load + show(Screen.Page)
+  }
+
+  /**
+   * Another app's Share (docs/specs/mobile-app.md "M8: Share → Langle"): [url] in the one page,
+   * its entry marked as opened from another app. Before the first run is done it waits, and
+   * opens once the first run closes.
+   */
+  fun shared(url: String): List<ShellEffect> {
+    if (firstRunTab != null || firstRunExpected) {
+      heldShare = url
+      return emptyList()
+    }
+    return openShared(url)
+  }
+
+  /** Langle was just installed: the first run is about to open, and a share waits for it. */
+  fun expectFirstRun() {
+    firstRunExpected = true
+  }
+
+  /** The first run did not open after all: a share that waited for it opens. */
+  fun firstRunNotComing(): List<ShellEffect> {
+    firstRunExpected = false
+    return if (firstRunTab == null) releaseShare() else emptyList()
+  }
+
+  private fun openShared(url: String): List<ShellEffect> {
+    val load =
+      if (PageText.samePage(pageUrl, url)) {
+        sharedEntry = pageEntry
+        emptyList()
+      } else {
+        sharedEntry = PENDING
+        listOf(load(Screen.Page, url))
+      }
+    return listOf(ShellEffect.CloseSheet) + load + show(Screen.Page)
+  }
+
+  private fun releaseShare(): List<ShellEffect> {
+    val url = heldShare ?: return emptyList()
+    heldShare = null
+    return openShared(url)
   }
 
   /** A tap on the tab bar. */
@@ -121,12 +184,18 @@ class Shell(private val origin: String, private val tabs: Tabs) {
   fun handlesBack(canGoBack: Boolean): Boolean = canGoBack || screen != Screen.OnTab(AppTab.HOME)
 
   /**
-   * The system back, [canGoBack] being the screen's page's: back in that page's history, then
-   * from a page to Home, from Words or Settings to Home, from the first run to Home (its Not
-   * now); null on Home, where the app is left.
+   * The system back, [canGoBack] being the screen's page's and [entry] its current entry: on the
+   * entry another app shared, Home under it and the app behind the other app; else back in that
+   * page's history, then from a page to Home, from Words or Settings to Home, from the first run
+   * to Home (its Not now); null on Home, where the app is left.
    */
-  fun back(canGoBack: Boolean): List<ShellEffect>? {
+  fun back(canGoBack: Boolean, entry: Int = pageEntry): List<ShellEffect>? {
     val current = screen
+    val shared = sharedEntry
+    if (current == Screen.Page && shared != null && (shared == PENDING || shared == entry)) {
+      sharedEntry = null
+      return home() + ShellEffect.MoveTaskBack
+    }
     if (canGoBack) return listOf(ShellEffect.GoBack(current))
     return when (current) {
       Screen.Page -> home()
@@ -135,10 +204,21 @@ class Shell(private val origin: String, private val tabs: Tabs) {
     }
   }
 
-  /** A page went to [url] (a new document or the history API). */
-  fun navigated(on: Screen, url: String): List<ShellEffect> {
+  /**
+   * A page went to [url] (a new document or the history API), [entry] being its place in the
+   * page's history now. The shared entry's mark goes once the page is on another entry.
+   */
+  fun navigated(on: Screen, url: String, entry: Int = 0): List<ShellEffect> {
     when (on) {
-      Screen.Page -> if (url != "about:blank") pageUrl = url
+      Screen.Page -> {
+        if (url != "about:blank") pageUrl = url
+        pageEntry = entry
+        when (val shared = sharedEntry) {
+          null -> Unit
+          PENDING -> sharedEntry = entry
+          else -> if (shared != entry) sharedEntry = null
+        }
+      }
       is Screen.OnTab -> {
         // Words or Settings before setup goes to the first run in its place: the first run
         // shows full screen in its own tab, and the tab's page is made again when next shown
@@ -172,6 +252,7 @@ class Shell(private val origin: String, private val tabs: Tabs) {
       path == WELCOME -> {
         firstRunTab?.takeIf { it != tab.id }?.let(tabs::remove)
         firstRunTab = tab.id
+        firstRunExpected = false
         listOf(ShellEffect.CloseSheet, ShellEffect.OpenFirstRun(tab.url, tab.id)) + show(Screen.FirstRun)
       }
       appTab != null -> {
@@ -189,6 +270,7 @@ class Shell(private val origin: String, private val tabs: Tabs) {
     if (firstRunTab == null) {
       val id = tabs.open(url, active = false).id
       firstRunTab = id
+      firstRunExpected = false
       effects += ShellEffect.OpenFirstRun(url, id)
     }
     return effects + show(Screen.FirstRun)
@@ -204,7 +286,10 @@ class Shell(private val origin: String, private val tabs: Tabs) {
     return show(target)
   }
 
-  /** The first run goes; [next] shows if it was on screen ([url] loaded in it if new). */
+  /**
+   * The first run goes; [next] shows if it was on screen ([url] loaded in it if new), then a
+   * shared address that waited for it.
+   */
   private fun closeFirstRun(next: Screen.OnTab = Screen.OnTab(AppTab.HOME), url: String? = null): List<ShellEffect> {
     val id = firstRunTab ?: return emptyList()
     firstRunTab = null
@@ -214,7 +299,7 @@ class Shell(private val origin: String, private val tabs: Tabs) {
       url?.let { effects += loadIfNew(next.tab, it) }
       effects += show(next)
     }
-    return effects
+    return effects + releaseShare()
   }
 
   private fun show(next: Screen): List<ShellEffect> {
@@ -261,5 +346,8 @@ class Shell(private val origin: String, private val tabs: Tabs) {
 
   private companion object {
     const val WELCOME = "/welcome.html"
+
+    /** The shared entry before its load committed. */
+    const val PENDING = -1
   }
 }

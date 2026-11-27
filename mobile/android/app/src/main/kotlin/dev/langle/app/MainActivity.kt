@@ -25,6 +25,7 @@ import dev.langle.core.ModelStore
 import dev.langle.core.ManifestRefusal
 import dev.langle.core.Router
 import dev.langle.core.RouterAction
+import dev.langle.core.SharedLink
 import dev.langle.core.TranslationHost
 import dev.langle.core.TranslationService
 import dev.langle.core.UrlFetcher
@@ -128,8 +129,12 @@ class MainActivity : Activity() {
         it.start()
       }
       startTranslation(origin)
+      if (router.installed == null) expectFirstRun()
     }
     intent.getStringExtra("url")?.let { screens.apply(screens.shell.openPage(it)) }
+    // A share that started the app; not again when the system makes the activity again or
+    // relaunches it from the recent apps with the intent it was started with.
+    if (savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) openShared(intent)
     updateBack()
     if (BuildConfig.DEBUG) CheckCommands.ready()
   }
@@ -270,7 +275,7 @@ class MainActivity : Activity() {
     when {
       fullscreen != null -> exitFullscreen()
       screens.isEditing -> screens.stopEditing()
-      else -> screens.shell.back(canGoBack)?.let(screens::apply)
+      else -> screens.shell.back(canGoBack, screens.screenPage?.historyIndex ?: 0)?.let(screens::apply)
     }
     updateBack()
   }
@@ -285,6 +290,29 @@ class MainActivity : Activity() {
     super.onNewIntent(intent)
     if (BuildConfig.DEBUG && CheckCommands.run(this, intent)) return
     intent.getStringExtra("url")?.let { screens.apply(screens.shell.openPage(it)) }
+    openShared(intent)
+  }
+
+  // Share → Langle (docs/specs/mobile-app.md "M8: Share → Langle")
+
+  /** Another app's Share: its text's address in the one page (or waiting for the first run). */
+  private fun openShared(intent: Intent) {
+    val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
+    val address = SharedLink.ofIntent(intent.action, intent.type, text) ?: return
+    Log.i(TAG, "shared: $address")
+    leaveFullscreen()
+    if (screens.isEditing) screens.stopEditing()
+    screens.apply(screens.shell.shared(address))
+    updateBack()
+  }
+
+  /**
+   * Langle was just installed: `runtime.onInstalled` opens the first run once the host is up, and
+   * a share waits for it. Should it not open (the host failed), the share opens anyway.
+   */
+  private fun expectFirstRun() {
+    screens.shell.expectFirstRun()
+    main.postDelayed({ screens.apply(screens.shell.firstRunNotComing()) }, FIRST_RUN_WAIT_MS)
   }
 
   /**
@@ -317,3 +345,6 @@ class MainActivity : Activity() {
     super.onDestroy()
   }
 }
+
+/** How long a share right after installing waits for the first run to open before it opens anyway. */
+private const val FIRST_RUN_WAIT_MS = 15_000L

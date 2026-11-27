@@ -69,6 +69,9 @@ interface Page {
   val canGoBack: Boolean
   val canGoForward: Boolean
 
+  /** The current entry's place in the page's history (0 is the first). */
+  val historyIndex: Int
+
   fun load(url: String)
 
   fun reload()

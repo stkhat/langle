@@ -116,7 +116,7 @@ class ScreenController(
       showTitle()
     }
     browsing.onNavigate = { url ->
-      apply(shell.navigated(Screen.Page, url))
+      apply(shell.navigated(Screen.Page, url, browsing.page.historyIndex))
       showTitle()
     }
     browsing.onTitle = { title ->
@@ -177,6 +177,7 @@ class ScreenController(
         is ShellEffect.PresentSheet -> present(effect.url, effect.tabId)
         ShellEffect.CloseSheet -> sheet?.frame?.dismiss()
         ShellEffect.PauseMedia -> browsing.page.evaluate(ScriptWorld.PAGE, PAUSE_MEDIA) {}
+        ShellEffect.MoveTaskBack -> activity.moveTaskToBack(true)
       }
     }
     onChanged?.invoke()
