@@ -41,7 +41,7 @@ describe("before the setup ends", () => {
     "recordHistory",
     "recordEncounters",
     "syncStatus",
-    "cloudConnect",
+    "cloudCheck",
     "importJson",
     "retryPacks",
   ])("refuses %s, before and after consent", async (type) => {
@@ -50,6 +50,24 @@ describe("before the setup ends", () => {
     expect(await handle({ type }, FROM_PAGE)).toMatchObject({ ok: false });
     expect(inner).not.toHaveBeenCalled();
   });
+
+  it.each(["cloudStatus", "cloudConnect"])(
+    "passes %s on from the setup page after consent only",
+    async (type) => {
+      expect(await handle({ type }, FROM_PAGE)).toMatchObject({ ok: false });
+      await store(AGREED);
+      expect(await handle({ type }, { url: "https://example.com/" })).toEqual({
+        ok: false,
+        error: "Only the setup page can do this",
+      });
+      expect(inner).not.toHaveBeenCalled();
+      expect(await handle({ type }, FROM_PAGE)).toEqual({
+        ok: true,
+        value: "handled",
+      });
+      expect(inner).toHaveBeenCalledWith({ type }, FROM_PAGE);
+    },
+  );
 
   it("passes everything on once set up", async () => {
     await store(chosen(AGREED));
@@ -86,6 +104,22 @@ describe("setupStatus", () => {
         stage: "languages",
         pair: { learningLang: "en", nativeLang: "pt" },
       },
+    });
+  });
+
+  it("gives no pair while the stored one is the default no one chose", async () => {
+    await store(AGREED);
+    // As connecting cloud storage before the languages step stores it.
+    await setSettings({ cloudProvider: "googleDrive" });
+    expect(await handle({ type: "setupStatus" }, FROM_PAGE)).toEqual({
+      ok: true,
+      value: { stage: "languages", pair: null },
+    });
+    // Chosen, if back to the default.
+    await setSettings({ nativeLang: "pt" });
+    await setSettings({ nativeLang: "ja" });
+    expect(await handle({ type: "setupStatus" }, FROM_PAGE)).toMatchObject({
+      value: { pair: JA },
     });
   });
 });

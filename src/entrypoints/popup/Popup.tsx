@@ -18,11 +18,13 @@ import {
 import type { PageRequest, PageSummary } from "../../messaging/page-protocol";
 import { BrandHeader } from "../../ui/BrandHeader";
 import {
+  appCloud,
   cloudErrorLine,
   cloudSizeLine,
   cloudView,
   type CloudView,
 } from "../../ui/format/cloud";
+import { CloudErrorRow } from "../../ui/CloudErrorRow";
 import { fmt, relativeTime } from "../../ui/format/format";
 import {
   browserSyncName,
@@ -50,6 +52,11 @@ export interface PopupDeps extends PackStatusDeps {
   askPage(request: PageRequest): Promise<PageSummary | undefined>;
   /** `BrowserEnv.sync`: the browser's sync, or this device only (the phone app). */
   sync: SyncPlace;
+  /**
+   * `BrowserEnv.features.appGoogleAuth`: the phone app can sign in to Google, so it can
+   * save to Google Drive (without it the app offers no cloud provider).
+   */
+  appGoogleAuth: boolean;
   /** The page's touch mode, which picks the phone layout; the real one by default. */
   touch?: TouchMode;
   /** Where the footer's links lead; an empty one is left out. */
@@ -231,6 +238,61 @@ function CloudLine(props: {
   );
 }
 
+/**
+ * The cloud line in the phone layout (mock `MobileLangleSheet`): "Saved to Google Drive
+ * · 2 min ago" with the size and devices at its right, or what stopped it as on Home.
+ */
+function PhoneCloudLine(props: {
+  view: Extract<CloudView, { kind: "connected" }>;
+  now: number;
+  /** The phone app: "Update Langle on this phone". */
+  thisPhone: boolean;
+  onReconnect: () => void;
+}) {
+  const { view, now } = props;
+  const { status } = view;
+  if (cloudErrorLine(status, view.name))
+    return (
+      <CloudErrorRow
+        view={view}
+        now={now}
+        thisPhone={props.thisPhone}
+        onReconnect={props.onReconnect}
+      />
+    );
+  const size = cloudSizeLine(status);
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: "2px 8px",
+        fontSize: "13px",
+        color: color.ink3,
+      }}
+    >
+      {status.lastSavedAt !== undefined && <CheckIcon />}
+      {/* Whole: the size goes under it, at the right, when both do not fit. */}
+      <span style={{ flex: 1, whiteSpace: "nowrap" }}>
+        {status.lastSavedAt === undefined
+          ? t("sync.notSaved")
+          : t("cloud.saved", {
+              provider: view.name,
+              when: relativeTime(status.lastSavedAt, now),
+            })}
+      </span>
+      {size && (
+        <span
+          style={{ marginLeft: "auto", fontSize: "12px", color: color.muted }}
+        >
+          {size}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** The header's icon buttons (word list, settings). */
 const headerButton = {
   flex: "none",
@@ -340,7 +402,14 @@ export function Popup({ deps }: { deps: PopupDeps }) {
     void settingsView.change({ enabled });
   }
 
-  const view = cloudView(cloud, settings);
+  const view = cloudView(
+    cloud,
+    settings,
+    appCloud({
+      sync: deps.sync,
+      features: { appGoogleAuth: deps.appGoogleAuth },
+    }),
+  );
 
   const siteOn =
     settings && summary
@@ -400,11 +469,20 @@ export function Popup({ deps }: { deps: PopupDeps }) {
   const savedLine =
     view?.kind === "connected" ? (
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-        <CloudLine
-          view={view}
-          now={now}
-          onReconnect={() => connect(view.provider)}
-        />
+        {phone ? (
+          <PhoneCloudLine
+            view={view}
+            now={now}
+            thisPhone={deps.sync.kind === "device"}
+            onReconnect={() => connect(view.provider)}
+          />
+        ) : (
+          <CloudLine
+            view={view}
+            now={now}
+            onReconnect={() => connect(view.provider)}
+          />
+        )}
       </div>
     ) : (
       sync && (
