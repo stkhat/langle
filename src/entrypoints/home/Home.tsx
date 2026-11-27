@@ -150,17 +150,23 @@ function Ready({ deps }: { deps: HomeDeps }) {
   const [data, setData] = useState<DataNote | null>(null);
   const [now, setNow] = useState(deps.now);
 
+  /** A Reconnect is running: the button reads "Connecting…" until the line follows. */
+  const [connecting, setConnecting] = useState(false);
+
   function refreshCloud() {
-    if (deps.googleAuth)
-      deps.send({ type: "cloudStatus" }).then(setCloud, warn);
+    return deps.googleAuth
+      ? deps.send({ type: "cloudStatus" }).then(setCloud, warn)
+      : Promise.resolve();
   }
 
   /** Google's sheet opens; the line follows once it is answered. */
   function reconnect(provider: CloudProviderId) {
-    deps
+    setConnecting(true);
+    void deps
       .send({ type: "cloudConnect", provider })
       .catch(warn)
-      .finally(refreshCloud);
+      .then(refreshCloud)
+      .finally(() => setConnecting(false));
   }
 
   useEffect(() => {
@@ -168,7 +174,7 @@ function Ready({ deps }: { deps: HomeDeps }) {
     const refresh = () => {
       setNow(deps.now());
       deps.send({ type: "syncStatus" }).then(setSync, warn);
-      refreshCloud();
+      void refreshCloud();
       deps
         .send({ type: "recentsList", limit: RECENTS_ASKED })
         .then(setRecents, warn);
@@ -260,6 +266,7 @@ function Ready({ deps }: { deps: HomeDeps }) {
           sync={sync}
           cloud={cloudView(cloud, settings, { googleAuth: deps.googleAuth })}
           now={now}
+          connecting={connecting}
           onReconnect={reconnect}
         />
       </section>
@@ -401,6 +408,7 @@ function SavedLines(props: {
   sync: SyncStatus | undefined;
   cloud: CloudView | undefined;
   now: number;
+  connecting: boolean;
   onReconnect(provider: CloudProviderId): void;
 }) {
   const { cloud, now } = props;
@@ -412,6 +420,7 @@ function SavedLines(props: {
           view={cloud}
           now={now}
           thisPhone
+          connecting={props.connecting}
           onReconnect={() => props.onReconnect(cloud.provider)}
         />
       );

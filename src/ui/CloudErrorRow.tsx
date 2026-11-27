@@ -29,6 +29,8 @@ export function CloudErrorRow(props: {
   now: number;
   /** The phone app: "Update Langle on this phone". */
   thisPhone: boolean;
+  /** A Reconnect is running: the button reads "Connecting…" and waits. */
+  connecting: boolean;
   onReconnect: () => void;
 }) {
   const { view } = props;
@@ -61,8 +63,13 @@ export function CloudErrorRow(props: {
         </span>
       </span>
       {status.error === "reconnect" && (
-        <button type="button" style={RECONNECT} onClick={props.onReconnect}>
-          {t("cloud.reconnect")}
+        <button
+          type="button"
+          style={RECONNECT}
+          disabled={props.connecting}
+          onClick={props.onReconnect}
+        >
+          {props.connecting ? t("cloud.connecting") : t("cloud.reconnect")}
         </button>
       )}
     </div>

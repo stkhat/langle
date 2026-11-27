@@ -141,6 +141,7 @@ function ConnectedRows(props: {
   view: Extract<CloudView, { kind: "connected" }>;
   now: number;
   busy: boolean;
+  connecting: boolean;
   onCloud: (request: CloudRequest) => void;
 }) {
   const { view, now } = props;
@@ -163,7 +164,7 @@ function ConnectedRows(props: {
               props.onCloud({ type: "cloudConnect", provider: view.provider })
             }
           >
-            {t("cloud.reconnect")}
+            {props.connecting ? t("cloud.connecting") : t("cloud.reconnect")}
           </button>
         )}
         <button
@@ -208,6 +209,7 @@ function ConnectRow(props: {
   syncName: string;
   features: BrowserEnv["features"];
   busy: boolean;
+  connecting: boolean;
   onCloud: (request: CloudRequest) => void;
 }) {
   const { view, syncName } = props;
@@ -245,9 +247,11 @@ function ConnectRow(props: {
           props.onCloud({ type: "cloudConnect", provider: view.provider })
         }
       >
-        {too
-          ? t("cloud.connect")
-          : t("settings.cloud.connectButton", { provider: view.name })}
+        {props.connecting
+          ? t("cloud.connecting")
+          : too
+            ? t("cloud.connect")
+            : t("settings.cloud.connectButton", { provider: view.name })}
       </button>
     </div>
   );
@@ -285,9 +289,10 @@ function AppCloudCard(props: {
   view: AppCloudView;
   now: number;
   busy: boolean;
+  connecting: boolean;
   onCloud: (request: CloudRequest) => void;
 }) {
-  const { view, now, busy } = props;
+  const { view, now, busy, connecting } = props;
   const connect = () =>
     props.onCloud({ type: "cloudConnect", provider: view.provider });
   if (view.kind !== "connected")
@@ -298,7 +303,9 @@ function AppCloudCard(props: {
           desc={t("settings.cloud.offerPhone", { provider: view.name })}
         />
         <button class="btn" type="button" disabled={busy} onClick={connect}>
-          {t("settings.cloud.connectButton", { provider: view.name })}
+          {connecting
+            ? t("cloud.connecting")
+            : t("settings.cloud.connectButton", { provider: view.name })}
         </button>
       </div>
     );
@@ -337,7 +344,7 @@ function AppCloudCard(props: {
       <div class="btns">
         {status.error === "reconnect" && (
           <button class="btn" type="button" disabled={busy} onClick={connect}>
-            {t("cloud.reconnect")}
+            {connecting ? t("cloud.connecting") : t("cloud.reconnect")}
           </button>
         )}
         <button
@@ -387,7 +394,10 @@ export function SyncSection(
   const { env, deps, cloud } = props;
   const [lastExport, setLastExport] = useState<number | null>(null);
   const [note, setNote] = useState<BackupNote>(null);
-  const [busy, setBusy] = useState(false);
+  /** The cloud request running: every cloud button waits, and a Connect one reads "Connecting…". */
+  const [pending, setPending] = useState<CloudRequest["type"]>();
+  const busy = pending !== undefined;
+  const connecting = pending === "cloudConnect";
   const refreshLastExport = () =>
     deps
       .send({ type: "lastExport" })
@@ -395,8 +405,8 @@ export function SyncSection(
   useEffect(() => void refreshLastExport(), []);
 
   function onCloud(request: CloudRequest) {
-    setBusy(true);
-    void props.onCloud(request).finally(() => setBusy(false));
+    setPending(request.type);
+    void props.onCloud(request).finally(() => setPending(undefined));
   }
 
   const provider =
@@ -441,6 +451,7 @@ export function SyncSection(
             view={appCloud}
             now={props.now}
             busy={busy}
+            connecting={connecting}
             onCloud={onCloud}
           />
         )}
@@ -471,6 +482,7 @@ export function SyncSection(
           view={cloud}
           now={props.now}
           busy={busy}
+          connecting={connecting}
           onCloud={onCloud}
         />
       ) : (
@@ -498,6 +510,7 @@ export function SyncSection(
           syncName={syncName}
           features={env.features}
           busy={busy}
+          connecting={connecting}
           onCloud={onCloud}
         />
       )}
