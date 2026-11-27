@@ -22,6 +22,8 @@
   "app.buildRefused": "Langle を実行できません: {reasons}",
   "app.saveToDevice": "デバイスに保存",
   "app.saveFailed": "ファイルを保存できませんでした",
+  "app.shareSaved": "保存しました。Langle を開くと表示されます。",
+  "app.done": "完了",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "設定を開く",
   "action.retry": "再試行",

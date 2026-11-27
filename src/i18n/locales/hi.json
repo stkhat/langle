@@ -22,6 +22,8 @@
   "app.buildRefused": "Langle नहीं चल सकता: {reasons}",
   "app.saveToDevice": "डिवाइस में सेव करें",
   "app.saveFailed": "फ़ाइल सेव नहीं हो सकी",
+  "app.shareSaved": "सेव हो गया। देखने के लिए Langle खोलें।",
+  "app.done": "हो गया",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "सेटिंग खोलें",
   "action.retry": "फिर से कोशिश करें",

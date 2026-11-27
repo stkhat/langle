@@ -22,6 +22,8 @@
   "app.buildRefused": "Langle не может работать: {reasons}",
   "app.saveToDevice": "Сохранить на устройстве",
   "app.saveFailed": "Не удалось сохранить файл",
+  "app.shareSaved": "Сохранено. Откройте Langle, чтобы посмотреть.",
+  "app.done": "Готово",
   "language.pair": "{learning} → {native}",
   "action.openSettings": "Открыть настройки",
   "action.retry": "Повторить",

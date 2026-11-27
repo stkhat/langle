@@ -5,6 +5,9 @@
 #   bundle-build.sh check     check build (wxt --mode check): the error log, the settings channel
 #   bundle-build.sh --copy-into <dir>
 #                             Xcode's build phase: copies the staged build into the app bundle
+#   bundle-build.sh --copy-share-into <dir>
+#                             the share extension's build phase: native-strings-en.json and
+#                             the mark (icon/128.png as LangleMark.png) into the extension
 #
 # The staged build sits in mobile/ios/build-output/langle-app/ (git-ignored), and next to it
 # native-strings-en.json: the shell's built-in English, en.json's `app.` keys
@@ -30,6 +33,18 @@ case "${1:-}" in
   cp "$english" "$(dirname "$dest")/native-strings-en.json"
   exit 0
   ;;
+--copy-share-into)
+  # The share extension's build phase: its own English and Langle's mark (LangleMark.png).
+  dest="${2:?usage: bundle-build.sh --copy-share-into <dir>}"
+  if [ ! -f "$staged/icon/128.png" ] || [ ! -f "$english" ]; then
+    echo "error: no langle-app build staged; run mobile/ios/scripts/bundle-build.sh first" >&2
+    exit 1
+  fi
+  mkdir -p "$dest"
+  cp "$english" "$dest/native-strings-en.json"
+  cp "$staged/icon/128.png" "$dest/LangleMark.png"
+  exit 0
+  ;;
 check)
   (cd "$repo" && npx wxt build -b langle-app --mode check)
   out="$repo/.output/langle-app-mv3-check"
@@ -39,7 +54,7 @@ check)
   out="$repo/.output/langle-app-mv3"
   ;;
 *)
-  echo "usage: bundle-build.sh [check] | --copy-into <dir>" >&2
+  echo "usage: bundle-build.sh [check] | --copy-into <dir> | --copy-share-into <dir>" >&2
   exit 2
   ;;
 esac
