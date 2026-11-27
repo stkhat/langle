@@ -5,7 +5,7 @@ import {
   type NoticeSource,
   type NoticesData,
 } from "../../core/notices";
-import { t } from "../../i18n/t";
+import { sentenceGap, t } from "../../i18n/t";
 import { color, FONT } from "../../ui/styles";
 
 const CSS = `
@@ -114,7 +114,8 @@ export function NoticesPage(props: { data: NoticesData }) {
       </h1>
       <p class="meta">{t("notices.lead")}</p>
       <p class="meta">
-        {t("notices.code")}{" "}
+        {t("notices.code")}
+        {sentenceGap(t("notices.code"))}
         <a href={`/${LICENSES_FILE}`} {...NEW_TAB}>
           {LICENSES_FILE}
         </a>

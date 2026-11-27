@@ -2,7 +2,7 @@ import { NEW_TAB } from "../../ui/external-link";
 import type { CSSProperties } from "preact";
 import { cardHref, type SponsorCard } from "../../core/sponsors";
 import { languageName } from "../../i18n/languages";
-import { t } from "../../i18n/t";
+import { sentenceGap, t } from "../../i18n/t";
 import { color } from "../../ui/styles";
 
 const label: CSSProperties = {
@@ -76,6 +76,9 @@ export function SponsorSpot(props: {
 }) {
   const { card, sponsorPage } = props;
   if (!card && !sponsorPage) return null;
+  const open = t("sponsor.open", {
+    language: languageName(props.learningLang),
+  });
   return (
     <div
       data-sponsor-spot
@@ -130,7 +133,8 @@ export function SponsorSpot(props: {
             color: color.muted,
           }}
         >
-          {t("sponsor.open", { language: languageName(props.learningLang) })}{" "}
+          {open}
+          {sentenceGap(open)}
           <a href={sponsorPage} {...NEW_TAB} style={pageLink}>
             {t("sponsor.openLink")}
           </a>

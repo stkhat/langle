@@ -46,6 +46,24 @@ export function onUiLocaleChange(listener: () => void): () => void {
 }
 
 /**
+ * The space between a text and the sentence after it: none after a full-width mark
+ * (Japanese and Chinese "。", "："), which carries its own space; one after any other
+ * end (".", "।", Korean's ".", Thai's sentence without a mark).
+ */
+export const sentenceGap = (before: string): "" | " " =>
+  /[\u3000-\u303f\uff00-\uffef]$/u.test(before) ? "" : " ";
+
+/** Sentences as one text, each gap as `sentenceGap` puts it; missing ones left out. */
+export function sentences(...parts: readonly (string | undefined)[]): string {
+  return parts
+    .filter((part): part is string => part !== undefined && part !== "")
+    .reduce(
+      (text, part) => (text === "" ? part : text + sentenceGap(text) + part),
+      "",
+    );
+}
+
+/**
  * The tag Intl writes the interface's numbers, dates and times with: the locale with
  * Western digits 0–9, as Chrome's own interface writes them in every language Langle
  * has (in Arabic too, where Intl may default to Arabic-Indic digits).

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type { CloudProviderId } from "../../../core/cloud/provider";
 import type { BrowserEnv } from "../../../core/browser-env";
-import { t, type MessageKey } from "../../../i18n/t";
+import { sentences, t, type MessageKey } from "../../../i18n/t";
 import type { CloudStatus, SyncStatus } from "../../../messaging/protocol";
 import {
   BackupButtons,
@@ -122,7 +122,7 @@ function errorNote(status: CloudStatus, now: number, phone = false): string {
             ),
           ]
         : [t("settings.cloud.updateDesc"), saved];
-  return parts.filter((part) => part !== undefined).join(" ");
+  return sentences(...parts);
 }
 
 /** "Saved to Google Drive · 2 min ago", or "Not saved yet" before the first write. */
@@ -458,7 +458,7 @@ export function SyncSection(
         <div class="stack">
           <RowLabel
             title={t("settings.backup.title")}
-            desc={`${t("settings.backup.desc")} ${lastExportLine}`}
+            desc={sentences(t("settings.backup.desc"), lastExportLine)}
           >
             <BackupStatus note={note} lineHeight={1.45} />
           </RowLabel>
@@ -498,7 +498,7 @@ export function SyncSection(
       <div class="row">
         <RowLabel
           title={t("settings.backup.title")}
-          desc={`${t("settings.backup.desc")} ${lastExportLine}`}
+          desc={sentences(t("settings.backup.desc"), lastExportLine)}
         >
           <BackupStatus note={note} lineHeight={1.45} />
         </RowLabel>

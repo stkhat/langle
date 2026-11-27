@@ -4,12 +4,47 @@ import {
   formatTag,
   interpolate,
   onUiLocaleChange,
+  sentenceGap,
+  sentences,
   setUiLocale,
   t,
   uiLocale,
 } from "./t";
 
 afterEach(() => setUiLocale("en"));
+
+describe("sentences", () => {
+  it("puts a space after a sentence end that has none of its own", () => {
+    expect(sentences("Last saved 2 min ago.", "New changes wait.")).toBe(
+      "Last saved 2 min ago. New changes wait.",
+    );
+    expect(sentences("마지막 저장: 2분 전.", "다시 연결해요.")).toBe(
+      "마지막 저장: 2분 전. 다시 연결해요.",
+    );
+    expect(sentences("बार सेव: 2 मिनट पहले।", "फिर से।")).toBe(
+      "बार सेव: 2 मिनट पहले। फिर से।",
+    );
+    expect(sentences("บันทึกล่าสุด 2 นาทีที่แล้ว", "เชื่อมต่ออีกครั้ง")).toBe(
+      "บันทึกล่าสุด 2 นาทีที่แล้ว เชื่อมต่ออีกครั้ง",
+    );
+  });
+
+  it("puts none after a full-width end (Japanese, Chinese)", () => {
+    expect(
+      sentences("最終保存: 4 分前。", "再接続するまで保留されます。"),
+    ).toBe("最終保存: 4 分前。再接続するまで保留されます。");
+    expect(sentences("上次保存：2 分钟前。", "重新连接。")).toBe(
+      "上次保存：2 分钟前。重新连接。",
+    );
+    expect(sentenceGap("ライセンス:")).toBe(" ");
+    expect(sentenceGap("许可：")).toBe("");
+  });
+
+  it("leaves out missing parts", () => {
+    expect(sentences(undefined, "Only this.", "")).toBe("Only this.");
+    expect(sentences()).toBe("");
+  });
+});
 
 describe("t", () => {
   it("returns the en.json value for a key", () => {
