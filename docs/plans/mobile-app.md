@@ -897,6 +897,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app". Ev
 ### M7d-android and M7d-ios: the shells (one agent each, Opus)
 
 - The router's `googleAuth` slot over `AuthorizationClient` (Android) and `ASWebAuthenticationSession` with PKCE and the Keychain (iOS), as M7a found them; the lifecycle events (iOS background task; Android keeps the host until the answer or 20 s). Native tests as the spec says. Then a first look on the emulator or the Simulator: connect, one word both ways with the user's Chrome.
+- Any native text M7d adds (an error toast, say) stays one constant per string: M6f (the user's decision of 2026-11-27, spec "The shells (native)" on the coming `claude/mobile-m6f-design` branch) moves the shells' strings to `app.` keys the background sends. Google's own sheet is not affected.
 
 ### M7e: device checks (two agents, Opus, one after the other)
 
