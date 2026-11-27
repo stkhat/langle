@@ -794,6 +794,7 @@ Spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking" (the user's choic
 - [x] M6d: Settings › Ad blocking, the notices and the privacy page (branch `claude/mobile-m6d`)
 - [x] M6c-ios: the same on iOS (branch `claude/mobile-m6c-ios`): checked on the Simulator, notes/mobile.md "Ad blocking on iOS (M6c-ios)"
 - [ ] M6e: device checks, Android then iOS (branches `claude/mobile-m6e-android`, `claude/mobile-m6e-ios`). Android done (2026-11-27): notes/mobile.md "Device checks (M6e, Android)"; iOS to do
+- [ ] M6f: native strings follow the interface language (branch `claude/mobile-m6f`; the user's decision of 2026-11-27, spec "The shells (native)")
 
 **Running order** (at most three agents at once; one agent per step; the dev Mac runs one of the Simulator and the emulator at a time, never during `verify`; the device rules of M5's "Running order" apply):
 
@@ -854,6 +855,16 @@ Branch `claude/mobile-m6c-ios`. After M6c-android (its list store's rules are th
 ### M6e: device checks (two agents, Opus, one after the other)
 
 Branches `claude/mobile-m6e-android`, then `claude/mobile-m6e-ios`. The spec's "On the emulator, then the Simulator" list; findings and fixes in notes/mobile.md "Device checks (M6e, …)"; status.md updated.
+### M6f: native strings in the interface language (one agent, Opus)
+
+Branch `claude/mobile-m6f`. After M6e-ios (both touch `TitleBar.swift`, and it needs both devices). Spec "The shells (native)", "Native strings follow the interface language".
+
+- **Keys**: every string the shells write (Android's `strings.xml` but `app_name`, the Swift literals in `TitleBar.swift` and the other views, accessibility labels and values) as `app.` keys in `en.json`, translated into every locale from the glossaries, then the second pass. Commit.
+- **Protocol**: `appHost.nativeStrings({ locale, dir, strings })` from the background (feature-detected), sent at start and on `onUiLocaleChange`; golden files parsed in TS, JUnit and XCTest. Vitest: the locale before and after the setup, a change, English for a missing key. Commit.
+- **Android**: a `NativeStrings` the views read (kept in the app's storage; English built in from `en.json` by the Gradle build), redraw on a change, the layout mirrored for `rtl`. JUnit. Commit.
+- **iOS**: the same in Swift (kept in the app group for the share extension; English generated into the build), SwiftUI's `layoutDirection` from `dir`. XCTest. Commit.
+- **On the emulator, then the Simulator** (one at a time, never during `verify`): the first run in the device's language; Japanese, then Arabic (mirrored), then English picked in Settings, with the bars and ⋮ changing at once; a cold start drawing the kept language; the error log read and cleared.
+
 ## M7: own-cloud sync in the app (planned 2026-11-26)
 
 Spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app". Every M7 branch starts from `main` and runs `npm run verify -- --skip-firefox` before every push.
