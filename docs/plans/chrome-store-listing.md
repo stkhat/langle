@@ -23,7 +23,7 @@ Just hover
 • Works on YouTube subtitles, transcripts and comments (Shorts too), on Netflix subtitles, and on articles across the web.
 
 The meaning that fits the context
-• Any form of a word leads to its dictionary entry, and phrases are recognized too: hover "dates back" and you get "date back".
+• Any form of a word leads to its dictionary entry, and phrases are recognized too.
 • Press "Explain in context" and Chrome's built-in AI picks the meaning that fits the sentence, right on your device. This needs a computer that can run Gemini Nano in Chrome (about 22 GB of free disk space, plus either a GPU with more than 4 GB of VRAM or 16 GB of RAM and 4 CPU cores). Everything else works without it.
 
 Your words, with where you met them
@@ -66,7 +66,7 @@ Langle は、お気に入りの YouTube チャンネルや Netflix の作品、�
 • YouTube の字幕・文字起こし・コメント（ショートにも対応）、Netflix の字幕、ウェブ上の記事で使えます。
 
 文脈に合った意味を
-• 活用した形からでも辞書の見出し語にたどり着けます。フレーズにも対応しているので、「dates back」にカーソルを合わせると「date back」が表示されます。
+• 活用した形からでも辞書の見出し語にたどり着けます。フレーズにも対応しています。
 • 「文脈で説明」を押すと、Chrome に組み込まれた AI が、その文に合う意味をお使いのデバイス上で選びます。この機能には、Chrome で Gemini Nano を実行できるパソコンが必要です（空きディスク容量 約 22 GB に加えて、4 GB を超える VRAM を搭載した GPU か、16 GB の RAM と 4 コアの CPU のどちらか）。ほかの機能はこの条件がなくても使えます。
 
 保存した単語は、出会った場所と一緒に
@@ -107,7 +107,7 @@ Langle は、お気に入りの YouTube チャンネルや Netflix の作品、�
 • يعمل مع الترجمة المصاحبة ونص الفيديو والتعليقات على YouTube (بما في ذلك Shorts)، ومع الترجمة المصاحبة على Netflix، ومع المقالات في مختلف مواقع الويب.
 
 المعنى الذي يناسب السياق
-• أي صيغة للكلمة تقودك إلى مدخلها في القاموس، ويتعرّف Langle على العبارات أيضًا: مرّر المؤشر فوق «dates back» وستظهر لك «date back».
+• أي صيغة للكلمة تقودك إلى مدخلها في القاموس، ويتعرّف Langle على العبارات أيضًا.
 • انقر على «الشرح في السياق» وسيختار الذكاء الاصطناعي المدمج في Chrome المعنى المناسب للجملة، على جهازك مباشرةً. تتطلب هذه الميزة جهاز كمبيوتر يمكنه تشغيل Gemini Nano في Chrome (مساحة خالية على القرص تبلغ نحو 22 غيغابايت، بالإضافة إلى وحدة GPU بذاكرة VRAM تزيد على 4 غيغابايت، أو ذاكرة RAM بسعة 16 غيغابايت ومعالج CPU يضم 4 أنوية). أما بقية الميزات فتعمل من دونها.
 
 كلماتك، مع المكان الذي صادفتها فيه
@@ -148,7 +148,7 @@ Einfach auf ein Wort zeigen
 • Funktioniert mit Untertiteln, Transkripten und Kommentaren auf YouTube (auch bei Shorts), mit Untertiteln auf Netflix und mit Artikeln im ganzen Web.
 
 Die Bedeutung, die zum Kontext passt
-• Jede Wortform führt zum passenden Wörterbucheintrag, und auch Ausdrücke werden erkannt: Bei „dates back“ sehen Sie „date back“.
+• Jede Wortform führt zum passenden Wörterbucheintrag, und auch Ausdrücke werden erkannt.
 • Klicken Sie auf „Im Kontext erklären“, und die integrierte KI von Chrome wählt direkt auf Ihrem Gerät die Bedeutung aus, die zum Satz passt. Dafür brauchen Sie einen Computer, auf dem Gemini Nano in Chrome läuft (etwa 22 GB freier Speicherplatz sowie entweder eine GPU mit mehr als 4 GB VRAM oder 16 GB RAM und 4 CPU-Kerne). Alle anderen Funktionen sind davon unabhängig.
 
 Ihre Wörter und wo Sie ihnen begegnet sind
@@ -189,7 +189,7 @@ Solo pasa el cursor
 • Funciona en los subtítulos, las transcripciones y los comentarios de YouTube (también en Shorts), en los subtítulos de Netflix y en artículos de toda la Web.
 
 El significado que encaja en el contexto
-• Cualquier forma de una palabra te lleva a su entrada en el diccionario, y también se reconocen las expresiones: pasa el cursor sobre “dates back” y obtienes “date back”.
+• Cualquier forma de una palabra te lleva a su entrada en el diccionario, y también se reconocen las expresiones.
 • Haz clic en “Explicar en contexto” y la IA integrada de Chrome elige el significado que encaja en la oración, directamente en tu dispositivo. Para esto necesitas una computadora que pueda ejecutar Gemini Nano en Chrome (unos 22 GB de espacio libre en disco, además de una GPU con más de 4 GB de VRAM, o bien 16 GB de RAM y 4 núcleos de CPU). Las demás funciones no tienen este requisito.
 
 Tus palabras, con el lugar donde las encontraste
@@ -230,7 +230,7 @@ Survolez, tout simplement
 • Fonctionne avec les sous-titres, les transcriptions et les commentaires YouTube (Shorts compris), les sous-titres Netflix et les articles de tout le Web.
 
 Le sens qui correspond au contexte
-• Toutes les formes d'un mot mènent à son entrée dans le dictionnaire, et les expressions sont reconnues elles aussi : survolez « dates back » et vous obtenez « date back ».
+• Toutes les formes d'un mot mènent à son entrée dans le dictionnaire, et les expressions sont reconnues elles aussi.
 • Cliquez sur « Expliquer en contexte » : l'IA intégrée à Chrome choisit le sens qui convient à la phrase, directement sur votre appareil. Il faut pour cela un ordinateur capable d'exécuter Gemini Nano dans Chrome (environ 22 Go d'espace disque libre, ainsi qu'un GPU doté de plus de 4 Go de VRAM, ou 16 Go de RAM et 4 cœurs de processeur). Les autres fonctionnalités n'en ont pas besoin.
 
 Vos mots, avec l'endroit où vous les avez rencontrés
@@ -271,7 +271,7 @@ Langle वहीं काम करता है जहां आपका म�
 • YouTube के सबटाइटल, ट्रांसक्रिप्ट और टिप्पणियों (Shorts में भी), Netflix के सबटाइटल और वेब के लेखों पर काम करता है।
 
 संदर्भ के हिसाब से सही मतलब
-• शब्द किसी भी रूप में हो, आप उसकी डिक्शनरी एंट्री तक पहुंच जाते हैं। फ़्रेज़ भी पहचाने जाते हैं: “dates back” पर कर्सर ले जाएं, तो “date back” दिखेगा।
+• शब्द किसी भी रूप में हो, आप उसकी डिक्शनरी एंट्री तक पहुंच जाते हैं। फ़्रेज़ भी पहचाने जाते हैं।
 • “संदर्भ में समझाएं” दबाएं, और Chrome का बिल्ट-इन AI आपके डिवाइस पर ही वाक्य के हिसाब से सही मतलब चुन लेगा। इसके लिए ऐसा कंप्यूटर चाहिए जो Chrome में Gemini Nano चला सके (करीब 22 GB खाली डिस्क स्पेस, और साथ में 4 GB से ज़्यादा VRAM वाला GPU, या फिर 16 GB RAM और 4 CPU कोर)। बाकी सब कुछ इसके बिना भी काम करता है।
 
 आपके शब्द, उस जगह के साथ जहां वे मिले
@@ -312,7 +312,7 @@ Cukup arahkan kursor
 • Bisa dipakai di subtitel, transkrip, dan komentar YouTube (termasuk Shorts), subtitel Netflix, dan artikel di seluruh web.
 
 Arti yang sesuai konteks
-• Bentuk kata apa pun mengarah ke entri kamusnya, dan frasa juga dikenali: arahkan kursor ke “dates back” dan Anda akan melihat “date back”.
+• Bentuk kata apa pun mengarah ke entri kamusnya, dan frasa juga dikenali.
 • Tekan “Jelaskan dalam konteks”, dan AI bawaan Chrome akan memilih arti yang cocok dengan kalimatnya, langsung di perangkat Anda. Fitur ini memerlukan komputer yang bisa menjalankan Gemini Nano di Chrome (ruang disk kosong sekitar 22 GB, ditambah GPU dengan VRAM lebih dari 4 GB atau RAM 16 GB dan CPU 4 core). Semua fitur lain tetap bisa dipakai tanpa itu.
 
 Kata Anda, lengkap dengan tempat Anda menemukannya
@@ -353,7 +353,7 @@ Basta passare il mouse
 • Funziona con sottotitoli, trascrizioni e commenti di YouTube (anche negli Shorts), con i sottotitoli di Netflix e con gli articoli di tutto il web.
 
 Il significato giusto nel contesto
-• Qualsiasi forma di una parola porta alla sua voce nel dizionario, e vengono riconosciute anche le espressioni: passa il mouse su “dates back” e ottieni “date back”.
+• Qualsiasi forma di una parola porta alla sua voce nel dizionario, e vengono riconosciute anche le espressioni.
 • Fai clic su “Spiega nel contesto” e l'IA integrata di Chrome sceglie il significato adatto alla frase, direttamente sul tuo dispositivo. Per questa funzione serve un computer in grado di eseguire Gemini Nano in Chrome (circa 22 GB di spazio libero su disco, più una GPU con oltre 4 GB di VRAM oppure 16 GB di RAM e una CPU a 4 core). Tutto il resto funziona anche senza.
 
 Le tue parole e dove le hai incontrate
@@ -394,7 +394,7 @@ Langle은 즐겨 보는 YouTube 채널, 빠져 있는 Netflix 시리즈, 끝까�
 • YouTube 자막, 스크립트, 댓글(Shorts 포함), Netflix 자막, 웹의 다양한 글에서 쓸 수 있어요.
 
 문맥에 맞는 뜻
-• 단어가 어떤 형태로 나와도 사전의 해당 항목으로 연결되고, 표현도 인식해요. “dates back”에 마우스를 올리면 “date back”이 나와요.
+• 단어가 어떤 형태로 나와도 사전의 해당 항목으로 연결되고, 표현도 인식해요.
 • ‘문맥으로 설명’을 누르면 Chrome에 내장된 AI가 기기에서 바로 그 문장에 맞는 뜻을 골라 줘요. 이 기능을 쓰려면 Chrome에서 Gemini Nano를 실행할 수 있는 컴퓨터가 필요해요(약 22GB의 여유 디스크 공간, 그리고 VRAM이 4GB를 넘는 GPU 또는 16GB RAM과 4코어 CPU). 나머지 기능은 이 조건 없이도 모두 쓸 수 있어요.
 
 저장한 단어는 만난 곳과 함께
@@ -435,7 +435,7 @@ Wystarczy najechać kursorem
 • Działa w napisach, transkrypcjach i komentarzach na YouTube (także w Shorts), w napisach na Netfliksie oraz w artykułach w całej sieci.
 
 Znaczenie dopasowane do kontekstu
-• Każda forma słowa prowadzi do jego hasła w słowniku. Langle rozpoznaje też wyrażenia: najedź na „dates back”, a zobaczysz „date back”.
+• Każda forma słowa prowadzi do jego hasła w słowniku. Langle rozpoznaje też wyrażenia.
 • Kliknij „Wyjaśnij w kontekście”, a wbudowana AI Chrome wybierze znaczenie pasujące do zdania – bezpośrednio na Twoim urządzeniu. Ta funkcja wymaga komputera, na którym Chrome może uruchomić Gemini Nano (ok. 22 GB wolnego miejsca na dysku oraz karta graficzna z ponad 4 GB pamięci VRAM lub, zamiast niej, 16 GB RAM i 4 rdzenie procesora). Wszystko inne działa bez niej.
 
 Twoje słowa i miejsca, w których się pojawiły
@@ -476,7 +476,7 @@ Basta passar o mouse
 • Funciona nas legendas, transcrições e comentários do YouTube (inclusive nos Shorts), nas legendas da Netflix e em artigos de toda a Web.
 
 O significado certo para o contexto
-• Qualquer forma de uma palavra leva ao verbete no dicionário, e expressões também são reconhecidas: passe o mouse em “dates back” e você verá “date back”.
+• Qualquer forma de uma palavra leva ao verbete no dicionário, e expressões também são reconhecidas.
 • Clique em “Explicar no contexto” e a IA integrada do Chrome escolhe o significado que combina com a frase, direto no seu dispositivo. Para isso, é preciso um computador capaz de rodar o Gemini Nano no Chrome (cerca de 22 GB de espaço livre em disco, além de uma GPU com mais de 4 GB de VRAM, ou então 16 GB de RAM e 4 núcleos de CPU). Os outros recursos funcionam sem esse requisito.
 
 Suas palavras, com o lugar onde você as encontrou
@@ -517,7 +517,7 @@ Langle работает прямо там, где вам интересно: н�
 • Работает с субтитрами, расшифровкой и комментариями на YouTube (в том числе в Shorts), с субтитрами на Netflix и со статьями на любых сайтах.
 
 Значение, которое подходит по контексту
-• Любая форма слова приводит к его статье в словаре. Выражения Langle тоже распознаёт: наведите курсор на «dates back» — и увидите «date back».
+• Любая форма слова приводит к его статье в словаре. Выражения Langle тоже распознаёт.
 • Нажмите «Объяснить в контексте», и встроенный ИИ Chrome выберет значение, которое подходит к предложению, прямо на вашем устройстве. Для этого нужен компьютер, на котором Chrome может запускать Gemini Nano (около 22 ГБ свободного места на диске, а также либо видеокарта с видеопамятью больше 4 ГБ, либо 16 ГБ оперативной памяти и 4 ядра процессора). Всё остальное работает и без этого.
 
 Ваши слова и места, где вы их встретили
@@ -558,7 +558,7 @@ Langle ใช้งานได้ทันทีบนสิ่งที่ค�
 • ใช้ได้กับคำบรรยาย ข้อความถอดเสียง และความคิดเห็นใน YouTube (รวมถึง Shorts) คำบรรยายใน Netflix และบทความทั่วทั้งเว็บ
 
 ความหมายที่เข้ากับบริบท
-• ไม่ว่าคำจะอยู่ในรูปใด ก็พาไปถึงคำนั้นในพจนานุกรมได้ และยังตรวจจับวลีได้ด้วย เช่น วางเคอร์เซอร์บน “dates back” จะได้ “date back”
+• ไม่ว่าคำจะอยู่ในรูปใด ก็พาไปถึงคำนั้นในพจนานุกรมได้ และยังตรวจจับวลีได้ด้วย
 • กด “อธิบายตามบริบท” แล้ว AI ที่มีมาในตัว Chrome จะเลือกความหมายที่เข้ากับประโยคนั้นให้ โดยประมวลผลบนอุปกรณ์ของคุณเอง ฟีเจอร์นี้ต้องใช้คอมพิวเตอร์ที่รัน Gemini Nano ใน Chrome ได้ (พื้นที่ดิสก์ว่างประมาณ 22 GB และ GPU ที่มี VRAM มากกว่า 4 GB หรือ RAM 16 GB กับ CPU 4 คอร์) ส่วนฟีเจอร์อื่นๆ ใช้ได้ตามปกติแม้เครื่องไม่ตรงตามสเปกนี้
 
 คำศัพท์ของคุณ พร้อมแหล่งที่เจอ
@@ -599,7 +599,7 @@ Langle, ilgilendiğiniz içeriklerde doğrudan çalışır: bir YouTube kanalın
 • YouTube altyazılarında, transkriptlerinde ve yorumlarında (Shorts dahil), Netflix altyazılarında ve web'deki makalelerde çalışır.
 
 Bağlama uyan anlam
-• Bir kelime hangi biçimde olursa olsun sizi sözlükteki maddesine götürür. İfadeler de tanınır: “dates back” ifadesinin üzerine geldiğinizde “date back” karşınıza çıkar.
+• Bir kelime hangi biçimde olursa olsun sizi sözlükteki maddesine götürür. İfadeler de tanınır.
 • “Bağlamda açıkla” düğmesine bastığınızda Chrome'un yerleşik yapay zekası, cümleye uyan anlamı doğrudan cihazınızda seçer. Bu özellik için Chrome'da Gemini Nano çalıştırabilen bir bilgisayar gerekir (yaklaşık 22 GB boş disk alanı; ayrıca 4 GB'tan fazla VRAM'i olan bir GPU ya da 16 GB RAM ile 4 CPU çekirdeği). Diğer her şey bu olmadan da çalışır.
 
 Kelimeleriniz ve karşılaştığınız yerler
@@ -640,7 +640,7 @@ Langle 可以直接在你喜欢的内容上使用：常看的 YouTube 频道、�
 • 支持 YouTube 的字幕、文字记录和评论（包括 Shorts）、Netflix 的字幕，以及网上的各类文章。
 
 贴合语境的释义
-• 无论单词以什么形式出现，都能找到它在词典中的词条；短语也能识别：悬停在“dates back”上，会显示“date back”。
+• 无论单词以什么形式出现，都能找到它在词典中的词条；短语也能识别。
 • 点击“结合语境解释”，Chrome 内置的 AI 会直接在你的设备上选出最贴合这句话的释义。此功能需要一台能在 Chrome 中运行 Gemini Nano 的电脑（约 22 GB 可用磁盘空间；另需显存超过 4 GB 的 GPU，或 16 GB 内存和 4 核 CPU）。其他功能不受此限制。
 
 单词和它的出处
