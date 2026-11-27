@@ -48,6 +48,7 @@ public enum Envelope: Equatable, Sendable {
     "alarms.clear",
     "appHost.openPage",
     "appHost.shareFile",
+    "appHost.nativeStrings",
     "appHost.translate",
     "appHost.translatorStatus",
     "appHost.prepareTranslator",

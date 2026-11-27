@@ -21,8 +21,12 @@ final class AppModel: ObservableObject {
 
   @Published private(set) var screen: Screen = .tab(.home)
   @Published private(set) var started = false
-  /// Why Langle does not run (no build, or one the app refuses); browsing still works.
+  /// Why Langle does not run (no build, or what the app refuses in it); browsing still works.
   @Published private(set) var refusal: String?
+  /// The shell's own strings in the interface language (docs/specs/mobile-app.md "Native strings
+  /// follow the interface language"): kept in the app group, drawn at once on a cold start.
+  @Published private(set) var strings = NativeStrings(
+    english: AppModel.english, kept: AppModel.sharedStore.load(NativeStrings.name))
   /// The browsing page has an element in fullscreen: WebKit's own (in its own window, where
   /// WebKit has element fullscreen) or the app's (the page fills the window, the bars hidden).
   @Published private(set) var fullscreen = false
@@ -67,6 +71,22 @@ final class AppModel: ObservableObject {
   /// The filter lists' copies and the engine built from them (the list store's `adblock/`).
   static let adblockFolder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
     .appendingPathComponent("adblock")
+  /// The app group the share extension (M8) shares with the app.
+  static let appGroup = "group.dev.langle.app"
+  /// What the app keeps for its extensions too (the native strings): the app group's container,
+  /// else Application Support (a build without the group).
+  static let sharedFolder =
+    (FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
+    ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0])
+    .appendingPathComponent("LangleShared")
+  static let sharedStore = FilePersistence(directory: sharedFolder)
+  /// The built-in English, generated into the build from en.json (scripts/bundle-build.sh).
+  static let english: [String: String] = {
+    guard let url = Bundle.main.url(forResource: "native-strings-en", withExtension: "json"),
+      let data = try? Data(contentsOf: url)
+    else { return [:] }
+    return NativeStrings.english(localeJSON: String(decoding: data, as: UTF8.self))
+  }()
   /// Langle's mark (the toolbar icon of the bundled build).
   static let mark = UIImage(contentsOfFile: buildFolder.appendingPathComponent("icon/128.png").path)
 
@@ -74,6 +94,8 @@ final class AppModel: ObservableObject {
     if arguments.bool(forKey: "reset") {
       try? FileManager.default.removeItem(at: Self.storeFolder)
       try? FileManager.default.removeItem(at: Self.adblockFolder)
+      try? FileManager.default.removeItem(at: Self.sharedFolder)
+      strings = NativeStrings(english: Self.english)
       await WebKitEngine.removeAppStore()
       Log.app.info("app data reset")
     }
@@ -86,7 +108,7 @@ final class AppModel: ObservableObject {
       }
       manifest = try Manifest.read(String(decoding: data, as: UTF8.self))
     } catch {
-      refusal = "\(error)"
+      refusal = (error as? Manifest.Refusal)?.unsupported.joined(separator: ", ") ?? "\(error)"
       Log.app.error("Langle does not run: \(String(describing: error), privacy: .public)")
     }
     router = Router(
@@ -95,6 +117,7 @@ final class AppModel: ObservableObject {
     router.onError = { Log.bridge.error("\($0, privacy: .public)") }
     router.onAction = { [weak self] in self?.perform($0) }
     router.onShareFile = { file, done in FileShare.present(file, done: done) }
+    router.onNativeStrings = { [weak self] set in self?.takeStrings(set) }
     shell = Shell(origin: AppSchemeHandler.origin, tabs: router.tabs)
     let translationHost = TranslationHost(engine: translation, clock: DispatchClock()) {
       [weak self] spec in self?.onScreen(spec) ?? false
@@ -127,6 +150,16 @@ final class AppModel: ObservableObject {
     #if DEBUG
       CheckCommands.shared.start(model: self)
     #endif
+  }
+
+  /// A new set from the background: kept for the next start, and every bar redraws.
+  private func takeStrings(_ set: NativeStringSet) {
+    guard strings.take(set) else { return }
+    do {
+      try Self.sharedStore.save(NativeStrings.name, set.json)
+    } catch {
+      Log.app.error("could not keep the native strings: \(String(describing: error), privacy: .public)")
+    }
   }
 
   // MARK: ad blocking

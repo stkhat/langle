@@ -13,7 +13,7 @@ func repoFile(_ path: String) throws -> String {
 
 /// The golden envelopes in mobile/protocol/, shared with the TS tests and JUnit.
 final class EnvelopeTests: XCTestCase {
-  let golden = ["call", "hello", "reply-ok", "reply-error", "event", "event-reply", "open-page", "get-current", "share-file",
+  let golden = ["call", "hello", "reply-ok", "reply-error", "event", "event-reply", "open-page", "get-current", "share-file", "native-strings",
     "translate", "translator-status", "prepare-translator", "models-ensure", "models-remove", "models-progress",
   ]
 

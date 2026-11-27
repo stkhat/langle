@@ -5,6 +5,8 @@ import SwiftUI
 /// and a grabber; dragging the grabber down closes it. In landscape at most 520 pt wide.
 struct SheetFrame: View {
   let sheet: AppModel.Sheet
+  /// The backdrop's label, in the interface language.
+  let closeLabel: String
   let close: () -> Void
   @State private var drag: CGFloat = 0
 
@@ -13,7 +15,7 @@ struct SheetFrame: View {
       Palette.backdrop
         .ignoresSafeArea()
         .onTapGesture(perform: close)
-        .accessibilityLabel("Close")
+        .accessibilityLabel(closeLabel)
         .accessibilityAddTraits(.isButton)
       VStack(spacing: 0) {
         grabber

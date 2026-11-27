@@ -107,6 +107,7 @@
     "entry": [
       "scripts/format-hook.ts",
       "scripts/make-icons.ts",
+      "scripts/mobile/native-strings-en.ts",
       "scripts/mobile/phone-check.ts",
       "scripts/mobile/scriptlets-used.ts",
       "src/app/adblock/scriptlets/*.ts",
