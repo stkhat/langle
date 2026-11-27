@@ -125,6 +125,14 @@ class Router(val options: Options = Options(), private val persistence: Persiste
    */
   var onTranslation: ((from: ContextSpec, api: String, request: JsonElement?, done: (Answer) -> Unit) -> Unit)? = null
 
+  /**
+   * The app's Google sign-in (docs/specs/mobile-app.md "M7"): the calls in [GOOGLE_AUTH_APIS]
+   * from the extension host, with the call's one argument (`GoogleAuth.handle`). Null where the
+   * app cannot sign in (no Play services), and for every other context: each such call fails with
+   * "<api> is not available here."
+   */
+  var onGoogleAuth: ((api: String, request: JsonElement?, done: (Answer) -> Unit) -> Unit)? = null
+
   /** After any write that changed a storage area (the shim's or [setStorage]): what changed. */
   var onStorageChanged: ((area: KeyValueStore.Area, changes: Map<String, KeyValueStore.Change>) -> Unit)? = null
 
@@ -157,6 +165,22 @@ class Router(val options: Options = Options(), private val persistence: Persiste
    */
   fun postToHost(api: String, args: List<JsonElement>) {
     host?.let { postEvent(it, api, args) }
+  }
+
+  /**
+   * An event for the extension host that it answers (`app.hidden`): `reply` gets the host's
+   * answer, or a failure when the host has not said hello, goes away, or has not answered after
+   * `timeoutMs`.
+   */
+  fun askHost(api: String, args: List<JsonElement>, timeoutMs: Double, reply: (Answer) -> Unit) {
+    val target = host ?: return reply(Answer.Failure(NO_RECEIVER))
+    var timer: Any? = null
+    val replyId =
+      ask(target, api, args) {
+        timer?.let(clock::cancel)
+        reply(it)
+      }
+    timer = clock.schedule(timeoutMs) { forwards[replyId]?.settle(Answer.Failure("$api: no answer in ${timeoutMs.toLong()} ms")) }
   }
 
   // delivery
@@ -199,13 +223,19 @@ class Router(val options: Options = Options(), private val persistence: Persiste
 
   /** Sends a message as `runtime.onMessage` and settles with the receiver's answer. */
   private fun forward(target: Connection, message: JsonElement, from: Connection, done: (Answer) -> Unit) {
+    ask(target, "runtime.onMessage", listOf(message, sender(from)), done)
+  }
+
+  /** Sends an event that expects an answer; `done` gets it once. Returns the event's replyId. */
+  private fun ask(target: Connection, api: String, args: List<JsonElement>, done: (Answer) -> Unit): String {
     val replyId = "n${++nextReply}"
     forwards[replyId] =
       Forward(target) {
         forwards.remove(replyId)
         done(it)
       }
-    deliver(target, Envelope.Event("runtime.onMessage", listOf(message, sender(from)), replyId))
+    deliver(target, Envelope.Event(api, args, replyId))
+    return replyId
   }
 
   /** Resolves with the host once it said hello, or null after `hostWaitMs`. */
@@ -355,7 +385,11 @@ class Router(val options: Options = Options(), private val persistence: Persiste
         val host = onTranslation ?: throw BridgeError(notAvailable(api))
         host(context.spec, api, first, done)
       }
-      in GOOGLE_AUTH_APIS -> throw BridgeError(notAvailable(api))
+      in GOOGLE_AUTH_APIS -> {
+        // Only the background asks for tokens (its Drive calls); no page or web page gets one.
+        val auth = onGoogleAuth?.takeIf { context.spec == ContextSpec.Host } ?: throw BridgeError(notAvailable(api))
+        auth(api, first, done)
+      }
       "action.openPopup" -> {
         onAction?.invoke(RouterAction.OpenPopup)
         done(Answer.Value(null))

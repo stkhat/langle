@@ -18,8 +18,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.langle.core.AdBlockingSwitches
+import dev.langle.core.AppLifecycle
 import dev.langle.core.FilePersistence
 import dev.langle.core.FilterList
+import dev.langle.core.GoogleAuth
 import dev.langle.core.Manifest
 import dev.langle.core.ModelStore
 import dev.langle.core.ManifestRefusal
@@ -61,6 +63,10 @@ class MainActivity : Activity() {
   /** Whether the activity is on the screen (between onStart and onStop). */
   private var shown = false
   private val files = AppFiles(this)
+  /** Google sign-in (null without Play services) and Google's sheet's results. */
+  private var googleAuth: GoogleAuth? = null
+  private var authorizer: PlayGoogleAuthorizer? = null
+  private var lifecycle: AppLifecycle? = null
   private var backCallback: Any? = null
   private var recovering = false
 
@@ -101,7 +107,8 @@ class MainActivity : Activity() {
     adBlocker = startAdBlocking(origin)
 
     val hostSlot = FrameLayout(this)
-    val injector = manifest?.let { ContentInjector(it, origin::file) }
+    startGoogleAuth()
+    val injector = manifest?.let { ContentInjector(it, googleAuth != null, origin::file) }
     if (injector != null) origin.generated["/host.html"] = injector.hostPage()
 
     screens = ScreenController(this, engine, router, origin, injector, adBlocker, notice, hostSlot)
@@ -134,6 +141,24 @@ class MainActivity : Activity() {
     if (savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) openShared(intent)
     updateBack()
     if (BuildConfig.DEBUG) CheckCommands.ready()
+  }
+
+  // Google sign-in and the lifecycle (docs/specs/mobile-app.md "M7")
+
+  /**
+   * The router's Google sign-in over Play services, where the phone has it (without it the app
+   * says nothing of `googleAuth` and the background offers no provider), and the lifecycle
+   * events for the extension host.
+   */
+  private fun startGoogleAuth() {
+    lifecycle = AppLifecycle(router, { on -> HostKeepAlive.hold(this, on) }).also { it.onLog = { Log.w(TAG, it) } }
+    if (!PlayGoogleAuthorizer.available(this)) return
+    val authorizer = PlayGoogleAuthorizer(this)
+    val auth = GoogleAuth(authorizer, FilePersistence(File(filesDir, "LangleStore")), HandlerClock())
+    auth.onLog = { Log.w(TAG, "googleAuth: $it") }
+    router.onGoogleAuth = auth::handle
+    this.authorizer = authorizer
+    googleAuth = auth
   }
 
   // ad blocking
@@ -185,10 +210,12 @@ class MainActivity : Activity() {
     super.onStart()
     shown = true
     adBlocker?.inUse()
+    lifecycle?.visible()
   }
 
   override fun onStop() {
     shown = false
+    lifecycle?.hidden()
     super.onStop()
   }
 
@@ -277,10 +304,12 @@ class MainActivity : Activity() {
     updateBack()
   }
 
-  @Deprecated("Activity's result, for the document picker (AppFiles.choose)")
+  @Deprecated("Activity's result, for the document picker (AppFiles.choose) and Google's sheet")
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    if (files.onResult(requestCode, resultCode, data)) return
+    if (authorizer?.onResult(requestCode, resultCode, data) == true) return
     @Suppress("DEPRECATION")
-    if (!files.onResult(requestCode, resultCode, data)) super.onActivityResult(requestCode, resultCode, data)
+    super.onActivityResult(requestCode, resultCode, data)
   }
 
   override fun onNewIntent(intent: Intent) {

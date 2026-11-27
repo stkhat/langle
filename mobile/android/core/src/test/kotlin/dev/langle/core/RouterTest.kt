@@ -377,10 +377,10 @@ class RouterTest {
       assertEquals(2, shared.size)
     }
 
-    // The sign-in comes in M7d; until then each call fails at once.
+    // As the reference: each call fails at once until the app sets a sign-in (M7d).
     @Test
-    @DisplayName("Google sign-in is not available yet")
-    fun `Google sign-in is not available yet`() {
+    @DisplayName("Google sign-in is not available until the shells fill it (M7d)")
+    fun `Google sign-in is not available until the shells fill it`() {
       val h = Harness()
       val host = h.connect(ContextSpec.Host)
       host.call("bridge.hello", hello("host"))
@@ -389,6 +389,58 @@ class RouterTest {
         host.call("appHost.googleAuth.token", mapOf("interactive" to true)).error,
       )
       assertEquals("appHost.googleAuth.forget is not available here.", host.call("appHost.googleAuth.forget").error)
+    }
+
+    // Android only (M7d): the app's sign-in answers the host, and no other context.
+    @Test
+    @DisplayName("Google sign-in goes to the app's sign-in, for the extension host only")
+    fun `Google sign-in goes to the app's sign-in, for the extension host only`() {
+      val h = Harness()
+      val host = h.connect(ContextSpec.Host)
+      host.call("bridge.hello", hello("host"))
+      val asked = mutableListOf<Pair<String, kotlinx.serialization.json.JsonElement?>>()
+      h.router.onGoogleAuth = { api, request, done ->
+        asked += api to request
+        done(Answer.Value(if (api == "appHost.googleAuth.token") j(mapOf("token" to "ya29.t", "expiresAt" to 5)) else null))
+      }
+      assertEquals(j(mapOf("token" to "ya29.t", "expiresAt" to 5)), host.call("appHost.googleAuth.token", mapOf("interactive" to false)).value)
+      assertTrue(host.call("appHost.googleAuth.forget").settled)
+      assertEquals(listOf("appHost.googleAuth.token" to j(mapOf("interactive" to false)), "appHost.googleAuth.forget" to null), asked)
+
+      val settings = h.connect(ContextSpec.Page("$ORIGIN/options.html", h.router.openTab("$ORIGIN/options.html")))
+      settings.call("bridge.hello", hello("page"))
+      assertEquals("appHost.googleAuth.token is not available here.", settings.call("appHost.googleAuth.token", mapOf("interactive" to true)).error)
+      val tab = h.router.openTab(ARTICLE)
+      val content = h.connect(ContextSpec.Content(tab))
+      assertEquals("appHost.googleAuth.forget is not available here.", content.call("appHost.googleAuth.forget").error)
+      assertEquals(2, asked.size)
+    }
+
+    // Android only (M7d): `app.hidden` is answered by the host.
+    @Test
+    fun `an event the host answers gets its answer, or fails without a host or an answer in time`() {
+      val h = Harness()
+      val answers = mutableListOf<Answer>()
+      h.router.askHost("app.hidden", emptyList(), 20_000.0) { answers += it }
+      assertEquals(listOf<Answer>(Answer.Failure(NO_RECEIVER)), answers)
+
+      val host = h.connect(ContextSpec.Host)
+      host.call("bridge.hello", hello("host"))
+      host.on("app.hidden") { Handled.Value(null) }
+      h.router.askHost("app.hidden", emptyList(), 20_000.0) { answers += it }
+      h.settle()
+      assertEquals(Answer.Value(null), answers.last())
+      val event = host.received.last { it.obj?.get("api").string == "app.hidden" }
+      assertEquals("n1", event.obj?.get("replyId").string)
+
+      host.on("app.hidden") { Handled.Never }
+      h.router.askHost("app.hidden", emptyList(), 20_000.0) { answers += it }
+      h.advance(19_999.0)
+      assertEquals(2, answers.size)
+      h.advance(1.0)
+      assertEquals(Answer.Failure("app.hidden: no answer in 20000 ms"), answers.last())
+      h.advance(60_000.0)
+      assertEquals(3, answers.size)
     }
 
     // The hosts come in M5c and M5d; until the app sets one, each call fails at once.
