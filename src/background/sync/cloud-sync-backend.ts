@@ -512,51 +512,53 @@ export function createCloudSyncBackend({
     if (!s || s.error === "reconnect") return;
     const provider = providerOf(s);
     if (!provider) return;
-    const timed = await settings.get();
-    const historyOn = timed.values.cloudHistory;
-    const switched = historyOn !== s.history;
-    if (!s.mainPending && !s.monthsPending && !switched) return;
-    const covered = generation;
-    const device = await deviceId();
-    const copy = await db.transaction(
-      "r",
-      [
-        db.terms,
-        db.sources,
-        db.occurrences,
-        db.meanings,
-        db.meaningChoices,
-        db.historyPages,
-        db.historySentences,
-        db.historyForgotten,
-        db.meta,
-      ],
-      () => readCopy(db),
-    );
-    copy.state.settings = timed;
-    const at = now();
-    const files = filesOf(copy.state, device, at, Object.keys(s.sent));
-
-    const writes: { path: string; file: CloudFile; hash: string }[] = [];
-    let main: { path: string; file: CloudFile; hash: string } | undefined;
-    for (const file of files) {
-      const path = pathOf(file);
-      if (file.kind === "history" && !historyOn) continue;
-      const hash = await hashOf(file);
-      if (file.kind === "main") {
-        if (s.mainPending) main = { path, file, hash };
-      } else if ((s.monthsPending || switched) && s.sent[path] !== hash)
-        writes.push({ path, file, hash });
-    }
-    // Months first, so a device that reads the new main finds its rows' files.
-    if (main) writes.push(main);
-    const removals = historyOn
-      ? []
-      : Object.keys(s.sent).filter(
-          (path) => parseFilePath(path)?.kind === "history",
-        );
-
+    // The local reads fail like the writes do, and are tried again the same way: on iOS
+    // WebKit breaks off IndexedDB's transactions when it suspends the app's processes.
     try {
+      const timed = await settings.get();
+      const historyOn = timed.values.cloudHistory;
+      const switched = historyOn !== s.history;
+      if (!s.mainPending && !s.monthsPending && !switched) return;
+      const covered = generation;
+      const device = await deviceId();
+      const copy = await db.transaction(
+        "r",
+        [
+          db.terms,
+          db.sources,
+          db.occurrences,
+          db.meanings,
+          db.meaningChoices,
+          db.historyPages,
+          db.historySentences,
+          db.historyForgotten,
+          db.meta,
+        ],
+        () => readCopy(db),
+      );
+      copy.state.settings = timed;
+      const at = now();
+      const files = filesOf(copy.state, device, at, Object.keys(s.sent));
+
+      const writes: { path: string; file: CloudFile; hash: string }[] = [];
+      let main: { path: string; file: CloudFile; hash: string } | undefined;
+      for (const file of files) {
+        const path = pathOf(file);
+        if (file.kind === "history" && !historyOn) continue;
+        const hash = await hashOf(file);
+        if (file.kind === "main") {
+          if (s.mainPending) main = { path, file, hash };
+        } else if ((s.monthsPending || switched) && s.sent[path] !== hash)
+          writes.push({ path, file, hash });
+      }
+      // Months first, so a device that reads the new main finds its rows' files.
+      if (main) writes.push(main);
+      const removals = historyOn
+        ? []
+        : Object.keys(s.sent).filter(
+            (path) => parseFilePath(path)?.kind === "history",
+          );
+
       await withToken(provider, async (token) => {
         for (const { path, file, hash } of writes) {
           if (s.sent[path] === hash && file.kind !== "main") continue;

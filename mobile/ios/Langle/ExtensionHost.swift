@@ -136,6 +136,11 @@ final class ExtensionHost {
     onRecreated?()
   }
 
+  /// Keeps the background running off screen, for `app.hidden`'s writes (`Page.keepRunning`).
+  func keepRunning(_ on: Bool) {
+    context?.page.keepRunning(on, ms: AppLifecycle.holdMs)
+  }
+
   func evaluate(_ source: String) async -> String {
     await context?.page.evaluate(world: .page, source: source) ?? "no host"
   }

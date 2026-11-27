@@ -447,6 +447,34 @@ describe("CloudSyncBackend: two devices", () => {
     expect(lists()).toBe(listed + 1);
   });
 
+  it("a write whose local read fails is tried again later", async () => {
+    const cloud = createFakeCloud();
+    const a = device({ id: "dev-a", cloud });
+    await startAll(a);
+    await a.backend.connect("googleDrive");
+    const before = writesOf(cloud, "dev-a");
+    await save(a, "loaf");
+    await a.after(1000);
+    // As WebKit does on iOS when it suspends the app's processes: the read is broken off.
+    const get = a.settings.get;
+    a.settings.get = async () => {
+      a.settings.get = get;
+      throw new Error(
+        "Attempt to get records from database without an in-progress transaction",
+      );
+    };
+    // Counted as a passing failure, as an error that is not the cloud's is: no error log.
+    await a.lifecycle.hide();
+    expect(writesOf(cloud, "dev-a")).toBe(before);
+    expect((await a.state())?.mainPending).toBe(true);
+    // Not shown (a retry goes on by itself), and done at the retry.
+    expect((await a.state())?.error).toBe("retrying");
+    await a.after(15_000);
+    expect(writesOf(cloud, "dev-a")).toBe(before + 2);
+    expect((await a.state())?.mainPending).toBe(false);
+    expect((await a.state())?.error).toBeUndefined();
+  });
+
   it("reads a month file before its main, and takes its rows once the main comes", async () => {
     const cloud = createFakeCloud();
     const a = device({ id: "dev-a", cloud });
