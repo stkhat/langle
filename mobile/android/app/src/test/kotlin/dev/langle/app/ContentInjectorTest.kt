@@ -102,6 +102,15 @@ class ContentInjectorTest {
     }
   }
 
+  @Test
+  fun `every context hears that the app can sign in to Google only where it can`() {
+    val signsIn = ContentInjector(manifest, googleAuth = true) { files[it]?.toByteArray() }
+    for (context in listOf("content", "page", "host")) {
+      assertEquals(true, signsIn.appInfo(context).contains(""""googleAuth":true"""))
+      assertEquals(false, injector.appInfo(context).contains("googleAuth"))
+    }
+  }
+
   /** The bundled build's scripts are valid JavaScript once wrapped (scripts/bundle-build.sh). */
   @Test
   fun `wraps the bundled build's scripts into valid JavaScript`() {
