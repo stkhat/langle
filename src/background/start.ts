@@ -19,6 +19,7 @@ import {
   cloudConnected,
   createCloudSyncBackend,
 } from "./sync/cloud-sync-backend";
+import { createAppGoogleAuth } from "./sync/app-google-auth";
 import { createGoogleAuth } from "./sync/google-auth";
 import { googleClients } from "./sync/google-clients";
 import { createDriveFiles } from "../core/cloud/google-drive";
@@ -49,6 +50,7 @@ export function startBackground(): void {
   const checkLog =
     import.meta.env.MODE === "check" ? startWorkerErrorLog() : undefined;
 
+  const app = appHostOf();
   const device = deviceId();
   const db = openLangleDb("langle", { deviceId: device });
   const store = createTermStore(db, { deviceId: device });
@@ -65,6 +67,8 @@ export function startBackground(): void {
     deviceId: device,
     providers: cloudProviders(),
     browserSync: sync,
+    // The app's background runs only while the app does (mobile-app.md "M7").
+    ...(app && { lifecycle: app }),
   });
 
   const lock = readLock();
@@ -172,19 +176,22 @@ const SETUP_TAB_KEY = "setupTab";
 
 /**
  * The cloud providers this build can connect to. Google Drive needs the build's Google
- * client (google-clients.ts); a build without one offers no provider.
+ * client (google-clients.ts); a build without one offers no provider. In the phone app
+ * the shell signs in (`appHost.googleAuth`, mobile-app.md "M7"); an app whose shell
+ * cannot (no Google Play services) offers none.
  */
 function cloudProviders(): Partial<Record<CloudProviderId, CloudProvider>> {
+  const app = appHostOf();
   const google = googleClients();
-  if (!google) return {};
-  return {
-    googleDrive: {
-      id: "googleDrive",
-      files: createDriveFiles(),
-      auth: createGoogleAuth({
+  const auth = app
+    ? app.googleAuth && createAppGoogleAuth(app.googleAuth)
+    : google &&
+      createGoogleAuth({
         webClientId: google.web,
         account: () => cloudAccount(),
-      }),
-    },
+      });
+  if (!auth) return {};
+  return {
+    googleDrive: { id: "googleDrive", files: createDriveFiles(), auth },
   };
 }

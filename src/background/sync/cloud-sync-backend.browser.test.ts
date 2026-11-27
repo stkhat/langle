@@ -100,6 +100,29 @@ function fakeAlarms() {
   };
 }
 
+/** The phone app's `appHost.onHidden` / `onVisible`, fired by the test as the shells do. */
+function fakeLifecycle() {
+  const hidden = new Set<() => Promise<void>>();
+  const visible = new Set<() => void>();
+  return {
+    onHidden(listener: () => Promise<void>) {
+      hidden.add(listener);
+      return () => void hidden.delete(listener);
+    },
+    onVisible(listener: () => void) {
+      visible.add(listener);
+      return () => void visible.delete(listener);
+    },
+    /** `app.hidden`: resolves once every listener is done, as the shim answers it. */
+    async hide() {
+      await Promise.all([...hidden].map((listener) => listener()));
+    },
+    show() {
+      for (const listener of visible) listener();
+    },
+  };
+}
+
 function fakeDeviceId(initial: string): DeviceId {
   let id = initial;
   let renewals = 0;
@@ -117,6 +140,8 @@ interface Device {
   local: FakeSyncArea;
   alarms: ReturnType<typeof fakeAlarms>;
   timers: ReturnType<typeof manualTimers>;
+  /** The app's lifecycle events (every device has them; only the app's shells send them). */
+  lifecycle: ReturnType<typeof fakeLifecycle>;
   account: FakeAccount;
   browserSync: BrowserSyncBackend;
   backend: CloudSyncBackend;
@@ -160,6 +185,7 @@ function device({
       local.data.set(k, structuredClone(v));
   const alarms = fakeAlarms();
   const timers = manualTimers();
+  const lifecycle = fakeLifecycle();
   const account = cloud.account();
   const browserSync = createBrowserSyncBackend({
     store,
@@ -179,6 +205,7 @@ function device({
     browserSync,
     local,
     alarms,
+    lifecycle,
     now,
     timers,
   });
@@ -192,6 +219,7 @@ function device({
     local,
     alarms,
     timers,
+    lifecycle,
     account,
     browserSync,
     backend,
@@ -379,6 +407,43 @@ describe("CloudSyncBackend: two devices", () => {
     await startAll(b);
     await b.backend.connect("googleDrive");
     expect(await keysOf(b)).toEqual(["loaf:learning"]);
+  });
+
+  it("the phone app: going to the background writes at once, coming back reads", async () => {
+    const cloud = createFakeCloud();
+    const a = device({ id: "dev-a", cloud });
+    const b = device({ id: "dev-b", cloud });
+    await startAll(a, b);
+    await a.backend.connect("googleDrive");
+    await b.backend.connect("googleDrive");
+    const before = writesOf(cloud, "dev-a");
+
+    await save(a, "loaf");
+    await a.after(1000);
+    expect(writesOf(cloud, "dev-a")).toBe(before);
+    // Resolves only once the writes are done: the shell lets the app sleep then.
+    await a.lifecycle.hide();
+    expect(writesOf(cloud, "dev-a")).toBe(before + 2);
+    expect((await a.state())?.mainPending).toBe(false);
+    // Nothing is left for the 30 s timer.
+    await a.after(WRITE_DELAY_MS);
+    expect(writesOf(cloud, "dev-a")).toBe(before + 2);
+    // Nothing pending: nothing written.
+    await a.lifecycle.hide();
+    expect(writesOf(cloud, "dev-a")).toBe(before + 2);
+
+    const lists = () => cloud.log.filter((e) => e.op === "list").length;
+    const listed = lists();
+    b.lifecycle.show();
+    await b.after();
+    expect(lists()).toBe(listed + 1);
+    expect(await keysOf(b)).toEqual(["loaf:learning"]);
+
+    // Stopped: the events are not heard.
+    b.backend.stop();
+    b.lifecycle.show();
+    await b.after();
+    expect(lists()).toBe(listed + 1);
   });
 
   it("reads a month file before its main, and takes its rows once the main comes", async () => {

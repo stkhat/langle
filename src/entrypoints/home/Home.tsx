@@ -146,6 +146,8 @@ function Ready({ deps }: { deps: HomeDeps }) {
       setSettings(next);
       refresh();
     };
+    // The other devices' changes are read now, not at the next 5-minute check.
+    deps.send({ type: "cloudCheck" }).catch(warn);
     deps.send({ type: "getSettings" }).then(stored, warn);
     refresh();
     const unwatch = deps.watchSettings(stored);

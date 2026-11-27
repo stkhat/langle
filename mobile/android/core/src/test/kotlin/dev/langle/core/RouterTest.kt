@@ -377,6 +377,20 @@ class RouterTest {
       assertEquals(2, shared.size)
     }
 
+    // The sign-in comes in M7d; until then each call fails at once.
+    @Test
+    @DisplayName("Google sign-in is not available yet")
+    fun `Google sign-in is not available yet`() {
+      val h = Harness()
+      val host = h.connect(ContextSpec.Host)
+      host.call("bridge.hello", hello("host"))
+      assertEquals(
+        "appHost.googleAuth.token is not available here.",
+        host.call("appHost.googleAuth.token", mapOf("interactive" to true)).error,
+      )
+      assertEquals("appHost.googleAuth.forget is not available here.", host.call("appHost.googleAuth.forget").error)
+    }
+
     // The hosts come in M5c and M5d; until the app sets one, each call fails at once.
     @Test
     @DisplayName("the translation calls go to the app's translation host, and are not available without one")

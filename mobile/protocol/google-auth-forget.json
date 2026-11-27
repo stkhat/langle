@@ -1,0 +1,7 @@
+{
+  "v": 1,
+  "kind": "call",
+  "id": "c12",
+  "api": "appHost.googleAuth.forget",
+  "args": []
+}

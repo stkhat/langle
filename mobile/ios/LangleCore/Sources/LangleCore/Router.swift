@@ -445,6 +445,8 @@ public final class Router {
     case _ where translationApis.contains(api):
       guard let host = onTranslation else { throw BridgeError(notAvailable(api)) }
       host(context.spec, api, args.first, done)
+    case _ where googleAuthApis.contains(api):
+      throw BridgeError(notAvailable(api))
     default:
       // storage.<area>.<get | set | remove | clear>
       let parts = api.split(separator: ".").map(String.init)
