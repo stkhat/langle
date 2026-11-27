@@ -15,7 +15,7 @@ import {
 } from "../../core/cloud/provider";
 import type { Settings } from "../../core/settings";
 import { languageOption } from "../../i18n/languages";
-import { t, uiLocale } from "../../i18n/t";
+import { sentenceGap, t, uiLocale } from "../../i18n/t";
 import { browserSyncName } from "../../ui/format/sync";
 import type { send as Send } from "../../messaging/client";
 import type { LanguagePair, SetupStatus } from "../../messaging/protocol";
@@ -202,6 +202,11 @@ function Consent(props: {
   const title = useId();
   const [busy, setBusy] = useState(false);
   const device = deps.sync.kind === "device";
+  const where = !device
+    ? t("setup.consent.where")
+    : deps.drive
+      ? t("setup.consent.whereDeviceDrive")
+      : t("setup.consent.whereDevice");
 
   async function agree() {
     setBusy(true);
@@ -270,15 +275,12 @@ function Consent(props: {
         >
           <strong style={{ fontWeight: 600, color: color.ink }}>
             {t("setup.consent.noServers")}
-          </strong>{" "}
-          {!device
-            ? t("setup.consent.where")
-            : deps.drive
-              ? t("setup.consent.whereDeviceDrive")
-              : t("setup.consent.whereDevice")}
+          </strong>
+          {sentenceGap(t("setup.consent.noServers"))}
+          {where}
           {deps.privacyPolicy && (
             <>
-              {" "}
+              {sentenceGap(where)}
               <a
                 href={deps.privacyPolicy}
                 {...NEW_TAB}

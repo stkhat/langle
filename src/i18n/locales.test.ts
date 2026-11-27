@@ -89,6 +89,21 @@ describe.each(localeCodes())("locale %s", (code) => {
     ).toEqual([]);
   });
 
+  // The pages put such messages next to other sentences (`sentences`), so one without its
+  // end runs into the next. Thai ends a sentence with a space, not a mark.
+  it.skipIf(code === "th")("ends a sentence where English does", () => {
+    expect(
+      Object.entries(messages)
+        .filter(
+          ([key, value]) =>
+            Object.hasOwn(en, key) &&
+            main((en as Record<string, Value>)[key]!).endsWith(".") &&
+            !/[.!?。！？।؟…»"”)）]$/u.test(main(value)),
+        )
+        .map(([key]) => key),
+    ).toEqual([]);
+  });
+
   // The shells draw them with their own `{name}` filling, without plural rules.
   it("writes the phone app's own strings (app.) as plain text", () => {
     expect(
