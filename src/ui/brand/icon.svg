@@ -10,6 +10,6 @@
   <!-- A soft speech bubble shaped as an L, its tail at the bottom left -->
   <path d="M38 20H40A14 14 0 0 1 54 34V68A6 6 0 0 0 60 74H91A15 15 0 0 1 106 89A15 15 0 0 1 91 104H54L40 117Q36 120 36 115V104A12 12 0 0 1 24 92V34A14 14 0 0 1 38 20Z" fill="#F3FFF9"/>
   <!-- Two highlighted words in the L's corner: a New one (blue) and a Learning one (green) -->
-  <rect x="62" y="22" width="42" height="22" rx="11" fill="#4C86F2"/>
+  <rect x="62" y="22" width="42" height="22" rx="11" fill="#2F6FE4"/>
   <rect x="62" y="50" width="28" height="18" rx="9" fill="#6FE3C3"/>
 </svg>
