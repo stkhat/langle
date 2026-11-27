@@ -869,6 +869,15 @@ The check build on the iPhone 17 Simulator (iOS 27.2), installed fresh (uninstal
 - **Text → a search**: a word selected in Safari ("description") and shared through the selection menu's Share (text only, no URL): `{ text }` kept, Langle opened `m.youtube.com/results?search_query=description`. Reminders was not used: the selection share sends the same plain-text attachment.
 - **The error log**: empty. Cleared.
 
+## Drive sign-in on iOS (M7d, 2026-11-28)
+The check build on the Simulator (iPhone 17e, iOS 27.2), installed fresh (uninstalled first), with the user's own account (the user tapped iOS's alert, Google's sheet and the consent).
+- **Connect** from the first run's step "Use Langle on a computer too?": the button showed "Connecting…" while iOS's alert ("Langle" wants to use "accounts.google.com" to sign in, Cancel / Continue) and then Google's sheet were up. After the consent the first run went on to the languages: `googleDrive` with the account's address, 19 files of the other devices, about 340 KB.
+- **Chrome to phone**: Home showed 120 learning, 129 known and 135 phrases right after Start. The phone's list held "algorithm" with its Gmail sentence (saved in Chrome) and Android's "serendipity" and "ephemeral" (M7d-android).
+- **Phone to Chrome**: "luminous" was written by the 30 s timer while the app was in front. "meander" was saved, and Home was pressed 3 s later. It was written about 5 s after Home, while the app was in the background (the background task kept the WebKit host running), not after the 30 s timer. The user found both words in Chrome's Word list.
+- **`app.visible`**: back in the app, a check ran within a few seconds (`lastCheckedAt` moved).
+- **The error log**: 32 `info` entries from the pack mirror (the first run's pack download), nothing else. Cleared.
+- Not checked here: Disconnect and a second Connect (whether `prompt=select_account` shows the chooser when Safari's session already has the account), the 7-day end of refresh tokens in Testing (M7a), and a real iPhone.
+
 ## Open issues and risks
 1. **Google sign-in.** Google blocks sign-in from browsers embedded in other apps (OAuth `disallowed_useragent` since 2021-09-30; its help page says sign-in may be blocked in browsers "embedded inside another app"). Browsers built on the same engines (Brave / Firefox / DuckDuckGo on iOS, Firefox on Android) can sign in, so detection seems to rely on signals such as the user agent, not the engine. Android WebView's UA contains `; wv`. Unverified for our app and a policy gray area. Watching and captions work without sign-in; age-restricted and members-only videos need it.
 2. **PO token in the real engines** (see above).
