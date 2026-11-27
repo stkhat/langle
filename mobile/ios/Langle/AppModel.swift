@@ -51,6 +51,11 @@ final class AppModel: ObservableObject {
   /// Apple Translation and the host that answers the pages' translation calls with it.
   let translation = AppleTranslation()
   private var translationHost: TranslationHost?
+  /// Google sign-in for Drive sync, and the lifecycle events that let it write before the app
+  /// is suspended (docs/specs/mobile-app.md "M7").
+  private var googleAuth: GoogleAuth?
+  private var lifecycle: AppLifecycle?
+  private let backgroundHold = BackgroundHold()
   private(set) var browsing: ContextPage!
   @Published private(set) var firstRun: ContextPage?
   @Published private(set) var tabPages: [AppTab: ContextPage] = [:]
@@ -95,6 +100,7 @@ final class AppModel: ObservableObject {
       try? FileManager.default.removeItem(at: Self.storeFolder)
       try? FileManager.default.removeItem(at: Self.adblockFolder)
       try? FileManager.default.removeItem(at: Self.sharedFolder)
+      KeychainRefreshTokenStore().delete()
       strings = NativeStrings(english: Self.english)
       await WebKitEngine.removeAppStore()
       Log.app.info("app data reset")
@@ -130,6 +136,7 @@ final class AppModel: ObservableObject {
       translationHost.handle(from, api, request, done)
     }
     adBlocker = startAdBlocking(handler)
+    startGoogleAuth()
 
     if let manifest {
       let injector = ContentInjector(manifest: manifest, read: handler.file)
@@ -160,6 +167,24 @@ final class AppModel: ObservableObject {
     } catch {
       Log.app.error("could not keep the native strings: \(String(describing: error), privacy: .public)")
     }
+  }
+
+  // MARK: Google sign-in and the lifecycle
+
+  /// The router's Google sign-in (the system's sheet, the refresh token in the Keychain) and the
+  /// lifecycle events for the extension host. The store is the router's: `connected` goes with
+  /// the app's data, as the background's cloud state does.
+  private func startGoogleAuth() {
+    let auth = GoogleAuth(
+      sheet: WebAuthenticationSheet(), endpoint: URLSessionTokenEndpoint(),
+      store: KeychainRefreshTokenStore(), persistence: FilePersistence(directory: Self.storeFolder),
+      clock: DispatchClock())
+    auth.onLog = { Log.app.info("googleAuth: \($0, privacy: .public)") }
+    router.onGoogleAuth = auth.handle
+    googleAuth = auth
+    let lifecycle = AppLifecycle(router: router) { [weak self] on in self?.backgroundHold.hold(on) }
+    lifecycle.onLog = { Log.app.info("\($0, privacy: .public)") }
+    self.lifecycle = lifecycle
   }
 
   // MARK: ad blocking
@@ -200,7 +225,10 @@ final class AppModel: ObservableObject {
   }
 
   /// The app came on screen: the lists that are due are fetched.
-  func cameOnScreen() { adBlocker?.inUse() }
+  func cameOnScreen() {
+    adBlocker?.inUse()
+    lifecycle?.visible()
+  }
 
   private func makeBrowsingPage() {
     let tabId = shell.browsingTab
@@ -469,8 +497,12 @@ final class AppModel: ObservableObject {
 
   // MARK: translation
 
-  /// The app left the screen (scene background): the translator's memory goes back at once.
-  func leftScreen() { translationHost?.leftScreen() }
+  /// The app left the screen (scene background): the translator's memory goes back at once, and
+  /// the background does its pending cloud writes now (`app.hidden`).
+  func leftScreen() {
+    translationHost?.leftScreen()
+    lifecycle?.hidden()
+  }
 
   #if DEBUG
     /// The pages' translation calls since the launch, by kind (check builds' `translate-state`):

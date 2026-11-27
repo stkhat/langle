@@ -25,6 +25,9 @@ final class ContentInjector {
       "context": .string(context),
       // `appHost.translator`: the phone's own models (Apple Translation), no model packs.
       "translator": ["models": "system"],
+      // `appHost.googleAuth`: the app signs in to Google (the system's sheet), so the pages
+      // offer Google Drive (docs/specs/mobile-app.md "M7").
+      "googleAuth": true,
     ]
     return "window.__langleAppInfo = \(info.json);"
   }

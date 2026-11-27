@@ -339,8 +339,8 @@ final class TabsTests: XCTestCase {
     XCTAssertEqual(taken.count, 1)
   }
 
-  // The sign-in comes in M7d; until then each call fails at once.
-  func test_google_sign_in_is_not_available_yet() {
+  // As the reference: each call fails at once until the app sets a sign-in (M7d).
+  func test_google_sign_in_is_not_available_until_the_app_sets_one() {
     let h = Harness()
     let host = h.connect(.host)
     host.call("bridge.hello", ["context": "host"])
@@ -349,6 +349,69 @@ final class TabsTests: XCTestCase {
       "appHost.googleAuth.token is not available here.")
     XCTAssertEqual(
       host.call("appHost.googleAuth.forget").error, "appHost.googleAuth.forget is not available here.")
+  }
+
+  // iOS only (M7d): the app's sign-in answers the host, and no other context.
+  func test_google_sign_in_goes_to_the_apps_sign_in_for_the_extension_host_only() {
+    let h = Harness()
+    let host = h.connect(.host)
+    host.call("bridge.hello", ["context": "host"])
+    var asked: [(String, JSONValue?)] = []
+    let granted: JSONValue = ["token": "ya29.t", "expiresAt": 5]
+    h.router.onGoogleAuth = { api, request, done in
+      asked.append((api, request))
+      done(.success(api == "appHost.googleAuth.token" ? granted : nil))
+    }
+    XCTAssertEqual(host.call("appHost.googleAuth.token", ["interactive": false]).value, granted)
+    XCTAssertNil(host.call("appHost.googleAuth.forget").error)
+    XCTAssertEqual(asked.map(\.0), ["appHost.googleAuth.token", "appHost.googleAuth.forget"])
+    XCTAssertEqual(asked[0].1, ["interactive": false])
+    XCTAssertNil(asked[1].1)
+
+    let settingsTab = h.router.openTab(url: "\(origin)/options.html")
+    let settings = h.connect(.page(url: "\(origin)/options.html", tabId: settingsTab))
+    settings.call("bridge.hello", ["context": "page"])
+    XCTAssertEqual(
+      settings.call("appHost.googleAuth.token", ["interactive": true]).error,
+      "appHost.googleAuth.token is not available here.")
+    let content = h.connect(.content(tabId: h.router.openTab(url: article)))
+    XCTAssertEqual(content.call("appHost.googleAuth.forget").error, "appHost.googleAuth.forget is not available here.")
+    XCTAssertEqual(asked.count, 2)
+  }
+
+  // iOS only (M7d): `app.hidden` is answered by the host.
+  func test_an_event_the_host_answers_gets_its_answer_or_fails_without_a_host_or_an_answer_in_time() {
+    let h = Harness()
+    var answers: [Result<JSONValue?, BridgeError>] = []
+    h.router.askHost("app.hidden", [], timeoutMs: 20_000) { answers.append($0) }
+    XCTAssertEqual(answers.count, 1)
+    if case .failure(let error) = answers[0] { XCTAssertEqual(error.message, noReceiver) } else { XCTFail() }
+    XCTAssertFalse(h.router.isHostReady)
+
+    let host = h.connect(.host)
+    host.call("bridge.hello", ["context": "host"])
+    XCTAssertTrue(h.router.isHostReady)
+    host.on("app.hidden") { _ in .value(nil) }
+    h.router.askHost("app.hidden", [], timeoutMs: 20_000) { answers.append($0) }
+    h.settle()
+    XCTAssertEqual(answers.count, 2)
+    if case .success(let value) = answers[1] { XCTAssertNil(value) } else { XCTFail() }
+    let event = host.received.last { $0["api"]?.string == "app.hidden" }
+    XCTAssertEqual(event?["replyId"]?.string, "n1")
+
+    host.on("app.hidden") { _ in .never }
+    h.router.askHost("app.hidden", [], timeoutMs: 20_000) { answers.append($0) }
+    h.advance(by: 19_999)
+    XCTAssertEqual(answers.count, 2)
+    h.advance(by: 1)
+    XCTAssertEqual(answers.count, 3)
+    if case .failure(let error) = answers[2] {
+      XCTAssertEqual(error.message, "app.hidden: no answer in 20000 ms")
+    } else {
+      XCTFail()
+    }
+    h.advance(by: 60_000)
+    XCTAssertEqual(answers.count, 3)
   }
 
   // The hosts come in M5c and M5d; until the app sets one, each call fails at once.

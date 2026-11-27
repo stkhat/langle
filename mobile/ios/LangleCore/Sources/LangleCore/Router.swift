@@ -128,6 +128,15 @@ public final class Router {
         _ done: @escaping (Result<JSONValue?, BridgeError>) -> Void
       ) -> Void
     )?
+  /// The app's Google sign-in (docs/specs/mobile-app.md "M7"): the calls in `googleAuthApis` from
+  /// the extension host, with the call's one argument (`GoogleAuth.handle`). Nil until the app
+  /// sets it, and never for any other context: each such call fails with "<api> is not available
+  /// here."
+  public var onGoogleAuth:
+    (
+      (_ api: String, _ request: JSONValue?, _ done: @escaping (Result<JSONValue?, BridgeError>) -> Void)
+        -> Void
+    )?
 
   private let persistence: Persistence
   private let clock: Clock
@@ -207,14 +216,23 @@ public final class Router {
     _ target: Connection, _ message: JSONValue, from: Connection,
     _ done: @escaping (Result<JSONValue?, BridgeError>) -> Void
   ) {
+    ask(target, "runtime.onMessage", [message, sender(from)], done)
+  }
+
+  /// Sends an event that expects an answer; `done` gets it once. Returns the event's replyId.
+  @discardableResult
+  private func ask(
+    _ target: Connection, _ api: String, _ args: [JSONValue],
+    _ done: @escaping (Result<JSONValue?, BridgeError>) -> Void
+  ) -> String {
     nextReply += 1
     let replyId = "n\(nextReply)"
     forwards[replyId] = Forward(target: target) { [weak self] result in
       self?.forwards.removeValue(forKey: replyId)
       done(result)
     }
-    deliver(
-      target, .event(api: "runtime.onMessage", args: [message, sender(from)], replyId: replyId))
+    deliver(target, .event(api: api, args: args, replyId: replyId))
+    return replyId
   }
 
   private func whenHostReady(_ done: @escaping (Result<Connection, BridgeError>) -> Void) {
@@ -323,6 +341,27 @@ public final class Router {
   /// said hello (it asks again when it starts).
   public func postToHost(_ api: String, _ args: [JSONValue]) {
     if let host { postEvent(host, api, args) }
+  }
+
+  /// Whether the extension host has said hello.
+  public var isHostReady: Bool { host != nil }
+
+  /// An event for the extension host that it answers (`app.hidden`): `reply` gets the host's
+  /// answer, or a failure when the host has not said hello, goes away, or has not answered after
+  /// `timeoutMs`.
+  public func askHost(
+    _ api: String, _ args: [JSONValue], timeoutMs: Double,
+    _ reply: @escaping (Result<JSONValue?, BridgeError>) -> Void
+  ) {
+    guard let target = host else { return reply(.failure(BridgeError(noReceiver))) }
+    var timer: AnyObject?
+    let replyId = ask(target, api, args) { [weak self] result in
+      if let timer { self?.clock.cancel(timer) }
+      reply(result)
+    }
+    timer = clock.schedule(after: timeoutMs) { [weak self] in
+      self?.forwards[replyId]?.settle(.failure(BridgeError("\(api): no answer in \(Int(timeoutMs)) ms")))
+    }
   }
 
   // MARK: alarms
@@ -454,7 +493,9 @@ public final class Router {
       guard let host = onTranslation else { throw BridgeError(notAvailable(api)) }
       host(context.spec, api, args.first, done)
     case _ where googleAuthApis.contains(api):
-      throw BridgeError(notAvailable(api))
+      // Only the background asks for tokens (its Drive calls); no page or web page gets one.
+      guard context.spec == .host, let auth = onGoogleAuth else { throw BridgeError(notAvailable(api)) }
+      auth(api, args.first, done)
     default:
       // storage.<area>.<get | set | remove | clear>
       let parts = api.split(separator: ".").map(String.init)

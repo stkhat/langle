@@ -42,7 +42,7 @@ public let translationApis: Set<String> = [
   "appHost.models.remove",
 ]
 
-/// Google sign-in for Drive sync (docs/specs/mobile-app.md "M7"); not available until M7d fills it.
+/// Google sign-in for Drive sync (docs/specs/mobile-app.md "M7"; `Router.onGoogleAuth`).
 public let googleAuthApis: Set<String> = [
   "appHost.googleAuth.token",
   "appHost.googleAuth.forget",
