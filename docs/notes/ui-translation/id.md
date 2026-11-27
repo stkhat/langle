@@ -69,3 +69,7 @@ Changed keys:
 
 ## The browser's sync (`{syncName}`)
 `env.syncName` is "sinkronisasi {browser}", with the browser's name filled in. The switch says Simpan so it does not repeat sinkronisasi.
+
+## The phone app's own bars (`app.*`, M6f)
+The shells draw these themselves (tab bar, title bar, ⋮, toasts, accessibility labels); the background sends them in the interface language. The tab names are the pages' own (`app.words` = `wordlist.phoneTitle`, `app.settings` = `settings.title`), `app.search` is `home.search`, and `app.on` / `app.off` are `settings.adBlocking.on` / `.off`. `app.editAddress` is `home.search` without the site. `{reasons}` in `app.buildRefused` stays English (the manifest keys the build lacks). Second pass:
+- Home → Beranda, as YouTube's Indonesian UI; link stays link, as Chrome's Indonesian UI; the notice uses the relaxed bisa / dipakai of the other sentences.

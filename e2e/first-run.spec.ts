@@ -162,7 +162,7 @@ test.describe("a page that was open before the install", () => {
     const options = await context.newPage();
     await options.goto(`chrome-extension://${extensionId}/options.html`);
     const row = options.locator("div.sub").filter({
-      hasText: ja("app.languagePair", {
+      hasText: ja("language.pair", {
         learning: ja("languageName.en"),
         native: ja("languageName.ja"),
       }),

@@ -73,3 +73,7 @@ Changed keys:
 
 ## The browser's sync (`{syncName}`)
 `env.syncName` is "{browser} 동기화", with the browser's name filled in. 동기화 ends in a vowel: 에, 로. The switch says 저장 so it does not repeat 동기화.
+
+## The phone app's own bars (`app.*`, M6f)
+The shells draw these themselves (tab bar, title bar, ⋮, toasts, accessibility labels); the background sends them in the interface language. The tab names are the pages' own (`app.words` = `wordlist.phoneTitle`, `app.settings` = `settings.title`), `app.search` is `home.search`, and `app.on` / `app.off` are `settings.adBlocking.on` / `.off`. `app.editAddress` is `home.search` without the site. `{reasons}` in `app.buildRefused` stays English (the manifest keys the build lacks). Second pass:
+- Toasts and messages in 해요체 (링크를 복사했어요, 다른 앱이 없어요); menu items as nouns (공유, 링크 복사); Langle takes 을 as elsewhere.
