@@ -19,7 +19,7 @@ interface PlayerApi {
   getVideoData?(): { video_id?: string } | null;
   loadModule?(name: string): void;
   unloadModule?(name: string): void;
-  getOption?(module: string, key: string): unknown;
+  getOption?(module: string, key: string, how?: object): unknown;
   setOption?(module: string, key: string, value: unknown): void;
   seekTo?(seconds: number, allowSeekAhead?: boolean): void;
   pauseVideo?(): void;
@@ -226,9 +226,14 @@ function install(gate: PageGate) {
     (track.kind === "asr") === asr &&
     !track.translationLanguage?.languageCode;
 
-  /** The caption tracks the player's captions module lists (none before it is ready). */
+  /**
+   * The caption tracks the player's captions module lists (none before it is ready).
+   * Auto-generated tracks are listed only with `includeAsr`: without it an ASR-only
+   * video lists none at all (docs/notes/youtube-captions.md "The captions module's
+   * track list").
+   */
   function listedTracks(api: PlayerApi): CaptionTrackOption[] {
-    const list = api.getOption?.("captions", "tracklist");
+    const list = api.getOption?.("captions", "tracklist", { includeAsr: true });
     return Array.isArray(list) ? (list as CaptionTrackOption[]) : [];
   }
 

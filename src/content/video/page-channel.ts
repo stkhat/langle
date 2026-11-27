@@ -88,6 +88,9 @@ export interface PageBridge<
   dispose(): void;
 }
 
+/** A page call the page script left unanswered for the whole wait (it may still run it). */
+export class NoAnswerError extends Error {}
+
 export function createPageBridge<
   Call extends { type: string },
   Results extends Record<Call["type"], unknown>,
@@ -125,7 +128,7 @@ export function createPageBridge<
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
           pending.delete(id);
-          reject(new Error(`No answer from the page to ${call.type}`));
+          reject(new NoAnswerError(`No answer from the page to ${call.type}`));
         }, wait);
         pending.set(id, {
           resolve(value) {

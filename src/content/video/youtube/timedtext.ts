@@ -46,6 +46,18 @@ export function trackUrl(
 }
 
 /**
+ * Whether a timedtext request lacks the PO token its `baseUrl` asks for (`exp` names
+ * `xpe`, and there is no `pot`). YouTube answers such a request with an empty body
+ * whatever the track holds, so that answer tells nothing about the track: the player
+ * made it before it had its token (m.youtube.com on a busy Android emulator,
+ * docs/notes/youtube-captions.md "Requests before the PO token").
+ */
+export function lacksToken(url: string): boolean {
+  const q = new URL(url).searchParams;
+  return !q.get("pot") && (q.get("exp")?.split(",").includes("xpe") ?? false);
+}
+
+/**
  * Whether `tracks` come from the player response the `captured` request was made from:
  * the request carries its track's `baseUrl` params, and `ei` names the response (it is
  * signed into every `baseUrl`). The player can replace its response (youtube.com did on a

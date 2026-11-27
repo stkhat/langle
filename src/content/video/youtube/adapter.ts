@@ -16,6 +16,7 @@ import {
 import {
   createPageBridge,
   NETWORK_CALL_TIMEOUT_MS,
+  NoAnswerError,
   retryNetworkCall,
 } from "../page-channel";
 import { createRecent } from "../recent";
@@ -33,6 +34,7 @@ import {
 } from "./messages";
 import {
   autoTranslateCode,
+  lacksToken,
   pickOriginalTrack,
   sameResponse,
   trackUrl,
@@ -51,6 +53,16 @@ export interface YouTubeAdapterOptions {
   captureTimeoutMs?: number;
   /** How long the player may take to list its caption tracks (ads not counted). */
   tracksListedTimeoutMs?: number;
+  /** How often to ask anyway while the player lists no caption tracks. */
+  unlistedAskEveryMs?: number;
+  /** How long to wait for a request with the PO token after one without it. */
+  tokenWaitMs?: number;
+  /** How long to keep listening for the player's request after the last ask. */
+  lateRequestWaitMs?: number;
+  /** How long to wait for the player response once the player has loaded media. */
+  playerResponseTimeoutMs?: number;
+  /** How long to wait for the player response in all. */
+  playerLoadTimeoutMs?: number;
   /** How long to wait for one fetch of a track through the page script. */
   fetchTimeoutMs?: number;
   /** How long to wait for the page script's answer to any other call. */
@@ -64,8 +76,15 @@ export interface YouTubeAdapterOptions {
   refuseTlang?: () => boolean | Promise<boolean>;
 }
 
-/** How long to wait for the player response of the current video. */
+/**
+ * How long to wait for the player response of the current video once the player has
+ * loaded media (the previous video's, after SPA navigation). Time before that is not
+ * counted: a cold load on a busy phone took 30–50 s to play (docs/notes/mobile.md
+ * "Device checks (M6e, Android)").
+ */
 const PLAYER_RESPONSE_TIMEOUT_MS = 30_000;
+/** How long to wait for the player response in all, media or not. */
+const PLAYER_LOAD_TIMEOUT_MS = 180_000;
 /** Videos whose last captured request is kept (the current one and a few before). */
 const KEEP_CAPTURES = 4;
 /** How many times the player is asked again after an ad kept it from answering. */
@@ -78,8 +97,30 @@ const ASK_TRIES = 3;
  * "Subtitles missing on an early load (M5f)").
  */
 const TRACKS_LISTED_TIMEOUT_MS = 60_000;
+/**
+ * While the player lists no caption tracks, how often Langle asks anyway: a player
+ * that drops the ask costs nothing, and one whose list Langle cannot read takes it (an
+ * ASR-only video's list read without `includeAsr` stayed empty, and Langle waited the
+ * whole 60 s: docs/notes/youtube-captions.md "The captions module's track list").
+ */
+const UNLISTED_ASK_EVERY_MS = 10_000;
+/**
+ * How long to wait for the player's request with its PO token after it made one without
+ * (answered empty): on a busy Android emulator it came 45 s later (docs/notes/mobile.md
+ * "Device checks (M6e, Android)").
+ */
+const TOKEN_WAIT_MS = 90_000;
+/**
+ * How long to keep listening for the player's request after the last ask, asking nothing
+ * more: on a busy Android emulator a player that took the track made its request about
+ * 70 s after Langle's first ask, past all ASK_TRIES waits (docs/notes/youtube-captions.md
+ * "Late requests on a busy phone").
+ */
+const LATE_REQUEST_WAIT_MS = 90_000;
 /** `askPlayer`'s answer while the player lists no caption tracks: nothing was asked. */
 const UNLISTED = Symbol("unlisted");
+/** `lateRequest`'s answer when the player made no request in the wait. */
+const NONE = Symbol("none");
 /** A try of `loadCaptions` to make again (see `loadFrom`). */
 const AGAIN = Symbol("again");
 
@@ -109,6 +150,14 @@ export function createYouTubeAdapter(
   const captureTimeoutMs = options.captureTimeoutMs ?? 10_000;
   const tracksListedTimeoutMs =
     options.tracksListedTimeoutMs ?? TRACKS_LISTED_TIMEOUT_MS;
+  const unlistedAskEveryMs =
+    options.unlistedAskEveryMs ?? UNLISTED_ASK_EVERY_MS;
+  const tokenWaitMs = options.tokenWaitMs ?? TOKEN_WAIT_MS;
+  const lateRequestWaitMs = options.lateRequestWaitMs ?? LATE_REQUEST_WAIT_MS;
+  const playerResponseTimeoutMs =
+    options.playerResponseTimeoutMs ?? PLAYER_RESPONSE_TIMEOUT_MS;
+  const playerLoadTimeoutMs =
+    options.playerLoadTimeoutMs ?? PLAYER_LOAD_TIMEOUT_MS;
   const fetchTimeoutMs = options.fetchTimeoutMs ?? NETWORK_CALL_TIMEOUT_MS;
   const layout = options.layout ?? desktopLayout(href);
   const bridge = createPageBridge<PageCall, PageCallResults, TimedtextMessage>({
@@ -147,18 +196,23 @@ export function createYouTubeAdapter(
   cleanups.push(() => narrowPlayer(0));
 
   const captures = createRecent<TimedtextMessage>(KEEP_CAPTURES);
-  /** Videos whose player answered a caption request with an empty body (true). */
+  /** Videos whose player's complete caption request was answered with an empty body (true). */
   const answeredEmpty = createRecent<true>(KEEP_CAPTURES);
+  /** When the player's first request without the PO token it needed was answered, per video. */
+  const tokenless = createRecent<number>(KEEP_CAPTURES);
   const offTimedtext = bridge.onEvent((message) => {
     // Ads make their own requests: they are kept under their own video id.
-    if (!message.videoId) return;
-    if (message.body.trim() !== "") captures.set(message.videoId, message);
-    else answeredEmpty.set(message.videoId, true);
+    const id = message.videoId;
+    if (!id) return;
+    if (message.body.trim() !== "") captures.set(id, message);
+    else if (!lacksToken(message.url)) answeredEmpty.set(id, true);
+    else if (tokenless.get(id) === undefined) tokenless.set(id, Date.now());
   });
   cleanups.push(
     offTimedtext,
     () => captures.clear(),
     () => answeredEmpty.clear(),
+    () => tokenless.clear(),
   );
   const adShowing = () => player()?.classList.contains("ad-showing") ?? false;
   /** Sends a call to the page script, for the player this page shows. */
@@ -174,6 +228,29 @@ export function createYouTubeAdapter(
       call({ type: "fetchTimedtext", url }, fetchTimeoutMs),
     );
 
+  const mainVideo = () =>
+    player()?.querySelector<HTMLVideoElement>("video.html5-main-video") ?? null;
+
+  /**
+   * Whether the wait for the player response is over: `playerResponseTimeoutMs` counted
+   * while the player has media loaded (it loads none before it has a response), or
+   * `playerLoadTimeoutMs` in all.
+   */
+  function responseDeadline(): () => boolean {
+    const start = Date.now();
+    let last = start;
+    let loaded = 0;
+    return () => {
+      const now = Date.now();
+      if ((mainVideo()?.readyState ?? 0) >= HTMLMediaElement.HAVE_METADATA)
+        loaded += now - last;
+      last = now;
+      return (
+        loaded >= playerResponseTimeoutMs || now - start >= playerLoadTimeoutMs
+      );
+    };
+  }
+
   /**
    * The player response once it is the current video's (it lags behind SPA navigation).
    * A call the page leaves unanswered is asked again until the deadline: a page still
@@ -184,18 +261,17 @@ export function createYouTubeAdapter(
     id: string,
     signal?: AbortSignal,
   ): Promise<YouTubeCaptionInfo> {
-    const deadline = Date.now() + PLAYER_RESPONSE_TIMEOUT_MS;
+    const over = responseDeadline();
     for (;;) {
       const response = (await call({ type: "getPlayerResponse" }).catch(
         (error: unknown) => {
-          if (Date.now() >= deadline) throw error;
+          if (over()) throw error;
           return null;
         },
       )) as { videoDetails?: { videoId?: unknown } } | null;
       if (response?.videoDetails?.videoId === id)
         return youtubeCaptionInfo(response);
-      if (Date.now() >= deadline)
-        throw new Error(`No player response for ${id}`);
+      if (over()) throw new Error(`No player response for ${id}`);
       await sleep(pollMs, signal);
     }
   }
@@ -207,12 +283,16 @@ export function createYouTubeAdapter(
    * part of is tried again once the ad has ended. Nor does it take a track before its
    * captions module lists the video's tracks, which on a busy page came after the whole
    * wait (docs/notes/mobile.md "Subtitles missing on an early load (M5f)"): until then
-   * Langle keeps waiting, up to `tracksListedTimeoutMs`, then asks anyway. And a player
-   * that took the track can still make no request within the wait, or make it only
-   * after (an early load on the Android emulator, docs/notes/mobile.md "Device checks
-   * (M5g, Android)"): it is asked again, up to ASK_TRIES times in all, and a request
-   * that came late is taken then; after the last, Langle warns. A request answered with
-   * an empty body is an answer: nothing is asked again.
+   * Langle keeps waiting, asking anyway every `unlistedAskEveryMs` (a dropped ask costs
+   * nothing; a player whose list Langle cannot read takes it), up to
+   * `tracksListedTimeoutMs`. And a player that took the track can still make no request
+   * within the wait, or make it only after (an early load on the Android emulator,
+   * docs/notes/mobile.md "Device checks (M5g, Android)"): it is asked again, up to
+   * ASK_TRIES times in all, and a request that came late is taken then; after the last,
+   * Langle keeps listening for its request, asking nothing more, up to
+   * `lateRequestWaitMs`, then warns. A complete request answered with an empty body is an answer: nothing
+   * is asked again. One made before the player had the PO token it needs is not: the
+   * player's request with the token is waited for, up to `tokenWaitMs`.
    */
   async function captureFor(
     id: string,
@@ -226,6 +306,8 @@ export function createYouTubeAdapter(
     let unanswered = 0;
     /** How long the player has listed no caption tracks, ads not counted. */
     let unlisted = 0;
+    /** When to ask next though the player lists no caption tracks. */
+    let unlistedAsk = Math.min(unlistedAskEveryMs, tracksListedTimeoutMs);
     for (;;) {
       while (adShowing()) await sleep(pollMs, signal);
       const since = Date.now();
@@ -237,7 +319,7 @@ export function createYouTubeAdapter(
         ad ||= adShowing();
       }, pollMs);
       try {
-        const anyway = unlisted >= tracksListedTimeoutMs;
+        const anyway = unlisted >= unlistedAsk;
         const asked = await askPlayer(id, original, anyway, signal);
         if (asked === UNLISTED) {
           unlisted += Date.now() - since;
@@ -245,23 +327,60 @@ export function createYouTubeAdapter(
         }
         if (asked) return asked;
         if ((ad || adShowing()) && ++adTries <= AD_TRIES) continue;
+        // An empty answer to a complete request is an answer (YouTube gives it to
+        // automation): no use asking again.
+        if (answeredEmpty.get(id)) return undefined;
+        const tokenlessSince = tokenless.get(id);
+        if (tokenlessSince !== undefined) {
+          if (Date.now() - tokenlessSince < tokenWaitMs) continue;
+          console.warn(
+            `Langle: YouTube's player made its caption requests without its PO token for ${id} for ${tokenWaitMs / 1000} s`,
+          );
+          return undefined;
+        }
         if (anyway) {
+          if (unlisted < tracksListedTimeoutMs) {
+            unlisted += Date.now() - since;
+            unlistedAsk = Math.min(
+              unlistedAsk + unlistedAskEveryMs,
+              tracksListedTimeoutMs,
+            );
+            continue;
+          }
           console.warn(
             `Langle: YouTube's player listed no caption tracks for ${id} in ${tracksListedTimeoutMs / 1000} s`,
           );
           return undefined;
         }
-        // An empty answer is an answer (YouTube gives it to automation): no use asking again.
-        if (answeredEmpty.get(id)) return undefined;
         if (++unanswered < ASK_TRIES) continue;
+        const late = await lateRequest(id, signal);
+        if (late !== NONE) return late;
         console.warn(
-          `Langle: YouTube's player made no caption request for ${id} after ${ASK_TRIES} asks`,
+          `Langle: YouTube's player made no caption request for ${id} after ${ASK_TRIES} asks and ${lateRequestWaitMs / 1000} s`,
         );
         return undefined;
       } finally {
         clearInterval(watch);
       }
     }
+  }
+
+  /**
+   * The player's request made after the last ask, listened for up to `lateRequestWaitMs`
+   * without asking again; undefined once a complete request was answered empty, NONE if
+   * none came.
+   */
+  async function lateRequest(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<TimedtextMessage | undefined | typeof NONE> {
+    const end = Date.now() + lateRequestWaitMs;
+    for (let left = lateRequestWaitMs; left > 0; left = end - Date.now()) {
+      const late = await captures.wait(id, Math.min(left, 1000), signal);
+      if (late) return late;
+      if (answeredEmpty.get(id)) return undefined;
+    }
+    return NONE;
   }
 
   /**
@@ -274,12 +393,22 @@ export function createYouTubeAdapter(
     evenUnlisted: boolean,
     signal?: AbortSignal,
   ): Promise<TimedtextMessage | undefined | typeof UNLISTED> {
-    const loaded = await call({
-      type: "loadTrack",
-      languageCode: original.lang,
-      asr: original.kind === "asr",
-      ...(evenUnlisted && { evenUnlisted }),
-    });
+    let loaded;
+    try {
+      loaded = await call({
+        type: "loadTrack",
+        languageCode: original.lang,
+        asr: original.kind === "asr",
+        ...(evenUnlisted && { evenUnlisted }),
+      });
+    } catch (error) {
+      if (!(error instanceof NoAnswerError)) throw error;
+      // A busy page can answer after the wait and still take the track (the Android
+      // emulator, docs/notes/youtube-captions.md "Late requests on a busy phone"): an
+      // ask like one the player took without a request. YouTube's own choice, not
+      // known, stays as the page leaves it.
+      return await captures.wait(id, captureTimeoutMs, signal);
+    }
     if (!loaded) return UNLISTED;
     const { previous } = loaded;
     try {
@@ -305,6 +434,7 @@ export function createYouTubeAdapter(
     // Once more, with a request the player makes now and the response it makes it from.
     captures.delete(id);
     answeredEmpty.delete(id);
+    tokenless.delete(id);
     const retried = await loadFrom(id, request, true);
     return retried === AGAIN ? undefined : retried;
   }
@@ -396,9 +526,7 @@ export function createYouTubeAdapter(
       }
       return undefined;
     },
-    video: () =>
-      player()?.querySelector<HTMLVideoElement>("video.html5-main-video") ??
-      null,
+    video: mainVideo,
     playerElement: player,
     controlsPoint: () => layout.controlsPoint(),
     belowVideoElement: () => layout.belowVideoElement(),

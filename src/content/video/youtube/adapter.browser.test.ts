@@ -636,7 +636,10 @@ describe("loading captions", () => {
   it("warns when the player makes no request after every ask", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     cleanups.push(() => warn.mockRestore());
-    start({ requestDelayMs: 60_000 }, { captureTimeoutMs: 200 });
+    start(
+      { requestDelayMs: 60_000 },
+      { captureTimeoutMs: 200, lateRequestWaitMs: 300 },
+    );
     expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
     expect(page.player.fake.setOption).toHaveLength(3);
     expect(warn).toHaveBeenCalledWith(
@@ -644,6 +647,127 @@ describe("loading captions", () => {
         `made no caption request for ${VIDEO_ID} after 3 asks`,
       ),
     );
+  });
+
+  it("takes a request the player makes long after its last ask (a busy phone)", async () => {
+    // m.youtube.com on a busy Android emulator: the request came about 70 s after
+    // Langle's first ask (docs/notes/youtube-captions.md "Late requests on a busy phone").
+    start(
+      { requestDelayMs: 1500 },
+      { captureTimeoutMs: 200, lateRequestWaitMs: 5000 },
+    );
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(page.player.fake.setOption).toHaveLength(3);
+  });
+
+  it("asks again when the page leaves an ask unanswered (a busy phone)", async () => {
+    start({}, { callTimeoutMs: 300 });
+    const held = holdBackPageCalls({
+      toPage: CHANNEL.toPage,
+      type: "loadTrack",
+      count: 1,
+      reinstall() {
+        uninstall();
+        uninstall = installYouTubeHooks();
+      },
+    });
+    cleanups.push(held.remove);
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(held.held()).toBe(1);
+    expect(held.calls.length).toBeGreaterThan(1);
+  });
+
+  it("asks for an auto-generated track at once, which the player lists only with includeAsr", async () => {
+    // An ASR-only video: the plain list stays empty (docs/notes/youtube-captions.md
+    // "The captions module's track list").
+    start(
+      { playerResponse: responseWithout((t) => !t.vssId.startsWith("a.")) },
+      { tracksListedTimeoutMs: 5000 },
+    );
+    const begun = Date.now();
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe("a.en");
+    expect(Date.now() - begun).toBeLessThan(2000);
+    // Every ask is for the ASR track. (The fixtures have no `tlang=ja` of it, so a
+    // second load can follow the empty translation: not what this test is about.)
+    expect(page.player.fake.setOption.length).toBeGreaterThan(0);
+    for (const [, , track] of page.player.fake.setOption)
+      expect(track).toMatchObject({ kind: "asr", languageCode: "en" });
+  });
+
+  it("asks now and then while the player lists no tracks, and takes a track it took", async () => {
+    start(
+      { listsNoTracks: true },
+      { tracksListedTimeoutMs: 5000, unlistedAskEveryMs: 300 },
+    );
+    const begun = Date.now();
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(Date.now() - begun).toBeLessThan(2000);
+  });
+
+  it("keeps waiting after a request made before the player had its PO token, and takes the one with it", async () => {
+    // m.youtube.com on a busy Android emulator: the first request had no pot and got an
+    // empty body; the player's request with it came later (docs/notes/mobile.md).
+    start({ tokenAfterMs: 1500 });
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(captions?.cues).toEqual(parseYouTubeJson3(en));
+    const requests = page.player.fake.requests.map((r) => new URL(r));
+    expect(requests[0]?.searchParams.has("pot")).toBe(false);
+    expect(requests.at(-1)?.searchParams.get("pot")).toBe("FAKE-PO-TOKEN");
+  });
+
+  it("warns when the player's requests never carry the PO token they need", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => warn.mockRestore());
+    start({ tokenAfterMs: 60_000 }, { tokenWaitMs: 500 });
+    expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(`without its PO token for ${VIDEO_ID}`),
+    );
+  });
+
+  it("waits for the player response past its deadline while the player has loaded nothing (a cold load on a busy phone)", async () => {
+    start({}, { playerResponseTimeoutMs: 200 });
+    page.navigate({
+      videoId: "previous001",
+      title: "Before",
+      playerResponse: captionTracks,
+    });
+    page.video.removeAttribute("src");
+    page.video.load();
+    const loading = adapter.loadCaptions(REQUEST);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    page.navigate({
+      videoId: VIDEO_ID,
+      title: TITLE,
+      playerResponse: captionTracks,
+    });
+    expect((await loading)?.track.id).toBe(".en");
+  });
+
+  it("gives up on the player response once the player has loaded media, or after the longer wait", async () => {
+    start({}, { playerResponseTimeoutMs: 200, playerLoadTimeoutMs: 400 });
+    href = "https://www.youtube.com/watch?v=neverLoaded";
+    if (page.video.readyState < HTMLMediaElement.HAVE_METADATA)
+      await new Promise((resolve) =>
+        page.video.addEventListener("loadedmetadata", resolve, { once: true }),
+      );
+    let begun = Date.now();
+    await expect(adapter.loadCaptions(REQUEST)).rejects.toThrow(
+      "No player response for neverLoaded",
+    );
+    expect(Date.now() - begun).toBeLessThan(380);
+    page.video.removeAttribute("src");
+    page.video.load();
+    begun = Date.now();
+    await expect(adapter.loadCaptions(REQUEST)).rejects.toThrow(
+      "No player response for neverLoaded",
+    );
+    expect(Date.now() - begun).toBeGreaterThanOrEqual(380);
   });
 
   it("follows SPA navigation and returns nothing when YouTube sends empty captions", async () => {

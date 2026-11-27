@@ -36,6 +36,20 @@ export interface FakePlayerOptions {
    * (docs/notes/mobile.md "Device checks (M5g, Android)").
    */
   requestDelayMs?: number;
+  /**
+   * The player has its PO token only this long after it is set up: requests made before
+   * carry none (YouTube answers them with an empty body), as m.youtube.com's player's
+   * first request on a busy Android emulator did (docs/notes/mobile.md "Device checks
+   * (M6e, Android)").
+   */
+  tokenAfterMs?: number;
+  /**
+   * `getOption("captions", "tracklist")` answers undefined even with `includeAsr`, yet a
+   * track set is taken: a player whose list Langle cannot read (as an ASR-only video's
+   * list without `includeAsr`, docs/notes/youtube-captions.md "The captions module's
+   * track list").
+   */
+  listsNoTracks?: boolean;
 }
 
 /** The localStorage keys where the fake keeps the caption track set (as YouTube's player does). */
@@ -156,6 +170,11 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
       setTimeout(() => {
         listed = true;
       }, options.tracksListedAfterMs);
+    let hasToken = options.tokenAfterMs === undefined;
+    if (!hasToken)
+      setTimeout(() => {
+        hasToken = true;
+      }, options.tokenAfterMs);
 
     function request(option: TrackOption) {
       if (refreshed) {
@@ -171,8 +190,9 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
       if (!raw || player?.classList.contains("ad-showing")) return;
       const base = new URL(raw.baseUrl, location.href);
       const url = new URL(base.pathname + base.search, location.origin);
-      // youtube.com's player adds its PO token to a baseUrl naming exp=xpe only.
-      if (url.searchParams.get("exp")?.split(",").includes("xpe")) {
+      // youtube.com's player adds its PO token to a baseUrl naming exp=xpe only, once
+      // it has one.
+      if (hasToken && url.searchParams.get("exp")?.split(",").includes("xpe")) {
         url.searchParams.set("potc", "1");
         url.searchParams.set("pot", "FAKE-PO-TOKEN");
       }
@@ -182,6 +202,8 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
       url.searchParams.set("c", "WEB");
       url.searchParams.set("cplayer", "UNIPLAYER");
       const send = () => {
+        // A page removed since (the browser tests' next test) makes no request.
+        if (!player?.isConnected) return;
         log.requests.push(url.href);
         const xhr = new XMLHttpRequest();
         xhr.open("GET", url.href);
@@ -226,17 +248,22 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
         log.unloadModule.push(name);
         if (name === "captions") track = {};
       },
-      getOption(module: string, key: string) {
+      getOption(module: string, key: string, how?: { includeAsr?: boolean }) {
         if (module !== "captions") return undefined;
         if (key === "track") return track;
-        if (key === "tracklist" && !listed) return undefined;
+        if (key === "tracklist" && (!listed || options.listsNoTracks))
+          return undefined;
+        // Auto-generated tracks are listed only with includeAsr (www and m.youtube.com,
+        // 2026-11-27).
         if (key === "tracklist")
-          return captionTracks().map((t) => ({
-            languageCode: t.languageCode,
-            languageName: t.name?.simpleText ?? t.languageCode,
-            kind: t.kind ?? "",
-            vss_id: t.vssId ?? "",
-          }));
+          return captionTracks()
+            .filter((t) => how?.includeAsr || t.kind !== "asr")
+            .map((t) => ({
+              languageCode: t.languageCode,
+              languageName: t.name?.simpleText ?? t.languageCode,
+              kind: t.kind ?? "",
+              vss_id: t.vssId ?? "",
+            }));
         return undefined;
       },
       setOption,
