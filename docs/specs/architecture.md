@@ -696,7 +696,7 @@ Only Chrome is built and tested for now: Firefox is paused (2026-11-24; why, wha
 ### What `BrowserEnv` holds
 - Browser name for UI text
 - `sync`: where `storage.sync` keeps the data. `{ kind: "browser", browser }` names the browser whose sync it is ("Chrome"; the UI says "Chrome sync" through `env.syncName`); `{ kind: "device" }` where the phone app's `appHost` exists on the global (its `storage.sync` is never synced). Every string that names the browser's sync has a `device` counterpart ("Saved on this phone · {when}", the first run's line on what is sent, Settings' lead), and the rows that only make sense with a browser's sync (the browser-sync switch, connecting cloud storage) are left out
-- Features detected where `BrowserEnv` is built (File System Access API; `appHost`, the phone app's host, which leaves out what a phone app has no use for: Netflix, keyboard shortcuts, the Ko-fi and sponsor links, the word list's sponsor spot). The translator is detected in the UI, where it runs: it never exists in the service worker. The built-in AI is detected by its provider (`chromePromptApi`), where it runs
+- Features detected where `BrowserEnv` is built (File System Access API; `appHost`, the phone app's host, which leaves out what a phone app has no use for: Netflix, keyboard shortcuts, the Ko-fi and sponsor links, Rate until the app's own store pages exist (`reviewUrl` is empty), the word list's sponsor spot). The translator is detected in the UI, where it runs: it never exists in the service worker. The built-in AI is detected by its provider (`chromePromptApi`), where it runs
 - Add a field only when code reads it
 
 ### Features that depend on the browser

@@ -42,7 +42,7 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 - [ ] C4 Set `minimum_chrome_version` (none today; `world: "MAIN"` alone needs 111) and test on that version
 - [ ] C5 Store icon: `icon/128.png` fills all 128 px; the store asks for about 96 px of artwork with transparent padding
 - [ ] C6 Rewrite the manifest description ("videos … you already read"); 132 characters at most
-- [ ] C7 Fill `KOFI_URL` in `src/core/links.ts`, and the feedback form if wanted (U makes the pages). `SPONSOR_PAGE_URL` stays empty and `SPONSOR_CARD` null, which hides the spot and both sponsor links
+- [x] C7 `KOFI_URL` is https://ko-fi.com/supportlangle (2026-11-28). The feedback form is deferred (U), so Send feedback stays hidden. `SPONSOR_PAGE_URL` stays empty and `SPONSOR_CARD` null, which hides the spot and both sponsor links
 - [ ] C8 Link the privacy policy from the consent screen and Settings. The consent screen's link is on since 2026-11-26 (`PRIVACY_POLICY_URL`); Settings has none yet (needs the mock first)
 - [ ] C9 Go through status "Known issues" and mark what blocks a launch. First candidates: PR 238 (draft, a settings change overwritten by an older echo), the first download (about 24 s for English → Japanese, one file at a time), no hover while a dictionary is missing
 - [x] C10 **Blocker**: correct the sync copy in Settings. It says only each word and its status are synced, but settings sync too (the hosts of Never run on and of switched-off sites among them), also with word sync off. Done 2026-11-24: the section's lead says settings, site lists included, are always saved to browser sync; the switch says it adds each word and its status
@@ -93,7 +93,7 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 ## H. Google Drive (before the launch), then after it
 
 - [ ] H1 **Blocker** (U+C): production OAuth client with the redirect `https://dldcjcapnikfmodbgnnlbkilbcepnbnf.chromiumapp.org/` (the item id, B4). **2026-11-25**: redirect added to the one Web client and production builds use it; the Cloud project belongs to the contact address, so it is the support email; the logo was removed from Branding (a logo needs brand verification before publishing; add it back with D1, D2 and a domain). Left: "Publish app" stays disabled until Branding has a home page and a privacy policy link (D1, D2), whose domain goes into Authorized domains. Until then the consent screen is in Testing, so testers must also be listed as test users there. Consent screen **In production even while only testers install**: in Testing only listed test users (100 at most) can connect and each has to agree again after 7 days. `drive.appdata` is non-sensitive, so no scope review; brand verification (needs D1, D2 and a verified domain) shows the name and logo. The support email there is public too (A5): that account, or a Google Group it manages, has to set it, so it needs access to the Cloud project. Risk to clear early: Google wants every authorized domain verified and `chromiumapp.org` cannot be ours; whether it is accepted is not confirmed
-- [ ] H2 `REVIEW_URLS.chromeWebStore`: it can go in as soon as B4 gives the id, but the page works only once public
+- [x] H2 `REVIEW_URLS.chromeWebStore` filled from the item id (2026-11-28); the page works only once the item is public. The phone app hides Rate until its own store pages exist
 - [ ] H3 Watch reviews, the support email and policy mails (violations allow 7–30 days)
 
 ## Checked and fine
