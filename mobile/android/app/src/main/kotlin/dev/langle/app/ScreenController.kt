@@ -443,7 +443,10 @@ class ScreenController(
         },
         MoreMenu.Item(strings["app.copyLink"], true) {
           activity.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(pageTitle ?: url, url))
-          Toast.makeText(activity, strings["app.linkCopied"], Toast.LENGTH_SHORT).show()
+          // Android 13 and later confirm a copy themselves (the clipboard's own preview); a toast
+          // of ours would say it twice.
+          if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU)
+            Toast.makeText(activity, strings["app.linkCopied"], Toast.LENGTH_SHORT).show()
         },
         MoreMenu.Item(strings["app.openElsewhere"], true) { openElsewhere(url) },
       )

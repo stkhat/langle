@@ -90,6 +90,9 @@ class MoreMenu(private val activity: Activity, private val strings: NativeString
         text = strings["app.blockAdsSite"]
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
         setTextColor(Palette.INK)
+        // A label too long for one line (Japanese) breaks between phrases, not inside a word.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU)
+          lineBreakWordStyle = android.graphics.text.LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE
       },
     )
     words.addView(
