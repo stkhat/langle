@@ -4,9 +4,13 @@ import { describe, expect, test } from "vitest";
 import { isParseError, parseEnvelope } from "./protocol";
 
 const GOLDEN = join(import.meta.dirname, "../../../mobile/protocol");
+/**
+ * Shared files that are not envelopes: the ad-blocking lists both shells fetch, and the cases
+ * of the shells' `SharedLink.resolve`.
+ */
+const NOT_ENVELOPES = new Set(["filter-lists.json", "shared-links.json"]);
 const golden = readdirSync(GOLDEN)
-  // filter-lists.json is the ad-blocking lists both shells fetch, not an envelope.
-  .filter((file) => file.endsWith(".json") && file !== "filter-lists.json")
+  .filter((file) => file.endsWith(".json") && !NOT_ENVELOPES.has(file))
   .map((file) => ({
     file,
     value: JSON.parse(readFileSync(join(GOLDEN, file), "utf8")) as unknown,
