@@ -173,6 +173,7 @@ function SyncLine(props: {
 function CloudLine(props: {
   view: Extract<CloudView, { kind: "connected" }>;
   now: number;
+  connecting: boolean;
   onReconnect: () => void;
 }) {
   const { view, now } = props;
@@ -199,10 +200,11 @@ function CloudLine(props: {
           {status.error === "reconnect" && (
             <button
               type="button"
+              disabled={props.connecting}
               onClick={props.onReconnect}
               style={NOTE_BUTTON}
             >
-              {t("cloud.reconnect")}
+              {props.connecting ? t("cloud.connecting") : t("cloud.reconnect")}
             </button>
           )}
         </div>
@@ -247,6 +249,7 @@ function PhoneCloudLine(props: {
   now: number;
   /** The phone app: "Update Langle on this phone". */
   thisPhone: boolean;
+  connecting: boolean;
   onReconnect: () => void;
 }) {
   const { view, now } = props;
@@ -257,6 +260,7 @@ function PhoneCloudLine(props: {
         view={view}
         now={now}
         thisPhone={props.thisPhone}
+        connecting={props.connecting}
         onReconnect={props.onReconnect}
       />
     );
@@ -335,6 +339,7 @@ export function Popup({ deps }: { deps: PopupDeps }) {
   const [cloud, setCloud] = useState<CloudStatus>();
   const [data, setData] = useState<DataNote | null>(null);
   const [now, setNow] = useState(deps.now);
+  const [connecting, setConnecting] = useState(false);
 
   const warn = (error: unknown) => console.warn("Langle:", error);
   const [settingsView] = useState(() =>
@@ -348,15 +353,20 @@ export function Popup({ deps }: { deps: PopupDeps }) {
   }
 
   function refreshCloud() {
-    deps.send({ type: "cloudStatus" }).then(setCloud, warn);
+    return deps.send({ type: "cloudStatus" }).then(setCloud, warn);
   }
 
-  /** Signs in (a window opens, which may close the popup) and connects this device. */
+  /**
+   * Signs in (a window opens, which may close the popup) and connects this device; the
+   * button reads "Connecting…" until the line follows.
+   */
   function connect(provider: CloudProviderId) {
+    setConnecting(true);
     void deps
       .send({ type: "cloudConnect", provider })
       .catch(warn)
-      .finally(refreshCloud);
+      .then(refreshCloud)
+      .finally(() => setConnecting(false));
   }
 
   function askPage(request: PageRequest) {
@@ -369,7 +379,7 @@ export function Popup({ deps }: { deps: PopupDeps }) {
       setNow(deps.now());
       void askPage({ type: "pageSummary" });
       deps.send({ type: "syncStatus" }).then(setSync, warn);
-      refreshCloud();
+      void refreshCloud();
       if (lang) refreshCounts(lang);
     };
     // The other devices' changes are read now, not at the next 5-minute check.
@@ -474,12 +484,14 @@ export function Popup({ deps }: { deps: PopupDeps }) {
             view={view}
             now={now}
             thisPhone={deps.sync.kind === "device"}
+            connecting={connecting}
             onReconnect={() => connect(view.provider)}
           />
         ) : (
           <CloudLine
             view={view}
             now={now}
+            connecting={connecting}
             onReconnect={() => connect(view.provider)}
           />
         )}
@@ -587,10 +599,11 @@ export function Popup({ deps }: { deps: PopupDeps }) {
             </span>
             <button
               type="button"
+              disabled={connecting}
               onClick={() => connect(view.provider)}
               style={NOTE_BUTTON}
             >
-              {t("cloud.connect")}
+              {connecting ? t("cloud.connecting") : t("cloud.connect")}
             </button>
           </div>
         )}

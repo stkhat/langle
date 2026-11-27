@@ -199,6 +199,18 @@ function fake(options: FakeOptions = {}) {
   };
 }
 
+/** Makes `cloudConnect` wait (Google's window is open); returns what lets it go on. */
+function holdConnect(deps: PopupDeps): () => void {
+  let release = () => {};
+  const send = deps.send;
+  deps.send = (async (request: Request) => {
+    if (request.type === "cloudConnect")
+      await new Promise<void>((resolve) => (release = resolve));
+    return send(request as never);
+  }) as PopupDeps["send"];
+  return () => release();
+}
+
 afterEach(cleanup);
 
 const siteSwitch = (screen: Awaited<ReturnType<typeof render>>) =>
@@ -562,6 +574,7 @@ describe("Popup", () => {
         cloud: { available: ["googleDrive"], bytes: 0, devices: 0 },
         settings: connected,
       });
+      const release = holdConnect(f.deps);
       const screen = await render(<Popup deps={f.deps} />);
       const note = screen.getByText("Connect Google Drive on this device too");
       await expect.element(note).toBeVisible();
@@ -575,8 +588,13 @@ describe("Popup", () => {
       ).toBeTruthy();
       await screen.getByRole("button", { name: "Connect" }).click();
       await expect
+        .element(screen.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      release();
+      await expect
         .element(screen.getByText("Saved to Google Drive · 2 minutes ago"))
         .toBeVisible();
+      expect(screen.getByText("Connecting…").query()).toBeNull();
       expect(f.sent).toContainEqual({
         type: "cloudConnect",
         provider: "googleDrive",
@@ -603,6 +621,7 @@ describe("Popup", () => {
         },
         settings: connected,
       });
+      const release = holdConnect(f.deps);
       const screen = await render(<Popup deps={f.deps} />);
       const line = screen.getByText("Reconnect needed");
       await expect.element(line).toBeVisible();
@@ -611,6 +630,10 @@ describe("Popup", () => {
         .element(screen.getByText("Last saved to Google Drive 3 hours ago"))
         .toBeVisible();
       await screen.getByRole("button", { name: "Reconnect" }).click();
+      await expect
+        .element(screen.getByRole("button", { name: "Connecting…" }))
+        .toBeDisabled();
+      release();
       await expect
         .element(screen.getByText("Saved to Google Drive · 2 minutes ago"))
         .toBeVisible();

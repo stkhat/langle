@@ -211,10 +211,13 @@ export function SettingsPage({ deps }: { deps: SettingsDeps }) {
 
   /** Connects or disconnects (a sign-in window may open), then shows where it stands. */
   function cloudRequest(request: CloudRequest) {
-    return deps
-      .send(request)
-      .catch(warn)
-      .finally(() => void refreshSync());
+    return (
+      deps
+        .send(request)
+        .catch(warn)
+        // Resolved once the rows have the new status, so "Connecting…" lasts until then.
+        .then(refreshSync)
+    );
   }
 
   const sections: Record<SectionId, JSX.Element> = {
