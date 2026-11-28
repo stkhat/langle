@@ -8,6 +8,7 @@ import {
   arabicWritten,
   bidiIsolated,
   NATIVE_LANGUAGES,
+  type NativeLanguage,
   nativeLanguage,
   recipeNatives,
   writtenRightToLeft,
@@ -72,7 +73,18 @@ describe("the native-language registry", () => {
     );
   });
   it("knows only native languages", () => {
-    expect(nativeLanguage("pt")?.spaces).toBe(true);
+    expect(nativeLanguage("pt")?.spaces).toBeUndefined();
+    expect(nativeLanguage("th")?.spaces).toBe(false);
+    expect(
+      Object.entries(NATIVE_LANGUAGES)
+        .filter(([, l]) => (l as NativeLanguage).spaces === false)
+        .map(([code]) => code),
+    ).toEqual(["ja", "zh", "th"]);
+    expect(
+      Object.entries(NATIVE_LANGUAGES)
+        .filter(([, l]) => (l as NativeLanguage).dense === true)
+        .map(([code]) => code),
+    ).toEqual(["ja", "zh", "ko"]);
     expect(nativeLanguage("xx")).toBeUndefined();
     expect(nativeLanguage("constructor")).toBeUndefined();
   });
