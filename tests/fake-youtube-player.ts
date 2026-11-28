@@ -50,6 +50,15 @@ export interface FakePlayerOptions {
    * track list").
    */
   listsNoTracks?: boolean;
+  /**
+   * A pre-roll ad plays this long from setup (`ad-showing` on the player): the player
+   * asks for no captions of the video, and its captions module lists the video's tracks
+   * only once the ad has ended (`tracksListedAfterMs` after that, when set). How the
+   * real player lists them during an ad is unmeasured (no ad was served in the device
+   * checks, docs/notes/mobile.md "Subtitles missing on an early load (M5f)"): this is
+   * the case least favourable to Langle.
+   */
+  adMs?: number;
 }
 
 /** The localStorage keys where the fake keeps the caption track set (as YouTube's player does). */
@@ -165,11 +174,18 @@ export function installFakeYouTubePlayer(options: FakePlayerOptions): void {
 
     const captionTracks = () =>
       response.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
-    let listed = options.tracksListedAfterMs === undefined;
-    if (!listed)
+    let listed = options.tracksListedAfterMs === undefined && !options.adMs;
+    const listAfter = (ms: number) =>
       setTimeout(() => {
         listed = true;
-      }, options.tracksListedAfterMs);
+      }, ms);
+    if (options.adMs) {
+      player.classList.add("ad-showing");
+      setTimeout(() => {
+        player.classList.remove("ad-showing");
+        listAfter(options.tracksListedAfterMs ?? 0);
+      }, options.adMs);
+    } else if (!listed) listAfter(options.tracksListedAfterMs ?? 0);
     let hasToken = options.tokenAfterMs === undefined;
     if (!hasToken)
       setTimeout(() => {
