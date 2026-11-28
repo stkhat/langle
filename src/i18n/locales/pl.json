@@ -62,6 +62,7 @@
   "popup.langleSwitch": "Używaj Langle",
   "popup.site": "Na tej stronie",
   "popup.siteSwitch": "Używaj Langle na tej stronie",
+  "popup.siteAsk": "Włącz, aby używać Langle tutaj.",
   "popup.sync.saved": "Zapisano: {syncName} · {when}",
   "popup.sync.savedDevice": "Zapisano na telefonie · {when}",
   "popup.sync.space": "Miejsce na synchronizację: zajęte {used} KB z {quota} KB",

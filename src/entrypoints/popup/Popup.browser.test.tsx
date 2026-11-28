@@ -12,7 +12,7 @@ import type { SupportLinks } from "../../core/links";
 import { mergeSettings, type Settings } from "../../core/settings";
 import type { PageRequest, PageSummary } from "../../messaging/page-protocol";
 import type { SyncPlace } from "../../core/browser-env";
-import { Popup, type PopupDeps } from "./Popup";
+import { Popup, type PopupDeps, type SiteAccessDeps } from "./Popup";
 import { heldWrites, listeners, settingsListeners } from "../../testing/stubs";
 import { fixedTouchMode } from "../../testing/touch";
 import { page, userEvent } from "vitest/browser";
@@ -69,6 +69,63 @@ interface FakeOptions {
   phone?: boolean;
   /** The phone app can sign in to Google (default: no). */
   googleAuth?: boolean;
+  /** Chrome's per-site access on the active tab (default: none, as in the phone app). */
+  access?: FakeAccess;
+}
+
+interface FakeAccess {
+  /** The tab's host (default: the article's). */
+  host?: string;
+  granted?: boolean;
+  seen?: string[];
+  /** The page's `<html lang>`, or the probe fails (default: "en"). */
+  lang?: string | Error;
+  /** One of the manifest's own hosts (the video sites). */
+  static?: boolean;
+  /** Chrome's prompt is answered Allow (default: it never settles, as the popup closes). */
+  allow?: boolean;
+  /** Chrome refuses to remove the grant (the manifest makes it). */
+  required?: boolean;
+}
+
+const TAB_ID = 7;
+
+/** A fake of Chrome's per-site access; `log` lists what was asked of it, in order. */
+function fakeAccess(options: FakeAccess, log: string[]): SiteAccessDeps {
+  let granted = options.granted ?? false;
+  const seen = [...(options.seen ?? [])];
+  return {
+    activeTab: async () => ({
+      tabId: TAB_ID,
+      host: options.host ?? ARTICLE.hostname,
+    }),
+    async probeLang(tabId) {
+      log.push(`probe ${tabId}`);
+      const lang = options.lang ?? "en";
+      if (lang instanceof Error) throw lang;
+      return lang;
+    },
+    staticHost: () => options.static ?? false,
+    granted: async () => granted,
+    request(host) {
+      log.push(`request ${host}`);
+      if (!options.allow) return new Promise(() => {});
+      granted = true;
+      return Promise.resolve(true);
+    },
+    async remove(host) {
+      log.push(`remove ${host}`);
+      if (options.required)
+        throw new Error("You cannot remove required permissions.");
+      granted = false;
+      return true;
+    },
+    seenHosts: async () => [...seen],
+    async addSeen(host) {
+      log.push(`seen ${host}`);
+      seen.push(host);
+    },
+  };
 }
 
 const readyPack = (pack: string, size: number) =>
@@ -111,10 +168,14 @@ function fake(options: FakeOptions = {}) {
   const packWatchers = listeners<PackStates>();
   const sent: Request[] = [];
   const asked: PageRequest[] = [];
+  const log: string[] = [];
   const deps: PopupDeps = {
     send: (async (request: Request) => {
       sent.push(request);
       switch (request.type) {
+        case "siteAccessPending":
+          log.push(`pending ${request.tabId} ${request.host}`);
+          return null;
         case "getSettings":
           return settings;
         case "setSettings":
@@ -177,11 +238,13 @@ function fake(options: FakeOptions = {}) {
     close: vi.fn(),
     now: () => NOW,
     refreshMs: options.refreshMs ?? 60_000,
+    ...(options.access && { siteAccess: fakeAccess(options.access, log) }),
   };
   return {
     deps,
     sent,
     asked,
+    log,
     settings: () => settings,
     setPage(next: PageSummary | undefined) {
       page = next;
@@ -392,12 +455,180 @@ describe("Popup", () => {
       expect(f.settings().disabledSites).toEqual(["other.org"]);
     });
 
-    it("is hidden, with This page, when nothing in the tab answers", async () => {
+    it("is hidden, with This page, when nothing in the tab answers (no per-site access)", async () => {
       const f = fake({ page: undefined });
       const screen = await render(<Popup deps={f.deps} />);
       await expect.element(screen.getByText("2,341")).toBeVisible();
       expect(screen.getByText("On this site").query()).toBeNull();
       expect(screen.getByText("This page").query()).toBeNull();
+    });
+  });
+
+  describe("On this site, site by site", () => {
+    const ASK = "Turn this on to use Langle here.";
+    const host = ARTICLE.hostname;
+    const ring = (screen: Awaited<ReturnType<typeof render>>) =>
+      getComputedStyle(siteSwitch(screen).element()).boxShadow;
+
+    it("on the first opening on a page in the learning language, rings the switch and says what it does", async () => {
+      const f = fake({ access: {} });
+      const screen = await render(<Popup deps={f.deps} />);
+      const bubble = screen.getByRole("status").filter({ hasText: ASK });
+      await expect.element(bubble).toBeVisible();
+      await expect.element(screen.getByText(host)).toBeVisible();
+      await expect.element(siteSwitch(screen)).not.toBeChecked();
+      await expect.element(siteSwitch(screen)).toHaveAccessibleDescription(ASK);
+      expect(ring(screen)).toContain("rgb(247, 103, 7)");
+      // Under the row, its tail pointing up at the switch.
+      const row = siteSwitch(screen).element().getBoundingClientRect();
+      const box = bubble.element().getBoundingClientRect();
+      expect(box.top).toBeGreaterThan(row.bottom);
+      expect(getComputedStyle(bubble.element()).fontFamily).toContain("Nunito");
+      expect(screen.getByText("This page").query()).toBeNull();
+      await expect.element(screen.getByText("2,341")).toBeVisible();
+      await expect
+        .poll(() => f.log)
+        .toEqual([`probe ${TAB_ID}`, `seen ${host}`]);
+    });
+
+    it("shows the row plain on the first opening on a page in another language", async () => {
+      const f = fake({ access: { lang: "ja" } });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.element(siteSwitch(screen)).not.toBeChecked();
+      await expect.poll(() => f.log).toContain(`seen ${host}`);
+      expect(screen.getByText(ASK).query()).toBeNull();
+      expect(ring(screen)).toBe("none");
+    });
+
+    it("shows the switch off without the bubble once the host was seen", async () => {
+      const f = fake({ access: { seen: [host] } });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.element(siteSwitch(screen)).not.toBeChecked();
+      expect(screen.getByText(ASK).query()).toBeNull();
+      expect(ring(screen)).toBe("none");
+      expect(f.log).not.toContain(`seen ${host}`);
+    });
+
+    it("hides the row where the probe fails (the store, error pages), and decides nothing", async () => {
+      const f = fake({
+        access: {
+          lang: new Error("The extensions gallery cannot be scripted."),
+        },
+      });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.poll(() => f.log).toContain(`probe ${TAB_ID}`);
+      await expect.element(screen.getByText("2,341")).toBeVisible();
+      expect(screen.getByText("On this site").query()).toBeNull();
+      expect(f.log).toEqual([`probe ${TAB_ID}`]);
+    });
+
+    it("turning it on tells the background the tab, then asks Chrome, in the same click", async () => {
+      const f = fake({
+        access: { allow: true },
+        settings: { disabledSites: [host, "other.org"] },
+      });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.element(screen.getByText(ASK)).toBeVisible();
+      await siteSwitch(screen).click();
+      expect(f.log.slice(-2)).toEqual([
+        `pending ${TAB_ID} ${host}`,
+        `request ${host}`,
+      ]);
+      expect(f.settings().disabledSites).toEqual(["other.org"]);
+      // Allowed while the popup is still open: the switch follows.
+      await expect.element(siteSwitch(screen)).toBeChecked();
+      expect(screen.getByText(ASK).query()).toBeNull();
+    });
+
+    it("stays off, with no message, while Chrome's prompt is open", async () => {
+      const f = fake({ access: {} });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.element(screen.getByText(ASK)).toBeVisible();
+      await siteSwitch(screen).click();
+      await expect.poll(() => f.log).toContain(`request ${host}`);
+      await expect.element(siteSwitch(screen)).not.toBeChecked();
+    });
+
+    it("is on where the host has a grant, with This page; off gives the grant back", async () => {
+      const f = fake({ access: { granted: true }, page: ARTICLE });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.element(siteSwitch(screen)).toBeChecked();
+      await expect.element(screen.getByText("This page")).toBeVisible();
+      expect(screen.getByText(ASK).query()).toBeNull();
+
+      f.setPage(undefined);
+      await siteSwitch(screen).click();
+      await expect.element(siteSwitch(screen)).not.toBeChecked();
+      expect(f.log).toContain(`remove ${host}`);
+      expect(f.settings().disabledSites).toEqual([]);
+      // The page gave its page back: the row stays, off, plain.
+      await expect.element(screen.getByText(host)).toBeVisible();
+      expect(screen.getByText(ASK).query()).toBeNull();
+    });
+
+    it("keeps a grant Chrome will not remove off through the off list, and back on", async () => {
+      const f = fake({
+        access: { granted: true, required: true },
+        page: ARTICLE,
+      });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.element(siteSwitch(screen)).toBeChecked();
+      await siteSwitch(screen).click();
+      await expect.element(siteSwitch(screen)).not.toBeChecked();
+      expect(f.settings().disabledSites).toEqual([host]);
+
+      await siteSwitch(screen).click();
+      await expect.element(siteSwitch(screen)).toBeChecked();
+      expect(f.settings().disabledSites).toEqual([]);
+      expect(f.log.filter((e) => e.startsWith("request"))).toEqual([]);
+    });
+
+    it("is off where the off list covers a granted host; on takes it off the list without a prompt", async () => {
+      const f = fake({
+        access: { granted: true },
+        page: { ...ARTICLE, supported: false },
+        settings: { disabledSites: [host] },
+      });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.element(siteSwitch(screen)).not.toBeChecked();
+      await siteSwitch(screen).click();
+      await expect.element(siteSwitch(screen)).toBeChecked();
+      expect(f.settings().disabledSites).toEqual([]);
+      expect(f.log.filter((e) => e.startsWith("request"))).toEqual([]);
+    });
+
+    it("keeps today's switch on the video sites: the off list, no prompt, no seen host", async () => {
+      const video: PageSummary = {
+        ...ARTICLE,
+        hostname: "www.youtube.com",
+        scope: "video",
+      };
+      const f = fake({
+        access: { host: video.hostname, static: true },
+        page: video,
+      });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.element(siteSwitch(screen)).toBeChecked();
+      await siteSwitch(screen).click();
+      await expect.element(siteSwitch(screen)).not.toBeChecked();
+      expect(f.settings().disabledSites).toEqual(["www.youtube.com"]);
+      await siteSwitch(screen).click();
+      await expect.element(siteSwitch(screen)).toBeChecked();
+      expect(f.settings().disabledSites).toEqual([]);
+      expect(f.log).toEqual([]);
+    });
+
+    it("decides the host only once Langle is on and the row shows", async () => {
+      const f = fake({ access: {}, settings: { enabled: false } });
+      const screen = await render(<Popup deps={f.deps} />);
+      await expect.poll(() => f.log).toContain(`probe ${TAB_ID}`);
+      expect(screen.getByText("On this site").query()).toBeNull();
+      expect(f.log).not.toContain(`seen ${host}`);
+      await screen
+        .getByRole("switch", { name: "Use Langle", exact: true })
+        .click();
+      await expect.element(screen.getByText(ASK)).toBeVisible();
+      await expect.poll(() => f.log).toContain(`seen ${host}`);
     });
   });
 

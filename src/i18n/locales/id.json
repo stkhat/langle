@@ -57,6 +57,7 @@
   "popup.langleSwitch": "Gunakan Langle",
   "popup.site": "Di situs ini",
   "popup.siteSwitch": "Gunakan Langle di situs ini",
+  "popup.siteAsk": "Aktifkan ini untuk menggunakan Langle di sini.",
   "popup.sync.saved": "Tersimpan di {syncName} · {when}",
   "popup.sync.savedDevice": "Tersimpan di ponsel ini · {when}",
   "popup.sync.space": "Ruang sinkronisasi: {used} KB dari {quota} KB terpakai",
