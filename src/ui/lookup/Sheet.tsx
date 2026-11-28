@@ -1,9 +1,14 @@
 import type { ComponentChildren } from "preact";
-import { useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { appHostOf } from "../../core/app-host";
 import { fromUser } from "../from-user";
 import { keepOpen } from "../keep-open";
-import { ScreenFrame, onScreen, useScreenView } from "../screen-view";
+import {
+  ScreenFrame,
+  onScreen,
+  screenView,
+  useScreenView,
+} from "../screen-view";
 import { color, root } from "../styles";
 
 /** How far a swipe on the handle must go to change the sheet's height (screen px). */
@@ -56,7 +61,10 @@ function tellShown(change: 1 | -1): void {
 export function Sheet(props: {
   /** The sheet's accessible name. */
   label: string;
-  /** Its top at half height, in the page's px from the window's top (as `getBoundingClientRect`). */
+  /**
+   * Its top at half height, in the page's px from the window's top (as
+   * `getBoundingClientRect`) in the view of the page when it is given.
+   */
   top: number;
   onClose: () => void;
   /** The row under the handle (a status line, ×); swipes start on it too. */
@@ -108,8 +116,12 @@ export function Sheet(props: {
     }
   }
 
-  // In the screen's px from the top of the screen.
-  const half = Math.max(0, onScreen(view, props.top - view.top));
+  // In the screen's px from the top of the screen, taken from the view when `top` is
+  // given: a later pinch or pan of the page leaves the sheet where it is on the screen.
+  const half = useMemo(() => {
+    const now = screenView();
+    return Math.max(0, onScreen(now, props.top - now.top));
+  }, [props.top]);
   const top = Math.max(0, (full ? 0 : half) + dy);
   return (
     <ScreenFrame view={view} zIndex={Z_TOP}>
