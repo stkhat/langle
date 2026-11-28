@@ -68,7 +68,8 @@ event  { v: 1, kind: "event", api: "storage.onChanged" | "runtime.onMessage" | "
 - **Only Langle's scripts can reach the bridge**:
   - iOS registers its `WKScriptMessageHandler` only in Langle's named `WKContentWorld`.
   - Android registers its listener with `addWebMessageListener(…, world, …)` and injects with `addJavaScriptOnEvent(…, INJECTION_EVENT_DOCUMENT_START, …, world)`. Listeners are keyed by name and world (androidx.webkit 1.16).
-  - App-origin WebViews load nothing else, so their page world is Langle's.
+  - App-origin WebViews load nothing else, so their page world is Langle's. Both shells enforce it: a main-frame navigation off the app origin (a link in Support, the notices, a dictionary) is cancelled and opened in the browsing page instead, and on iOS the bridge also drops messages from any other origin.
+  - The browsing page loads only http(s) addresses, whoever asks (`javascript:` would run in the shown document, `file:` would read the phone's files). Android's `url` launch extra, which `check.sh launch` uses, is read only in debug builds: the activity is exported, so any app could send it.
 - **`runtime.onMessage` replies**: the receiver answers through `sendResponse` or a returned Promise. The shim sends a `reply` with the call's id. When no listener answered, the error is "Receiving end does not exist", so `messaging/client.ts`'s retry rules work unchanged.
 - **Storage order**: native code writes one change at a time. For each one it saves the change, posts `storage.onChanged` to every context, and only then replies to the writer. `createSettingsView` relies on this order (architecture: "Changing settings").
 

@@ -138,7 +138,7 @@ class MainActivity : Activity() {
       startTranslation(origin)
       if (router.installed == null) expectFirstRun()
     }
-    intent.getStringExtra("url")?.let { screens.apply(screens.shell.openPage(it)) }
+    if (BuildConfig.DEBUG) openFromCheck(intent)
     // A share that started the app; not again when the system makes the activity again or
     // relaunches it from the recent apps with the intent it was started with.
     if (savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0) openShared(intent)
@@ -315,10 +315,18 @@ class MainActivity : Activity() {
     super.onActivityResult(requestCode, resultCode, data)
   }
 
+  /**
+   * check.sh's `--es url <address>`: debug builds only, since the activity is exported and any
+   * app could otherwise make the browsing page load an address of its choosing.
+   */
+  private fun openFromCheck(intent: Intent) {
+    intent.getStringExtra("url")?.let { screens.apply(screens.shell.openPage(it)) }
+  }
+
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     if (BuildConfig.DEBUG && CheckCommands.run(this, intent)) return
-    intent.getStringExtra("url")?.let { screens.apply(screens.shell.openPage(it)) }
+    if (BuildConfig.DEBUG) openFromCheck(intent)
     openShared(intent)
   }
 

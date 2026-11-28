@@ -332,6 +332,21 @@ final class TitleBarTextTests: XCTestCase {
     XCTAssertEqual(PageAddress.editText(for: video), video)
     XCTAssertEqual(PageAddress.editText(for: "about:blank"), "")
   }
+
+  // The browsing page loads only web addresses; app pages only the app origin.
+  func test_pages_load_web_addresses_and_app_pages_stay_on_the_app_origin() {
+    XCTAssertTrue(PageAddress.isWeb(URL(string: article)!))
+    XCTAssertTrue(PageAddress.isWeb(URL(string: "HTTP://localhost:4719/article-en.html")!))
+    for other in ["javascript:alert(1)", "file:///etc/hosts", "data:text/html,x", "about:blank", "langle-app://app/home.html"] {
+      XCTAssertFalse(PageAddress.isWeb(URL(string: other)!), other)
+    }
+    let origin = "langle-app://app"
+    XCTAssertTrue(PageAddress.isOn(origin, URL(string: "langle-app://app/home.html")!))
+    XCTAssertTrue(PageAddress.isOn(origin, URL(string: "LANGLE-APP://APP/words.html#x")!))
+    for other in ["https://ko-fi.com/langle", "langle-app://other/home.html", "langle-app://app:8080/home.html", "javascript:alert(1)"] {
+      XCTAssertFalse(PageAddress.isOn(origin, URL(string: other)!), other)
+    }
+  }
 }
 
 // A port of src/entrypoints/home/address.test.ts: the title bar edits with Home's rules.

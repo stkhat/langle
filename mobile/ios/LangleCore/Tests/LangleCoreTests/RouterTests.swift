@@ -269,6 +269,9 @@ final class TabsTests: XCTestCase {
     let h = Harness()
     let page = h.connect(.page(url: "\(origin)/home.html"))
     page.call("appHost.openPage", .string(article))
+    XCTAssertEqual(
+      page.call("appHost.openPage", .string("javascript:alert(1)")).error,
+      "appHost.openPage needs an http(s) address.")
     XCTAssertTrue(h.router.tabs.all.contains { $0.url == article && $0.active })
     XCTAssertEqual(h.actions, [.openTab(h.router.tabs.all.last!)])
   }

@@ -242,7 +242,19 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
     world == .langle ? WebKitEngine.langleWorld : .page
   }
 
-  func load(_ url: URL) { webView.load(URLRequest(url: url)) }
+  func load(_ url: URL) {
+    guard mayLoad(url) else {
+      Log.app.error("not loading \(url.scheme ?? "", privacy: .public): off this page's origins")
+      return
+    }
+    webView.load(URLRequest(url: url))
+  }
+
+  /// Web pages load web addresses; app pages only the app origin, since their page world holds
+  /// the bridge (Android's WebViewEngine keeps to the same rules).
+  private func mayLoad(_ url: URL) -> Bool {
+    profile == .browsing ? PageAddress.isWeb(url) : PageAddress.isOn(AppSchemeHandler.origin, url)
+  }
   func reload() {
     if webView.url == nil, let url = lastRequested { load(url) } else { webView.reload() }
   }
@@ -327,6 +339,13 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
 
   fileprivate func received(_ message: WKScriptMessage) {
     guard message.frameInfo.isMainFrame, let body = message.body as? String else { return }
+    // On app pages, only the app origin's documents speak to the bridge.
+    if profile == .app {
+      let from = message.frameInfo.securityOrigin
+      guard let url = URL(string: "\(from.protocol)://\(from.host)"), from.port == 0,
+        PageAddress.isOn(AppSchemeHandler.origin, url)
+      else { return }
+    }
     if message.name == Self.fullscreenName {
       setAppFullscreen(body == "on")
       return
@@ -355,6 +374,13 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
       return
     }
     if action.targetFrame?.isMainFrame ?? true, let url = action.request.url {
+      // An app page's link to the web (Support, the notices, a dictionary): in the browsing
+      // page, never in the app page's own view.
+      if profile == .app, !PageAddress.isOn(AppSchemeHandler.origin, url) {
+        decisionHandler(.cancel)
+        delegate?.page(self, leaveApp: url)
+        return
+      }
       // The target frame is nil for target=_blank: it loads here (one page).
       if action.targetFrame == nil {
         decisionHandler(.cancel)
@@ -394,7 +420,12 @@ final class WebKitPage: NSObject, Page, WKNavigationDelegate, WKUIDelegate,
     _ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
     for action: WKNavigationAction, windowFeatures: WKWindowFeatures
   ) -> WKWebView? {
-    if let url = action.request.url { load(url) }
+    guard let url = action.request.url else { return nil }
+    if profile == .app, !PageAddress.isOn(AppSchemeHandler.origin, url) {
+      delegate?.page(self, leaveApp: url)
+    } else {
+      load(url)
+    }
     return nil
   }
 }

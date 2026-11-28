@@ -387,6 +387,21 @@ public enum PageAddress {
     return searching(typed)
   }
 
+  /// Whether `url` is a web page's address (http or https): what the browsing page loads.
+  /// `javascript:` would run in the shown document, `file:` would read the phone's files.
+  public static func isWeb(_ url: URL) -> Bool {
+    ["http", "https"].contains(url.scheme?.lowercased() ?? "")
+  }
+
+  /// Whether `url` is on `origin` (scheme and host, no port): app pages stay on the app origin,
+  /// `langle-app://app`, since their page world holds the bridge (docs/specs/mobile-app.md
+  /// "Contexts").
+  public static func isOn(_ origin: String, _ url: URL) -> Bool {
+    guard let own = URL(string: origin) else { return false }
+    return url.scheme?.lowercased() == own.scheme && url.host?.lowercased() == own.host
+      && url.port == nil
+  }
+
   /// The text editing starts from: the search on a YouTube results page, else the address.
   public static func editText(for url: String) -> String {
     if url.hasPrefix(search), let parts = URLComponents(string: url),
