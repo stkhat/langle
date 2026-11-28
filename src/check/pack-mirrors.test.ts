@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mirrorEntry } from "./pack-mirrors";
+import { mirrorEntry, packFailedEntry } from "./pack-mirrors";
 
 const URL =
   "https://cdn.jsdelivr.net/npm/@langle/en-defs@2026.1118.0/dict-1.json";
@@ -33,6 +33,20 @@ describe("mirrorEntry", () => {
     ).toEqual({
       level: "warning",
       message: `Pack en-defs dict-1.json: mirror failed, ${URL}: HTTP 503`,
+    });
+  });
+});
+
+describe("packFailedEntry", () => {
+  it("records a pack that did not come as an error, with why", () => {
+    expect(
+      packFailedEntry({
+        pack: "mt-en-ja",
+        error: `Could not download lex.bin (${URL}: HTTP 404)`,
+      }),
+    ).toEqual({
+      level: "error",
+      message: `Pack mt-en-ja: failed, Could not download lex.bin (${URL}: HTTP 404)`,
     });
   });
 });

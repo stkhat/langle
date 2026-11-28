@@ -14,7 +14,6 @@ import {
 } from "../../core/settings";
 import { createSettingsView } from "../../core/settings-view";
 import { documentCasing, textCasing } from "../../core/text/casing";
-import { hostnameOf } from "../../core/url";
 import { followPackStatus, pairNote } from "../../messaging/pack-status";
 import {
   unsupportedPage,
@@ -68,6 +67,7 @@ import {
 } from "./state";
 import { createSummaries } from "../words/summaries";
 import { NEVER_TOUCH, type TouchMode } from "../touch/touch-mode";
+import { undrawSelection } from "../../ui/drawn-selection";
 
 /** Cues classified per `analyze` request. */
 const BATCH = 50;
@@ -126,6 +126,12 @@ export interface VideoDeps extends LookupDeps {
   touchMode?: TouchMode;
   /** Default: asks this platform's translator (`translatorBackend`). */
   translatorAvailable?(from: string, to: string): Promise<boolean>;
+  /**
+   * The page's own host, which "On this site" and the site switch go by: the one in the
+   * address bar, not the adapter's video address (m.youtube.com's videos are
+   * www.youtube.com's). Default: `location.hostname`.
+   */
+  hostname?(): string;
 }
 
 /** Per-video work, aborted when the user moves on. */
@@ -189,7 +195,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     if (!sameNote(dataNote, store.get().dataNote)) store.set({ dataNote });
   });
 
-  const hostname = () => hostnameOf(adapter.url()) ?? "";
+  const hostname = deps.hostname ?? (() => location.hostname);
   const siteOn = () =>
     settings.sites[platform] !== false && !hostBlocked(hostname(), settings);
   const source = (): SourceInput => ({
@@ -950,7 +956,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       const selected = store.get().panel?.ref.selected;
       cards.closePanel();
       // A phrase's sheet (touch mode) leaves its words selected while it shows.
-      if (selected && touchMode.on()) getSelection()?.removeAllRanges();
+      if (selected && touchMode.on()) undrawSelection();
     },
     seekTo(ms) {
       adapter.seek(ms).catch(warn);

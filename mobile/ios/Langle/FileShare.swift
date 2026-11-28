@@ -10,8 +10,10 @@ enum FileShare {
   static let folder = FileManager.default.temporaryDirectory.appendingPathComponent(
     "shared", isDirectory: true)
 
-  /// Answers `done` once the sheet shows (nil), or with why it could not.
-  static func present(_ file: SharedFile, done: @escaping (String?) -> Void) {
+  /// Answers `done` once the sheet is done: true when the file went to a target (an app, Save to
+  /// Files), false when the sheet was dismissed without one (`completionWithItemsHandler`'s
+  /// `completed`), or a failure with why it could not show.
+  static func present(_ file: SharedFile, done: @escaping (Result<Bool, BridgeError>) -> Void) {
     let url = folder.appendingPathComponent(file.name)
     do {
       try? FileManager.default.removeItem(at: folder)
@@ -19,24 +21,35 @@ enum FileShare {
       try Data(file.text.utf8).write(to: url)
     } catch {
       Log.app.error("could not write \(file.name, privacy: .public): \(String(describing: error), privacy: .public)")
-      return done(error.localizedDescription)
+      return done(.failure(BridgeError(error.localizedDescription)))
     }
-    guard
-      show([url], then: {
+    let shown = show(
+      [url],
+      then: {
         Log.app.info("sharing \(file.name, privacy: .public) (\(file.text.utf8.count) bytes)")
-        done(nil)
+      },
+      completed: { completed, activity in
+        let target = activity?.rawValue ?? "none"
+        Log.app.info("share of \(file.name, privacy: .public): \(completed ? "to \(target)" : "dismissed", privacy: .public)")
+        done(.success(completed))
       })
-    else { return done("There is no window to show the share sheet in.") }
+    if !shown { done(.failure(BridgeError("There is no window to show the share sheet in."))) }
   }
 
   /// ⋮ Share: the page's address in the share sheet.
   static func shareLink(_ url: URL) {
-    _ = show([url], then: {})
+    _ = show([url], then: {}, completed: { _, _ in })
   }
 
-  private static func show(_ items: [Any], then: @escaping () -> Void) -> Bool {
+  private static func show(
+    _ items: [Any], then: @escaping () -> Void,
+    completed: @escaping (Bool, UIActivity.ActivityType?) -> Void
+  ) -> Bool {
     guard let presenter = topViewController() else { return false }
     let sheet = UIActivityViewController(activityItems: items, applicationActivities: nil)
+    // Called once the sheet is done; `completed` is false when it was dismissed without a target
+    // (or the target's own screen was cancelled).
+    sheet.completionWithItemsHandler = { activity, done, _, _ in completed(done, activity) }
     // iPad shows it as a popover: in the middle of the screen, with no arrow.
     if let popover = sheet.popoverPresentationController {
       let view = presenter.view!

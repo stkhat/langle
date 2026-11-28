@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import type { TouchMode } from "../../content/touch/touch-mode";
 import type { SyncPlace } from "../../core/browser-env";
 import type { CloudProviderId } from "../../core/cloud/provider";
@@ -42,7 +42,9 @@ import {
 import { color, FONT } from "../../ui/styles";
 import { usePhoneLayout } from "../../ui/phone-layout";
 import { Switch } from "../../ui/Switch";
+import { siteRow, type LangProbe } from "../../core/site-access/site-row";
 import { SaveAll } from "./SaveAll";
+import { SiteRow } from "./SiteRow";
 import { Subtitles } from "./Subtitles";
 import { RATE_NUDGE_AT, RateNudge, SupportNav } from "./Support";
 
@@ -70,6 +72,30 @@ export interface PopupDeps extends PackStatusDeps {
   now(): number;
   /** How often the tab, the counts and the sync and cloud status are asked again while open. */
   refreshMs: number;
+  /** Per-site access to articles; none where the browser has none (the phone app). */
+  siteAccess?: SiteAccessDeps;
+}
+
+/** The active web tab, as `activeTab` lets the popup read it. */
+export interface WebTab {
+  tabId: number;
+  host: string;
+}
+
+/** Chrome's per-site access, for the "On this site" row (architecture.md "Site access"). */
+export interface SiteAccessDeps {
+  /** The active tab when it shows an `http`/`https` page; undefined otherwise. */
+  activeTab(): Promise<WebTab | undefined>;
+  /** The tab's `<html lang>` ("" without one); rejects where the tab cannot be scripted. */
+  probeLang(tabId: number): Promise<string>;
+  /** The manifest's own content scripts cover the host (the video sites). */
+  staticHost(host: string): boolean;
+  granted(host: string): Promise<boolean>;
+  /** Chrome's prompt for the host: called in the click handler, before anything is awaited. */
+  request(host: string): Promise<boolean>;
+  remove(host: string): Promise<boolean>;
+  seenHosts(): Promise<string[]>;
+  addSeen(host: string): Promise<void>;
 }
 
 /** A count; in the phone layout all three alike on the light surface (mock MobileLangleSheet). */
@@ -340,6 +366,15 @@ export function Popup({ deps }: { deps: PopupDeps }) {
   const [data, setData] = useState<DataNote | null>(null);
   const [now, setNow] = useState(deps.now);
   const [connecting, setConnecting] = useState(false);
+  /** The active web tab, where the browser has per-site access. */
+  const [tab, setTab] = useState<WebTab>();
+  const [granted, setGranted] = useState<boolean>();
+  const [seenBefore, setSeenBefore] = useState<boolean>();
+  const [probe, setProbe] = useState<LangProbe>();
+  /** The tab whose grant the refresh asks again; set once the opening knows it. */
+  const accessTab = useRef<WebTab | undefined>(undefined);
+  /** The host was added to the seen hosts in this opening. */
+  const recorded = useRef(false);
 
   const warn = (error: unknown) => console.warn("Langle:", error);
   const [settingsView] = useState(() =>
@@ -373,6 +408,37 @@ export function Popup({ deps }: { deps: PopupDeps }) {
     return deps.askPage(request).then(setSummary, () => setSummary(undefined));
   }
 
+  /**
+   * Finds out what the row shows on an article host: whether it was seen before this
+   * opening, its grant and, where no Langle script answers, the page's `<html lang>`.
+   */
+  async function openOnTab() {
+    const access = deps.siteAccess;
+    if (!access) return;
+    const web = await access.activeTab().catch(() => undefined);
+    if (!web) return;
+    setTab(web);
+    if (access.staticHost(web.host)) return;
+    const [seen, grant, answer] = await Promise.all([
+      access.seenHosts().catch((): string[] => []),
+      access.granted(web.host).catch(() => false),
+      deps.askPage({ type: "pageSummary" }).catch(() => undefined),
+    ]);
+    setSeenBefore(seen.includes(web.host.toLowerCase()));
+    setGranted(grant);
+    accessTab.current = web;
+    if (!answer) await probeTab(web);
+  }
+
+  /** Reads the tab's `<html lang>` (`activeTab`); a failure hides the row. */
+  async function probeTab(web: WebTab) {
+    const result = await deps.siteAccess?.probeLang(web.tabId).then(
+      (lang): LangProbe => ({ lang }),
+      (): LangProbe => "failed",
+    );
+    setProbe(result);
+  }
+
   useEffect(() => {
     let lang: string | undefined;
     const refresh = () => {
@@ -381,7 +447,12 @@ export function Popup({ deps }: { deps: PopupDeps }) {
       deps.send({ type: "syncStatus" }).then(setSync, warn);
       void refreshCloud();
       if (lang) refreshCounts(lang);
+      // A grant made in Chrome's own menus while the popup is open.
+      const web = accessTab.current;
+      if (web && deps.siteAccess)
+        deps.siteAccess.granted(web.host).then(setGranted, warn);
     };
+    void openOnTab();
     // The other devices' changes are read now, not at the next 5-minute check.
     deps.send({ type: "cloudCheck" }).catch(warn);
     deps.send({ type: "getSettings" }).then((s) => {
@@ -421,18 +492,71 @@ export function Popup({ deps }: { deps: PopupDeps }) {
     }),
   );
 
-  const siteOn =
-    settings && summary
-      ? !settings.disabledSites.some((e) => onHost(summary.hostname, e))
-      : true;
+  const host = summary?.hostname ?? tab?.host;
+  const access = deps.siteAccess;
+  /** Today's off-list switch alone: the video sites, or no per-site access. */
+  const listOnly = !access || (host !== undefined && access.staticHost(host));
+  const offListed =
+    !!settings && !!host && settings.disabledSites.some((e) => onHost(host, e));
+  const row = siteRow({
+    host,
+    answered: !!summary,
+    listOnly,
+    granted,
+    offListed,
+    seenBefore,
+    probe,
+    learningLang: settings?.learningLang ?? "",
+  });
+  const siteOn = row === "on";
+
+  // Opening the popup where the row shows decides the host on this computer: no mark
+  // and no bubble there again. `seenBefore` keeps what it was for this opening.
+  useEffect(() => {
+    if (recorded.current || listOnly || !tab || row === "hidden" || !langleOn)
+      return;
+    recorded.current = true;
+    access?.addSeen(tab.host).catch(warn);
+  }, [row, langleOn]);
 
   function toggleSite() {
-    if (!settings || !summary) return;
-    const { hostname } = summary;
-    const disabledSites = siteOn
-      ? [...settings.disabledSites, hostname]
-      : settings.disabledSites.filter((e) => !onHost(hostname, e));
-    void settingsView.change({ disabledSites });
+    if (!settings || !host) return;
+    const others = settings.disabledSites.filter((e) => !onHost(host, e));
+    if (listOnly || !access) {
+      const disabledSites = siteOn ? [...settings.disabledSites, host] : others;
+      void settingsView.change({ disabledSites });
+      return;
+    }
+    // Used once, the switch is decided: no bubble for the rest of this opening.
+    setSeenBefore(true);
+    if (siteOn) {
+      // Chrome refuses to remove a grant the manifest makes, or one host out of "On
+      // all sites": then the off list keeps the host off.
+      const add = settings.disabledSites;
+      void access
+        .remove(host)
+        .catch(() => false)
+        .then(() => access.granted(host))
+        .then((still) => {
+          setGranted(still);
+          if (still)
+            void settingsView.change({ disabledSites: [...add, host] });
+          // The page gives its page back and stops answering: the row needs the probe.
+          else if (tab) void probeTab(tab);
+        }, warn);
+      return;
+    }
+    if (!granted) {
+      // Not awaited: Chrome's prompt needs this click, and closes the popup.
+      if (tab)
+        deps
+          .send({ type: "siteAccessPending", tabId: tab.tabId, host })
+          .catch(warn);
+      access.request(host).then((yes) => {
+        if (yes) setGranted(true);
+      }, warn);
+    }
+    if (offListed) void settingsView.change({ disabledSites: others });
   }
 
   /** The nudge shows once Learning reaches 100 words, until Rate or × answers it. */
@@ -608,41 +732,8 @@ export function Popup({ deps }: { deps: PopupDeps }) {
           </div>
         )}
 
-        {langleOn && summary && (
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                gap: "2px",
-                minWidth: 0,
-              }}
-            >
-              <span
-                style={{ fontSize: phone ? "15px" : "14px", fontWeight: 600 }}
-              >
-                {t("popup.site")}
-              </span>
-              <span
-                style={{
-                  fontSize: "13px",
-                  color: color.muted,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {summary.hostname}
-              </span>
-            </div>
-            <Switch
-              size={phone ? "phone" : "large"}
-              checked={siteOn}
-              label={t("popup.siteSwitch")}
-              onToggle={toggleSite}
-            />
-          </div>
+        {langleOn && host && row !== "hidden" && (
+          <SiteRow row={row} host={host} phone={phone} onToggle={toggleSite} />
         )}
 
         {phone &&

@@ -57,6 +57,7 @@
   "popup.langleSwitch": "Langle 사용",
   "popup.site": "이 사이트에서",
   "popup.siteSwitch": "이 사이트에서 Langle 사용",
+  "popup.siteAsk": "켜면 여기에서 Langle을 사용할 수 있어요.",
   "popup.sync.saved": "{syncName}에 저장됨 · {when}",
   "popup.sync.savedDevice": "이 휴대폰에 저장됨 · {when}",
   "popup.sync.space": "동기화 공간: {quota}KB 중 {used}KB 사용",

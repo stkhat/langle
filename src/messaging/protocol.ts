@@ -20,6 +20,7 @@ import type { LocaleMessages } from "../i18n/t";
 import type { SetupStage } from "../core/setup";
 import type { TimeSpan } from "../core/place";
 import type { Platform, Position } from "../core/url";
+import type { PendingTab } from "./site-access";
 
 export interface TermRecord {
   /** `termId(lang, key)` */
@@ -319,6 +320,8 @@ export type Request =
   /** Disconnects this device; the synced `cloudProvider` goes back to `"none"`. */
   | { type: "cloudDisconnect" }
   | { type: "exportJson" }
+  /** The export reached the user (a download, or a share sheet's target): `lastExport` is now. */
+  | { type: "recordExport" }
   | { type: "importJson"; json: string }
   | { type: "lastExport" }
   /** `meanings: false` skips the dictionary, for while it is not on the device. */
@@ -345,6 +348,13 @@ export type Request =
    * Langle app, its Langle sheet), where the browser has `action.openPopup`.
    */
   | { type: "openPopup" }
+  /**
+   * The popup turns a host on in a tab (architecture.md "Site access"): sent without
+   * waiting, right before `permissions.request` in the same click, as Chrome's prompt
+   * closes the popup. Once a grant covers the host, the background injects the article
+   * script into the tab. Refused where the browser has no per-site access.
+   */
+  | ({ type: "siteAccessPending" } & PendingTab)
   /**
    * Nothing is kept while the history is off or the host is blocked. `casing` is the
    * document's, as `analyze` has it: its names are not kept.
@@ -644,6 +654,7 @@ interface ResponseMap {
   cloudConnect: null;
   cloudDisconnect: null;
   exportJson: string;
+  recordExport: null;
   importJson: ImportResult;
   /** Null when the data was never exported. */
   lastExport: number | null;
@@ -654,6 +665,7 @@ interface ResponseMap {
   exportDetails: Record<string, ExportDetails>;
   openOptions: null;
   openPopup: null;
+  siteAccessPending: null;
   /** How many sentences were added. */
   recordHistory: { kept: number };
   historyStatus: HistoryStatus;

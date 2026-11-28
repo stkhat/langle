@@ -9,15 +9,29 @@ export interface AppHost {
   openPage(url: string): Promise<void>;
   /**
    * Hands a file to the phone's share sheet, where the user saves it to Files or sends
-   * it; resolves once the sheet shows. Pages in the app have no downloads.
+   * it; resolves once the sheet is done: true when the file went to a target (an app,
+   * Save to Files / Save to device), false when the sheet closed without one. Pages in
+   * the app have no downloads.
    */
-  shareFile(file: SharedFile): Promise<void>;
+  shareFile(file: SharedFile): Promise<boolean>;
   /**
    * Gives the shells the strings they draw themselves (their bars, ⋮, toasts and
    * labels) in the interface language; they keep the last ones for a cold start.
    * Sent by the background (`followNativeStrings`); missing where the shells have none.
    */
   nativeStrings?(set: NativeStringSet): Promise<void>;
+  /**
+   * How tall the page's content is (CSS px): the sheet frame an app page shows in (the
+   * Langle sheet) takes that height, at most up to the status bar (mock
+   * `MobileLangleSheet`). Other frames ignore it. Missing where the shells have none.
+   */
+  contentHeight?(height: number): Promise<void>;
+  /**
+   * Langle's own sheet over a web page opened (true) or closed (false): the title bar
+   * slides away while it shows (mock `MobileArticle`, `MobileYouTube`). Missing where
+   * the shells have none.
+   */
+  pageSheet?(open: boolean): Promise<void>;
   /**
    * How this app's translator gets its models (mobile-translation.md "The bridge"):
    * `packs`, Langle's model packs downloaded with the pair's packs (Android); `system`,

@@ -1,4 +1,4 @@
-import type { MirrorEvent } from "../background/pack-store";
+import type { MirrorEvent, PackFailedEvent } from "../background/pack-store";
 import type { CheckError } from "./error-log";
 
 /**
@@ -19,4 +19,17 @@ export function mirrorEntry(
         level: "warning",
         message: `${file}: mirror failed, ${event.url}: ${event.error}`,
       };
+}
+
+/**
+ * Check builds only: a pack that did not come, with why, as an error of the log. For
+ * a model pack (the app's native download) it carries every mirror's failure.
+ */
+export function packFailedEntry(
+  event: PackFailedEvent,
+): Pick<CheckError, "level" | "message"> {
+  return {
+    level: "error",
+    message: `Pack ${event.pack}: failed, ${event.error}`,
+  };
 }

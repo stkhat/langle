@@ -5,7 +5,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const LIMIT = 150;
+export const CLAUDE_MD_LIMIT = 150;
 const SKIP_DIRS = new Set(["node_modules", ".git", ".output", ".wxt", "data"]);
 
 export function countLines(text: string): number {
@@ -17,7 +17,7 @@ export function countLines(text: string): number {
 
 export function checkFiles(
   paths: string[],
-  limit = LIMIT,
+  limit = CLAUDE_MD_LIMIT,
 ): { path: string; lines: number }[] {
   const offending: { path: string; lines: number }[] = [];
   for (const path of paths) {
@@ -68,7 +68,7 @@ function runHook(): number {
   const [first] = offending;
   if (!first) return 0;
   process.stderr.write(
-    `CLAUDE.md has ${first.lines} lines; the limit is ${LIMIT}. ` +
+    `CLAUDE.md has ${first.lines} lines; the limit is ${CLAUDE_MD_LIMIT}. ` +
       `Move details to docs/ and link them from CLAUDE.md.\n`,
   );
   return 2;
@@ -78,7 +78,7 @@ function runCheck(): number {
   const offending = checkFiles(findClaudeMdFiles(resolve(".")));
   if (offending.length === 0) return 0;
   for (const { path, lines } of offending) {
-    console.error(`${path}: ${lines} lines (limit ${LIMIT})`);
+    console.error(`${path}: ${lines} lines (limit ${CLAUDE_MD_LIMIT})`);
   }
   console.error("Move details to docs/ and link them from CLAUDE.md.");
   return 1;

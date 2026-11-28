@@ -24,7 +24,16 @@ public enum RouterAction: Equatable, Sendable {
   case openPopup
   /// `runtime.reload`: the extension host again.
   case reloadHost
+  /// `appHost.contentHeight`: how tall an app page's content is (CSS px); the sheet it is in
+  /// fits it.
+  case contentHeight(ContextSpec, Double)
+  /// `appHost.pageSheet`: Langle's sheet in a web page opened or closed; the title bar gives way.
+  case pageSheet(ContextSpec, Bool)
 }
+
+/// The errors a bad `appHost.contentHeight` and `appHost.pageSheet` get, in all three routers.
+public let contentHeightError = "appHost.contentHeight needs a number."
+public let pageSheetError = "appHost.pageSheet needs true or false."
 
 /// Chrome's text when a message has nobody to answer it (`messaging/client.ts` retries on it).
 public let noReceiver = "Could not establish connection. Receiving end does not exist."
@@ -108,9 +117,10 @@ public final class Router {
   public var onAction: ((RouterAction) -> Void)?
   /// Bad envelopes and other things worth a log line; never a crash.
   public var onError: ((String) -> Void)?
-  /// `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` with nil
-  /// once it shows, or with why it could not.
-  public var onShareFile: ((SharedFile, _ done: @escaping (String?) -> Void) -> Void)?
+  /// `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` once the
+  /// sheet is done: true when the file went to a target, false when the sheet closed without one,
+  /// or a failure with why the sheet could not show.
+  public var onShareFile: ((SharedFile, _ done: @escaping (Result<Bool, BridgeError>) -> Void) -> Void)?
   /// `appHost.nativeStrings`: the background's strings for the shell's bars, menu and notices in
   /// the interface language (the app keeps them as its `NativeStrings`). Without it the call is
   /// still answered: a shell that draws no strings of its own has nothing to change.
@@ -484,10 +494,18 @@ public final class Router {
     case "appHost.shareFile":
       guard let file = SharedFile(args.first) else { throw BridgeError(SharedFile.error) }
       guard let share = onShareFile else { throw BridgeError(noSharing) }
-      share(file) { error in done(error.map { .failure(BridgeError($0)) } ?? .success(nil)) }
+      share(file) { result in done(result.map { shared -> JSONValue? in .bool(shared) }) }
     case "appHost.nativeStrings":
       guard let set = NativeStringSet(args.first) else { throw BridgeError(NativeStringSet.error) }
       onNativeStrings?(set)
+      done(.success(nil))
+    case "appHost.contentHeight":
+      guard let height = args.first?.number, height.isFinite else { throw BridgeError(contentHeightError) }
+      onAction?(.contentHeight(context.spec, height))
+      done(.success(nil))
+    case "appHost.pageSheet":
+      guard let open = args.first?.bool else { throw BridgeError(pageSheetError) }
+      onAction?(.pageSheet(context.spec, open))
       done(.success(nil))
     case _ where translationApis.contains(api):
       guard let host = onTranslation else { throw BridgeError(notAvailable(api)) }

@@ -88,10 +88,21 @@ export interface PackStoreOptions {
    */
   onMirror?: (event: MirrorEvent) => void;
   /**
+   * Hears each pack that failed to come, with why: for a model pack this is the only
+   * word of native code's mirror tries (the check build's log, `src/check/`).
+   */
+  onFailed?: (event: PackFailedEvent) => void;
+  /**
    * Where model packs are downloaded (`appHost.models`, the app on Android); without
    * it a model pack fails and is never fetched.
    */
   models?: AppModels;
+}
+
+/** A pack that did not come to its lock version, and why (the state's `error`). */
+export interface PackFailedEvent {
+  pack: string;
+  error: string;
 }
 
 /** One try of one mirror for one file of a pack. */
@@ -174,6 +185,7 @@ export function createPackStore({
   setState,
   now = Date.now,
   onMirror,
+  onFailed,
   models,
 }: PackStoreOptions): PackStore {
   /** The state of the packs this worker brought to their lock version, or tried to. */
@@ -391,6 +403,7 @@ export function createPackStore({
       stop?.();
       set({ state: "failed", received, total, error: errorText(error) });
       publish(true);
+      onFailed?.({ pack, error: errorText(error) });
       return false;
     }
   }
@@ -448,6 +461,7 @@ export function createPackStore({
     } catch (error) {
       set("failed", errorText(error));
       publish(true);
+      onFailed?.({ pack, error: errorText(error) });
       return false;
     }
   }

@@ -118,12 +118,26 @@ describe("installShim", () => {
     ]);
   });
 
-  test("appHost.shareFile is a call with the file's name, type and text", async () => {
-    const native = fakeBridge();
+  test("appHost.shareFile is a call with the file's name, type and text, true when it went to a target", async () => {
+    let shared: unknown = true;
+    const native = fakeBridge(() => shared);
     installShim(native.bridge, INFO);
     const file = { name: "langle.csv", mime: "text/csv", text: "a,b" };
-    await appHostOf()?.shareFile(file);
+    expect(await appHostOf()?.shareFile(file)).toBe(true);
     expect(native.calls).toEqual([{ api: "appHost.shareFile", args: [file] }]);
+    for (shared of [false, null, undefined])
+      expect(await appHostOf()?.shareFile(file)).toBe(false);
+  });
+
+  test("appHost.contentHeight and appHost.pageSheet are calls with their value", async () => {
+    const native = fakeBridge();
+    installShim(native.bridge, INFO);
+    await appHostOf()?.contentHeight?.(612.5);
+    await appHostOf()?.pageSheet?.(false);
+    expect(native.calls).toEqual([
+      { api: "appHost.contentHeight", args: [612.5] },
+      { api: "appHost.pageSheet", args: [false] },
+    ]);
   });
 
   test("appHost.nativeStrings is a call with the locale, the direction and the strings", async () => {

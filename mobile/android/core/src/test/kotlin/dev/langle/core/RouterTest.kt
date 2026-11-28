@@ -1,5 +1,6 @@
 package dev.langle.core
 
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -336,9 +337,10 @@ class RouterTest {
       assertEquals(listOf<RouterAction>(RouterAction.OpenPage(ARTICLE)), h.actions)
     }
 
-    // The share sheet answers: the call settles once it shows, or fails with the app's reason.
+    // The share sheet answers once it is done: whether the file went to a target, or the app's
+    // reason it could not show.
     @Test
-    @DisplayName("appHost.shareFile hands a plain-named file to the share sheet and answers when it shows")
+    @DisplayName("appHost.shareFile hands a plain-named file to the share sheet and answers whether it went to a target")
     fun `appHost_shareFile hands a plain-named file to the share sheet`() {
       val h = Harness()
       val words = h.connect(ContextSpec.Page("$ORIGIN/wordlist.html"))
@@ -346,7 +348,7 @@ class RouterTest {
       assertEquals("Sharing a file is not available here.", words.call("appHost.shareFile", file).error)
 
       val shared = mutableListOf<SharedFile>()
-      var answer: ((String?) -> Unit)? = null
+      var answer: ((Result<Boolean>) -> Unit)? = null
       h.router.onShareFile = { f, done ->
         shared += f
         answer = done
@@ -354,12 +356,17 @@ class RouterTest {
       val pending = words.call("appHost.shareFile", file)
       assertEquals(listOf(SharedFile("langle-backup.json", "application/json", "{}")), shared)
       assertNull(pending.answer)
-      answer!!(null)
+      answer!!(Result.success(true))
       h.settle()
-      assertEquals(Answer.Value(null), pending.answer)
+      assertEquals(Answer.Value(JsonPrimitive(true)), pending.answer)
+
+      val closed = words.call("appHost.shareFile", file)
+      answer!!(Result.success(false))
+      h.settle()
+      assertEquals(Answer.Value(JsonPrimitive(false)), closed.answer)
 
       val failed = words.call("appHost.shareFile", file)
-      answer!!("No app can take it.")
+      answer!!(Result.failure(Exception("No app can take it.")))
       h.settle()
       assertEquals("No app can take it.", failed.error)
 
@@ -374,7 +381,7 @@ class RouterTest {
       )) {
         assertEquals(SharedFile.ERROR, words.call("appHost.shareFile", bad).error, bad.toString())
       }
-      assertEquals(2, shared.size)
+      assertEquals(3, shared.size)
     }
 
     @Test
@@ -400,6 +407,26 @@ class RouterTest {
         assertEquals(NativeStringSet.ERROR, host.call("appHost.nativeStrings", bad).error, bad.toString())
       }
       assertEquals(1, taken.size)
+    }
+
+    @Test
+    @DisplayName("appHost.contentHeight and appHost.pageSheet tell the app, with the context they came from")
+    fun `appHost_contentHeight and appHost_pageSheet tell the app`() {
+      val h = Harness()
+      val popup = ContextSpec.Page("$ORIGIN/popup.html", 7)
+      val page = ContextSpec.Content(1)
+      val sheet = h.connect(popup)
+      val article = h.connect(page)
+      assertNull(sheet.call("appHost.contentHeight", 612.5).error)
+      assertNull(article.call("appHost.pageSheet", true).error)
+      assertEquals(listOf(RouterAction.ContentHeight(popup, 612.5), RouterAction.PageSheet(page, true)), h.actions)
+      for (bad in listOf("612", null, true)) {
+        assertEquals(CONTENT_HEIGHT_ERROR, sheet.call("appHost.contentHeight", bad).error, bad.toString())
+      }
+      for (bad in listOf("true", 1, null)) {
+        assertEquals(PAGE_SHEET_ERROR, article.call("appHost.pageSheet", bad).error, bad.toString())
+      }
+      assertEquals(2, h.actions.size)
     }
 
     // As the reference: each call fails at once until the app sets a sign-in (M7d).

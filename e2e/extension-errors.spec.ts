@@ -928,6 +928,9 @@ for (const build of ["production", "check"] as const)
         context,
         extensionId,
       }) => {
+        // Two cold loads (each up to COLD_LOAD) around a long flow: on a slow CI
+        // runner the default 30 s ends the test before the second load can finish.
+        test.setTimeout(90_000);
         await showNewWords(context, extensionId);
         await routeYouTube(context);
         const cold = Date.now();

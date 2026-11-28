@@ -72,6 +72,8 @@ class ScreenController(
   private val barHeight = activity.dp(56)
   private val barScroll = BarScroll(threshold = activity.dp(24))
   private var barShown = true
+  /** Langle's own sheet in the browsing page shows (`appHost.pageSheet`): the bar stays away meanwhile. */
+  private var pageSheetOpen = false
   private var pageTitle: String? = null
 
   /** The address of the page's current document, to tell a reload from a new page. */
@@ -112,6 +114,7 @@ class ScreenController(
       }
       documentUrl = url
       barScroll.reset()
+      pageSheetOpen = false
       setBar(true)
       showTitle()
     }
@@ -126,7 +129,7 @@ class ScreenController(
     }
     browsing.onLoaded = { readSiteName() }
     browsing.onScroll = { dy, y ->
-      if (shell.screen == Screen.Page && sheet == null && !titleBar.isEditing) {
+      if (shell.screen == Screen.Page && sheet == null && !pageSheetOpen && !titleBar.isEditing) {
         setBar(barScroll.scrolled(dy, y, SystemClock.uptimeMillis()))
       }
     }
@@ -192,6 +195,9 @@ class ScreenController(
       action is RouterAction.CloseTab && action.tab.id == sheetTab -> sheet.frame.dismiss()
       action is RouterAction.ReloadTab && action.id == sheetTab -> sheet.context.page.reload()
       action is RouterAction.OpenPage -> openPage(action.url)
+      action is RouterAction.ContentHeight ->
+        if (sheet != null && (action.spec as? ContextSpec.Page)?.tabId == sheetTab) sheet.frame.fitContent(action.height)
+      action is RouterAction.PageSheet -> pageSheet(action)
       else -> apply(shell.handle(action))
     }
   }
@@ -368,8 +374,20 @@ class ScreenController(
     if (sheet === closed) {
       sheet = null
       shell.sheetClosed()
-      setBar(true)
+      setBar(!pageSheetOpen)
     }
+  }
+
+  /**
+   * Langle's dictionary sheet in the browsing page opened or closed (mock `MobileArticle`,
+   * `MobileYouTube`): the title bar slides away while it shows, as for the Langle sheet. Another
+   * page's word (a tab's page, a frame) does not move the bar.
+   */
+  private fun pageSheet(action: RouterAction.PageSheet) {
+    val spec = action.spec as? ContextSpec.Content ?: return
+    if (spec.tabId != shell.pageTab || spec.frameId != 0 || action.open == pageSheetOpen) return
+    pageSheetOpen = action.open
+    if (action.open) setBar(false) else if (sheet == null) setBar(true)
   }
 
   // the title bar

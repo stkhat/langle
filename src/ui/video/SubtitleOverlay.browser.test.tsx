@@ -17,7 +17,7 @@ import {
   mountInShadowRoot,
 } from "../../testing/shadow-root";
 import { canTouch, longPress, tap } from "../../testing/touch";
-import { selectedOffsets } from "../selection-in-root";
+import { drawnOffsets, undrawSelection } from "../drawn-selection";
 import { SubtitleOverlay, type SubtitleOverlayProps } from "./SubtitleOverlay";
 import type { SelectedText } from "./text-selection";
 
@@ -60,6 +60,7 @@ const base: SubtitleOverlayProps = {
 };
 
 afterEach(cleanUpMounts);
+afterEach(() => undrawSelection());
 
 const word = (screen: { container: HTMLElement }, text: string) => {
   const found = [
@@ -377,7 +378,7 @@ describe("SubtitleOverlay", () => {
       await moveTo(pointIn(word(screen, "figure out"), 0.85));
       // Live: the words so far are selected while the press is held.
       await expect
-        .poll(() => selectedOffsets(line(screen)))
+        .poll(() => drawnOffsets(line(screen)))
         .toEqual(whole("today", "figure out"));
       expect(onSelectStart).toHaveBeenCalledOnce();
       await moveTo(middleOf(word(screen, "bread")));
@@ -398,7 +399,7 @@ describe("SubtitleOverlay", () => {
       const lineBox = line(screen).getBoundingClientRect();
       expect(box.left).toBeGreaterThanOrEqual(lineBox.left);
       expect(box.right).toBeLessThanOrEqual(lineBox.right);
-      expect(selectedOffsets(line(screen))).toEqual(whole("today", "bread"));
+      expect(drawnOffsets(line(screen))).toEqual(whole("today", "bread"));
     });
 
     test("a drag past the line's edge keeps to its words, and its click reaches nothing", async () => {
@@ -434,7 +435,7 @@ describe("SubtitleOverlay", () => {
         from: at("figure"),
         to: at("scratch") + "scratch".length,
       });
-      expect(selectedOffsets(line(screen))).toBeDefined();
+      expect(drawnOffsets(line(screen))).toBeDefined();
       expect(pageClick).not.toHaveBeenCalled();
       expect(onWordClick).not.toHaveBeenCalled();
 
@@ -485,7 +486,7 @@ describe("SubtitleOverlay", () => {
         text.indexOf("Well") + 4,
         "start",
       );
-      expect(selectedOffsets(line(screen))).toEqual({
+      expect(drawnOffsets(line(screen))).toEqual({
         from: 0,
         to: text.indexOf("Well") + 4,
       });
@@ -505,14 +506,14 @@ describe("SubtitleOverlay", () => {
         middleOf(word(screen, "bread")),
       ]);
       await expect.poll(() => onSelect.mock.calls.length).toBe(1);
-      expect(selectedOffsets(line(screen))).toEqual(whole("today", "bread"));
+      expect(drawnOffsets(line(screen))).toEqual(whole("today", "bread"));
 
       await drag([
         pointIn(word(screen, "figure out"), 0.15),
         pointIn(word(screen, "from scratch"), 0.85),
       ]);
       await expect.poll(() => onSelect.mock.calls.length).toBe(2);
-      expect(selectedOffsets(line(screen))).toEqual(whole("figure", "scratch"));
+      expect(drawnOffsets(line(screen))).toEqual(whole("figure", "scratch"));
     });
 
     test("words it cannot keep are not left selected", async () => {
@@ -530,7 +531,7 @@ describe("SubtitleOverlay", () => {
       ]);
       await expect.poll(() => onSelect.mock.calls.length).toBe(1);
       expect(onSelect.mock.calls[0]![0]).toBeDefined();
-      expect(selectedOffsets(line(screen))).toBeUndefined();
+      expect(drawnOffsets(line(screen))).toBeUndefined();
     });
 
     test("a drag inside a word selects that word and opens nothing itself", async () => {
@@ -573,7 +574,7 @@ describe("SubtitleOverlay", () => {
       expect(onSelect).toHaveBeenCalledWith(undefined);
       expect(onSelectStart).not.toHaveBeenCalled();
       expect(onWordClick).toHaveBeenCalledWith(2);
-      expect(selectedOffsets(line(screen))).toBeUndefined();
+      expect(drawnOffsets(line(screen))).toBeUndefined();
     });
 
     describe.runIf(canTouch)("with a finger (touch mode)", () => {
@@ -612,15 +613,20 @@ describe("SubtitleOverlay", () => {
           ...whole("today", "bread"),
           anchor: "start",
         });
-        expect(selectedOffsets(line(screen))).toEqual(whole("today", "bread"));
+        expect(drawnOffsets(line(screen))).toEqual(whole("today", "bread"));
         expect(onWordClick).not.toHaveBeenCalled();
         expect(pageClick).not.toHaveBeenCalled();
-        // Selectable while Langle's selection is in it, and not once it went.
+        // Langle draws it: no page selection (the phone's handles). The text is
+        // selectable while it shows, as WebKit draws highlights only on such text.
+        expect(getSelection()?.isCollapsed ?? true).toBe(true);
+        expect(CSS.highlights.has("langle-selection")).toBe(true);
         expect(getComputedStyle(line(screen)).userSelect).toBe("text");
-        getSelection()?.removeAllRanges();
-        await expect
-          .poll(() => getComputedStyle(line(screen)).userSelect)
-          .toBe("none");
+        // The next press makes it unselectable again before its long-press.
+        await tap(middleOf(word(screen, "bread")));
+        expect(getComputedStyle(line(screen)).userSelect).toBe("none");
+        undrawSelection();
+        expect(CSS.highlights.has("langle-selection")).toBe(false);
+        expect(drawnOffsets(line(screen))).toBeUndefined();
       });
 
       test("a long-press that does not move selects the word under the finger", async () => {
@@ -661,7 +667,7 @@ describe("SubtitleOverlay", () => {
         expect(onWordClick).toHaveBeenCalledWith(2);
         expect(onSelectStart).not.toHaveBeenCalled();
         expect(onSelect).not.toHaveBeenCalled();
-        expect(selectedOffsets(line(screen))).toBeUndefined();
+        expect(drawnOffsets(line(screen))).toBeUndefined();
         const menu = new MouseEvent("contextmenu", {
           bubbles: true,
           cancelable: true,

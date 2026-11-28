@@ -72,6 +72,8 @@ interface FakeOptions {
   /** The on-device AI (default: none, as in Firefox). */
   explainProvider?: ExplanationProvider;
   lastExport?: number | null;
+  /** What saving a file answers: false is the app's share sheet closed without a target (default: saved). */
+  saved?: boolean;
   importResult?: ImportResult | Error;
   history?: HistoryStatus;
   /** What `packStatus` answers for the settings (default: `japanese()`). */
@@ -152,8 +154,10 @@ function fake(options: FakeOptions = {}) {
         case "lastExport":
           return lastExport;
         case "exportJson":
-          lastExport = NOW;
           return '{"format":"langle-export"}';
+        case "recordExport":
+          lastExport = NOW;
+          return null;
         case "historyStatus":
           return history;
         case "clearHistory":
@@ -209,7 +213,10 @@ function fake(options: FakeOptions = {}) {
       ...options.links,
     },
     now: () => NOW,
-    saveFile: (name, text) => void downloads.push({ name, text }),
+    saveFile: (name, text) => {
+      downloads.push({ name, text });
+      return options.saved ?? true;
+    },
     refreshMs: 60_000,
     adBlocking: {
       watch(listener) {
@@ -1262,6 +1269,15 @@ describe("SettingsPage", () => {
           text: '{"format":"langle-export"}',
         },
       ]);
+    });
+
+    it("records no export when the share sheet closed without a target", async () => {
+      const f = await open({ lastExport: null, saved: false });
+      const sync = section(f.screen, "Sync and backup");
+      await sync.getByRole("button", { name: "Export" }).click();
+      await expect.poll(() => f.downloads.length).toBe(1);
+      await expect.element(sync.getByText(/Never exported\./)).toBeVisible();
+      expect(f.sent.map((r) => r.type)).not.toContain("recordExport");
     });
 
     it("says how long ago the last export was", async () => {

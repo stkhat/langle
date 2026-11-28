@@ -16,8 +16,8 @@ import {
   type LogRequest,
   type RecorderScope,
 } from "./error-log";
-import { mirrorEntry } from "./pack-mirrors";
-import type { MirrorEvent } from "../background/pack-store";
+import { mirrorEntry, packFailedEntry } from "./pack-mirrors";
+import type { MirrorEvent, PackFailedEvent } from "../background/pack-store";
 
 /**
  * Check builds only: starts the error log in each kind of Langle context (error-log.ts),
@@ -40,6 +40,8 @@ const sessionStore = () => {
 export interface WorkerLog {
   /** Each try of a pack mirror (`PackStoreOptions.onMirror`). */
   onMirror(event: MirrorEvent): void;
+  /** Each pack that failed to come, with why (`PackStoreOptions.onFailed`). */
+  onFailed(event: PackFailedEvent): void;
 }
 
 /**
@@ -56,17 +58,18 @@ export function startWorkerErrorLog(): WorkerLog {
     void answerLogRequest(log, message).then(sendResponse);
     return true;
   });
+  const append = (entry: Pick<CheckError, "level" | "message">) =>
+    void log.append([
+      {
+        ...entry,
+        context,
+        url: String(globalThis.location?.href ?? ""),
+        time: new Date().toISOString(),
+      },
+    ]);
   return {
-    onMirror(event) {
-      void log.append([
-        {
-          ...mirrorEntry(event),
-          context,
-          url: String(globalThis.location?.href ?? ""),
-          time: new Date().toISOString(),
-        },
-      ]);
-    },
+    onMirror: (event) => append(mirrorEntry(event)),
+    onFailed: (event) => append(packFailedEntry(event)),
   };
 }
 

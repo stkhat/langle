@@ -47,6 +47,14 @@ export interface AsrOptions {
    * track is split at its likeliest boundaries (clause marks, balance), not its largest pause.
    */
   linesByCue?: boolean;
+  /**
+   * Auto-generated tracks: a word a sentence seldom ends on (a determiner, "to", a
+   * preposition, a conjunction, a possessive: the learning language's `functionWords`),
+   * given lower-cased without punctuation (`wordOf`). A card ending right after one costs
+   * more (`AFTER_FUNCTION_WORD`), a pause after one ends no sentence, and a long sentence
+   * is split after one only where nothing else is left. Unset: no word is one.
+   */
+  functionWord?: (word: string) => boolean;
 }
 
 export interface MergeOptions extends AsrOptions {
@@ -132,6 +140,17 @@ const startsSpeaker = (token: Token) =>
 const sameCue = (previous: Token, token: Token, options: AsrOptions) =>
   options.linesByCue === true && previous.cue === token.cue;
 
+/** A token's word, as sentence starters and function words are listed: lower-cased, letters and apostrophes. */
+const wordOf = (token: Token) =>
+  token.text
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}']/gu, "");
+
+/** No card should end right after `token` (`AsrOptions.functionWord`). */
+const binds = (token: Token, options: AsrOptions) =>
+  options.functionWord?.(wordOf(token)) === true;
+
 function isPunctuated(tokens: readonly Token[]): boolean {
   if (tokens.length === 0) return false;
   return tokens.filter(endsSentence).length / tokens.length >= PUNCTUATED_SHARE;
@@ -173,7 +192,9 @@ function sentencesByPauses(
           isSoundLabel(token.text) ||
           startsSpeaker(token) ||
           token.opens ||
-          (current.length >= minWords && gapBefore(tokens, i) >= pauseMs));
+          (current.length >= minWords &&
+            gapBefore(tokens, i) >= pauseMs &&
+            !binds(previous, options)));
       if (boundary) {
         sentences.push(current);
         current = [];
@@ -191,9 +212,13 @@ function sentencesByPauses(
   return sentences;
 }
 
+/** A gap right after a function word counts this much less (ms) when choosing a split: only where there is no other. */
+const SPLIT_AFTER_FUNCTION_WORD_MS = 100_000;
+
 /**
  * Where to split `run` (the sentence so far plus the incoming word): the largest gap that
- * leaves at least `minWords` before it. Splitting right before the incoming word is allowed.
+ * leaves at least `minWords` before it, not right after a function word while there is
+ * another. Splitting right before the incoming word is allowed.
  * -1 when no split is allowed (`linesByCue`: the run is inside one cue).
  */
 function largestGap(
@@ -205,7 +230,9 @@ function largestGap(
   let bestGap = -Infinity;
   for (let k = Math.max(1, minWords); k < run.length; k++) {
     if (sameCue(run[k - 1] as Token, run[k] as Token, options)) continue;
-    const gap = gapBefore(run, k);
+    const gap =
+      gapBefore(run, k) -
+      (binds(run[k - 1] as Token, options) ? SPLIT_AFTER_FUNCTION_WORD_MS : 0);
     if (gap > bestGap) {
       bestGap = gap;
       best = k;
@@ -406,6 +433,26 @@ interface Candidate {
 /** In punctuated tracks, a boundary this close (words) to a sentence end costs more. */
 const NEAR_END_WORDS = 12;
 
+/**
+ * In tracks without punctuation, how much each second of pause (up to PAUSE_CAP_MS) lowers
+ * the prior of a boundary there: in an auto-generated track a pause is the strongest sign of
+ * a sentence end it has (competitor study, 2026-11-28: 0.5 → 2, blind 19 to 5 with YouTube's
+ * translation). A manual track (`linesByCue`) keeps 0.5: its pauses are only between its
+ * cues, whose times the site set, and it was not measured there.
+ */
+const PAUSE_WEIGHT = { auto: 2, manual: 0.5 };
+/** A pause longer than this (ms) says no more than one this long. */
+const PAUSE_CAP_MS = 1200;
+
+/**
+ * What a boundary right after a function word (`AsrOptions.functionWord`) adds to its
+ * prior, in tracks without punctuation and with it: a sentence seldom ends there, even
+ * where speech recognition hears a pause ("the … [pause] … report") or YouTube's
+ * translation drifts onto it. Auto-generated tracks only: on manual tracks, cut at their own
+ * cues, it made cards worse (competitor study, 2026-11-28).
+ */
+const AFTER_FUNCTION_WORD = { unpunctuated: 0.6, punctuated: 3 };
+
 function endsNear(tokens: readonly Token[], i: number, words: number) {
   const to = Math.min(tokens.length - 1, i + words);
   for (let q = Math.max(0, i - words); q <= to; q++)
@@ -437,13 +484,15 @@ function candidatesOf(
       const near = endsNear(tokens, i, NEAR_END_WORDS);
       const comma = /[,;:]$/.test(token.text.trim());
       prior = comma ? (near ? 6 : 3) : near ? 10 : 6;
+      if (binds(token, options)) prior += AFTER_FUNCTION_WORD.punctuated;
     } else {
-      const gap = Math.min(Math.max(gapBefore(tokens, i + 1), 0), 1200) / 1000;
-      const word = next.text
-        .trim()
-        .toLowerCase()
-        .replace(/[^\p{L}']/gu, "");
-      prior = 1.2 - 0.5 * gap - (starters.has(word) ? 0.8 : 0);
+      const gap =
+        Math.min(Math.max(gapBefore(tokens, i + 1), 0), PAUSE_CAP_MS) / 1000;
+      const weight = options.linesByCue
+        ? PAUSE_WEIGHT.manual
+        : PAUSE_WEIGHT.auto;
+      prior = 1.2 - weight * gap - (starters.has(wordOf(next)) ? 0.8 : 0);
+      if (binds(token, options)) prior += AFTER_FUNCTION_WORD.unpunctuated;
     }
     const said = token.startMs + token.clean.length * MS_PER_CHAR;
     candidates.push({

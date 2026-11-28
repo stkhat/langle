@@ -9,9 +9,11 @@ import {
 } from "./scripts/adblock-resources.ts";
 import { bundledLicenses } from "./scripts/licenses.ts";
 import { localeFiles, localesPlugin } from "./scripts/locales.ts";
+import { MODEL_PACKS_FILE, modelPacksFile } from "./scripts/model-packs.ts";
 import { noticesPlugin } from "./scripts/notices.ts";
 import { DEVELOPMENT_EXTENSION_KEY } from "./src/background/sync/google-clients.ts";
 import { LICENSES_FILE } from "./src/core/notices.ts";
+import type { PackLock } from "./src/core/packs/lock.ts";
 
 /** The store listing's English summary, as public/_locales/en/messages.json has it. */
 const STORE_DESCRIPTION = (
@@ -57,7 +59,22 @@ export default defineConfig({
       // alarms: retries of language data downloads (src/background/pack-downloads.ts);
       // it shows no warning at install in Chrome. identity: signing in to the user's
       // own cloud storage (src/background/sync/google-auth.ts); no warning either.
-      permissions: ["storage", "alarms", "identity"],
+      // Chrome also gets per-site access for articles (architecture.md "Site access"):
+      // activeTab, scripting and declarativeContent (no warning), and every host as
+      // an optional grant asked for one host at a time. The phone app has none of it.
+      ...(browser === "langle-app"
+        ? { permissions: ["storage", "alarms", "identity"] }
+        : {
+            permissions: [
+              "storage",
+              "alarms",
+              "identity",
+              "activeTab",
+              "scripting",
+              "declarativeContent",
+            ],
+            optional_host_permissions: ["*://*/*"],
+          }),
       // Development and check builds keep one id, so the sign-in redirect
       // (https://<id>.chromiumapp.org/) Google's Web client lists stays theirs
       // (src/background/sync/google-clients.ts). Builds target Chromium only: Firefox
@@ -95,6 +112,18 @@ export default defineConfig({
             absoluteSrc: join(
               wxt.config.root,
               "mobile/protocol/filter-lists.json",
+            ),
+          },
+          // The model packs Android can download, for their status before the first.
+          {
+            relativeDest: MODEL_PACKS_FILE,
+            contents: modelPacksFile(
+              JSON.parse(
+                readFileSync(
+                  join(wxt.config.root, "src/core/packs/packs.lock.json"),
+                  "utf8",
+                ),
+              ) as PackLock,
             ),
           },
         );

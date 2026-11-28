@@ -42,7 +42,17 @@ sealed interface RouterAction {
 
   /** `runtime.reload`: the extension host again. */
   data object ReloadHost : RouterAction
+
+  /** `appHost.contentHeight`: how tall an app page's content is (CSS px); the sheet it is in fits it. */
+  data class ContentHeight(val spec: ContextSpec, val height: Double) : RouterAction
+
+  /** `appHost.pageSheet`: Langle's sheet in a web page opened or closed; the title bar gives way. */
+  data class PageSheet(val spec: ContextSpec, val open: Boolean) : RouterAction
 }
+
+/** The errors a bad `appHost.contentHeight` and `appHost.pageSheet` get, in all three routers. */
+const val CONTENT_HEIGHT_ERROR = "appHost.contentHeight needs a number."
+const val PAGE_SHEET_ERROR = "appHost.pageSheet needs true or false."
 
 /** An error a call is answered with. */
 class BridgeError(message: String) : Exception(message)
@@ -112,10 +122,11 @@ class Router(val options: Options = Options(), private val persistence: Persiste
   var onError: ((String) -> Unit)? = null
 
   /**
-   * `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` with null
-   * once it shows, or with why it could not.
+   * `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` once the
+   * sheet is done ([ShareWatch]): true when the file went to a target, false when the sheet closed
+   * without one, or a failure with why the sheet could not show.
    */
-  var onShareFile: ((file: SharedFile, done: (error: String?) -> Unit) -> Unit)? = null
+  var onShareFile: ((file: SharedFile, done: (Result<Boolean>) -> Unit) -> Unit)? = null
 
   /**
    * `appHost.nativeStrings`: the background's strings for the shell's bars, menu and notices in
@@ -386,11 +397,28 @@ class Router(val options: Options = Options(), private val persistence: Persiste
       "appHost.shareFile" -> {
         val file = SharedFile.from(first) ?: throw BridgeError(SharedFile.ERROR)
         val share = onShareFile ?: throw BridgeError(NO_SHARING)
-        share(file) { error -> done(if (error == null) Answer.Value(null) else Answer.Failure(error)) }
+        share(file) { result ->
+          done(
+            result.fold(
+              { Answer.Value(JsonPrimitive(it)) },
+              { Answer.Failure(it.message ?: it.toString()) },
+            )
+          )
+        }
       }
       "appHost.nativeStrings" -> {
         val set = NativeStringSet.from(first) ?: throw BridgeError(NativeStringSet.ERROR)
         onNativeStrings?.invoke(set)
+        done(Answer.Value(null))
+      }
+      "appHost.contentHeight" -> {
+        val height = first.number?.takeIf { it.isFinite() } ?: throw BridgeError(CONTENT_HEIGHT_ERROR)
+        onAction?.invoke(RouterAction.ContentHeight(context.spec, height))
+        done(Answer.Value(null))
+      }
+      "appHost.pageSheet" -> {
+        val open = first.bool ?: throw BridgeError(PAGE_SHEET_ERROR)
+        onAction?.invoke(RouterAction.PageSheet(context.spec, open))
         done(Answer.Value(null))
       }
       in TRANSLATION_APIS -> {

@@ -88,6 +88,8 @@ import { RECENTS_LIMIT, type RecentsStore } from "./recents-store";
 import type { ImportedOccurrence, SaveOptions, TermStore } from "./term-store";
 import type { TranslationCache } from "./translation-cache";
 import type { ExplanationCache } from "./explanation-cache";
+import type { SiteAccess } from "./site-access";
+import { isPendingTab } from "../messaging/site-access";
 
 /** What the handlers work with; tests pass fakes. */
 export interface HandlerDeps {
@@ -119,6 +121,8 @@ export interface HandlerDeps {
   loadLocale: LoadLocale;
   /** The toolbar popup; does nothing where the browser cannot open it. */
   openPopup(): Promise<void>;
+  /** Per-site access (site-access.ts): only where the browser has it, so not in the app. */
+  siteAccess?: Pick<SiteAccess, "setPending">;
 }
 
 /** The part of `runtime.MessageSender` the handlers use; extension pages have no tab. */
@@ -249,6 +253,7 @@ export function createHandlers({
   openOptionsPage,
   loadLocale,
   openPopup,
+  siteAccess,
 }: HandlerDeps): Handle {
   /**
    * Whether a page may be kept among the recents: a web address not in "Never run on".
@@ -439,6 +444,13 @@ export function createHandlers({
     },
     async openPopup() {
       await openPopup();
+      return null;
+    },
+    async siteAccessPending({ tabId, host }) {
+      if (!siteAccess) throw new Error("no per-site access in this browser");
+      const tab = { tabId, host };
+      if (!isPendingTab(tab)) throw new Error("not a tab and a host");
+      await siteAccess.setPending(tab);
       return null;
     },
 
@@ -664,6 +676,10 @@ export function createHandlers({
       return null;
     },
     exportJson: () => store.exportJson(),
+    recordExport: async () => {
+      await store.recordExport();
+      return null;
+    },
     importJson: ({ json }) => store.importJson(json),
     lastExport: async () => (await store.getMeta("lastExportAt")) ?? null,
     async listTermsWithStats({ lang, meanings: withMeanings = true }) {

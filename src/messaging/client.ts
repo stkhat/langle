@@ -59,6 +59,7 @@ const REPEATABLE: Record<RequestType, boolean> = {
   // A second disconnect finds nothing to disconnect.
   cloudDisconnect: true,
   exportJson: true,
+  recordExport: true,
   importJson: true,
   lastExport: true,
   listTermsWithStats: true,
@@ -67,6 +68,8 @@ const REPEATABLE: Record<RequestType, boolean> = {
   // Would open a second tab.
   openOptions: false,
   openPopup: false,
+  // The same tab and host again.
+  siteAccessPending: true,
   // Sentences already kept for the page are skipped.
   recordHistory: true,
   historyStatus: true,

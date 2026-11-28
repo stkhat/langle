@@ -1,3 +1,5 @@
+import { screenView } from "../../ui/screen-view";
+
 /** The nearest ancestor that scrolls its content vertically, else null (the window). */
 function scrollerOf(start: Element | null): Element | null {
   for (
@@ -42,10 +44,17 @@ export function scrollToMiddle(range: Range): void {
 /** Mock MobileArticle: the dictionary sheet's top at half height, as a share of the window. */
 const SHEET_TOP_SHARE = 0.45;
 
-/** Touch mode: where the article's dictionary sheet starts, in px from the window's top. */
-export const sheetTop = (): number => Math.round(innerHeight * SHEET_TOP_SHARE);
+/**
+ * Touch mode: where the article's dictionary sheet starts, in the page's px from the
+ * window's top: a share of the screen's view of the page (which a page laid out wider
+ * than the phone, or a pinch, makes differ from the window).
+ */
+export function sheetTop(): number {
+  const view = screenView();
+  return Math.round(view.top + view.height * SHEET_TOP_SHARE);
+}
 
-/** Room kept between the text and the window's top or the sheet (px). */
+/** Room kept between the text and the screen's top or the sheet (screen px). */
 const ROOM = 16;
 
 /**
@@ -55,13 +64,15 @@ const ROOM = 16;
  */
 export function keepAboveSheet(range: Range): void {
   const rect = range.getBoundingClientRect();
+  const view = screenView();
   const top = sheetTop();
-  if (rect.top >= ROOM && rect.bottom <= top - ROOM) return;
+  const room = ROOM / view.scale;
+  if (rect.top >= view.top + room && rect.bottom <= top - room) return;
   const node = range.startContainer;
   const scroller =
     scrollerOf(node instanceof Element ? node : node.parentElement) ?? window;
   scroller.scrollBy({
-    top: rect.top + rect.height / 2 - top / 2,
+    top: rect.top + rect.height / 2 - (view.top + top) / 2,
     behavior: "smooth",
   });
 }
