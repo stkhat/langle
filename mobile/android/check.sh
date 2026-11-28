@@ -15,8 +15,16 @@
 #                                   player (mobile/check/fullscreen.js), then the shell's state
 #   check.sh log                    the app's log lines so far (check results, console errors and
 #                                   warnings, bridge errors, the shell's own lines)
+#   check.sh wait <regex> [secs]    waits (default 60 s) for a log line (what `log` prints) that
+#                                   matches the extended regex; prints it, or exits 1 on timeout.
+#                                   Use it instead of `sleep N; check.sh log | grep`
 #   check.sh kill                   stops the app
 #   check.sh screenshot <file.png>  saves a screenshot of the emulator
+#   check.sh adb <args…>            adb with the Android environment (no env.sh prefix needed)
+#   check.sh tap <x> <y> [file.png]               input events; each waits until the screen
+#   check.sh swipe <x1> <y1> <x2> <y2> [ms] [file.png]   has stopped changing (two equal
+#   check.sh text '<text>'                        screencaps 0.5 s apart, at most 10 s),
+#                                   prints how long that took, then saves the screenshot if given
 #
 # Commands reach the debug build as launch intents (CheckCommands.kt); results are logcat lines
 # with the tag LangleCheck. `launch` forwards the E2E server's port (`node e2e/serve.ts`) to the
@@ -38,6 +46,20 @@ result() {
   done
   adb logcat -d -s LangleCheck:I | sed -n "s/.*LangleCheck: //p" | grep "^$1 \|^… " | tail -n 20
   adb logcat -c
+}
+
+# Taps and swipes return before the app has reacted: poll until two screencaps match.
+settle() {
+  prev=""
+  i=0
+  while [ "$i" -lt 20 ]; do
+    sleep 0.5
+    cur=$(adb exec-out screencap -p | cksum)
+    if [ "$cur" = "$prev" ]; then break; fi
+    prev=$cur
+    i=$((i + 1))
+  done
+  echo "settled after $((i + 1))/2 s"
 }
 
 case "${1:-}" in
@@ -89,6 +111,36 @@ fullscreen)
 log)
   adb logcat -d -s Langle:V LangleCheck:V LangleConsole:V LangleBridge:V
   ;;
+wait)
+  re="${2:?usage: check.sh wait <regex> [seconds]}"
+  end=$(($(date +%s) + ${3:-60}))
+  adb get-state >/dev/null  # no emulator: fail now instead of waiting for one
+  while :; do
+    hit=$(adb logcat -d -s LangleCheck:V LangleConsole:V | grep -E -e "$re" | tail -n 5 || true)
+    if [ -n "$hit" ]; then printf '%s\n' "$hit"; break; fi
+    if [ "$(date +%s)" -ge "$end" ]; then echo "timeout: no log line matched $re" >&2; exit 1; fi
+    sleep 1
+  done
+  ;;
+adb)
+  shift
+  adb "$@"
+  ;;
+tap)
+  adb shell input tap "${2:?usage: check.sh tap <x> <y> [file.png]}" "${3:?usage: check.sh tap <x> <y> [file.png]}"
+  settle
+  if [ -n "${4:-}" ]; then adb exec-out screencap -p >"$4"; fi
+  ;;
+swipe)
+  adb shell input swipe "${2:?usage: check.sh swipe <x1> <y1> <x2> <y2> [ms] [file.png]}" "${3:?}" "${4:?}" "${5:?}" "${6:-300}"
+  settle
+  if [ -n "${7:-}" ]; then adb exec-out screencap -p >"$7"; fi
+  ;;
+text)
+  # input text takes %s for a space.
+  adb shell input text "$(printf %s "${2:?usage: check.sh text '<text>'}" | sed 's/ /%s/g')"
+  settle
+  ;;
 kill)
   adb shell am force-stop "$pkg"
   ;;
@@ -96,7 +148,7 @@ screenshot)
   adb exec-out screencap -p >"${2:?usage: check.sh screenshot <file.png>}"
   ;;
 *)
-  sed -n '2,22p' "$0"
+  sed -n '2,32p' "$0"
   exit 2
   ;;
 esac
