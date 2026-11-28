@@ -19,15 +19,20 @@ internal object OpenShare {
 
 /**
  * The chooser's word on the target the user picked (`Intent.createChooser`'s IntentSender, with
- * `EXTRA_CHOSEN_COMPONENT`): the file went there. Save to device as a first target (Android 13
- * and before) is named too; it only opens the save dialog, which answers itself. Not exported:
- * only the app's own PendingIntent reaches it.
+ * `EXTRA_CHOSEN_COMPONENT`): the file went there. Save to device opens the save dialog, which
+ * answers itself: as a first target (Android 13 and before) it is named here, and as the sheet's
+ * own chip (Android 14+) the broadcast comes with no target at all (seen on Android 17), so a
+ * broadcast without one says nothing. Not exported: only the app's own PendingIntent reaches it.
  */
 class ShareChosenReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     val chosen = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_CHOSEN_COMPONENT, ComponentName::class.java)
     Log.i(TAG, "share target ${chosen?.flattenToShortString()}")
     val watch = OpenShare.watch ?: return
-    if (chosen?.className == SaveFileActivity::class.java.name) watch.saveStarted() else watch.chosen()
+    when {
+      chosen == null -> return
+      chosen.className == SaveFileActivity::class.java.name -> watch.saveStarted()
+      else -> watch.chosen()
+    }
   }
 }
