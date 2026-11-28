@@ -22,7 +22,7 @@
 ## Progress
 - [x] S0 Spike in Chrome (no product code): answers in [site-access notes](../notes/site-access.md)
 - [x] S1 Grants: manifest, registration, no-reload injection
-- [ ] S2 The mark (`declarativeContent`)
+- [x] S2 The mark (`declarativeContent`)
 - [ ] S3 The popup: the switch, the bubble, seen hosts
 - [ ] S4 Store texts, privacy policy, real-site check
 
@@ -60,10 +60,10 @@ Done when: verify passes; in a dev build an origin granted from the service work
 ## S2 The mark
 Files: `scripts/make-icons.ts`, `public/icon-new/`, `src/core/site-access/undecided-url.ts` (+ tests), `src/background/site-mark.ts` (+ tests), `src/entrypoints/background.ts`.
 
-- [ ] Draw `icon-new/16.png` and `32.png`: the colored icon with mark A (`#F76707` dot at the top right, about half the icon, a transparent cut-out ring), checked against the mock's `SiteAccessNew` and `SiteAccessMarks` A at both sizes.
-- [ ] `undecidedUrlRegexes(decided: { exact: string[]; withSubdomains: string[] })`: RE2-only regexes, split per leading-character group, matching `^https?://H(:\d+)?/` exactly for hosts outside the set. Unit tests against a plain set check (random hosts, subdomains, ports, punycode, a host that is a prefix of another) and a syntax check (no lookaround, no backreferences, under the size limit from S0).
-- [ ] `site-mark.ts`: build the rules (`PageStateMatcher` with `css` for the learning language and each regex, `SetIcon` with the decoded images) and rebuild them on every change the spec lists; none while Langle is off or not set up, or `articles` is off. Skip the whole part where `declarativeContent` is missing.
-- [ ] `toolbar-icon.ts` (decided by the user 2026-11-28: keep the global gray): any `action.setIcon` beats the rules' icon (S0), a global one until Chrome restarts or the extension reloads. So set the global icon only when it must change: gray when Langle is switched off or not set up, colored when it is switched back on. Never at start-up or install while Langle is on (Chrome already shows the manifest's icon). After an off → on switch the mark stays hidden until the next Chrome start; accepted.
+- [x] Draw `icon-new/16.png` and `32.png`: the colored icon with mark A (`#F76707` dot at the top right, about half the icon, a transparent cut-out ring), checked against the mock's `SiteAccessNew` and `SiteAccessMarks` A at both sizes.
+- [x] `undecidedUrlRegexes(decided: { exact: string[]; withSubdomains: string[] })`: RE2-only regexes, split per leading-character group, matching `^https?://H(:\d+)?/` exactly for hosts outside the set. Unit tests against a plain set check (random hosts, subdomains, ports, punycode, a host that is a prefix of another) and a syntax check (no lookaround, no backreferences, under the size limit from S0).
+- [x] `site-mark.ts`: build the rules (`PageStateMatcher` with `css` for the learning language and each regex, `SetIcon` with the decoded images) and rebuild them on every change the spec lists; none while Langle is off or not set up, or `articles` is off. Skip the whole part where `declarativeContent` is missing.
+- [x] `toolbar-icon.ts` (decided by the user 2026-11-28: keep the global gray): any `action.setIcon` beats the rules' icon (S0), a global one until Chrome restarts or the extension reloads. So set the global icon only when it must change: gray when Langle is switched off or not set up, colored when it is switched back on. Never at start-up or install while Langle is on (Chrome already shows the manifest's icon). After an off → on switch the mark stays hidden until the next Chrome start; accepted.
 
 Done when: verify passes; in a dev build an English page on a new host shows the dot, and it goes after the popup opens there (with S3) or the host is added to Never run on.
 

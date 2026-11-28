@@ -6,6 +6,7 @@
 import type { BrowserContext, Page } from "@playwright/test";
 import { testWithErrors as test, expect } from "./fixtures";
 import { COLD_LOAD, highlighted, openArticle, showNewWords } from "./page";
+import { undecidedUrlRegexes } from "../src/core/site-access/undecided-url";
 
 const UNGRANTED = "http://127.0.0.1:4719/article-en.html";
 
@@ -78,4 +79,101 @@ test("the article script injected into a page starts there, and a second copy le
   await inject(context, page.url());
   await expect.poll(() => newWords(page), COLD_LOAD).toBeGreaterThan(0);
   await expect(page.locator("langle-article")).toHaveCount(1);
+});
+
+/** The service worker's `chrome.declarativeContent`, as far as these tests use it. */
+interface PageRules {
+  declarativeContent: {
+    PageStateMatcher: new (options: object) => object;
+    SetIcon: new (options: object) => object;
+    onPageChanged: {
+      getRules(
+        done: (
+          rules: { id: string; tags?: string[]; conditions: unknown[] }[],
+        ) => void,
+      ): void;
+      removeRules(ids: string[] | undefined, done: () => void): void;
+      addRules(rules: object[], done: () => void): void;
+    };
+  };
+  runtime: { lastError?: { message?: string } };
+}
+
+test("the mark's rule is in place once Langle is set up, leaving out the granted host", async ({
+  context,
+}) => {
+  const worker = context.serviceWorkers()[0]!;
+  const rules = () =>
+    worker.evaluate(
+      () =>
+        new Promise<{ id: string; tags?: string[]; conditions: unknown[] }[]>(
+          (resolve) => {
+            const { chrome: api } = globalThis as unknown as {
+              chrome: PageRules;
+            };
+            api.declarativeContent.onPageChanged.getRules(resolve);
+          },
+        ),
+    );
+  await expect
+    .poll(async () => (await rules()).map((rule) => rule.id))
+    .toEqual(["mark"]);
+  const [mark] = await rules();
+  expect(mark!.tags).toHaveLength(1);
+  const conditions = mark!.conditions as {
+    pageUrl: { urlMatches: string };
+    css: string[];
+  }[];
+  expect(conditions[0]!.css).toEqual(['html[lang|="en"]']);
+  const marked = (url: string) =>
+    conditions.some(({ pageUrl }) => new RegExp(pageUrl.urlMatches).test(url));
+  expect(marked("http://localhost:4719/article-en.html")).toBe(false);
+  expect(marked(UNGRANTED)).toBe(true);
+  expect(marked("https://www.youtube.com/watch?v=x")).toBe(false);
+});
+
+// Chrome compiles the regexes (RE2) as rules are added: a piece it refuses fails the
+// whole call. 2,000 hosts, as many as S0 measured (docs/notes/site-access.md, 3).
+test("Chrome accepts the undecided-host regexes for 2,000 hosts", async ({
+  context,
+}) => {
+  const hosts = Array.from(
+    { length: 2000 },
+    (_, i) =>
+      `site-${(i * 7919).toString(36)}.example${i % 3 ? ".com" : ".org"}`,
+  );
+  const regexes = undecidedUrlRegexes({
+    exact: hosts.slice(0, 1900),
+    withSubdomains: hosts.slice(1900),
+  });
+  expect(regexes.length).toBeGreaterThan(1);
+  const error = await context.serviceWorkers()[0]!.evaluate(
+    (sources) =>
+      new Promise<string | undefined>((resolve) => {
+        const { chrome: api } = globalThis as unknown as { chrome: PageRules };
+        const { declarativeContent: dc } = api;
+        dc.onPageChanged.removeRules(undefined, () => {
+          dc.onPageChanged.addRules(
+            [
+              {
+                id: "mark",
+                conditions: sources.map(
+                  (urlMatches) =>
+                    new dc.PageStateMatcher({
+                      pageUrl: { urlMatches },
+                      css: ['html[lang|="en"]'],
+                    }),
+                ),
+                actions: [
+                  new dc.SetIcon({ imageData: { 16: new ImageData(16, 16) } }),
+                ],
+              },
+            ],
+            () => resolve(api.runtime.lastError?.message),
+          );
+        });
+      }),
+    regexes,
+  );
+  expect(error).toBeUndefined();
 });
