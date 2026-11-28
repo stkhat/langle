@@ -116,3 +116,27 @@ describe("captionCards for a manual track", () => {
     ]);
   });
 });
+
+describe("captionCards for a human track timed off the original", () => {
+  const original = Array.from({ length: 12 }, (_, i) =>
+    cue(
+      i * 3100 + (i % 4) * 300,
+      i * 3100 + (i % 4) * 300 + 2000,
+      `Line ${i}.`,
+    ),
+  );
+  const late = original.map((c) =>
+    cue(c.startMs + 400, c.endMs + 400, `行${c.text}`),
+  );
+
+  it("moves the translation onto the original's clock for cards and subtitle", () => {
+    const result = manual(original, "siteTrack", late);
+    expect(result.timed?.cues[2]?.startMs).toBe(original[2]!.startMs);
+    expect(result.state.translations[2]).toBe(`行${original[2]!.text}`);
+  });
+
+  it("does not move a machine translation", () => {
+    const result = manual(original, "siteAutoTranslate", late);
+    expect(result.timed?.cues[2]?.startMs).toBe(original[2]!.startMs + 400);
+  });
+});

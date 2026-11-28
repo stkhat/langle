@@ -218,3 +218,81 @@ function overlapping(
   if (most < 0) return [];
   return [...new Set([most, ...covered])].sort((a, b) => a - b);
 }
+
+const OFFSET_MIN_CUES = 8;
+const OFFSET_RANGE_MS = 1500;
+const OFFSET_STEP_MS = 50;
+/** A cue start "matches" when a learning cue starts this close. */
+const OFFSET_MATCH_MS = 300;
+/** The smallest offset worth repairing: below it, jitter is as likely as a shifted clock. */
+const OFFSET_MIN_MS = 150;
+/** How much more of the starts the shift must match than no shift does. */
+const OFFSET_MIN_GAIN = 0.1;
+
+/** The share of `human` starts, moved by `offset`, within OFFSET_MATCH_MS of a `learning` start (both sorted). */
+function matchShare(
+  learning: readonly number[],
+  human: readonly number[],
+  offset: number,
+): number {
+  let hits = 0;
+  let j = 0;
+  for (const start of human) {
+    const t = start + offset;
+    while (
+      j + 1 < learning.length &&
+      Math.abs(learning[j + 1]! - t) <= Math.abs(learning[j]! - t)
+    )
+      j++;
+    if (Math.abs(learning[j]! - t) <= OFFSET_MATCH_MS) hits++;
+  }
+  return hits / human.length;
+}
+
+/**
+ * How far to move a human translation track so its cues start with the learning track's
+ * (ms to add; 0 when it is already in step or no shift is clear). Some translators time
+ * their track from another clock a few hundred ms off. Tries every offset within ±1.5 s
+ * in 50 ms steps for the one that lines up most cue starts, and takes it only when it is
+ * at least 150 ms and lines up 0.1 more of the starts than no shift does (equal best
+ * shifts: the middle of the first run of them). Times only, so it holds for any language; needs 8 cues on each side.
+ */
+export function trackOffset(
+  learning: readonly Cue[],
+  human: readonly Cue[],
+): number {
+  if (learning.length < OFFSET_MIN_CUES || human.length < OFFSET_MIN_CUES)
+    return 0;
+  const byTime = (a: number, b: number) => a - b;
+  const l = learning.map((c) => c.startMs).sort(byTime);
+  const h = human.map((c) => c.startMs).sort(byTime);
+  const zero = matchShare(l, h, 0);
+  // Equal shares form a plateau (every offset within the match window of the true one
+  // matches the same starts): take its middle, the first plateau of the best share.
+  let bestShare = zero;
+  let from = 0;
+  let to = 0;
+  let open = false;
+  for (let o = -OFFSET_RANGE_MS; o <= OFFSET_RANGE_MS; o += OFFSET_STEP_MS) {
+    const share = matchShare(l, h, o);
+    if (share > bestShare) {
+      [bestShare, from, to, open] = [share, o, o, true];
+    } else if (share === bestShare && open) to = o;
+    else open = false;
+  }
+  const best = Math.round((from + to) / 2 / OFFSET_STEP_MS) * OFFSET_STEP_MS;
+  return Math.abs(best) >= OFFSET_MIN_MS && bestShare - zero >= OFFSET_MIN_GAIN
+    ? best
+    : 0;
+}
+
+/** `cues` moved by `offset` ms. */
+export function shiftCues(cues: readonly Cue[], offset: number): Cue[] {
+  return offset === 0
+    ? [...cues]
+    : cues.map((c) => ({
+        ...c,
+        startMs: c.startMs + offset,
+        endMs: c.endMs + offset,
+      }));
+}
