@@ -279,6 +279,32 @@ describe("handlers: routing", () => {
     expect(openPopup).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the pending tab for siteAccessPending, refusing what is not a tab and a host", async () => {
+    const setPending = vi.fn(async () => {});
+    handle = createHandlers({ ...deps, siteAccess: { setPending } });
+    expect(
+      await value({ type: "siteAccessPending", tabId: 7, host: "a.example" }),
+    ).toBeNull();
+    expect(setPending).toHaveBeenCalledWith({ tabId: 7, host: "a.example" });
+    for (const bad of [
+      { tabId: -1, host: "a.example" },
+      { tabId: 1.5, host: "a.example" },
+      { tabId: 7, host: "" },
+      { tabId: "7", host: "a.example" },
+    ])
+      expect(
+        await handle({ type: "siteAccessPending", ...bad }),
+        JSON.stringify(bad),
+      ).toMatchObject({ ok: false });
+    expect(setPending).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses siteAccessPending where the browser has no per-site access", async () => {
+    expect(
+      await handle({ type: "siteAccessPending", tabId: 7, host: "a.example" }),
+    ).toEqual({ ok: false, error: "no per-site access in this browser" });
+  });
+
   it("answers syncStatus from the sync backend", async () => {
     expect(await value({ type: "syncStatus" })).toEqual(SYNC_STATUS);
   });

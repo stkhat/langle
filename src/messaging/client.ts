@@ -67,6 +67,8 @@ const REPEATABLE: Record<RequestType, boolean> = {
   // Would open a second tab.
   openOptions: false,
   openPopup: false,
+  // The same tab and host again.
+  siteAccessPending: true,
   // Sentences already kept for the page are skipped.
   recordHistory: true,
   historyStatus: true,
