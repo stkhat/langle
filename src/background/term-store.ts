@@ -5,6 +5,7 @@ import type {
   TermKind,
   TermStatus,
 } from "../core/classify";
+import { assertCloudRow } from "../core/cloud/format";
 import {
   clearedAtOf,
   MAX_OCCURRENCES,
@@ -358,7 +359,7 @@ function makeOccurrence(
   origin: Origin,
   recorded: { deviceId: string; addedAt: number },
 ): OccurrenceRecord {
-  return {
+  const occurrence = {
     termId,
     sourceId,
     sentence,
@@ -369,6 +370,8 @@ function makeOccurrence(
     deviceId: recorded.deviceId,
     addedAt: recorded.addedAt,
   };
+  assertCloudRow("occurrence", occurrence);
+  return occurrence;
 }
 
 /** A random device id made once. */
@@ -417,7 +420,9 @@ export function createTermStore(
   async function upsertSource(input: SourceInput, at: number) {
     const key = sourceKey(input);
     const existing = await db.sources.get(key.id);
-    await db.sources.put(widenSource(existing, input, key, at));
+    const source = widenSource(existing, input, key, at);
+    assertCloudRow("source", source);
+    await db.sources.put(source);
     return key.id;
   }
 
@@ -431,7 +436,9 @@ export function createTermStore(
     const sources = new Map(ids.map((id, i) => [id, stored[i]]));
     sights.forEach(({ input, at }, i) => {
       const key = keys[i]!;
-      sources.set(key.id, widenSource(sources.get(key.id), input, key, at));
+      const source = widenSource(sources.get(key.id), input, key, at);
+      assertCloudRow("source", source);
+      sources.set(key.id, source);
     });
     await db.sources.bulkPut([...sources.values()] as SourceRecord[]);
     return keys.map((key) => key.id);
@@ -667,6 +674,7 @@ export function createTermStore(
       existing,
       at,
     );
+    assertCloudRow("term", term);
     await db.terms.put(term);
     return { term, at };
   }
@@ -826,6 +834,7 @@ export function createTermStore(
           existing,
           at,
         );
+        assertCloudRow("term", term);
         await db.terms.put(term);
         changes.add(term.lang, "terms");
         return term;
@@ -929,6 +938,7 @@ export function createTermStore(
             },
           ];
         });
+        for (const term of created) assertCloudRow("term", term);
         await db.terms.bulkPut(created);
         const count = created.length;
         if (count > 0) {

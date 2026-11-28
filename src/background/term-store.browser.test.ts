@@ -121,6 +121,23 @@ describe("saveTerm", () => {
     expect(await store.listTerms("en")).toEqual([]);
   });
 
+  it("refuses what a cloud file could not hold, and stores none of it", async () => {
+    const cases: Partial<SaveTermInput>[] = [
+      { source: { ...VIDEO, platform: "article" as "web" } },
+      { kind: "sentence" as "word" },
+      { status: "deleted" as "known" },
+      { pos: { line: 3 } as unknown as SaveTermInput["pos"] },
+    ];
+    for (const overrides of cases)
+      await expect(
+        store.saveTerm(dough(overrides)),
+        JSON.stringify(overrides),
+      ).rejects.toThrow(/Not a valid/);
+    expect(await db.terms.count()).toBe(0);
+    expect(await db.sources.count()).toBe(0);
+    expect(await db.occurrences.count()).toBe(0);
+  });
+
   it("stores the source under its normalized URL", async () => {
     await store.saveTerm(dough());
     const [occurrence] = await store.occurrencesOf("en:dough");
