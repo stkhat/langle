@@ -479,6 +479,16 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
       case "appHost.nativeStrings":
         nativeStrings = nativeStringSet(args[0]);
         return undefined;
+      // The shells size the sheet frame to the page and slide the title bar away.
+      case "appHost.contentHeight":
+        if (typeof args[0] !== "number" || !Number.isFinite(args[0]))
+          throw new Error(CONTENT_HEIGHT_ERROR);
+        log.push(`appHost.contentHeight ${args[0]}`);
+        return undefined;
+      case "appHost.pageSheet":
+        if (typeof args[0] !== "boolean") throw new Error(PAGE_SHEET_ERROR);
+        log.push(`appHost.pageSheet ${args[0]}`);
+        return undefined;
       case "appHost.translate":
       case "appHost.translatorStatus":
       case "appHost.prepareTranslator":
@@ -636,6 +646,10 @@ function sharedFile(value: unknown): {
     throw new Error(SHARE_FILE_ERROR);
   return { name, mime, text };
 }
+
+/** The errors a bad `appHost.contentHeight` and `appHost.pageSheet` get, in all three routers. */
+export const CONTENT_HEIGHT_ERROR = "appHost.contentHeight needs a number.";
+export const PAGE_SHEET_ERROR = "appHost.pageSheet needs true or false.";
 
 /** The error a bad `appHost.nativeStrings` gets, the same text in all three routers. */
 export const NATIVE_STRINGS_ERROR =

@@ -102,7 +102,9 @@ describe.runIf(canTouch)("articles in touch mode", () => {
 
     await dictionary().getByRole("button", { name: "Learning" }).click();
     await expect
-      .element(dictionary().getByText("Learning", { exact: true }))
+      .element(
+        dictionary().getByRole("button", { name: "Learning", pressed: true }),
+      )
       .toBeVisible();
     expect(background.sent("saveTerm")).toMatchObject([
       { key: "rise and fall", kind: "phrase", status: "learning" },

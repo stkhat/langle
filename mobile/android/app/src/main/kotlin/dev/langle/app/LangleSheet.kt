@@ -19,18 +19,25 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import kotlin.math.ceil
 import kotlin.math.min
 
 /**
  * The sheet frame an app page shows in (mock `MobileLangleSheet`): white, rounded on top, over a
- * scrim, with a grabber; the page under the grabber draws the rest. Nine tenths of the screen
- * high; in landscape at most 520 dp wide, centred. Back, a tap on the scrim or a drag down on the
- * grabber closes it (the page itself scrolls, so only the grabber drags).
+ * scrim, with a grabber; the page under the grabber draws the rest. As tall as the page's content,
+ * at most up to the status bar (`fitContent`); in landscape at most 520 dp wide, centred. Back, a
+ * tap on the scrim or a drag down on the grabber closes it (the page itself scrolls, so only the
+ * grabber drags).
  */
 @SuppressLint("ClickableViewAccessibility")
 class LangleSheet(activity: Activity, content: View, fullscreen: Boolean, onDismiss: () -> Unit) {
   val dialog = Dialog(activity, android.R.style.Theme_Material_Light_NoActionBar)
   private val sheet: LinearLayout
+  private val root: FrameLayout
+  private val grabberPx: Int
+  private val density: Float
+  private var topInset = 0
+  private var contentPx: Int? = null
 
   init {
     val landscape = activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -71,12 +78,19 @@ class LangleSheet(activity: Activity, content: View, fullscreen: Boolean, onDism
     sheet.addView(grabber, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     (content.parent as? ViewGroup)?.removeView(content)
     sheet.addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-    val height = (metrics.heightPixels * 0.9).toInt()
-    root.addView(sheet, FrameLayout.LayoutParams(width, height, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL))
+    grabberPx = activity.dp(8 + 5 + 8)
+    density = metrics.density
+    this.root = root
+    root.addView(sheet, FrameLayout.LayoutParams(width, metrics.heightPixels, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL))
     ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
       val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
       sheet.setPadding(0, 0, 0, bars.bottom)
+      topInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top
+      fit()
       insets
+    }
+    root.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+      if (bottom - top != oldBottom - oldTop) root.post { fit() }
     }
     dialog.setContentView(root)
     dialog.window?.apply {
@@ -98,6 +112,26 @@ class LangleSheet(activity: Activity, content: View, fullscreen: Boolean, onDism
       }
     }
     dialog.setOnDismissListener { onDismiss() }
+  }
+
+  /** The page's content is [cssHeight] CSS px tall (`appHost.contentHeight`): the sheet fits it. */
+  fun fitContent(cssHeight: Double) {
+    contentPx = ceil(cssHeight * density).toInt()
+    fit()
+  }
+
+  /**
+   * As tall as the grabber, the page's content and the bars under it (mock `MobileLangleSheet`),
+   * at most up to the status bar; the whole room until the page has said how tall it is.
+   */
+  private fun fit() {
+    val room = root.height.takeIf { it > 0 } ?: root.resources.displayMetrics.heightPixels
+    val most = room - topInset
+    val height = contentPx?.let { min(grabberPx + it + sheet.paddingBottom, most) } ?: most
+    val params = sheet.layoutParams
+    if (params.height == height) return
+    params.height = height
+    sheet.layoutParams = params
   }
 
   fun show() = dialog.show()

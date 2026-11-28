@@ -409,6 +409,26 @@ class RouterTest {
       assertEquals(1, taken.size)
     }
 
+    @Test
+    @DisplayName("appHost.contentHeight and appHost.pageSheet tell the app, with the context they came from")
+    fun `appHost_contentHeight and appHost_pageSheet tell the app`() {
+      val h = Harness()
+      val popup = ContextSpec.Page("$ORIGIN/popup.html", 7)
+      val page = ContextSpec.Content(1)
+      val sheet = h.connect(popup)
+      val article = h.connect(page)
+      assertNull(sheet.call("appHost.contentHeight", 612.5).error)
+      assertNull(article.call("appHost.pageSheet", true).error)
+      assertEquals(listOf(RouterAction.ContentHeight(popup, 612.5), RouterAction.PageSheet(page, true)), h.actions)
+      for (bad in listOf("612", null, true)) {
+        assertEquals(CONTENT_HEIGHT_ERROR, sheet.call("appHost.contentHeight", bad).error, bad.toString())
+      }
+      for (bad in listOf("true", 1, null)) {
+        assertEquals(PAGE_SHEET_ERROR, article.call("appHost.pageSheet", bad).error, bad.toString())
+      }
+      assertEquals(2, h.actions.size)
+    }
+
     // As the reference: each call fails at once until the app sets a sign-in (M7d).
     @Test
     @DisplayName("Google sign-in is not available until the shells fill it (M7d)")

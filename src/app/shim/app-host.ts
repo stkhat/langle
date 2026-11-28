@@ -88,6 +88,12 @@ export function createAppHost(bridge: Bridge, info: AppHostInfo = {}): AppHost {
     nativeStrings: async ({ locale, dir, strings }) => {
       await bridge.call("appHost.nativeStrings", { locale, dir, strings });
     },
+    contentHeight: async (height) => {
+      await bridge.call("appHost.contentHeight", height);
+    },
+    pageSheet: async (open) => {
+      await bridge.call("appHost.pageSheet", open);
+    },
     ...(translator && { translator }),
     translate: async ({ from, to, text, start }) => {
       const value = await bridge.call("appHost.translate", {

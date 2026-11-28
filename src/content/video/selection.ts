@@ -8,6 +8,7 @@ import { matchPattern, type PatternMatch } from "../lookup/pattern";
 import { warn } from "../lookup/warn";
 import type { Store } from "../store";
 import { lineBreaksAsSpaces } from "../../ui/video/terms";
+import { undrawSelection } from "../../ui/drawn-selection";
 import type { SelectedWords, VideoState, WordPlace, WordRef } from "./state";
 
 /** The selected words, and the phrase they stand for. */
@@ -175,7 +176,7 @@ export function createSelection(o: {
   function clear() {
     const had = phrase !== undefined || store.get().selecting;
     drop();
-    if (had) getSelection()?.removeAllRanges();
+    if (had) undrawSelection();
   }
 
   /**

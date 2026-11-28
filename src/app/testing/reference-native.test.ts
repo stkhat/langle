@@ -3,8 +3,10 @@ import { createBridge, NO_RECEIVER, type Bridge } from "../bridge/bridge";
 import type { EventApi } from "../bridge/protocol";
 import {
   createReferenceNative,
+  CONTENT_HEIGHT_ERROR,
   type ContextSpec,
   NATIVE_STRINGS_ERROR,
+  PAGE_SHEET_ERROR,
   type ReferenceNativeOptions,
   SHARE_FILE_ERROR,
 } from "./reference-native";
@@ -404,6 +406,26 @@ describe("tabs", () => {
         NATIVE_STRINGS_ERROR,
       );
     expect(native.nativeStrings()).toEqual(set);
+  });
+
+  test("appHost.contentHeight and appHost.pageSheet take a number and a boolean", async () => {
+    const { connect, native } = setup();
+    const page = connect({ kind: "page", url: `${ORIGIN}/popup.html` }).bridge;
+    const content = connect({ kind: "content", tabId: 1 }).bridge;
+    await page.call("appHost.contentHeight", 612.5);
+    await content.call("appHost.pageSheet", true);
+    expect(native.log).toEqual([
+      "appHost.contentHeight 612.5",
+      "appHost.pageSheet true",
+    ]);
+    for (const bad of ["612", Number.NaN, null])
+      await expect(page.call("appHost.contentHeight", bad)).rejects.toThrow(
+        CONTENT_HEIGHT_ERROR,
+      );
+    for (const bad of ["true", 1, undefined])
+      await expect(content.call("appHost.pageSheet", bad)).rejects.toThrow(
+        PAGE_SHEET_ERROR,
+      );
   });
 
   test("Google sign-in is not available until the shells fill it (M7d)", async () => {

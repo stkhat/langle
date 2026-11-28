@@ -1,10 +1,11 @@
-import type { ComponentChildren, CSSProperties } from "preact";
+import type { ComponentChildren, CSSProperties, Ref, RefObject } from "preact";
 import {
   useEffect,
   useLayoutEffect,
   useMemo,
   useReducer,
   useRef,
+  useState,
 } from "preact/hooks";
 import { FEEDBACK_URL } from "../../core/links";
 import type { Settings } from "../../core/settings";
@@ -36,6 +37,9 @@ import { t } from "../../i18n/t";
 import { explainSection, shownAnswer } from "../explain/panel";
 import { hoverView, windowView } from "../lookup/describe";
 import { boxOf, type Box } from "../lookup/geometry";
+import { topClearOf } from "./site-controls";
+import { screenView } from "../../ui/screen-view";
+import type { Insets } from "../../ui/safe-area";
 import {
   dictionaryFrame,
   menuBelowPlacement,
@@ -98,7 +102,29 @@ export interface VideoLayout {
   pinned: { top: number; left: number; width: number } | null;
   /** The pinned subtitle box's bottom, in px from the window's top; null when not pinned. */
   pinnedBottom: number | null;
+  /**
+   * The bottom of what a phone's dictionary sheet opens under (the subtitle band under
+   * the video, else the player), in px from the window's top; null without either. Told
+   * again whenever it moves, so the sheet follows the band's height.
+   */
+  bandBottom: number | null;
+  /**
+   * Touch mode: the site's controls shown now over the video (window px;
+   * `PlatformAdapter.siteControls`), which the Paused pill and the L keep clear of.
+   */
+  siteControls: readonly Box[];
+  /**
+   * Touch mode, the video filling the screen: how far above the screen's bottom the
+   * subtitle keeps to stay clear of the site's bar along the bottom (px), 0 while none
+   * shows. Held while Langle is in use, so the words do not move under the finger.
+   */
+  controlsLift: number;
+  /** The screen's safe area: the edges the camera's island and the home bar take (px). */
+  safeArea: Insets;
 }
+
+/** The gap kept between Langle's parts and the site's controls they move clear of (px). */
+const CONTROLS_GAP = 8;
 
 /** The pinned subtitle box over the page that scrolls under it. */
 const PINNED_LAYER = 10;
@@ -308,10 +334,11 @@ export function InPlayerUi(props: {
 }) {
   const { app } = props;
   const state = useStore(app.store);
-  const { subtitleBottom, vertical, touch, fillsWindow } = useStore(
-    props.layout,
-  );
+  const { subtitleBottom, vertical, touch, fillsWindow, siteControls } =
+    useStore(props.layout);
   const { fullscreen } = state;
+  const pill = useRef<HTMLSpanElement>(null);
+  const pillTop = useClearTop(pill, siteControls, PILL_AT);
   // A phone's fullscreen subtitle is over the page instead (`PhoneFullscreenUi`).
   const inVideo =
     subtitleOverVideo(state, vertical, touch) &&
@@ -331,7 +358,12 @@ export function InPlayerUi(props: {
     <>
       {touch && !fillsWindow && state.heldPaused && (
         <PausedPill
-          style={{ position: "absolute", left: "12px", top: "12px" }}
+          innerRef={pill}
+          style={{
+            position: "absolute",
+            left: `${PILL_AT}px`,
+            top: `${pillTop}px`,
+          }}
         />
       )}
       {inVideo && (
@@ -359,13 +391,52 @@ export function InPlayerUi(props: {
   );
 }
 
+/** Mock MobileYouTube: the Paused pill 12px from the video's top left. */
+const PILL_AT = 12;
+
+/**
+ * The top (px in its frame) of a part Langle puts near the video's top at `top`
+ * (the Paused pill, the L): there, or under the site's controls that show over it (the
+ * unmute button while the video is muted, the settings gear while the controls show).
+ * Measured after each render; the part's frame is where it is positioned from.
+ */
+function useClearTop(
+  ref: RefObject<HTMLElement | null>,
+  controls: readonly Box[],
+  top: number,
+): number {
+  const [now, setNow] = useState(top);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      if (now !== top) setNow(top);
+      return;
+    }
+    const rect = element.getBoundingClientRect();
+    const frame = { top: rect.top - now };
+    const place = {
+      left: rect.left,
+      right: rect.right,
+      top: frame.top + top,
+      bottom: frame.top + top + rect.height,
+    };
+    const want = topClearOf(controls, place, CONTROLS_GAP) - frame.top;
+    if (want !== now) setNow(want);
+  });
+  return now;
+}
+
 /**
  * On a phone, while Langle holds the video paused (a word's sheet is open): "Paused" at
  * the video's top left (mock MobileYouTube, MobileYouTubeLandscape).
  */
-function PausedPill(props: { style: CSSProperties }) {
+function PausedPill(props: {
+  style: CSSProperties;
+  innerRef?: Ref<HTMLSpanElement>;
+}) {
   return (
     <span
+      ref={props.innerRef}
       role="status"
       style={{
         ...props.style,
@@ -489,19 +560,26 @@ export function MenuUi(props: {
 }
 
 /**
- * Under the video: the large subtitle box (subtitle position "Below video"). Pinned, it
- * is fixed under the player and tells its height (`onPinnedHeight`, null when it goes),
- * so its host keeps its room in the page. Fixed, not sticky: a sticky box sticks only
- * inside its nearest scroll container, and on the iPhone m.youtube.com's `ytm-app`
- * (`overflow-x: hidden`, never scrolled) is that container, so a sticky box scrolled
- * away with the page.
+ * Under the video: the large subtitle box (subtitle position "Below video"), drawn by
+ * one of two parts. `inPage` (the host under the player): the box in the page's flow,
+ * while it scrolls with the page. Over the page (the host in `<body>`): the box while it
+ * is pinned, fixed under the player; it tells its height (`onPinnedHeight`, null when it
+ * goes), so the host under the player keeps its room in the page.
+ *
+ * Langle's fixed parts never sit inside the site's elements: any of them can get a
+ * transform (m.youtube.com puts one on `ytm-watch` during a tap), a filter or `contain`,
+ * which makes it the box `position: fixed` is placed in, and the band would jump from
+ * under the finger. Fixed, not sticky: a sticky box sticks only inside its nearest
+ * scroll container, and on the iPhone m.youtube.com's `ytm-app` (`overflow-x: hidden`,
+ * never scrolled) is that container, so a sticky box scrolled away with the page.
  */
 export function BelowVideoUi(props: {
   app: VideoApp;
   layout: Store<VideoLayout>;
+  inPage?: boolean;
   onPinnedHeight?: (height: number | null) => void;
 }) {
-  const { app, onPinnedHeight } = props;
+  const { app, inPage = false, onPinnedHeight } = props;
   const state = useStore(app.store);
   const { touch, fillsWindow, pinned } = useStore(props.layout);
   const band = useRef<HTMLDivElement>(null);
@@ -509,7 +587,8 @@ export function BelowVideoUi(props: {
     showing(state) &&
     !state.fullscreen &&
     !(touch && fillsWindow) &&
-    subtitlePosition(state.settings, touch) === "belowVideo";
+    subtitlePosition(state.settings, touch) === "belowVideo" &&
+    (pinned === null) === inPage;
   const isPinned = shown && pinned !== null;
   useLayoutEffect(() => {
     const element = band.current;
@@ -766,55 +845,127 @@ const useSelectionDroppedByPressAway = (app: VideoApp, selecting: boolean) =>
  * wide, 16px from the top and bottom and 44px from its side (clear of the camera's
  * notch); the video gets the rest, less 356px.
  */
-export const PHONE_COLUMN = { width: 300, inset: 16, side: 44, room: 356 };
-/** Mock MobileYouTubeLandscape: the dictionary panel beside the video, left of the L. */
-const PHONE_PANEL_FRAME = { top: 12, bottom: 12, right: 56, width: 300 };
+const PHONE_COLUMN = { width: 300, inset: 16, side: 44, gap: 12 };
+
+/** A column beside a video that fills the window: its box and the room the video gives it. */
+export interface Column {
+  width: number;
+  top: number;
+  bottom: number;
+  /** From the screen's edge at its side. */
+  side: number;
+  /** The width the video gives up for it. */
+  room: number;
+}
+
+/**
+ * The mock's phone column, clear of the screen's safe area: each distance from an edge
+ * is the mock's or the safe area's, whichever is more (the camera's island at the side
+ * in landscape, the home bar at the bottom).
+ */
+export function phoneColumn(safe: Insets, side: "left" | "right"): Column {
+  const away = Math.max(PHONE_COLUMN.side, safe[side]);
+  return {
+    width: PHONE_COLUMN.width,
+    top: Math.max(PHONE_COLUMN.inset, safe.top),
+    bottom: Math.max(PHONE_COLUMN.inset, safe.bottom),
+    side: away,
+    room: PHONE_COLUMN.width + away + PHONE_COLUMN.gap,
+  };
+}
+
+/** Mock MobileYouTubeLandscape: the L 44px wide, 8px from the screen's right and 12px from its top. */
+const PHONE_L = { size: 44, side: 8, top: 12 };
+/**
+ * Mock MobileYouTubeLandscape: the dictionary panel beside the video, 300px wide, 12px
+ * from the top and bottom, left of the L (4px from it).
+ */
+const PHONE_PANEL = { top: 12, bottom: 12, width: 300, gap: 4 };
 /** Mock MobileYouTubeLandscape: the subtitle's insets and bottom, beside the column or not. */
 const PHONE_SUBTITLE = {
   full: { inset: "clamp(12px, 14vw, 120px)", bottom: 28 },
   narrow: { inset: "12px", bottom: 14 },
 };
+/** Mock MobileYouTubeLandscape: the Paused pill's place, beside the column or not. */
+const PHONE_PILL = {
+  full: { left: 56, top: 16 },
+  narrow: { left: 12, top: 12 },
+};
 /** Over the video and the site's own layers; under Langle's cards and windows. */
 const OVER_VIDEO_LAYER = TOP_LAYER - 47;
 
+/** The L's distance from the screen's right edge, clear of the column and the safe area. */
+const lRight = (safe: Insets, column: "left" | "right" | null) =>
+  column === "right"
+    ? phoneColumn(safe, "right").room + PHONE_L.side
+    : Math.max(PHONE_L.side, safe.right);
+
+/** The dictionary panel beside the video, left of the L. */
+const phonePanelFrame = (safe: Insets) => ({
+  top: PHONE_PANEL.top,
+  bottom: Math.max(PHONE_PANEL.bottom, safe.bottom),
+  right: lRight(safe, null) + PHONE_L.size + PHONE_PANEL.gap,
+  width: PHONE_PANEL.width,
+});
+
 /** The dictionary in the column, in the transcript's place. */
-const columnFrame = (side: "left" | "right") => {
+const columnFrame = (safe: Insets, side: "left" | "right") => {
+  const column = phoneColumn(safe, side);
   const frame = {
-    top: PHONE_COLUMN.inset,
-    bottom: PHONE_COLUMN.inset,
-    width: PHONE_COLUMN.width,
+    top: column.top,
+    bottom: column.bottom,
+    width: column.width,
   };
   return side === "left"
-    ? { ...frame, left: PHONE_COLUMN.side }
-    : { ...frame, right: PHONE_COLUMN.side };
+    ? { ...frame, left: column.side }
+    : { ...frame, right: column.side };
 };
 
 /**
  * A video in fullscreen on a phone (mock MobileYouTubeLandscape): over the page, above
  * the site's own layers over the video (m.youtube.com's covers the player's centre), the
  * subtitle near the bottom of the video's room and the L at its top right, which opens
- * the Langle sheet (the toolbar popup). The room is the window less the column's.
+ * the Langle sheet (the toolbar popup). The room is the window less the column's. Each
+ * stays clear of the screen's safe area (the camera's island) and moves clear of the
+ * site's controls while they show (the settings gear, the bar along the bottom).
  */
 function PhoneFullscreenUi(props: {
   app: VideoApp;
   state: VideoState;
   column: "left" | "right" | null;
+  safe: Insets;
+  controls: readonly Box[];
+  controlsLift: number;
 }) {
-  const { app, state, column } = props;
+  const { app, state, column, safe, controls } = props;
   const room = (side: "left" | "right") =>
-    column === side ? PHONE_COLUMN.room : 0;
+    column === side ? phoneColumn(safe, side).room : 0;
+  // From an edge without the column: the mock's distance, or the safe area's.
+  const edge = (side: "left" | "right", css: string) =>
+    column === side
+      ? `calc(${room(side)}px + ${css})`
+      : `max(${css}, ${safe[side]}px)`;
   const { inset, bottom } = column
     ? PHONE_SUBTITLE.narrow
     : PHONE_SUBTITLE.full;
+  const at = column ? PHONE_PILL.narrow : PHONE_PILL.full;
+  const pillLeft =
+    column === "left" ? room("left") + at.left : Math.max(at.left, safe.left);
+  const pill = useRef<HTMLSpanElement>(null);
+  const pillTop = useClearTop(pill, controls, at.top);
+  const l = useRef<HTMLButtonElement>(null);
+  const right = lRight(safe, column);
+  const lTop = useClearTop(l, controls, PHONE_L.top);
   return (
     <>
       {state.heldPaused && (
         <PausedPill
+          innerRef={pill}
           style={{
             position: "fixed",
             zIndex: OVER_VIDEO_LAYER,
-            left: `${room("left") + (column ? 12 : 56)}px`,
-            top: column ? "12px" : "16px",
+            left: `${pillLeft}px`,
+            top: `${pillTop}px`,
           }}
         />
       )}
@@ -823,9 +974,10 @@ function PhoneFullscreenUi(props: {
           style={{
             position: "fixed",
             zIndex: OVER_VIDEO_LAYER,
-            left: `calc(${room("left")}px + ${inset})`,
-            right: `calc(${room("right")}px + ${inset})`,
-            bottom: `${bottom}px`,
+            left: edge("left", inset),
+            right: edge("right", inset),
+            bottom: `${Math.max(bottom, safe.bottom, props.controlsLift)}px`,
+            transition: "bottom 0.2s ease-out",
           }}
         >
           <Subtitle
@@ -837,14 +989,15 @@ function PhoneFullscreenUi(props: {
         </div>
       )}
       <button
+        ref={l}
         type="button"
         aria-label={t("video.openLangle")}
         onClick={app.openPopup}
         style={{
           position: "fixed",
           zIndex: OVER_VIDEO_LAYER,
-          top: "12px",
-          right: `${room("right") + 8}px`,
+          top: `${lTop}px`,
+          right: `${right}px`,
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -876,9 +1029,17 @@ export function PageUi(props: {
 }) {
   const { app, geometry } = props;
   const state = useStore(app.store);
-  const { vertical, sidebar, sidebarSide, touch, fillsWindow } = useStore(
-    props.layout,
-  );
+  const {
+    vertical,
+    sidebar,
+    sidebarSide,
+    touch,
+    fillsWindow,
+    bandBottom,
+    safeArea,
+    siteControls,
+    controlsLift,
+  } = useStore(props.layout);
   const { hover, panel, phrase, settings, fullscreen, explain } = state;
   const phoneFullscreen = touch && fillsWindow;
   const position = sidebar
@@ -896,12 +1057,13 @@ export function PageUi(props: {
       : dictionaryFrame(player, position, viewport, geometry.transcript());
   }, [panel?.opened, fullscreen, sidebar]);
   // A phone (mock MobileYouTubeDictionary): the sheet opens under the subtitle, so the
-  // sentence stays in view; it never starts below the middle of the window.
-  const sheetTop = useMemo(() => {
-    const above = geometry.subtitle() ?? geometry.player();
-    const top = above ? above.bottom : innerHeight * SHEET_TOP_MAX;
-    return Math.round(Math.min(Math.max(top, 0), innerHeight * SHEET_TOP_MAX));
-  }, [panel?.opened]);
+  // sentence stays in view; it never starts below the middle of the screen. It follows
+  // the band when the band's height changes (a longer line, the translation shown).
+  const view = screenView();
+  const lowest = view.top + view.height * SHEET_TOP_MAX;
+  const sheetTop = Math.round(
+    Math.min(Math.max(bandBottom ?? lowest, view.top), lowest),
+  );
   useClosedByPressAway(app, !!panel);
   useSelectionDroppedByPressAway(app, state.selecting);
   if (!showing(state)) return null;
@@ -914,7 +1076,9 @@ export function PageUi(props: {
       {...(phoneFullscreen
         ? {
             variant: "side" as const,
-            frame: inColumn ? columnFrame(sidebarSide) : PHONE_PANEL_FRAME,
+            frame: inColumn
+              ? columnFrame(safeArea, sidebarSide)
+              : phonePanelFrame(safeArea),
             selected,
             back: inColumn,
           }
@@ -956,6 +1120,9 @@ export function PageUi(props: {
           app={app}
           state={state}
           column={sidebar ? sidebarSide : null}
+          safe={safeArea}
+          controls={siteControls}
+          controlsLift={controlsLift}
         />
       )}
       {inColumn ? <ThemeScope theme="dark">{window}</ThemeScope> : window}

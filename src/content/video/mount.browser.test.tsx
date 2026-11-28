@@ -139,6 +139,28 @@ afterEach(async () => {
   style.remove();
 });
 
+/**
+ * A control of the site's drawn over the player (`siteControls`), placed by `css` in a
+ * layer over it (as m.youtube.com's controls), which the adapter then gives.
+ */
+function siteControl(label: string, css: string, role?: string) {
+  let layer = page.player.querySelector<HTMLElement>("[data-site-controls]");
+  if (!layer) {
+    layer = document.createElement("div");
+    layer.dataset.siteControls = "";
+    layer.style.cssText = "position: absolute; inset: 0; pointer-events: none;";
+    page.player.append(layer);
+    const roots = [layer];
+    Object.assign(adapter, { siteControls: () => roots });
+  }
+  const control = document.createElement("button");
+  control.setAttribute("aria-label", label);
+  if (role) control.setAttribute("role", role);
+  control.style.cssText = `position: absolute; padding: 0; ${css}`;
+  layer.append(control);
+  return control;
+}
+
 function mount(state: VideoState = readyState()) {
   const fake = fakeApp(state);
   unmount = mountVideoUi({ adapter, app: fake.app });
@@ -345,15 +367,18 @@ describe("mountVideoUi", () => {
       app: fake.app,
       touchMode: fixedTouchMode(true),
     });
+    // Pinned, the band is drawn over the page, never inside the site's elements.
     await expect
-      .poll(() => text("langle-video-below"))
+      .poll(() => text("langle-video"))
       .toContain("The yeast smells tangy.");
+    expect(text("langle-video-below")).toBe("");
     const band = () =>
-      inside("langle-video-below")!
-        .querySelector("[role=region]")!
-        .getBoundingClientRect();
+      (
+        inside("langle-video")!.querySelector("[role=region]") ??
+        inside("langle-video-below")!.querySelector("[role=region]")!
+      ).getBoundingClientRect();
     await expect.poll(() => band().top).toBe(267);
-    // The host keeps the band's room in the page.
+    // The host under the player keeps the band's room in the page.
     const room = host("langle-video-below").getBoundingClientRect();
     expect(room.height).toBeGreaterThan(0);
     expect(room.height).toBeCloseTo(band().height, 0);
@@ -366,6 +391,8 @@ describe("mountVideoUi", () => {
     // The site renders again (Langle places its parts on the page's mutations).
     const rendered = document.body.appendChild(document.createElement("hr"));
     await expect.poll(() => host("langle-video-below").style.height).toBe("");
+    expect(text("langle-video-below")).toContain("The yeast smells tangy.");
+    expect(text("langle-video")).not.toContain("The yeast smells tangy.");
     scrollTo(0, 100);
     await expect
       .poll(() => band().top)
@@ -375,6 +402,41 @@ describe("mountVideoUi", () => {
     tail.remove();
     clipping.style.overflowX = "";
     clipping.style.paddingTop = "";
+  });
+
+  it("in touch mode, the pinned band stays under the player when the site puts a transform on an element around it, and its words open the dictionary", async () => {
+    const fake = fakeApp(readyState());
+    page.player.style.cssText +=
+      "position: fixed; top: 48px; left: 0; width: 390px; height: 219px;";
+    const below = adapter.belowVideoElement()!;
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: fixedTouchMode(true),
+    });
+    await expect
+      .poll(() => text("langle-video"))
+      .toContain("The yeast smells tangy.");
+    const word = () =>
+      [
+        ...inside("langle-video")!.querySelectorAll<HTMLElement>("[data-span]"),
+      ].find((el) => el.textContent === "tangy")!;
+    const band = () =>
+      inside("langle-video")!
+        .querySelector("[role=region]")!
+        .getBoundingClientRect().top;
+    await expect.poll(band).toBe(267);
+    // As m.youtube.com on `ytm-watch` (48px down, under the site's header) during a
+    // tap: a transform, even one that moves nothing, makes the element the box
+    // `position: fixed` inside it is placed in.
+    const around = below.parentElement!;
+    around.style.cssText += "margin-top: 48px; transform: translateY(0px);";
+    expect(around.getBoundingClientRect().top).toBe(48);
+    expect(band()).toBe(267);
+    await userEvent.click(word());
+    expect(fake.spy("clickWord")).toHaveBeenCalledWith({ cue: 0, span: 1 });
+    around.style.marginTop = "";
+    around.style.transform = "";
   });
 
   it("in touch mode, shows Paused at the video's top left while Langle holds it paused; never on a desktop", async () => {
@@ -411,6 +473,67 @@ describe("mountVideoUi", () => {
     await expect
       .poll(() => text("langle-video-player"))
       .not.toContain("Paused");
+  });
+
+  it("in touch mode, Paused moves under the site's controls over it, and back when they go", async () => {
+    // As m.youtube.com's unmute button while the video is muted, and a 12px stand-in
+    // for screen readers (not a control to keep clear of).
+    const unmute = siteControl(
+      "Tap to unmute",
+      "left: 0; top: 0; width: 196px; height: 73px;",
+    );
+    siteControl("Mute", "left: 12px; top: 12px; width: 12px; height: 12px;");
+    const fake = fakeApp(readyState({ heldPaused: true }));
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: fixedTouchMode(true),
+    });
+    await expect.poll(() => pausedPill("langle-video-player")).not.toBeNull();
+    const top = () =>
+      pausedPill("langle-video-player")!.getBoundingClientRect().top -
+      page.player.getBoundingClientRect().top;
+    await expect.poll(top).toBe(73 + 8);
+    unmute.style.visibility = "hidden";
+    await expect.poll(top).toBe(12);
+  });
+
+  it("in touch mode, the sheet opens under the band and follows its height", async () => {
+    const fake = fakeApp(readyState());
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: fixedTouchMode(true),
+    });
+    await expect
+      .poll(() => text("langle-video-below"))
+      .toContain("The yeast smells tangy.");
+    const band = () =>
+      inside("langle-video-below")!
+        .querySelector("[role=region]")!
+        .getBoundingClientRect().bottom;
+    const sheet = () =>
+      inside("langle-video")
+        ?.querySelector("aside[aria-label='Dictionary']")
+        ?.getBoundingClientRect().top ?? null;
+    fake.store.set({
+      panel: {
+        ref: { cue: 0, span: 1 },
+        card: TANGY,
+        here: [],
+        dictionaries: [],
+        opened: 1,
+      },
+    });
+    await expect.poll(sheet).not.toBeNull();
+    await expect.poll(() => Math.round(sheet()!)).toBe(Math.round(band()));
+    const before = band();
+    // A taller band (the band's room grows with it): the sheet moves down with it.
+    const extra = document.createElement("div");
+    extra.style.height = "40px";
+    inside("langle-video-below")!.querySelector("[role=region]")!.append(extra);
+    await expect.poll(band).toBeGreaterThan(before + 10);
+    await expect.poll(() => Math.round(sheet()!)).toBe(Math.round(band()));
   });
 
   it("off: only the player buttons stay", async () => {
@@ -1183,6 +1306,45 @@ describe("mountVideoUi", () => {
         await expect.poll(at).toEqual([356 + 12, 12, 28]);
         store.set({ heldPaused: false });
         await expect.poll(() => pausedPill("langle-video")).toBeNull();
+      });
+
+      it("moves the L and Paused under the site's controls at the top, and the subtitle above its bar", async () => {
+        await browserPage.viewport(844, 390);
+        const { store } = mountTouch("off");
+        await fullscreen();
+        // As m.youtube.com's controls in fullscreen: the gear at the top right, the
+        // unmute button at the top left, the seek bar along the bottom.
+        const shown = [
+          siteControl(
+            "Settings",
+            "right: 8px; top: 0; width: 48px; height: 48px;",
+          ),
+          siteControl(
+            "Unmute",
+            "left: 40px; top: 0; width: 196px; height: 73px;",
+          ),
+          siteControl(
+            "Seek",
+            "left: 30px; right: 30px; bottom: 0; height: 44px;",
+            "slider",
+          ),
+        ];
+        store.set({ heldPaused: true });
+        await expect.poll(() => pausedPill("langle-video")).not.toBeNull();
+        const l = await button("langle-video", "Langle");
+        const pill = () => pausedPill("langle-video")!.getBoundingClientRect();
+        const region = () =>
+          inside("langle-video")!
+            .querySelector("[role=region]")!
+            .getBoundingClientRect();
+        await expect.poll(() => l.getBoundingClientRect().top).toBe(48 + 8);
+        await expect.poll(() => pill().top).toBe(73 + 8);
+        await expect.poll(() => innerHeight - region().bottom).toBe(44 + 12);
+        // The controls fade out: each goes back to the mock's place.
+        for (const each of shown) each.style.opacity = "0";
+        await expect.poll(() => l.getBoundingClientRect().top).toBe(12);
+        await expect.poll(() => pill().top).toBe(16);
+        await expect.poll(() => innerHeight - region().bottom).toBe(28);
       });
 
       it("with the transcript at a side: a 300px column 44px from that edge, the video beside it, the dictionary inside", async () => {
