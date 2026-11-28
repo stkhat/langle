@@ -6,6 +6,7 @@ import {
   type DecidedHosts,
 } from "../core/site-access/undecided-url";
 import { serial } from "../core/util";
+import { reportError } from "./report";
 
 /** The marked toolbar icon (`scripts/make-icons.ts`), at the sizes the toolbar draws. */
 export const MARK_ICON_PATHS = {
@@ -147,7 +148,7 @@ export interface SiteMarkDeps {
 export function followSiteMark(deps: SiteMarkDeps): {
   readonly idle: Promise<unknown>;
 } {
-  const work = serial((error) => console.error(error));
+  const work = serial(reportError);
   let queued = false;
   let forced = false;
 

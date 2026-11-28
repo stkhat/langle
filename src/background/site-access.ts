@@ -2,6 +2,7 @@ import { articleMatches, patternsCoverHost } from "../core/site-access/origins";
 import { serial } from "../core/util";
 import { isPresence } from "../messaging/page-protocol";
 import type { PendingTab, SiteAccessRemoved } from "../messaging/site-access";
+import { reportError } from "./report";
 
 /** The registered article script (architecture.md "Site access"). */
 export const ARTICLES_SCRIPT_ID = "articles";
@@ -93,7 +94,7 @@ const quiet = () => undefined;
 export function followSiteAccess(deps: SiteAccessDeps): SiteAccess {
   const { permissions, scripting, tabs } = deps;
   // One after another, so a change never races the one before it.
-  const work = serial((error) => console.error(error));
+  const work = serial(reportError);
   const queue = (task: () => Promise<unknown>) => {
     void work.run(task);
   };

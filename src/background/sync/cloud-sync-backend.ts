@@ -46,6 +46,7 @@ import type { HistoryStore } from "../history-store";
 import type { TermStore } from "../term-store";
 import { readCopy, storeCopy } from "./cloud-copy";
 import type { SyncArea } from "./browser-sync-backend";
+import { reportError } from "../report";
 
 /** `storage.local`: the connection to the user's own cloud storage (`CloudSyncState`). */
 export const CLOUD_SYNC_KEY = "cloudSync";
@@ -280,7 +281,7 @@ export function createCloudSyncBackend({
   timers = globalThis,
   limits = {},
 }: CloudSyncBackendOptions): CloudSyncBackend {
-  const queue = serial((error: unknown) => console.error(error));
+  const queue = serial(reportError);
   const enqueue = <T>(op: () => Promise<T>) => queue.run(op);
 
   let state: CloudSyncState | undefined;
@@ -376,7 +377,7 @@ export function createCloudSyncBackend({
     else {
       if (s.error === undefined) s.error = "retrying";
       scheduleRetry(error instanceof CloudError ? error.retryAfterMs : 0);
-      if (kind !== "retry") console.error(errorText(error));
+      if (kind !== "retry") reportError(errorText(error));
     }
   }
 
@@ -401,7 +402,7 @@ export function createCloudSyncBackend({
       const address = await provider.files.account(token);
       if (address !== undefined) s.account = address;
     } catch (error) {
-      if (cloudErrorKind(error) !== "retry") console.error(errorText(error));
+      if (cloudErrorKind(error) !== "retry") reportError(errorText(error));
     }
   }
 
@@ -510,7 +511,7 @@ export function createCloudSyncBackend({
               decoded.skipped.length > 0 &&
               s.seen[info.path] !== info.modifiedTime
             )
-              console.error(
+              reportError(
                 `Cloud sync: ${version}: ${skippedText(decoded.skipped)}`,
               );
             read.push({ ...info, file: decoded.file });
@@ -527,7 +528,7 @@ export function createCloudSyncBackend({
               decoded.status === "broken"
                 ? decoded.reason
                 : "not a Langle cloud file";
-            console.error(`Cloud sync: ${version} cannot be read: ${reason}`);
+            reportError(`Cloud sync: ${version} cannot be read: ${reason}`);
           }
         }
 
@@ -602,7 +603,7 @@ export function createCloudSyncBackend({
           // others come): every write builds the files again from the same rows.
           const rows = `${path}\n${skipped.map((r) => `${r.list} ${r.row}`).join("\n")}`;
           if (!logged.has(rows))
-            console.error(
+            reportError(
               `Cloud sync: ${path} as written: ${skippedText(skipped)}`,
             );
           logged.add(rows);
@@ -674,7 +675,7 @@ export function createCloudSyncBackend({
         // Without the provider the change waits in the flags for a build that has it.
         if (providerOf(s)) scheduleWrite();
       })
-      .catch((error: unknown) => console.error(error));
+      .catch(reportError);
   }
 
   function requestCheck() {

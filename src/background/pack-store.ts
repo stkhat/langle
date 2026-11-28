@@ -11,6 +11,7 @@ import type { PackState, PackStates } from "../core/packs/state";
 import { PacksUnavailableError } from "../core/packs/unavailable";
 import { errorText, listeners, own, promiseCache, serial } from "../core/util";
 import type { LangleDb, PackVersionRecord } from "./db";
+import { reportError } from "./report";
 
 /** What `ensure` did: the packs now at their lock version, and those that failed. */
 export interface EnsureResult {
@@ -213,7 +214,7 @@ export function createPackStore({
     writes
       .run(() => setState(snapshot))
       .catch((error: unknown) =>
-        console.error("Langle: could not write the pack state", error),
+        reportError("Langle: could not write the pack state", error),
       );
   }
 

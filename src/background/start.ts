@@ -45,6 +45,7 @@ import { PACK_STATE_KEY } from "../core/packs/state";
 import { getSetupStage, watchSetupStage, whenSetUp } from "../messaging/setup";
 import { fetchLocale } from "../i18n/ui-locale";
 import { watchSettings } from "../messaging/storage";
+import { reportError } from "./report";
 
 /**
  * Runs each time the service worker starts. Everything is created again on a restart:
@@ -264,14 +265,13 @@ export function startBackground(): void {
   // Both read what changed while they did not run when they start, so an event that
   // came before they listen is not lost; the worker is woken by the listeners above.
   whenSetUp(() => {
-    sync.start().catch((error: unknown) => console.error(error));
-    cloud.start().catch((error: unknown) => console.error(error));
+    sync.start().catch(reportError);
+    cloud.start().catch(reportError);
   });
 
   // `npm run build:check` only: reload when a new build is copied in. The mode is a
   // constant at build time, so other builds leave this (and self-reload.ts) out.
-  if (import.meta.env.MODE === "check")
-    watchBuild().catch((error: unknown) => console.error(error));
+  if (import.meta.env.MODE === "check") watchBuild().catch(reportError);
 }
 
 /** The manifest's own content-script matches (the video sites). */

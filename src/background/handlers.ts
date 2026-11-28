@@ -90,6 +90,7 @@ import type { TranslationCache } from "./translation-cache";
 import type { ExplanationCache } from "./explanation-cache";
 import type { SiteAccess } from "./site-access";
 import { isPendingTab } from "../messaging/site-access";
+import { reportError } from "./report";
 
 /** What the handlers work with; tests pass fakes. */
 export interface HandlerDeps {
@@ -278,7 +279,7 @@ export function createHandlers({
     try {
       return await translations.get(pair, texts);
     } catch (error) {
-      console.error("Langle: could not read the translation cache", error);
+      reportError("Langle: could not read the translation cache", error);
       return {};
     }
   }
@@ -425,7 +426,7 @@ export function createHandlers({
       const kept = await history.find(id, { limit: MAX_OCCURRENCES });
       if (kept.length > 0) await store.importOccurrences(id, kept);
     } catch (error) {
-      console.error("Langle: could not import the sentence history", error);
+      reportError("Langle: could not import the sentence history", error);
     }
   }
 
@@ -564,7 +565,7 @@ export function createHandlers({
           });
           elsewhere.push(...kept.map((o) => view(o)));
         } catch (error) {
-          console.error("Langle: could not read the sentence history", error);
+          reportError("Langle: could not read the sentence history", error);
         }
       }
       const entry = dictionary.entry(

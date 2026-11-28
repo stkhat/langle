@@ -10,6 +10,7 @@ import {
   uiDirection,
   type UiLocaleDeps,
 } from "../i18n/ui-locale";
+import { reportError } from "./report";
 
 /** The keys native code draws with: en.json's `app.` ones. */
 const APP_KEYS = Object.keys(en).filter((key) =>
@@ -54,7 +55,7 @@ export function followNativeStrings(deps: NativeStringsDeps): () => void {
     deps.send(set).catch((error: unknown) => {
       // Sent again on the next change.
       if (sent === json) sent = "";
-      console.error(error);
+      reportError(error);
     });
   };
   const unlisten = onUiLocaleChange(send);
