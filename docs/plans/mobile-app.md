@@ -65,7 +65,7 @@ Everything left for the phone app after M0–M8: the milestones still to run, an
 - ~~A model pack that fails at every mirror gives its reason only in logcat~~ — done (#364): "Pack <pack>: failed, <why>" in the error log.
 - ~~"Last export" is set when the share sheet opens~~ — done (#364): set only when a target is chosen (iOS `completionWithItemsHandler`, Android the chooser's chosen component). Android cannot tell a target that then fails.
 - ~~Before the first `models.ensure`, `translatorStatus` is `unavailable`~~ — done (#364): `packs` for a pair in the catalogue never downloaded.
-- **Subtitle translations are sometimes one fragment off**: a card's translation can start with the previous sentence's (seen at 0:48 of the TED talk on Android, "Phone page layout fixes (2026-11-28)").
+- **Subtitle translations are sometimes one fragment off**: a card's translation can start with the previous sentence's (seen at 0:48 of the TED talk in the band and the transcript on Android, 2026-11-28; not looked into yet).
 
 ### Differences from the mock
 - ~~The Langle sheet is always at full height~~ — done (#350): sized to its content (`appHost.contentHeight`).
