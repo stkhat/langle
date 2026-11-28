@@ -37,8 +37,25 @@ export const patternsCoverHost = (patterns: readonly string[], host: string) =>
     patternCovers(pattern, new URL(`https://${host}/`)),
   );
 
-const coversEveryHost = (pattern: string) =>
+/** Whether a pattern grants every web host: Chrome's "On all sites". */
+export const coversEveryHost = (pattern: string) =>
   pattern === "<all_urls>" || pattern === ALL_WEB;
+
+/**
+ * The host a web match pattern names, with `subdomains` for `*.host`; undefined for
+ * one that names none (every host, or not a web pattern).
+ */
+export function patternHost(
+  pattern: string,
+): { host: string; subdomains: boolean } | undefined {
+  const match = PATTERN.exec(pattern);
+  const [, scheme = "", host = ""] = match ?? [];
+  if (!match || !["*", "http", "https"].includes(scheme)) return undefined;
+  if (host === "" || host === "*") return undefined;
+  return host.startsWith("*.")
+    ? { host: host.slice(2), subdomains: true }
+    : { host, subdomains: false };
+}
 
 const isWebPattern = (pattern: string) =>
   /^(\*|https?):\/\/[^/]+\/.*$/.test(pattern);

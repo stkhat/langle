@@ -3,8 +3,32 @@ import {
   articleMatches,
   hostOrigin,
   patternCovers,
+  patternHost,
   patternsCoverHost,
 } from "./origins";
+
+describe("patternHost", () => {
+  it("names a pattern's host, and whether its subdomains come too", () => {
+    expect(patternHost("*://example.com/*")).toEqual({
+      host: "example.com",
+      subdomains: false,
+    });
+    expect(patternHost("https://*.example.com/*")).toEqual({
+      host: "example.com",
+      subdomains: true,
+    });
+  });
+
+  it("names none for every host or a page that is not on the web", () => {
+    for (const pattern of [
+      "*://*/*",
+      "<all_urls>",
+      "file:///*",
+      "chrome://x/*",
+    ])
+      expect(patternHost(pattern), pattern).toBeUndefined();
+  });
+});
 
 describe("hostOrigin", () => {
   it("is the host's pattern for any scheme and path, without the port", () => {
