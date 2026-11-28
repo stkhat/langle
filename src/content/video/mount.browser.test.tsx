@@ -367,15 +367,18 @@ describe("mountVideoUi", () => {
       app: fake.app,
       touchMode: fixedTouchMode(true),
     });
+    // Pinned, the band is drawn over the page, never inside the site's elements.
     await expect
-      .poll(() => text("langle-video-below"))
+      .poll(() => text("langle-video"))
       .toContain("The yeast smells tangy.");
+    expect(text("langle-video-below")).toBe("");
     const band = () =>
-      inside("langle-video-below")!
-        .querySelector("[role=region]")!
-        .getBoundingClientRect();
+      (
+        inside("langle-video")!.querySelector("[role=region]") ??
+        inside("langle-video-below")!.querySelector("[role=region]")!
+      ).getBoundingClientRect();
     await expect.poll(() => band().top).toBe(267);
-    // The host keeps the band's room in the page.
+    // The host under the player keeps the band's room in the page.
     const room = host("langle-video-below").getBoundingClientRect();
     expect(room.height).toBeGreaterThan(0);
     expect(room.height).toBeCloseTo(band().height, 0);
@@ -388,6 +391,8 @@ describe("mountVideoUi", () => {
     // The site renders again (Langle places its parts on the page's mutations).
     const rendered = document.body.appendChild(document.createElement("hr"));
     await expect.poll(() => host("langle-video-below").style.height).toBe("");
+    expect(text("langle-video-below")).toContain("The yeast smells tangy.");
+    expect(text("langle-video")).not.toContain("The yeast smells tangy.");
     scrollTo(0, 100);
     await expect
       .poll(() => band().top)
@@ -397,6 +402,41 @@ describe("mountVideoUi", () => {
     tail.remove();
     clipping.style.overflowX = "";
     clipping.style.paddingTop = "";
+  });
+
+  it("in touch mode, the pinned band stays under the player when the site puts a transform on an element around it, and its words open the dictionary", async () => {
+    const fake = fakeApp(readyState());
+    page.player.style.cssText +=
+      "position: fixed; top: 48px; left: 0; width: 390px; height: 219px;";
+    const below = adapter.belowVideoElement()!;
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: fixedTouchMode(true),
+    });
+    await expect
+      .poll(() => text("langle-video"))
+      .toContain("The yeast smells tangy.");
+    const word = () =>
+      [
+        ...inside("langle-video")!.querySelectorAll<HTMLElement>("[data-span]"),
+      ].find((el) => el.textContent === "tangy")!;
+    const band = () =>
+      inside("langle-video")!
+        .querySelector("[role=region]")!
+        .getBoundingClientRect().top;
+    await expect.poll(band).toBe(267);
+    // As m.youtube.com on `ytm-watch` (48px down, under the site's header) during a
+    // tap: a transform, even one that moves nothing, makes the element the box
+    // `position: fixed` inside it is placed in.
+    const around = below.parentElement!;
+    around.style.cssText += "margin-top: 48px; transform: translateY(0px);";
+    expect(around.getBoundingClientRect().top).toBe(48);
+    expect(band()).toBe(267);
+    await userEvent.click(word());
+    expect(fake.spy("clickWord")).toHaveBeenCalledWith({ cue: 0, span: 1 });
+    around.style.marginTop = "";
+    around.style.transform = "";
   });
 
   it("in touch mode, shows Paused at the video's top left while Langle holds it paused; never on a desktop", async () => {

@@ -135,7 +135,9 @@ async function openMobileWatch(
   await transcript
     .getByRole("button", { name: LINE })
     .click({ position: ON_TIME, timeout: COLD_LOAD.timeout });
-  const subtitle = page.locator("langle-video-below").getByRole("region", {
+  // Pinned under the sticky player: drawn over the page (`langle-video` in <body>),
+  // while `langle-video-below` keeps its room in the page.
+  const subtitle = page.locator("langle-video").getByRole("region", {
     name: en["video.subtitle"],
   });
   await expect(subtitle).toContainText(LINE);
@@ -169,6 +171,10 @@ test("m.youtube.com: the subtitle pinned under the player, the transcript under 
   const band = (await subtitle.boundingBox())!;
   expect(band.y).toBeCloseTo(player.y + player.height, 0);
   expect(band.width).toBe(390);
+  // Its room in the page, under the player.
+  const room = page.locator("langle-video-below");
+  await expect(room.getByRole("region")).toHaveCount(0);
+  expect((await room.boundingBox())!.height).toBeCloseTo(band.height, 0);
   // Pinned: it stays under the player while the page scrolls under it.
   expect(await page.evaluate(() => (scrollTo(0, 400), scrollY))).toBe(400);
   await expect

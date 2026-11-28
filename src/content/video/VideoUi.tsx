@@ -560,19 +560,26 @@ export function MenuUi(props: {
 }
 
 /**
- * Under the video: the large subtitle box (subtitle position "Below video"). Pinned, it
- * is fixed under the player and tells its height (`onPinnedHeight`, null when it goes),
- * so its host keeps its room in the page. Fixed, not sticky: a sticky box sticks only
- * inside its nearest scroll container, and on the iPhone m.youtube.com's `ytm-app`
- * (`overflow-x: hidden`, never scrolled) is that container, so a sticky box scrolled
- * away with the page.
+ * Under the video: the large subtitle box (subtitle position "Below video"), drawn by
+ * one of two parts. `inPage` (the host under the player): the box in the page's flow,
+ * while it scrolls with the page. Over the page (the host in `<body>`): the box while it
+ * is pinned, fixed under the player; it tells its height (`onPinnedHeight`, null when it
+ * goes), so the host under the player keeps its room in the page.
+ *
+ * Langle's fixed parts never sit inside the site's elements: any of them can get a
+ * transform (m.youtube.com puts one on `ytm-watch` during a tap), a filter or `contain`,
+ * which makes it the box `position: fixed` is placed in, and the band would jump from
+ * under the finger. Fixed, not sticky: a sticky box sticks only inside its nearest
+ * scroll container, and on the iPhone m.youtube.com's `ytm-app` (`overflow-x: hidden`,
+ * never scrolled) is that container, so a sticky box scrolled away with the page.
  */
 export function BelowVideoUi(props: {
   app: VideoApp;
   layout: Store<VideoLayout>;
+  inPage?: boolean;
   onPinnedHeight?: (height: number | null) => void;
 }) {
-  const { app, onPinnedHeight } = props;
+  const { app, inPage = false, onPinnedHeight } = props;
   const state = useStore(app.store);
   const { touch, fillsWindow, pinned } = useStore(props.layout);
   const band = useRef<HTMLDivElement>(null);
@@ -580,7 +587,8 @@ export function BelowVideoUi(props: {
     showing(state) &&
     !state.fullscreen &&
     !(touch && fillsWindow) &&
-    subtitlePosition(state.settings, touch) === "belowVideo";
+    subtitlePosition(state.settings, touch) === "belowVideo" &&
+    (pinned === null) === inPage;
   const isPinned = shown && pinned !== null;
   useLayoutEffect(() => {
     const element = band.current;

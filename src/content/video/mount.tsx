@@ -107,7 +107,8 @@ const MAX_MOVES_PER_SECOND = 10;
 
 /**
  * Mounts the video UI on the site's page, each part in its own shadow root: the
- * subtitle inside the player, the subtitle box under it, the transcript in the side
+ * subtitle inside the player, the subtitle box under it (drawn over the page while it is
+ * pinned there, `BelowVideoUi`), the transcript in the side
  * column, the L and ^ buttons in the player bar, and the menu, the hover card and the
  * dictionary window over the page (inside the fullscreen element while there is one).
  * Where the player fills the window or the screen (Netflix; YouTube in fullscreen), the
@@ -197,15 +198,8 @@ export function mountVideoUi({
       const below = adapter.belowVideoElement();
       return below ? { parent: below, before: below.firstElementChild } : null;
     },
-    <BelowVideoUi
-      app={app}
-      layout={layout}
-      onPinnedHeight={(height) => {
-        pinnedHeight = height;
-        belowHost.style.height = height === null ? "" : `${height}px`;
-        tellPinnedBottom();
-      }}
-    />,
+    // While pinned, the band is drawn over the page (below) and this host keeps its room.
+    <BelowVideoUi app={app} layout={layout} inPage />,
   );
   made.below = belowHost;
   made.transcript = part(
@@ -249,8 +243,19 @@ export function mountVideoUi({
       const parent = fullscreenHost() ?? document.body;
       return parent ? { parent, before: null } : null;
     },
-    // The menu first: the dictionary window and the hover card stack above it.
+    // The pinned band and the menu first: the dictionary window and the hover card
+    // stack above them. Every fixed part is here, never inside the site's elements
+    // (`BelowVideoUi`).
     <>
+      <BelowVideoUi
+        app={app}
+        layout={layout}
+        onPinnedHeight={(height) => {
+          pinnedHeight = height;
+          belowHost.style.height = height === null ? "" : `${height}px`;
+          tellPinnedBottom();
+        }}
+      />
       <MenuUi app={app} geometry={geometry} layout={layout} />
       <PageUi app={app} geometry={geometry} layout={layout} />
     </>,
@@ -414,8 +419,9 @@ export function mountVideoUi({
   /**
    * In touch mode, under a player that stays at the window's top while the page
    * scrolls (it or an ancestor is fixed or sticky: m.youtube.com's portrait page), the
-   * subtitle box is pinned under the player (`BelowVideoUi`), so the line stays in view
-   * over the page; its host keeps its room in the page.
+   * subtitle box is pinned under the player (`BelowVideoUi`, drawn from the host in
+   * `<body>`), so the line stays in view over the page; the host under the player keeps
+   * its room in the page and tells where it is drawn.
    */
   function pinBelow(player: HTMLElement | null) {
     const box =
