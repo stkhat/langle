@@ -332,6 +332,11 @@ final class AppModel: ObservableObject {
       follow(shell.committed(tab: tabId, url: url.absoluteString))
     }
     context.onProcessGone = { [weak context] in context?.page.reload() }
+    context.onLeaveApp = { [weak self] url in
+      // A web page in the one page, as Android's app pages do; other schemes (mailto:) stay put.
+      guard let self, PageAddress.isWeb(url) else { return }
+      follow(shell.open(url.absoluteString))
+    }
     context.load(url)
     return context
   }

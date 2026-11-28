@@ -16,6 +16,8 @@ final class ContextPage: PageDelegate {
 
   var onNavigate: ((_ url: URL?, _ title: String, _ canGoBack: Bool, _ canGoForward: Bool) -> Void)?
   var onCommit: ((URL) -> Void)?
+  /// An app page's link off the app origin (`PageDelegate.page(_:leaveApp:)`).
+  var onLeaveApp: ((URL) -> Void)?
   var onProcessGone: (() -> Void)?
   var onFullscreen: ((Bool) -> Void)?
   var onScroll: ((Double) -> Void)?
@@ -61,6 +63,10 @@ final class ContextPage: PageDelegate {
       page?.postMessage(world: world, frameId: 0, json: json)
     }
     onCommit?(url)
+  }
+
+  func page(_ page: Page, leaveApp url: URL) {
+    onLeaveApp?(url)
   }
 
   func page(_ page: Page, didNavigate url: URL?, title: String, canGoBack: Bool, canGoForward: Bool) {

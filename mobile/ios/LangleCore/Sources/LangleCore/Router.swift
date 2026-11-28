@@ -476,8 +476,8 @@ public final class Router {
     case "appHost.openPage":
       // A web page from an app page (Home's search, Continue, a link in Words): the shell
       // opens it over Home.
-      guard let text = args.first?.string, let url = URL(string: text), url.scheme != nil else {
-        throw BridgeError("appHost.openPage needs an address")
+      guard let text = args.first?.string, let url = URL(string: text), PageAddress.isWeb(url) else {
+        throw BridgeError("appHost.openPage needs an http(s) address.")
       }
       openTab(url.absoluteString)
       done(.success(nil))

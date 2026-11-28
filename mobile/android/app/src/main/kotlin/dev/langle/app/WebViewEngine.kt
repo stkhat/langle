@@ -252,8 +252,15 @@ private class WebViewPage(
   }
 
   override fun load(url: String) {
+    // Only web addresses: `javascript:` would run in the shown document, `file:` and `content:`
+    // would read the phone's files. Links on the page still go through the client's rules.
+    val uri = Uri.parse(url)
+    if (uri.scheme?.lowercase() !in LOADABLE_SCHEMES) {
+      Log.w(TAG, "not loading a non-web address")
+      return
+    }
     lastUrl = url
-    prepareHost(Uri.parse(url))
+    prepareHost(uri)
     web.loadUrl(url)
   }
 
@@ -483,6 +490,8 @@ private class WebViewPage(
     const val DOCUMENT_MARK = "langleDocument"
     const val DOCUMENT_MARK_PREFIX = "{\"$DOCUMENT_MARK\":"
     const val EVAL_PREFIX = "langle-check-eval "
+    /** What [load] opens: the app origin and web pages are all http(s). */
+    val LOADABLE_SCHEMES = setOf("http", "https")
     val WEB_SCHEMES = setOf("http", "https", "about", "data", "blob", "javascript", "file")
     /** A host an origin rule can name (no IPv6 brackets, no ports, no odd characters). */
     val COMPLETE_HOST = Regex("[a-z0-9-]+(\\.[a-z0-9-]+)*")

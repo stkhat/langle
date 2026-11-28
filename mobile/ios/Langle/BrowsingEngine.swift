@@ -65,6 +65,9 @@ protocol PageDelegate: AnyObject {
   func page(_ page: Page, willLoad url: URL)
   /// A new top-level document replaced the old one.
   func page(_ page: Page, didCommit url: URL)
+  /// An app page tried to open `url`, off the app origin: it was not loaded there (its page
+  /// world holds the bridge); the shell opens it in the browsing page.
+  func page(_ page: Page, leaveApp url: URL)
   func page(_ page: Page, didNavigate url: URL?, title: String, canGoBack: Bool, canGoForward: Bool)
   /// The page's content process is gone (memory pressure, a crash).
   func pageProcessGone(_ page: Page)
