@@ -17,8 +17,16 @@ function decided(host: string, hosts: DecidedHosts): boolean {
   );
 }
 
-const matchesAny = (regexes: readonly string[], url: string) =>
-  regexes.some((source) => new RegExp(source).test(url));
+/** Compiled once per set of regexes: compiling per URL is what made the checks slow. */
+const compiledOf = new WeakMap<readonly string[], RegExp[]>();
+const matchesAny = (regexes: readonly string[], url: string) => {
+  let compiled = compiledOf.get(regexes);
+  if (!compiled) {
+    compiled = regexes.map((source) => new RegExp(source));
+    compiledOf.set(regexes, compiled);
+  }
+  return compiled.some((regex) => regex.test(url));
+};
 
 /** A small seeded random source, so a failure repeats. */
 function random(seed: number) {
@@ -67,8 +75,12 @@ const neighbours = (host: string) =>
     `${host.slice(0, -1)}z`,
   ].filter((name) => name !== "" && !name.startsWith("."));
 
-function expectAgrees(hosts: DecidedHosts, probes: readonly string[]) {
-  const regexes = undecidedUrlRegexes(hosts);
+function expectAgrees(
+  hosts: DecidedHosts,
+  probes: readonly string[],
+  maxChars?: number,
+) {
+  const regexes = undecidedUrlRegexes(hosts, maxChars);
   const wrong = probes.flatMap((host) =>
     urlsOf(host).flatMap((url) =>
       matchesAny(regexes, url) === !decided(host, hosts) ? [] : [url],
@@ -165,10 +177,14 @@ describe("undecidedUrlRegexes", () => {
         exact: pool.slice(0, count),
         withSubdomains: pool.slice(count, count + Math.ceil(count / 10)),
       };
-      expectAgrees(hosts, [
-        ...pool.slice(0, 120).flatMap(neighbours),
-        ...Array.from({ length: 100 }, () => randomHost(next)),
-      ]);
+      expectAgrees(
+        hosts,
+        [
+          ...pool.slice(0, 120).flatMap(neighbours),
+          ...Array.from({ length: 100 }, () => randomHost(next)),
+        ],
+        1000,
+      );
     }
   });
 
