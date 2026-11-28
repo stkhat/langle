@@ -16,7 +16,11 @@
 //   per source and recipe, written to data/raw/quality/l3/; nothing is written to packs)
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { nativeLanguage, NATIVE_LANGUAGES } from "../../../src/core/natives.ts";
+import {
+  nativeLanguage,
+  NATIVE_LANGUAGES,
+  type RecipeNative,
+} from "../../../src/core/natives.ts";
 import { GERMAN_RULES } from "../../../src/core/phrases/de.ts";
 import { FRENCH_RULES } from "../../../src/core/phrases/fr.ts";
 import type {
@@ -69,6 +73,7 @@ import {
 import {
   LEARNING_RECIPES,
   learningRecipeTags,
+  RECIPES,
   type LearningRecipe,
   type LearningSourceKind,
 } from "./recipes.ts";
@@ -381,16 +386,17 @@ async function buildLearningPair(
 }
 
 /** A pair's recipe: its own (`LEARNING_RECIPES`), else the three sources in the default order. */
-function defaultRecipe(pair: string): LearningRecipe {
+export function defaultRecipe(pair: string): LearningRecipe {
   if (Object.hasOwn(LEARNING_RECIPES, pair))
     return LEARNING_RECIPES[pair as keyof typeof LEARNING_RECIPES];
   const [, native = ""] = pair.split("-");
+  const own = Object.hasOwn(RECIPES, native)
+    ? RECIPES[native as RecipeNative]
+    : undefined;
   return {
     order: ["edition", "tables", "reversed"],
-    tables: {
-      langCodes: native === "zh" ? ["zh", "cmn"] : [native],
-    },
-    ...(native === "zh" && { simplified: true }),
+    tables: { langCodes: own?.tables.langCodes ?? [native] },
+    ...(own?.simplified && { simplified: true }),
   };
 }
 

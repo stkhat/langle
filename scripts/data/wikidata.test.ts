@@ -9,6 +9,7 @@ import {
   entityJapanese,
   entityNative,
   entityWords,
+  LANGS,
   tsvValue,
   writtenCount,
   type AcronymItem,
@@ -16,6 +17,7 @@ import {
   type Entity,
   type Kind,
 } from "./wikidata.ts";
+import { RECIPES } from "./recipes/recipes.ts";
 
 const item = (
   id: string,
@@ -252,6 +254,45 @@ describe("the entities' meanings", () => {
     expect(entityNative("Nvidia", nvidia, "zh")).toEqual([
       ["英伟达", "American multinational technology company", "label"],
     ]);
+  });
+});
+
+describe("LANGS", () => {
+  it("keeps the languages and Wikidata codes the zh branches gave", () => {
+    expect(LANGS).toEqual([
+      "en",
+      "ja",
+      ...Object.keys(RECIPES).flatMap((lang) =>
+        lang === "zh" ? ["zh-hans", "zh"] : [lang],
+      ),
+    ]);
+    expect(LANGS).toContain("zh-hans");
+    expect(LANGS.indexOf("zh-hans") + 1).toBe(LANGS.indexOf("zh"));
+  });
+
+  it("picks Chinese simplified first, else as written, and other languages by their code", () => {
+    const entity = (label: Record<string, string>) => ({
+      label: { en: "Nvidia", ...label },
+      description: {},
+    });
+    const written = entityNative(
+      "Nvidia",
+      entity({ zh: "輝達" }) as never,
+      "zh",
+    );
+    expect(written[0]?.[0]).toBe("輝達");
+    const both = entityNative(
+      "Nvidia",
+      entity({ zh: "輝達", "zh-hans": "英伟达" }) as never,
+      "zh",
+    );
+    expect(both[0]?.[0]).toBe("英伟达");
+    const es = entityNative(
+      "Nvidia",
+      entity({ es: "Nvidia Corp", zh: "x" }) as never,
+      "es",
+    );
+    expect(es[0]?.[0]).toBe("Nvidia Corp");
   });
 });
 
