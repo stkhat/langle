@@ -106,3 +106,14 @@ In the user's Chrome, after PRs #87 and #89:
 
 ## Measuring
 Study folder `data/raw/quality/2026-11-cards/` (git-ignored): `corpus/` (28 videos and `manifest.json`), `runs/<version>-<sample>.jsonl` (cards per path), `proto/` (versions `base`, `v1`–`v6` as source trees, `cards-run.ts`, `cards-metrics.py`, `split-reasons.ts`, `line-cost.ts`, `card-packets.py`, `card-tally.py`), `packets/` (packets, keys, `RUBRIC-cards.txt`, results).
+
+## Loosely timed human tracks (2026-11-28)
+Reported: on the TED talk (iG9CE55wbtY, en + human ja), the card at 0:48 showed a translation starting with the previous sentence's, in the band and the transcript, on Android. Not phone-specific: `captionCards` is shared.
+
+- Cause: human tracks timed on their own sit far from the English cue edges (median line-edge distance to the nearest English edge 430–816 ms; tracks cut on the English cues 0–36 ms). `trackOffset` cannot repair it: there is no single shift (TED is on a whole-second grid; auto-synced tracks are cut mid-word). A line that straddles a sentence end then goes to the side it overlaps more, about as often late as early. At TED 0:48 the line overlaps the two sentences by 973 and 1000 ms.
+- Fix: `timingError` per track, and a monotone choice of each line's main card at least cost of time, length and cuts (architecture "Loosely timed site tracks"). A local per-region lag (Viterbi over shifts) was tried and dropped: on TED's grid it chose +1 s where −1 s was right.
+- Proxy (straddling lines judged by content against YouTube's machine translation of each card, 2026-11-cards + 2026-11 corpora, 336 judged): wrong 13.1% → 9.5%. All lines: 7.6% → 7.2%.
+- Blind judge (Opus, windows of changed cards, versions hidden): YouTube human tracks new 30 / old 14 / same 8; Netflix new 2 / old 3 / same 1 (10 of 5,796 cards change: Netflix tracks are cut on the closed captions' edges, so their timing error stays small). A first version with a fixed timing error for every track lost Netflix 19 to 37; taking the error from the track fixed that.
+- Unchanged: YouTube's machine translation and ASR paths (0 cards change), the band (it shows the track's own timing, as YouTube's own ja captions do).
+- Still open: TED 0:48 itself, an even time tie where the Japanese is restructured and gives no length or punctuation signal; only the lines' content (lexical anchors through the dictionary) could place it.
+- Checked in Chrome (check build a7311a04): TED's 0:43 card now starts with its own opening clause, as offline; GB0b6KFZVq0 shows Japanese on its cards; the error log was empty.

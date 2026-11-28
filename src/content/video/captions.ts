@@ -8,6 +8,7 @@ import {
   joinCoveredCards,
   joinerFor,
   shiftCues,
+  timingError,
   trackOffset,
 } from "../../core/subtitles/translation";
 import type { Cue } from "../../core/subtitles/types";
@@ -85,7 +86,12 @@ export function captionCards(captions: VideoCaptions): {
       translations:
         aligned?.translations ??
         (site
-          ? alignByOverlap(cards, translation.cues, { lang: translation.lang })
+          ? alignByOverlap(cards, translation.cues, {
+              lang: translation.lang,
+              ...(translation.source === "siteTrack" && {
+                timingErrorMs: timingError(captions.cues, translation.cues),
+              }),
+            })
           : cards.map(() => "")),
     },
     // Merged sentences no longer match the fragments' timing: show the aligned text.
