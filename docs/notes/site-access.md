@@ -83,3 +83,16 @@ Measured with Playwright's bundled Chromium, headless, the extension loaded thro
 - **A test-only `host_permissions: ["*://localhost/*"]`** in a copy of the build works. The origin shows in `getAll()`, a script registered for it from the worker injects, and without the registration nothing injects.
 - `permissions.remove` of that origin is refused: `You cannot remove required permissions.`
 - **So E2E covers**: start-up registration and highlights on the granted test origin, and no highlights on an origin without a grant. Unit tests with fake `permissions` / `scripting` cover the request, `onAdded` / `onRemoved`, the pending injection and turning off. The prompt and the mark stay with the real-site check.
+
+## 9. S4 real-site check (2026-11-28)
+The check build of `f218529d` (S1 to S3 merged) in the user's Chrome 158, Japanese UI, learning English. The build replaced one that had `<all_urls>` as a manifest host; after the reload no article site was granted (the old grant did not carry over to `*://*/*`).
+- **The mark**: an English site not decided yet (theguardian.com, apnews.com, bbc.com after a browser restart) showed the orange dot; a Japanese one (news.web.nhk) did not; a site on Never run on (npr.org) did not; the Guardian lost it once the popup had been opened there and the page loaded again.
+- **The popup**: the first opening on the Guardian showed the switch off with the orange ring and the bubble; the second opening showed no bubble.
+- **On**: Chrome's prompt, Allow, highlights on the open page with no reload (27 New); the next page on the host was highlighted (registered script).
+- **Off**: the highlights and Langle's UI left the page. `chrome://extensions` then dropped the host from the extension's site list, and **Chrome turned the extension's "Automatically allow access on the following sites" switch off by itself**; YouTube and Netflix kept their own switches and kept working. Chrome also reloaded the tab at least once.
+- **Back on after off: no prompt.** Chrome grants a host it granted before again silently; `permissions.getAll()` lists it, `contains` is true and the `articles` script matches it, but the open page got no script: the grant's `onAdded` came before the popup's `siteAccessPending`, so there was no pending tab to inject into. A reload ran Langle. Fixed after the check: `setPending` injects at once when the host is granted already (architecture "Turning a host on and off").
+- **A state not reproduced**: once, after an off and an on with the prompt, the top switch was off, YouTube's and Netflix's switches were off and apnews.com was on, so Langle ran nowhere. The user does not remember changing them; the same steps done again left YouTube and Netflix on. Turning the switches back on in `chrome://extensions` restored everything.
+- **Browser restart**: the Guardian highlighted, YouTube highlighted, bbc.com showed the dot.
+- **YouTube and Netflix**: unchanged (YouTube checked; highlights, no errors).
+- The check build's error log stayed empty through the check and was cleared at the end. Never run on was set through the settings channel and restored.
+- Not checked: the install warning of a packed or store build (an unpacked build shows none); the extensions (puzzle) menu's per-site options.

@@ -195,6 +195,15 @@ describe("followSiteAccess: the pending tab", () => {
     expect(chrome.injected).toEqual([7]);
   });
 
+  it("gets it at once when the grant came first (Chrome granting again, no prompt)", async () => {
+    const chrome = fake([], { 7: { url: "https://a.example/story" } });
+    await chrome.grant("*://a.example/*");
+    expect(chrome.injected).toEqual([]);
+    await chrome.access.setPending({ tabId: 7, host: "a.example" });
+    expect(chrome.injected).toEqual([7]);
+    expect(chrome.pending()).toBeUndefined();
+  });
+
   it("waits through a grant for another host", async () => {
     const chrome = fake([], { 7: { url: "https://a.example/" } });
     await chrome.access.setPending({ tabId: 7, host: "a.example" });
