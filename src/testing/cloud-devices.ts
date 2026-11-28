@@ -4,6 +4,7 @@
  * version it replaces), writes its files and reads the others'.
  */
 import {
+  checkFiles,
   decodeFile,
   encodeFile,
   filePath,
@@ -280,9 +281,15 @@ export function changeSettings(d: Device, patch: SettingsPatch) {
 const ownPaths = (d: Device, cloud: Cloud) =>
   [...cloud.keys()].filter((path) => parseFilePath(path)?.deviceId === d.id);
 
-/** Writes every file of the device (its months written before included). */
+/**
+ * Writes every file of the device (its months written before included), as the backend
+ * does: checked (`checkFiles`), so with no row left out the files are `filesOf`'s.
+ */
 export async function write(d: Device, cloud: Cloud) {
-  for (const file of filesOf(d.state, d.id, d.now(), ownPaths(d, cloud))) {
+  const built = filesOf(d.state, d.id, d.now(), ownPaths(d, cloud));
+  for (const { file, skipped } of await checkFiles(built)) {
+    if (skipped.length > 0)
+      throw new Error(`${d.id} left rows out of a file: ${skipped[0]!.row}`);
     const path =
       file.kind === "main"
         ? filePath(d.id, "main")
@@ -314,6 +321,8 @@ export async function read(
     const decoded = await decodeFile(cloud.get(path)!);
     if (decoded.status !== "ok")
       throw new Error(`${path} could not be read: ${decoded.status}`);
+    if (decoded.skipped.length > 0)
+      throw new Error(`${path} had rows left out: ${decoded.skipped[0]!.row}`);
     const { file } = decoded;
     if (file.kind === "main") takeMain(d.state, file);
     else if (takeMonth(d.state, file)) d.pending.delete(path);

@@ -1,4 +1,5 @@
 import type { Classifier, ClassifyOptions } from "../core/classify";
+import { assertCloudRow } from "../core/cloud/format";
 import {
   HISTORY_CAP_BYTES,
   pageSize,
@@ -261,12 +262,11 @@ export function createHistoryStore(
             deviceId: device,
             addedAt: at,
           }));
-        // In order: ids grow as sentences are added (`find` reads newest first).
-        await db.historySentences.bulkAdd(sentences);
-        for (const sentence of sentences) added += sentenceSize(sentence);
-        const count = sentences.length;
-
-        await db.historyPages.put({
+        for (const sentence of sentences) {
+          assertCloudRow("sentence", sentence);
+          added += sentenceSize(sentence);
+        }
+        const page: HistoryPageRecord = {
           id,
           platform: source.platform,
           url,
@@ -276,7 +276,13 @@ export function createHistoryStore(
           firstSeen: existing?.firstSeen ?? at,
           lastSeen: at,
           bytes: (existing?.bytes ?? 0) + added,
-        });
+        };
+        assertCloudRow("page", page);
+        // In order: ids grow as sentences are added (`find` reads newest first).
+        await db.historySentences.bulkAdd(sentences);
+        const count = sentences.length;
+
+        await db.historyPages.put(page);
         await setTotalBytes(await evict(id, (await totalBytes()) + added));
         return count;
       });
