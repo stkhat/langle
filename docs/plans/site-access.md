@@ -24,7 +24,7 @@
 - [x] S1 Grants: manifest, registration, no-reload injection
 - [x] S2 The mark (`declarativeContent`)
 - [x] S3 The popup: the switch, the bubble, seen hosts
-- [ ] S4 Store texts, privacy policy, real-site check
+- [x] S4 Store texts, privacy policy, real-site check
 
 S2 and S3 both stack on S1 and touch different files, so they may run in parallel; S4 goes last.
 
@@ -79,7 +79,7 @@ Files: `src/entrypoints/popup/main.tsx`, `Popup.tsx`, a small view function (+ t
 Done when: verify passes and the rendered popup matches the mock.
 
 ## S4 Store texts and the real-site check
-- [ ] Privacy policy (`site/langle/privacy/`): articles run only on sites the user turns on; opening the popup reads the tab's address and `<html lang>`, kept in this browser as seen hosts.
-- [ ] [chrome-store-listing.md](chrome-store-listing.md) and the review justifications ([store-data-review](../notes/store-data-review.md) "Drafts for the listing's privacy fields"): `activeTab`, `scripting`, `declarativeContent`, the optional host permission; drop the `<all_urls>` text.
-- [ ] [chrome-store-launch.md](chrome-store-launch.md) E2 and C12 C-h, [status.md](../status.md).
-- [ ] Real-site check in the user's Chrome ([development.md](../development.md) "Checking in your own Chrome"): install warning; the mark on a new English article site, none on a Japanese one; the bubble once; Chrome's prompt, Allow, highlights without a reload, the next page on the host; off and back on; Never run on; YouTube and Netflix unchanged; a browser restart. Read and clear the check build's error log.
+- [x] Privacy policy (`site/langle/privacy/`): articles run only on sites the user turns on; opening the popup reads the tab's address and `<html lang>`, kept in this browser as seen hosts.
+- [x] [chrome-store-listing.md](chrome-store-listing.md) and the review justifications ([store-data-review](../notes/store-data-review.md) "Drafts for the listing's privacy fields"): `activeTab`, `scripting`, `declarativeContent`, the optional host permission; drop the `<all_urls>` text.
+- [x] [chrome-store-launch.md](chrome-store-launch.md) E2 and C12 C-h, [status.md](../status.md).
+- [x] Real-site check in the user's Chrome ([development.md](../development.md) "Checking in your own Chrome"): install warning; the mark on a new English article site, none on a Japanese one; the bubble once; Chrome's prompt, Allow, highlights without a reload, the next page on the host; off and back on; Never run on; YouTube and Netflix unchanged; a browser restart. Read and clear the check build's error log. Done 2026-11-28: [notes](../notes/site-access.md) "9. S4 real-site check"

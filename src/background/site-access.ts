@@ -182,7 +182,14 @@ export function followSiteAccess(deps: SiteAccessDeps): SiteAccess {
   queue(sync);
 
   return {
-    setPending: (tab) => work.run(() => deps.pending.set(tab)),
+    setPending: (tab) =>
+      work.run(async () => {
+        await deps.pending.set(tab);
+        // Chrome grants a host it granted before again without a prompt, so its
+        // onAdded can come before this message: a host covered already gets its
+        // script now.
+        await injectPending((await permissions.getAll()).origins ?? []);
+      }),
     get idle() {
       return work.idle;
     },

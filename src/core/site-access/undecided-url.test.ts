@@ -90,7 +90,9 @@ function expectAgrees(
   return regexes;
 }
 
-describe("undecidedUrlRegexes", () => {
+// V8 runs these RE2-shaped regexes with backtracking: under a busy machine (verify runs
+// every suite at once) the larger checks can take several times their 0.5 s alone.
+describe("undecidedUrlRegexes", { timeout: 30_000 }, () => {
   it("matches every web page when nothing is decided", () => {
     const regexes = expectAgrees({ exact: [], withSubdomains: [] }, [
       "example.com",
