@@ -82,6 +82,12 @@ It writes the packets, `key-<tag>.json` and `RUBRIC.txt`. Each judge sees only `
 
 Then tally: `python3 -I .claude/skills/real-content-quality/scripts/ab-tally.py --key <dir>/key-<tag>.json <dir>/result-*.json`.
 
+For a new native language's baseline and source-order studies, use these scripts (all in `scripts/`, read-only on the study folder; never copy scripts from an earlier study, whose copies differ only in constants):
+- Baseline packets from the native's `measure.ts` run and a reference run (zh): `python3 -I base-packets.py --lang <native> <native run> <zh run> <out>`; tally the judges' results with `base-tally.py <out> --langs <native>,zh`, and split verdicts by hover source with `by-source.py <out> <run> <pack dir> <native>`.
+- What a pack change did: `pack-diff.py <old pack dir> <new pack dir> <run>` (changed terms by corpus tokens) and `hover-diff.py <before run> <after run>` (changed hovers between two runs).
+- Source-order variants of a recipe (A/B/D/E builds): hover lines of the gate words per build with `REPO=<checkout> PACKDIR=<built packs> NATIVE=<code> npx jiti gate-lines.ts <gate-words.json> <lines-X.json>`, which source decides each gate word with `gate-source.py <pack dir> <gate-words.json> <out.json>`, blind packets for two builds with `order-packets.py <name> <lines-P> <label-P> <lines-Q> <label-Q> [--missing-as-none]`, and the tally with `order-tally.py <name>`.
+- The variant build loop itself (`variants.sh`) and the one-off probes of a study stay per study: each edits that recipe differently.
+
 When reporting:
 - Samples over-represent changed items; the tally re-weights rates to the corpus. Report those.
 - There is one judge per item, so treat differences under about ±4 points as noise.
