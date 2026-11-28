@@ -11,10 +11,12 @@
 import { browser } from "wxt/browser";
 import type { AppHost } from "../../core/app-host";
 import {
+  checkFiles,
   encodeFile,
   decodeFile,
   filePath,
   parseFilePath,
+  skippedText,
   type CloudFile,
   type MainFile,
   type MonthFile,
@@ -63,7 +65,21 @@ export interface CloudSyncState {
   seen: Record<string, number>;
   /** Month files with rows for terms not known yet: read again at the next check. */
   reread: string[];
-  /** Other devices' files skipped (a newer `v`, or not readable): path → modified time. */
+  /**
+   * Other devices' files of a newer `v`, skipped until modified: path → modified time
+   * ("Update Langle on this device").
+   */
+  newer: Record<string, number>;
+  /**
+   * Other devices' files that cannot be read at all (not gzip or JSON, a damaged
+   * header), logged and skipped until modified: path → modified time. Shown nowhere.
+   */
+  broken: Record<string, number>;
+  /**
+   * Where builds before `newer` and `broken` kept both kinds (so a broken file asked
+   * for an update for good). Kept empty, for such a build reading this state; what one
+   * left here is dropped at load, so those files (not in `seen`) are read once more.
+   */
   unreadable: Record<string, number>;
   /** This device's files as last written: path → a hash of their content. */
   sent: Record<string, string>;
@@ -165,10 +181,11 @@ export interface CloudSyncBackend {
   whenIdle(): Promise<void>;
 }
 
+const isObject = (value: unknown): value is object =>
+  typeof value === "object" && value !== null;
+
 const isState = (value: unknown): value is CloudSyncState =>
-  typeof value === "object" &&
-  value !== null &&
-  typeof (value as CloudSyncState).provider === "string";
+  isObject(value) && typeof (value as CloudSyncState).provider === "string";
 
 /** Whether this device syncs its terms through its own cloud storage (not browser sync). */
 export async function cloudConnected(
@@ -228,6 +245,8 @@ const fresh = (
   provider,
   seen: {},
   reread: [],
+  newer: {},
+  broken: {},
   unreadable: {},
   sent: {},
   mainPending: true,
@@ -274,12 +293,19 @@ export function createCloudSyncBackend({
   let checkQueued = false;
   let started = false;
   let unsubscribe: (() => void) | undefined;
+  /** The rows left out of this device's files, as logged (`save`). */
+  const logged = new Set<string>();
 
   const load = () =>
     (loaded ??= local.get(CLOUD_SYNC_KEY).then(
       (stored) => {
         const value = stored[CLOUD_SYNC_KEY];
         state = isState(value) ? value : undefined;
+        if (state) {
+          state.newer = isObject(state.newer) ? state.newer : {};
+          state.broken = isObject(state.broken) ? state.broken : {};
+          state.unreadable = {};
+        }
       },
       (error: unknown) => {
         loaded = undefined;
@@ -451,14 +477,16 @@ export function createCloudSyncBackend({
 
         const present = new Set(listed.map((f) => f.path));
         s.seen = only(s.seen, (path) => present.has(path));
-        s.unreadable = only(s.unreadable, (path) => present.has(path));
+        s.newer = only(s.newer, (path) => present.has(path));
+        s.broken = only(s.broken, (path) => present.has(path));
         const reread = new Set(s.reread.filter((path) => present.has(path)));
 
         const changed = listed.filter((f) => {
           const parsed = parseFilePath(f.path);
           if (!parsed || parsed.deviceId === device) return false;
           if (parsed.kind === "history" && !historyOn) return false;
-          if (s.unreadable[f.path] === f.modifiedTime) return false;
+          if (s.newer[f.path] === f.modifiedTime) return false;
+          if (s.broken[f.path] === f.modifiedTime) return false;
           return s.seen[f.path] !== f.modifiedTime || reread.has(f.path);
         });
         const read: { path: string; file: CloudFile; modifiedTime: number }[] =
@@ -472,12 +500,34 @@ export function createCloudSyncBackend({
             throw error;
           }
           const decoded = await decodeFile(bytes);
+          const version = `${info.path} (modified ${new Date(info.modifiedTime).toISOString()})`;
+          s.newer = only(s.newer, (path) => path !== info.path);
+          s.broken = only(s.broken, (path) => path !== info.path);
           if (decoded.status === "ok") {
+            // Logged once per version: a file read again for its waiting rows has
+            // that version in `seen` already.
+            if (
+              decoded.skipped.length > 0 &&
+              s.seen[info.path] !== info.modifiedTime
+            )
+              console.error(
+                `Cloud sync: ${version}: ${skippedText(decoded.skipped)}`,
+              );
             read.push({ ...info, file: decoded.file });
-            s.unreadable = only(s.unreadable, (path) => path !== info.path);
-          } else {
-            s.unreadable[info.path] = info.modifiedTime;
-            s.seen = only(s.seen, (path) => path !== info.path);
+            continue;
+          }
+          s.seen = only(s.seen, (path) => path !== info.path);
+          // Only a newer `v` asks for an update (updating fixes it). A broken file
+          // shows nothing: its device may be gone, and no update would fix it.
+          if (decoded.status === "newer")
+            s.newer[info.path] = info.modifiedTime;
+          else {
+            s.broken[info.path] = info.modifiedTime;
+            const reason =
+              decoded.status === "broken"
+                ? decoded.reason
+                : "not a Langle cloud file";
+            console.error(`Cloud sync: ${version} cannot be read: ${reason}`);
           }
         }
 
@@ -538,13 +588,25 @@ export function createCloudSyncBackend({
       );
       copy.state.settings = timed;
       const at = now();
-      const files = filesOf(copy.state, device, at, Object.keys(s.sent));
+      const files = await checkFiles(
+        filesOf(copy.state, device, at, Object.keys(s.sent)),
+      );
 
       const writes: { path: string; file: CloudFile; hash: string }[] = [];
       let main: { path: string; file: CloudFile; hash: string } | undefined;
-      for (const file of files) {
+      for (const { file, skipped } of files) {
         const path = pathOf(file);
         if (file.kind === "history" && !historyOn) continue;
+        if (skipped.length > 0) {
+          // Once per worker for the same rows (by content: their places move as
+          // others come): every write builds the files again from the same rows.
+          const rows = `${path}\n${skipped.map((r) => `${r.list} ${r.row}`).join("\n")}`;
+          if (!logged.has(rows))
+            console.error(
+              `Cloud sync: ${path} as written: ${skippedText(skipped)}`,
+            );
+          logged.add(rows);
+        }
         const hash = await hashOf(file);
         if (file.kind === "main") {
           if (s.mainPending) main = { path, file, hash };
@@ -718,7 +780,8 @@ export function createCloudSyncBackend({
       if (s.lastCheckedAt !== undefined) status.lastCheckedAt = s.lastCheckedAt;
       if (s.account !== undefined) status.account = s.account;
       // The most pressing first: a newer file waits for an update, a retry does not.
-      const update = Object.keys(s.unreadable).length > 0;
+      // A broken file shows nothing (`check`).
+      const update = Object.keys(s.newer).length > 0;
       const error =
         s.error === "reconnect" || s.error === "full"
           ? s.error

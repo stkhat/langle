@@ -121,8 +121,15 @@ const LATE_REQUEST_WAIT_MS = 90_000;
 const UNLISTED = Symbol("unlisted");
 /** `lateRequest`'s answer when the player made no request in the wait. */
 const NONE = Symbol("none");
+/** `lateRequest`'s answer when YouTube answered the player's complete request empty. */
+const EMPTY = Symbol("empty");
 /** A try of `loadCaptions` to make again (see `loadFrom`). */
 const AGAIN = Symbol("again");
+
+/** A `loadCaptions` run: where it waits now, in words (`PlatformAdapter.loadStage`). */
+interface Loading {
+  stage: string;
+}
 
 /** The YouTube track `chooseTranslation` picked (it hands back one of `info.tracks`). */
 function siteTrack(info: YouTubeCaptionInfo, track: Track): YouTubeTrack {
@@ -177,6 +184,8 @@ export function createYouTubeAdapter(
       ".html5-video-player video::-webkit-media-text-track-container { display: none !important; }",
   );
   const cleanups: (() => void)[] = [];
+  /** The latest `loadCaptions` while it runs: where it waits, in words (`loadStage`). */
+  let loading: Loading | undefined;
 
   const onShorts = () => layout.vertical();
 
@@ -290,18 +299,24 @@ export function createYouTubeAdapter(
    * docs/notes/mobile.md "Device checks (M5g, Android)"): it is asked again, up to
    * ASK_TRIES times in all, and a request that came late is taken then; after the last,
    * Langle keeps listening for its request, asking nothing more, up to
-   * `lateRequestWaitMs`, then warns. A complete request answered with an empty body is an answer: nothing
-   * is asked again. One made before the player had the PO token it needs is not: the
-   * player's request with the token is waited for, up to `tokenWaitMs`.
+   * `lateRequestWaitMs`, then warns. A complete request answered with an empty body is an
+   * answer: nothing is asked again, and Langle warns. One made before the player had the
+   * PO token it needs is not: the player's request with the token is waited for, up to
+   * `tokenWaitMs`. Every way this ends without a request is a warning, and `at.stage`
+   * says where it waits meanwhile.
    */
   async function captureFor(
     id: string,
     original: YouTubeTrack,
+    at: Loading,
     signal?: AbortSignal,
   ): Promise<TimedtextMessage | undefined> {
     const seen = captures.get(id);
     if (seen) return seen;
+    const track = `${original.lang}${original.kind === "asr" ? " (auto-generated)" : ""}`;
     let adTries = 0;
+    /** Asks that got no request in time. */
+    let asks = 0;
     /** Asks the player took without a request in time, ads not counted. */
     let unanswered = 0;
     /** How long the player has listed no caption tracks, ads not counted. */
@@ -309,8 +324,11 @@ export function createYouTubeAdapter(
     /** When to ask next though the player lists no caption tracks. */
     let unlistedAsk = Math.min(unlistedAskEveryMs, tracksListedTimeoutMs);
     for (;;) {
+      if (adShowing()) at.stage = "waiting for an ad to end";
       while (adShowing()) await sleep(pollMs, signal);
       const since = Date.now();
+      if (asks === 0 && unlisted === 0)
+        at.stage = "waiting for the player's own caption request";
       const own = await captures.wait(id, playerRequestWaitMs, signal);
       if (own) return own;
       if (adShowing()) continue;
@@ -323,15 +341,20 @@ export function createYouTubeAdapter(
         const asked = await askPlayer(id, original, anyway, signal);
         if (asked === UNLISTED) {
           unlisted += Date.now() - since;
+          at.stage = `the player lists no caption tracks yet (${Math.round(unlisted / 1000)} s)`;
           continue;
         }
         if (asked) return asked;
+        asks++;
+        at.stage = `asked the player for ${track} ${asks} times, no caption request yet`;
         if ((ad || adShowing()) && ++adTries <= AD_TRIES) continue;
         // An empty answer to a complete request is an answer (YouTube gives it to
         // automation): no use asking again.
-        if (answeredEmpty.get(id)) return undefined;
+        if (answeredEmpty.get(id)) return emptyAnswer(id);
         const tokenlessSince = tokenless.get(id);
         if (tokenlessSince !== undefined) {
+          at.stage =
+            "waiting for the player's caption request with its PO token";
           if (Date.now() - tokenlessSince < tokenWaitMs) continue;
           console.warn(
             `Langle: YouTube's player made its caption requests without its PO token for ${id} for ${tokenWaitMs / 1000} s`,
@@ -353,7 +376,9 @@ export function createYouTubeAdapter(
           return undefined;
         }
         if (++unanswered < ASK_TRIES) continue;
+        at.stage = `asked the player for ${track} ${asks} times, listening for a late caption request`;
         const late = await lateRequest(id, signal);
+        if (late === EMPTY) return emptyAnswer(id);
         if (late !== NONE) return late;
         console.warn(
           `Langle: YouTube's player made no caption request for ${id} after ${ASK_TRIES} asks and ${lateRequestWaitMs / 1000} s`,
@@ -367,20 +392,32 @@ export function createYouTubeAdapter(
 
   /**
    * The player's request made after the last ask, listened for up to `lateRequestWaitMs`
-   * without asking again; undefined once a complete request was answered empty, NONE if
+   * without asking again; EMPTY once a complete request was answered empty, NONE if
    * none came.
    */
   async function lateRequest(
     id: string,
     signal?: AbortSignal,
-  ): Promise<TimedtextMessage | undefined | typeof NONE> {
+  ): Promise<TimedtextMessage | typeof EMPTY | typeof NONE> {
     const end = Date.now() + lateRequestWaitMs;
     for (let left = lateRequestWaitMs; left > 0; left = end - Date.now()) {
       const late = await captures.wait(id, Math.min(left, 1000), signal);
       if (late) return late;
-      if (answeredEmpty.get(id)) return undefined;
+      if (answeredEmpty.get(id)) return EMPTY;
     }
     return NONE;
+  }
+
+  /**
+   * The end of `captureFor` once YouTube answered the player's complete request with an
+   * empty body (its answer to automation, and what a refused request gets): no
+   * subtitles, said in the log.
+   */
+  function emptyAnswer(id: string): undefined {
+    console.warn(
+      `Langle: YouTube answered the player's caption request for ${id} with an empty body`,
+    );
+    return undefined;
   }
 
   /**
@@ -429,39 +466,56 @@ export function createYouTubeAdapter(
   ): Promise<VideoCaptions | undefined> {
     const id = videoId();
     if (!id) return undefined;
-    const loaded = await loadFrom(id, request, false);
-    if (loaded !== AGAIN) return loaded;
-    // Once more, with a request the player makes now and the response it makes it from.
-    captures.delete(id);
-    answeredEmpty.delete(id);
-    tokenless.delete(id);
-    const retried = await loadFrom(id, request, true);
-    return retried === AGAIN ? undefined : retried;
+    const at: Loading = { stage: "" };
+    loading = at;
+    try {
+      const loaded = await loadFrom(id, request, false, at);
+      if (loaded !== AGAIN) return loaded;
+      // Once more, with a request the player makes now and the response it makes it from.
+      captures.delete(id);
+      answeredEmpty.delete(id);
+      tokenless.delete(id);
+      const retried = await loadFrom(id, request, true, at);
+      return retried === AGAIN ? undefined : retried;
+    } finally {
+      if (loading === at) loading = undefined;
+    }
   }
 
   /**
    * One try of `loadCaptions`. AGAIN, unless `last`, when the kept request was made from
    * another player response than the current one, or when YouTube answered every track
-   * fetched with an empty body (on the last try that is logged instead).
+   * fetched with an empty body (on the last try that is logged instead). Every end
+   * without subtitles is logged but one: a video without a track in the learning
+   * language, which the page shows (Langle's buttons leave the player).
    */
   async function loadFrom(
     id: string,
     request: CaptionRequest,
     last: boolean,
+    at: Loading,
   ): Promise<VideoCaptions | undefined | typeof AGAIN> {
     const { signal } = request;
+    at.stage = "waiting for the player response";
     const listed = await captionInfo(id, signal);
     const wanted = pickOriginalTrack(listed.tracks, request.learningLang);
     if (!wanted) return undefined;
-    const capture = await captureFor(id, wanted, signal);
+    const capture = await captureFor(id, wanted, at, signal);
     if (!capture) return undefined;
     // The player may have replaced its response since it was read (it did on a first
     // load, docs/notes/youtube-captions.md): the tracks come from the one read after
     // its request, which must be the response the request was made from.
+    at.stage = "reading the player response again after its caption request";
     const info = await captionInfo(id, signal);
     if (!last && !sameResponse(capture.url, info.tracks)) return AGAIN;
     const original = pickOriginalTrack(info.tracks, request.learningLang);
-    if (!original) return undefined;
+    if (!original) {
+      console.warn(
+        `Langle: YouTube's player response for ${id} lists no ${request.learningLang} track any more after its caption request`,
+      );
+      return undefined;
+    }
+    at.stage = "fetching the caption tracks";
 
     const fetched: string[] = [];
     /** The cues of `track` (or of its auto-translation into `tlang`), from the capture or fetched. */
@@ -499,6 +553,11 @@ export function createYouTubeAdapter(
       if (!last) return AGAIN;
       console.warn(
         `Langle: YouTube answered every caption track fetched for ${id} with an empty body (${fetched.length})`,
+      );
+    } else if (cues.length === 0) {
+      // A body that is not json3 or holds no lines (the player's own, or fetched).
+      console.warn(
+        `Langle: YouTube's ${original.lang} caption track for ${id} has no lines to show`,
       );
     }
     return translation && { track: original, cues, translation };
@@ -554,6 +613,7 @@ export function createYouTubeAdapter(
       return id ? (await captionInfo(id)).tracks : [];
     },
     loadCaptions,
+    loadStage: () => loading?.stage,
     async seek(ms) {
       await call({ type: "seek", seconds: ms / 1000 });
     },

@@ -88,8 +88,37 @@ function firstStartingAt(cues: readonly { startMs: number }[], ms: number) {
   return low;
 }
 
+/**
+ * How long the session waits on a video's subtitles before it says so in the log. No
+ * load may end, or wait for ever, without a word there (docs/notes/mobile.md "Device
+ * checks (M5g, Android)": one cold load had none after 78 s and logged nothing).
+ */
+interface LoadWaits {
+  /** For the translator's answer whether it translates the pair; then Langle goes on without it. */
+  translatorMs: number;
+  /**
+   * For the subtitles, counted while the video has media and no ad plays: a warning
+   * says where the load waits (`PlatformAdapter.loadStage`), and it goes on. Past the
+   * adapter's slowest load that ended well (about 80 s on a busy Android emulator,
+   * docs/notes/youtube-captions.md "Late requests on a busy phone").
+   */
+  mediaMs: number;
+  /** For the subtitles in all, media or not, ads too (an ad that never ends). */
+  totalMs: number;
+}
+
+const LOAD_WAITS: LoadWaits = {
+  translatorMs: 30_000,
+  mediaMs: 120_000,
+  totalMs: 300_000,
+};
+
+const seconds = (ms: number) => Math.round(ms / 1000);
+
 export interface VideoDeps extends LookupDeps {
   adapter: PlatformAdapter;
+  /** Default: LOAD_WAITS. */
+  loadWaits?: Partial<LoadWaits>;
   /**
    * Whether the page is in touch mode: words selected by a long-press open their
    * phrase's sheet straight away (spec mobile-app.md "Long-press selection"). Default:
@@ -121,6 +150,8 @@ interface Watch {
    * the first tick with the cards checks it (`land`).
    */
   landing: number | undefined;
+  /** Where loading the subtitles is, in words (`watchLoad`'s warning). */
+  stage: string;
 }
 
 const sameNote = (a: DataNote | null, b: DataNote | null) =>
@@ -138,6 +169,7 @@ const sameNote = (a: DataNote | null, b: DataNote | null) =>
 export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
   const { adapter } = deps;
   const { platform } = adapter;
+  const waits = { ...LOAD_WAITS, ...deps.loadWaits };
   const touchMode = deps.touchMode ?? NEVER_TOUCH;
   let settings = await deps.send({ type: "getSettings" });
   const store = createStore<VideoState>(freshState(settings, null, false));
@@ -368,6 +400,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       aheadKey: "",
       endReached: false,
       landing: adapter.landing?.(),
+      stage: "starting",
     };
     watch = w;
     // Moving on to another video aborts what was asked for ahead.
@@ -383,13 +416,79 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       warn(error);
       if (watch === w) store.set({ status: "unavailable" });
     });
+    watchLoad(w);
+  }
+
+  /**
+   * Warns once when the video's subtitles are still loading after `waits.mediaMs` of
+   * the video having media without an ad, or `waits.totalMs` in all, saying where the
+   * load waits. The load goes on: this only keeps a load that never ends from being
+   * silent.
+   */
+  function watchLoad(w: Watch) {
+    const begun = Date.now();
+    let last = begun;
+    let media = 0;
+    const timer = setInterval(
+      () => {
+        if (watch !== w || store.get().status !== "loading")
+          return clearInterval(timer);
+        const now = Date.now();
+        const readyState = adapter.video()?.readyState ?? 0;
+        if (
+          !adapter.adShowing() &&
+          readyState >= HTMLMediaElement.HAVE_METADATA
+        )
+          media += now - last;
+        last = now;
+        if (media < waits.mediaMs && now - begun < waits.totalMs) return;
+        clearInterval(timer);
+        const where = adapter.loadStage?.();
+        console.warn(
+          `Langle: no subtitles for ${w.id} after ${seconds(now - begun)} s (${seconds(media)} s with media and no ad); still ${w.stage}${where ? `: ${where}` : ""}`,
+        );
+      },
+      Math.min(1000, waits.mediaMs / 4),
+    );
+    w.controller.signal.addEventListener("abort", () => clearInterval(timer), {
+      once: true,
+    });
+  }
+
+  /**
+   * Whether the built-in translator translates the language pair; false, with a
+   * warning, when it does not say in `waits.translatorMs` (a call to the phone app's
+   * host that is never answered would hold the subtitles back for ever).
+   */
+  async function translatorAnswer(): Promise<boolean> {
+    const from = lang();
+    const to = settings.nativeLang;
+    const asked = (deps.translatorAvailable ?? translatorBackend().available)(
+      from,
+      to,
+    );
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<"late">((resolve) => {
+      timer = setTimeout(() => resolve("late"), waits.translatorMs);
+    });
+    try {
+      const answer = await Promise.race([asked, late]);
+      if (answer !== "late") return answer;
+    } finally {
+      clearTimeout(timer);
+    }
+    console.warn(
+      `Langle: the translator did not say in ${seconds(waits.translatorMs)} s whether it translates ${from} into ${to}; the subtitles go on without it`,
+    );
+    return false;
   }
 
   async function load(w: Watch) {
     const { signal } = w.controller;
-    const translatorAvailable = await (
-      deps.translatorAvailable ?? translatorBackend().available
-    )(lang(), settings.nativeLang);
+    w.stage = "asking whether the translator translates the language pair";
+    const translatorAvailable = await translatorAnswer();
+    if (watch !== w) return;
+    w.stage = "loading the captions";
     const captions = await adapter.loadCaptions({
       learningLang: lang(),
       nativeLang: settings.nativeLang,

@@ -603,6 +603,57 @@ describe("loading captions", () => {
     expect(page.player.fake.requests.length).toBeGreaterThan(0);
   });
 
+  it("asks the player only after a pre-roll ad, once it lists the video's tracks", async () => {
+    // The tracks listed only after the ad (the case least favourable to Langle: the
+    // real player's list during an ad is unmeasured).
+    start({ adMs: 400, tracksListedAfterMs: 400 });
+    const ended = Date.now() + 400;
+    const asked: number[] = [];
+    const api = page.player as unknown as {
+      setOption: (...args: unknown[]) => void;
+    };
+    const setOption = api.setOption.bind(api);
+    api.setOption = (...args) => {
+      asked.push(Date.now());
+      setOption(...args);
+    };
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => warn.mockRestore());
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+    expect(asked.length).toBeGreaterThan(0);
+    for (const time of asked) expect(time).toBeGreaterThanOrEqual(ended - 50);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("takes the subtitles when an ad starts while the player lists no tracks yet", async () => {
+    start({ tracksListedAfterMs: 900 });
+    setTimeout(() => page.player.classList.add("ad-showing"), 150);
+    setTimeout(() => page.player.classList.remove("ad-showing"), 600);
+    const captions = await adapter.loadCaptions(REQUEST);
+    expect(captions?.track.id).toBe(".en");
+  });
+
+  it("says where it waits: for an ad to end, then for the track list", async () => {
+    start({ adMs: 300, tracksListedAfterMs: 60_000 });
+    const controller = new AbortController();
+    cleanups.push(() => controller.abort());
+    const loading = adapter.loadCaptions({
+      ...REQUEST,
+      signal: controller.signal,
+    });
+    loading.catch(() => {});
+    await expect
+      .poll(() => adapter.loadStage?.())
+      .toBe("waiting for an ad to end");
+    await expect
+      .poll(() => adapter.loadStage?.())
+      .toMatch(/^the player lists no caption tracks yet/);
+    controller.abort();
+    await expect(loading).rejects.toThrow();
+    expect(adapter.loadStage?.()).toBeUndefined();
+  });
+
   it("asks the player for a track only once it lists its caption tracks (a slow first load)", async () => {
     // youtube.com's player drops a track set before its captions module lists the
     // tracks; on a busy page that came after Langle's whole wait (docs/notes/mobile.md).
@@ -770,7 +821,57 @@ describe("loading captions", () => {
     expect(Date.now() - begun).toBeGreaterThanOrEqual(380);
   });
 
-  it("follows SPA navigation and returns nothing when YouTube sends empty captions", async () => {
+  it("warns when the player's response drops the track it requested", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => warn.mockRestore());
+    start({ captionsOn: true });
+    await page.video.play();
+    await expect.poll(() => page.player.fake.requests.length).toBe(1);
+    const api = page.player as unknown as { getPlayerResponse(): unknown };
+    const read = api.getPlayerResponse.bind(api);
+    const without = responseWithout((t) => t.vssId.endsWith(".en"));
+    let reads = 0;
+    api.getPlayerResponse = () =>
+      ++reads === 1
+        ? read()
+        : {
+            videoDetails: { videoId: VIDEO_ID, title: TITLE },
+            captions: without.captions,
+          };
+    expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `player response for ${VIDEO_ID} lists no en track any more`,
+      ),
+    );
+  });
+
+  it("warns when the player's own track has no lines to show", async () => {
+    // A body that is not json3, or holds no lines: the band would stay empty.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => warn.mockRestore());
+    start();
+    const captured: TimedtextMessage = {
+      source: CHANNEL.fromPage,
+      type: "timedtext",
+      url: `${location.origin}/api/timedtext?v=${VIDEO_ID}&lang=en&pot=T&fmt=json3`,
+      videoId: VIDEO_ID,
+      lang: "en",
+      tlang: null,
+      kind: null,
+      body: '{"events":[]}',
+    };
+    window.postMessage(captured, location.origin);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(`en caption track for ${VIDEO_ID} has no lines`),
+    );
+  });
+
+  it("follows SPA navigation and returns nothing, warning, when YouTube sends empty captions", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => warn.mockRestore());
     start();
     // Another video whose timedtext answers are empty (as under automation).
     const other = structuredClone(captionTracks);
@@ -786,6 +887,37 @@ describe("loading captions", () => {
     expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
     expect(page.player.fake.requests.at(-1)).toContain("v=otherVideo1");
     expect(page.player.fake.unloadModule).toEqual(["captions"]);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "caption request for otherVideo1 with an empty body",
+      ),
+    );
+  });
+
+  it("warns when the request the player makes after Langle's last ask is answered empty", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => warn.mockRestore());
+    start(
+      { requestDelayMs: 1500 },
+      { captureTimeoutMs: 200, lateRequestWaitMs: 5000 },
+    );
+    const other = structuredClone(captionTracks);
+    for (const track of other.captions.playerCaptionsTracklistRenderer
+      .captionTracks)
+      track.baseUrl = track.baseUrl.replace(`v=${VIDEO_ID}`, "v=otherVideo1");
+    href = "https://www.youtube.com/watch?v=otherVideo1";
+    page.navigate({
+      videoId: "otherVideo1",
+      title: "Other",
+      playerResponse: other,
+    });
+    expect(await adapter.loadCaptions(REQUEST)).toBeUndefined();
+    expect(page.player.fake.setOption).toHaveLength(3);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "caption request for otherVideo1 with an empty body",
+      ),
+    );
   });
 
   it("waits for the player response of the current video after navigation", async () => {

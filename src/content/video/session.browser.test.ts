@@ -92,7 +92,11 @@ async function createVideo() {
 
 /** A video's captions, or what it gives for the request (its language pair). */
 type SiteCaptions =
-  VideoCaptions | ((request: CaptionRequest) => VideoCaptions) | undefined;
+  | VideoCaptions
+  | ((
+      request: CaptionRequest,
+    ) => VideoCaptions | Promise<VideoCaptions | undefined>)
+  | undefined;
 
 /** A site with one video element and captions per video id. */
 function fakeSite(
@@ -104,6 +108,7 @@ function fakeSite(
   let id: string | undefined = "vid1";
   let link = landing;
   let ad = false;
+  let stage: string | undefined;
   const listeners = new Set<() => void>();
   const log = {
     hidden: [] as boolean[],
@@ -114,6 +119,8 @@ function fakeSite(
     loads: 0,
     /** The language pair of each `loadCaptions`. */
     pairs: [] as [string, string][],
+    /** `translatorAvailable` of each `loadCaptions`. */
+    translatorAvailable: [] as boolean[],
   };
   const adapter: PlatformAdapter = {
     platform: "youtube",
@@ -135,9 +142,11 @@ function fakeSite(
     async loadCaptions(request) {
       log.loads++;
       log.pairs.push([request.learningLang, request.nativeLang]);
+      log.translatorAvailable.push(request.translatorAvailable);
       const found = id === undefined ? undefined : captions[id];
       return typeof found === "function" ? found(request) : found;
     },
+    loadStage: () => stage,
     async seek(ms) {
       log.seeks.push(ms);
       video.currentTime = ms / 1000;
@@ -168,6 +177,10 @@ function fakeSite(
     setAd(showing: boolean) {
       ad = showing;
     },
+    /** Where `loadCaptions` says it waits (`PlatformAdapter.loadStage`). */
+    setStage(next: string | undefined) {
+      stage = next;
+    },
   };
 }
 
@@ -177,7 +190,9 @@ async function start(
   },
   options: {
     translator?: TranslationProvider;
-    translatorAvailable?: boolean;
+    /** The translator's answer, or how it gives it. */
+    translatorAvailable?: boolean | (() => Promise<boolean>);
+    loadWaits?: VideoDeps["loadWaits"];
     /** Runs against the background before the session starts. */
     before?: (bg: ReturnType<typeof testBackground>) => Promise<unknown>;
     settings?: Partial<Settings>;
@@ -210,7 +225,11 @@ async function start(
     watchSettings: bg.watchSettings,
     watchPackState: bg.watchPackState,
     createTranslator: () => options.translator ?? noTranslation,
-    translatorAvailable: async () => options.translatorAvailable ?? false,
+    translatorAvailable: async () => {
+      const { translatorAvailable: answer = false } = options;
+      return typeof answer === "function" ? answer() : answer;
+    },
+    ...(options.loadWaits && { loadWaits: options.loadWaits }),
     ...options.hooks,
     ...(options.touchMode && { touchMode: options.touchMode }),
     ...(options.explainProvider && {
@@ -1354,6 +1373,84 @@ describe("a video without subtitles in the learning language", () => {
     const { state, site } = await start({ vid1: undefined });
     await expect.poll(() => state().status).toBe("unavailable");
     expect(site.log.hidden).toEqual([]);
+  });
+});
+
+describe("subtitles long in coming", () => {
+  /** The session's warnings, kept from the console. */
+  function warnings() {
+    const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cleanups.push(() => spy.mockRestore());
+    return () => spy.mock.calls.map((call) => call.join(" "));
+  }
+  const never = () => new Promise<undefined>(() => {});
+
+  it("warns once, saying where the load waits, when they never come", async () => {
+    const warned = warnings();
+    const { site, state } = await start(
+      { vid1: never },
+      { loadWaits: { mediaMs: 300 } },
+    );
+    site.setStage("asked the player for en 3 times, no caption request yet");
+    await expect
+      .poll(warned)
+      .toEqual([
+        expect.stringMatching(
+          /^Langle: no subtitles for vid1 after \d+ s .*; still loading the captions: asked the player for en 3 times, no caption request yet$/,
+        ),
+      ]);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(warned()).toHaveLength(1);
+    expect(state().status).toBe("loading");
+  });
+
+  it("does not count the time an ad shows, but warns after the longer wait in all", async () => {
+    const warned = warnings();
+    const { site } = await start(
+      { vid1: never },
+      { loadWaits: { mediaMs: 200, totalMs: 1200 } },
+    );
+    site.setAd(true);
+    site.setStage("waiting for an ad to end");
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(warned()).toEqual([]);
+    await expect
+      .poll(warned, { timeout: 2000 })
+      .toEqual([
+        expect.stringContaining(
+          "still loading the captions: waiting for an ad to end",
+        ),
+      ]);
+  });
+
+  it("says nothing when they come in time, or when the site moves on", async () => {
+    const warned = warnings();
+    const { state, site } = await start(
+      { vid1: captionsOf(CUES), vid2: never },
+      { loadWaits: { mediaMs: 200 } },
+    );
+    await ready(state);
+    site.navigate("vid2");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    site.navigate(undefined);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(warned()).toEqual([]);
+  });
+
+  it("goes on without the translator when it does not say whether it translates the pair", async () => {
+    // A call to the phone app's host that is never answered.
+    const warned = warnings();
+    const { state, site } = await start(undefined, {
+      translatorAvailable: () => new Promise<boolean>(() => {}),
+      loadWaits: { translatorMs: 200 },
+    });
+    await ready(state);
+    expect(site.log.translatorAvailable).toEqual([false]);
+    expect(warned()).toEqual([
+      expect.stringContaining(
+        "whether it translates en into ja; the subtitles go on without it",
+      ),
+    ]);
   });
 });
 
