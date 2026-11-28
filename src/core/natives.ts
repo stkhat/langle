@@ -14,15 +14,17 @@ export interface NativeLanguage {
    */
   readonly endonym: string;
   /**
-   * Written with spaces between words and sentences (Latin, Cyrillic, Korean …): two
-   * translated subtitle lines are joined with a space. Japanese, Chinese and Thai are not.
+   * `false`: written without spaces between words and sentences (Japanese, Chinese, Thai),
+   * so two translated subtitle lines are joined with nothing. Absent: written with spaces
+   * (Latin, Cyrillic, Korean …), joined with a space.
    */
-  readonly spaces: boolean;
+  readonly spaces?: false;
   /**
-   * A dense script (Chinese characters, kana, hangul: a character is wide and says about
-   * as much as a word), so a meaning line is capped at fewer characters.
+   * `true`: a dense script (Chinese characters, kana, hangul: a character is wide and
+   * says about as much as a word), so a meaning line is capped at fewer characters.
+   * Absent: not dense.
    */
-  readonly dense: boolean;
+  readonly dense?: true;
   /**
    * The Unicode scripts its words are written in (`\p{Script=…}`). In a language not
    * written in Latin letters, a meaning with no letter of its own script is no meaning
@@ -130,8 +132,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.es",
     name: "languageName.es",
     endonym: "Español",
-    spaces: true,
-    dense: false,
     scripts: ["Latin"],
     translator: true,
     examples: {
@@ -145,8 +145,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.pt",
     name: "languageName.pt",
     endonym: "Português",
-    spaces: true,
-    dense: false,
     scripts: ["Latin"],
     translator: true,
     examples: {
@@ -162,8 +160,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.ru",
     name: "languageName.ru",
     endonym: "Русский",
-    spaces: true,
-    dense: false,
     scripts: ["Cyrillic"],
     translator: true,
     examples: null,
@@ -173,8 +169,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.fr",
     name: "languageName.fr",
     endonym: "Français",
-    spaces: true,
-    dense: false,
     scripts: ["Latin"],
     translator: true,
     examples: {
@@ -188,8 +182,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.de",
     name: "languageName.de",
     endonym: "Deutsch",
-    spaces: true,
-    dense: false,
     scripts: ["Latin"],
     translator: true,
     examples: {
@@ -217,8 +209,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.it",
     name: "languageName.it",
     endonym: "Italiano",
-    spaces: true,
-    dense: false,
     scripts: ["Latin"],
     translator: true,
     examples: null,
@@ -228,8 +218,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.pl",
     name: "languageName.pl",
     endonym: "Polski",
-    spaces: true,
-    dense: false,
     scripts: ["Latin"],
     translator: true,
     examples: null,
@@ -245,7 +233,6 @@ export const NATIVE_LANGUAGES = {
     name: "languageName.th",
     endonym: "ภาษาไทย",
     spaces: false,
-    dense: false,
     scripts: ["Thai"],
     translator: true,
     examples: {
@@ -263,8 +250,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.hi",
     name: "languageName.hi",
     endonym: "हिन्दी",
-    spaces: true,
-    dense: false,
     scripts: ["Devanagari"],
     translator: true,
     examples: {
@@ -283,8 +268,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.ar",
     name: "languageName.ar",
     endonym: "العربية",
-    spaces: true,
-    dense: false,
     scripts: ["Arabic"],
     translator: true,
     examples: {
@@ -304,8 +287,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.id",
     name: "languageName.id",
     endonym: "Bahasa Indonesia",
-    spaces: true,
-    dense: false,
     scripts: ["Latin"],
     translator: true,
     examples: {
@@ -323,8 +304,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.tr",
     name: "languageName.tr",
     endonym: "Türkçe",
-    spaces: true,
-    dense: false,
     scripts: ["Latin"],
     translator: true,
     examples: {
@@ -342,7 +321,6 @@ export const NATIVE_LANGUAGES = {
     option: "language.ko",
     name: "languageName.ko",
     endonym: "한국어",
-    spaces: true,
     dense: true,
     scripts: ["Hangul"],
     translator: true,
@@ -357,8 +335,6 @@ export const NATIVE_LANGUAGES = {
     option: "languageName.en",
     name: "languageName.en",
     endonym: "English",
-    spaces: true,
-    dense: false,
     scripts: ["Latin"],
     examples: {
       bank: "riverbank",
