@@ -4,7 +4,8 @@ name: CI
 # enforces (scripts/pre-push.ts). GitHub runs them once a pull request is ready to merge:
 # not on drafts, not on pushes to main (merged pull requests were already tested). Mark a
 # pull request "Ready for review" to run this, or start it by hand. Pull requests that
-# change only docs/ do not run it: no check, test or build reads those files.
+# change only docs (docs/ and *.md anywhere) do not run it: no test or build reads those
+# files (the same rule as the pre-push hook's).
 #
 # Only what Linux can tell apart from the dev Mac runs here: `npm run check` gives the
 # same answer on any OS and already ran in `verify`. Release zips come from release.yml.
@@ -13,6 +14,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore:
       - "docs/**"
+      - "**.md"
   workflow_dispatch:
 
 concurrency:

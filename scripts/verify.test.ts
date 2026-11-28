@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pushedCommits } from "./pre-push.ts";
+import { isDocPath, pushedCommits } from "./pre-push.ts";
 import { descendantsOf, failureExcerpt, seconds, stripAnsi } from "./verify.ts";
 
 describe("failureExcerpt", () => {
@@ -82,7 +82,7 @@ describe("pushedCommits (pre-push)", () => {
       pushedCommits(
         `refs/heads/claude/x ${sha("a")} refs/heads/claude/x ${sha("b")}\n`,
       ),
-    ).toEqual([{ ref: "claude/x", sha: sha("a") }]);
+    ).toEqual([{ ref: "claude/x", sha: sha("a"), remote: sha("b") }]);
   });
 
   it("lets deletions, tags and refs already on the remote through", () => {
@@ -100,7 +100,29 @@ describe("pushedCommits (pre-push)", () => {
       pushedCommits(
         `refs/heads/claude/new ${sha("f")} refs/heads/claude/new ${sha("0")}`,
       ),
-    ).toEqual([{ ref: "claude/new", sha: sha("f") }]);
+    ).toEqual([{ ref: "claude/new", sha: sha("f"), remote: null }]);
+  });
+});
+
+describe("isDocPath (pre-push)", () => {
+  it("counts docs/ and markdown anywhere as docs", () => {
+    for (const path of [
+      "docs/specs/ui.md",
+      "docs/notes/shot.png",
+      "CLAUDE.md",
+      ".claude/skills/refactor/SKILL.md",
+    ])
+      expect(isDocPath(path)).toBe(true);
+  });
+
+  it("counts everything else as code", () => {
+    for (const path of [
+      "scripts/pre-push.ts",
+      ".claude/skills/dev-review/scripts/code-stats.py",
+      "package.json",
+      "src/docs/page.ts",
+    ])
+      expect(isDocPath(path)).toBe(false);
   });
 });
 
