@@ -37,6 +37,7 @@ import {
   type StorageChangedEvent,
 } from "../../messaging/storage";
 import type { TermStore } from "../term-store";
+import { reportError } from "../report";
 
 /** The parts of `storage.sync` the backend uses. */
 export interface SyncArea {
@@ -227,7 +228,7 @@ export function createBrowserSyncBackend({
   let unsubscribe: (() => void) | undefined;
 
   const decodeChunks = remoteDecoder();
-  const queue = serial((error: unknown) => console.error(error));
+  const queue = serial(reportError);
   const enqueue = (op: () => Promise<void>) => queue.run(op);
 
   const isEnabled = (all: Record<string, unknown>) =>

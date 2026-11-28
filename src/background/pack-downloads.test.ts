@@ -98,6 +98,19 @@ describe("pack downloads", () => {
     });
   });
 
+  it("reports a retry it could not schedule, unless the worker was stopping", async () => {
+    ensure.mockResolvedValue(FAILED);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const set = vi.spyOn(browser.storage.local, "set");
+    // A download the stop cut failed; its retry is redone when the worker starts.
+    set.mockRejectedValueOnce(new Error("No SW"));
+    expect(await downloads.ensurePair()).toEqual(FAILED);
+    expect(error).not.toHaveBeenCalled();
+    set.mockRejectedValueOnce(new Error("QUOTA_BYTES quota exceeded"));
+    await downloads.ensurePair();
+    expect(error).toHaveBeenCalledTimes(1);
+  });
+
   it("writes nothing when nothing failed or was scheduled", async () => {
     const set = vi.spyOn(browser.storage.local, "set");
     const remove = vi.spyOn(browser.storage.local, "remove");

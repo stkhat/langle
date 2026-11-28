@@ -6,6 +6,7 @@ import type { Settings } from "../core/settings";
 import type { EnsureResult, PackStore } from "./pack-store";
 import { getSetupStage, watchSetupStage } from "../messaging/setup";
 import { watchSettings } from "../messaging/storage";
+import { reportError } from "./report";
 
 /** The alarm that tries the chosen pair's downloads again after a failure. */
 export const PACKS_RETRY_ALARM = "langle-packs-retry";
@@ -79,10 +80,7 @@ export function createPackDownloads({
       if (result.failed.length > 0) await scheduleRetry();
       else await clearRetry();
     } catch (error) {
-      console.error(
-        "Langle: could not schedule the language data retry",
-        error,
-      );
+      reportError("Langle: could not schedule the language data retry", error);
     }
     return result;
   }
@@ -143,14 +141,14 @@ export function startPackDownloads(
     downloads
       .ensurePair()
       .catch((error: unknown) =>
-        console.error("Langle: could not download the language data", error),
+        reportError("Langle: could not download the language data", error),
       );
   };
   const isSetUp = () =>
     getSetupStage().then(
       (stage) => stage === "ready",
       (error: unknown) => {
-        console.error("Langle: could not read the setup", error);
+        reportError("Langle: could not read the setup", error);
         return false;
       },
     );
@@ -180,7 +178,7 @@ export function startPackDownloads(
     try {
       await downloads.retryPending();
     } catch (error) {
-      console.error("Langle: could not write the language data state", error);
+      reportError("Langle: could not write the language data state", error);
     }
   });
   return { retry: trigger, started };

@@ -1,6 +1,7 @@
 import type { Settings } from "../core/settings";
 import type { SetupStage } from "../core/setup";
 import { serial } from "../core/util";
+import { reportError } from "./report";
 
 /** The toolbar icon's sizes, as `public/icon/` and `public/icon-off/` hold them. */
 const SIZES = [16, 32, 48, 128] as const;
@@ -67,7 +68,7 @@ export function followToolbarIcon(deps: ToolbarIconDeps): () => void {
         await deps.setIcon(toolbarIconPaths(on));
         await deps.shown.set(want);
       })
-      .catch((error: unknown) => console.error(error));
+      .catch(reportError);
   };
   deps.onStartup.addListener(applyStored);
   const unwatchSetup = deps.watchSetupStage(applyStored);

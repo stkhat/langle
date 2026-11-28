@@ -11,6 +11,7 @@ import { errorText } from "../core/util";
 import type { LanguagePair, Reply, SetupStatus } from "../messaging/protocol";
 import { getSetupStage } from "../messaging/setup";
 import { chosenPair, storeChosenPair } from "./settings-store";
+import { reportError } from "./report";
 
 /** The part of `runtime.MessageSender` the setup uses. */
 interface Sender {
@@ -84,7 +85,7 @@ export function createSetup({ pageUrl, tab, ranBefore }: SetupDeps) {
     tab
       .back(sender.tab)
       .catch((error: unknown) =>
-        console.error("Langle: could not leave the setup", error),
+        reportError("Langle: could not leave the setup", error),
       );
   }
 
@@ -162,7 +163,7 @@ export function createSetup({ pageUrl, tab, ranBefore }: SetupDeps) {
             return storeSetup(chosen(agreed(undefined)));
           if ((await getSetupStage()) !== "ready") await tab.open();
         })().catch((error: unknown) =>
-          console.error("Langle: could not open the setup", error),
+          reportError("Langle: could not open the setup", error),
         );
       });
     },

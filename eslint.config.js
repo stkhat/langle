@@ -86,6 +86,28 @@ export default tseslint.config(
     },
   },
   {
+    // A stopping service worker fails its API calls with "No SW": the background
+    // reports through reportError, which leaves those out (src/background/report.ts).
+    files: ["src/background/**/*.ts"],
+    ignores: ["src/background/report.ts", "**/*.test.ts"],
+    rules: {
+      // Replaces the list above for these files: it is repeated.
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "navigator",
+          property: "userAgent",
+          message: "Detect features, not browsers",
+        },
+        {
+          object: "console",
+          property: "error",
+          message: "Use reportError from src/background/report.ts",
+        },
+      ],
+    },
+  },
+  {
     files: ["scripts/**", "e2e/serve.ts"],
     languageOptions: { globals: { ...globals.node } },
   },

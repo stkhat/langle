@@ -27,6 +27,7 @@ import type {
 import type { HistoryPageRecord, HistorySentenceRecord, LangleDb } from "./db";
 import { getSettings } from "./settings-store";
 import type { ImportedOccurrence } from "./term-store";
+import { reportError } from "./report";
 
 export interface HistoryItem extends HistorySentenceInput {
   /** The term ids the sentence is found by (`historyKeys`). */
@@ -129,7 +130,7 @@ interface ForgetsHosts {
 export function forgetNeverRunOnHosts(
   ...stores: readonly ForgetsHosts[]
 ): () => void {
-  const report = (error: unknown) => console.error(error);
+  const report = (error: unknown) => reportError(error);
   const forget = (hosts: readonly string[]) => {
     for (const entry of hosts)
       for (const store of stores) store.forgetHost(entry).catch(report);
