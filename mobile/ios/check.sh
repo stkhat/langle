@@ -16,6 +16,9 @@
 #   check.sh fullscreen             the page's fullscreen, the screen and a test element in the
 #                                   player (mobile/check/fullscreen.js), then the shell's state
 #   check.sh log [seconds]          the app's log for the last <seconds> (default 60)
+#   check.sh wait <regex> [secs]    waits (default 60 s) for a line of the app's log, from now on,
+#                                   that matches the extended regex; prints it, or exits 1 on
+#                                   timeout. Use it instead of `sleep N; check.sh log | grep`
 #   check.sh kill                   terminates the app
 #   check.sh screenshot <file.png>  saves a screenshot of the Simulator
 #   check.sh share-mode <open|saved>
@@ -78,6 +81,18 @@ log)
   xcrun simctl spawn booted log show --info --debug --style compact --last "${2:-60}s" \
     --predicate "subsystem == \"$bundle\""
   ;;
+wait)
+  re="${2:?usage: check.sh wait <regex> [seconds]}"
+  end=$(($(date +%s) + ${3:-60}))
+  since=$(date '+%Y-%m-%d %H:%M:%S')
+  while :; do
+    hit=$(xcrun simctl spawn booted log show --info --debug --style compact --start "$since" \
+      --predicate "subsystem == \"$bundle\"" | grep -E -e "$re" | tail -n 5 || true)
+    if [ -n "$hit" ]; then printf '%s\n' "$hit"; break; fi
+    if [ "$(date +%s)" -ge "$end" ]; then echo "timeout: no log line matched $re" >&2; exit 1; fi
+    sleep 1
+  done
+  ;;
 kill)
   xcrun simctl terminate booted "$bundle"
   ;;
@@ -100,7 +115,7 @@ shared)
   [ -f "$shared/shared.json" ] && cat "$shared/shared.json" && echo || echo "(no shared.json)"
   ;;
 *)
-  sed -n '2,24p' "$0"
+  sed -n '2,27p' "$0"
   exit 2
   ;;
 esac
