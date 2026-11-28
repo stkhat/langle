@@ -55,7 +55,7 @@ Main at `3ea326c8`. Third cycle, and en-ko was added since c000's inventory: a t
 Also in the log PR: `rule-inventory.ts --before` reads an inventory that holds the totals alone (c001's), instead of failing.
 
 ### Rule inventory (c002)
-At `3ea326c8` before → after the items: branches 18 → 13, tables 5, table fields 36 → 37 (the zh `wikidata` field), one-off fields 7 → 8 (same), same-value fields 13 → 11, language files 21 (4,313 lines), quality notes 2,077 lines, repeated study scripts 25 (counted by name across study folders: the old folders keep their copies, so the count falls only as new studies use the shared scripts). Against c000: tables +1, notes +11%, under the 15% trigger. `cycles/c002/inventory.json`.
+At `3ea326c8` before → after the items: branches 18 → 13, tables 5, table fields 36 → 37 (the zh `wikidata` field), one-off fields 7 → 8 (same), same-value fields 13 → 11, language files 21 (4,313 lines), quality notes 2,077 lines, repeated study scripts 25 (counted by name across study folders: the old folders keep their copies, so the count falls only as new studies use the shared scripts). Against c000: tables +1, notes +11%, under the 15% trigger. `cycles/c002/inventory.json` (after the items; before: `inventory-before.json`).
 
 ### Left for the next tidy (c005)
 - Ablation of one-off rules (the language files: `tagging/de.ts` 710 lines, `tagging/fr.ts` 653): not started.
