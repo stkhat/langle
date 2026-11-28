@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { mergeSettings, type Settings } from "../core/settings";
 import type { SetupStage } from "../core/setup";
 import { settingsListeners } from "../testing/stubs";
-import { followToolbarIcon, toolbarIconPaths } from "./toolbar-icon";
+import {
+  followToolbarIcon,
+  toolbarIconPaths,
+  type ShownIcon,
+} from "./toolbar-icon";
 
 describe("toolbarIconPaths", () => {
   it("is the manifest's green icon while on and the gray one while off", () => {
@@ -22,8 +26,14 @@ describe("toolbarIconPaths", () => {
 });
 
 describe("followToolbarIcon", () => {
-  function fake(stored: Partial<Settings>, stage: SetupStage = "ready") {
+  function fake(
+    stored: Partial<Settings>,
+    stage: SetupStage = "ready",
+    shownBefore?: ShownIcon,
+  ) {
     let settings = mergeSettings(stored);
+    // `storage.session`: cleared, with the global icon, when the browser restarts.
+    let shown = shownBefore;
     const watchers = settingsListeners(settings);
     const startup: (() => void)[] = [];
     const setIcon = vi.fn<(path: Record<number, string>) => Promise<void>>(
@@ -41,11 +51,19 @@ describe("followToolbarIcon", () => {
       },
       watchSettings: watchers.watch,
       onStartup: { addListener: (listener) => startup.push(listener) },
+      shown: {
+        get: async () => shown,
+        set: async (icon) => {
+          shown = icon;
+        },
+      },
     });
     const dirs = () =>
       setIcon.mock.calls.map(([path]) => path[16]!.split("/")[1]);
     return {
       dirs,
+      // The fakes answer at once, so their work is done by the next task.
+      idle: () => new Promise((resolve) => setTimeout(resolve, 0)),
       unwatch,
       getSettings,
       setUp(next: SetupStage) {
@@ -56,26 +74,48 @@ describe("followToolbarIcon", () => {
         settings = mergeSettings(patch, settings);
         watchers.emit(settings);
       },
-      restartBrowser: () => startup.forEach((listener) => listener()),
+      restartBrowser: () => {
+        shown = undefined;
+        startup.forEach((listener) => listener());
+      },
     };
   }
 
-  it("sets the icon from the stored settings when the worker starts", async () => {
+  // Any global icon hides the mark until the browser restarts (site-mark.ts).
+  it("sets no icon at start-up or install while Langle is on", async () => {
+    const f = fake({});
+    await f.idle();
+    f.restartBrowser();
+    await f.idle();
+    expect(f.dirs()).toEqual([]);
+  });
+
+  it("sets the gray icon when the worker starts with Langle off", async () => {
     const f = fake({ enabled: false });
     await expect.poll(f.dirs).toEqual(["icon-off"]);
   });
 
-  it("follows the switch, and only the switch", async () => {
-    const f = fake({});
-    await expect.poll(f.dirs).toEqual(["icon"]);
-    f.change({ enabled: false });
-    await expect.poll(f.dirs).toEqual(["icon", "icon-off"]);
-    f.change({ knownLevel: 5000 });
-    f.change({ enabled: true });
-    await expect.poll(f.dirs).toEqual(["icon", "icon-off", "icon"]);
+  it("sets nothing again while the icon set this session is right", async () => {
+    const f = fake({ enabled: false }, "ready", "off");
+    await f.idle();
+    expect(f.dirs()).toEqual([]);
   });
 
-  it("sets it again when the browser starts", async () => {
+  it("puts the color back when a worker starts on after an off this session", async () => {
+    const f = fake({}, "ready", "off");
+    await expect.poll(f.dirs).toEqual(["icon"]);
+  });
+
+  it("follows the switch, and only the switch", async () => {
+    const f = fake({});
+    f.change({ enabled: false });
+    await expect.poll(f.dirs).toEqual(["icon-off"]);
+    f.change({ knownLevel: 5000 });
+    f.change({ enabled: true });
+    await expect.poll(f.dirs).toEqual(["icon-off", "icon"]);
+  });
+
+  it("sets the gray icon again when the browser starts with Langle off", async () => {
     const f = fake({ enabled: false });
     await expect.poll(f.dirs).toEqual(["icon-off"]);
     f.restartBrowser();

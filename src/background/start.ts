@@ -27,8 +27,15 @@ import { createDriveFiles } from "../core/cloud/google-drive";
 import type { CloudProvider, CloudProviderId } from "../core/cloud/provider";
 import { createTermStore } from "./term-store";
 import { followNativeStrings } from "./native-strings";
-import { followToolbarIcon } from "./toolbar-icon";
+import { followToolbarIcon, isShownIcon } from "./toolbar-icon";
 import { followSiteAccess } from "./site-access";
+import {
+  decodeIcon,
+  declarativeMarkRules,
+  followSiteMark,
+  MARK_ICON_PATHS,
+} from "./site-mark";
+import { getSiteSeen, watchSiteSeen } from "../messaging/site-seen";
 import { isPendingTab } from "../messaging/site-access";
 import { createTranslationCache } from "./translation-cache";
 import { createExplanationCache } from "./explanation-cache";
@@ -123,10 +130,7 @@ export function startBackground(): void {
   const siteAccess =
     browser.scripting && browser.permissions
       ? followSiteAccess({
-          staticMatches:
-            browser.runtime
-              .getManifest()
-              .content_scripts?.flatMap((script) => script.matches ?? []) ?? [],
+          staticMatches: manifestMatches(),
           permissions: browser.permissions,
           scripting: {
             getRegisteredContentScripts: (filter) =>
@@ -167,6 +171,28 @@ export function startBackground(): void {
           onStartup: browser.runtime.onStartup,
         })
       : undefined;
+
+  // The toolbar icon's mark on a new site in the learning language (architecture.md
+  // "Site access"); none where the browser has no page rules.
+  if (browser.declarativeContent && browser.permissions)
+    followSiteMark({
+      staticMatches: manifestMatches(),
+      rules: declarativeMarkRules(
+        browser.declarativeContent,
+        () =>
+          decodeIcon(MARK_ICON_PATHS, (path) => browser.runtime.getURL(path)),
+        () => browser.runtime.lastError,
+      ),
+      getSettings,
+      watchSettings,
+      getSetupStage,
+      watchSetupStage,
+      getSiteSeen,
+      watchSiteSeen,
+      permissions: browser.permissions,
+      onInstalled: browser.runtime.onInstalled,
+      onStartup: browser.runtime.onStartup,
+    });
 
   const explanations = createExplanationCache(db);
   const handle = createHandlers({
@@ -212,6 +238,15 @@ export function startBackground(): void {
     watchSetupStage,
     watchSettings,
     onStartup: browser.runtime.onStartup,
+    shown: {
+      get: async () => {
+        const value = (await browser.storage.session.get(TOOLBAR_ICON_KEY))[
+          TOOLBAR_ICON_KEY
+        ];
+        return isShownIcon(value) ? value : undefined;
+      },
+      set: (icon) => browser.storage.session.set({ [TOOLBAR_ICON_KEY]: icon }),
+    },
   });
 
   // The phone app only: its bars and menu in the interface language.
@@ -239,8 +274,16 @@ export function startBackground(): void {
     watchBuild().catch((error: unknown) => console.error(error));
 }
 
+/** The manifest's own content-script matches (the video sites). */
+const manifestMatches = () =>
+  browser.runtime
+    .getManifest()
+    .content_scripts?.flatMap((script) => script.matches ?? []) ?? [];
+
 /** `storage.session`: the setup's tab and the one to go back to. */
 const SETUP_TAB_KEY = "setupTab";
+/** `storage.session`: the global toolbar icon set last (toolbar-icon.ts). */
+const TOOLBAR_ICON_KEY = "toolbarIcon";
 /** `storage.session`: the tab the popup is turning a host on in (site-access.ts). */
 const SITE_ACCESS_PENDING_KEY = "siteAccessPending";
 
