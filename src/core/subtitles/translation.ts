@@ -71,15 +71,16 @@ export interface AlignOptions {
 const COVERED_SHARE = 0.5;
 
 /**
- * Translated text for each original cue (transcript cards), in the same order as `original`.
+ * Translated text for each original cue (transcript cards, or subtitle lines), in the same
+ * order as `original`.
  * Each translated cue goes to the original cue it overlaps most in time (ties go to the
  * earlier one), except that a spoken line goes to a sound label such as "(Laughter)" only
  * when it overlaps nothing else. It also goes to every other original cue of its kind
  * (spoken or sound label) that it covers at least half of, so a translated line that spans
  * two cards shows on both. Several landing on one cue are joined in time order. Translated
  * cues that overlap no original cue are dropped, and line breaks are flattened. Original
- * cues that get nothing map to "". When every translated cue starts exactly where an
- * original cue starts (YouTube auto-translation keeps the original's timing), cues are
+ * cues that get nothing map to "". When every translated cue starts and ends exactly where
+ * an original cue does (YouTube auto-translation keeps the original's timing), cues are
  * mapped one to one. `original` must be sorted by start time; `translated` need not be.
  */
 export function alignByOverlap(
@@ -95,9 +96,13 @@ export function alignByOverlap(
   original.forEach((cue, i) => {
     if (!indexByStart.has(cue.startMs)) indexByStart.set(cue.startMs, i);
   });
+  // Starts and ends both: a human line merged over two original cues starts where the
+  // first does but covers the second too.
   const sameSegmentation =
     translated.length > 0 &&
-    translated.every((t) => indexByStart.has(t.startMs));
+    translated.every(
+      (t) => original[indexByStart.get(t.startMs) ?? -1]?.endMs === t.endMs,
+    );
 
   const longestMs = original.reduce(
     (max, cue) => Math.max(max, cue.endMs - cue.startMs),

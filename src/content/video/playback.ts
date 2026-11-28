@@ -1,5 +1,4 @@
-import { cueAt, cueIndexAt, lastStartedIndex } from "../../core/subtitles/cues";
-import type { TimedTranslation } from "./captions";
+import { cueIndexAt, lastStartedIndex } from "../../core/subtitles/cues";
 import type { PlatformAdapter } from "./platform";
 import type { VideoState } from "./state";
 
@@ -14,21 +13,23 @@ const LOOP_EDGE_S = 1;
 
 /**
  * What plays at `ms`: the line, its card, the transcript's card and the translation the
- * subtitle shows. Nothing (-1, "") while not `following` (Langle off, an ad).
+ * subtitle shows: the line's own (`lineTranslations`, by line index) when there are
+ * line translations, else its card's. Nothing (-1, "") while not `following` (Langle
+ * off, an ad).
  */
 export function playingAt(
   state: VideoState,
   ms: number,
   following: boolean,
-  timed: TimedTranslation | null,
+  lineTranslations: readonly string[] | null,
 ): Pick<VideoState, "line" | "current" | "card" | "subtitleTranslation"> {
   const line = following ? cueIndexAt(state.lines, ms) : -1;
   const current = state.lines[line]?.card ?? -1;
   const card = following ? lastStartedIndex(state.cues, ms) : -1;
   let subtitleTranslation = "";
   if (following)
-    subtitleTranslation = timed
-      ? (cueAt(timed.cues, ms)?.text ?? "").split("\n").join(timed.joiner)
+    subtitleTranslation = lineTranslations
+      ? (lineTranslations[line] ?? "")
       : current >= 0
         ? (state.translations[current] ?? "")
         : "";

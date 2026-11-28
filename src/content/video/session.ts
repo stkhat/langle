@@ -49,7 +49,7 @@ import type { TranslationPair } from "../translate/queue";
 import { translatorBackend } from "../translate/backend";
 import { landingSeek, timeAt } from "../../core/subtitles/cues";
 import { cardRuns, splitRun } from "../../core/subtitles/runs";
-import { captionCards, type TimedTranslation } from "./captions";
+import { captionCards } from "./captions";
 import { createCards } from "./cards";
 import { holdPlayback } from "./hold";
 import { followPlayback, playingAt } from "./playback";
@@ -138,7 +138,7 @@ export interface VideoDeps extends LookupDeps {
 interface Watch {
   id: string;
   controller: AbortController;
-  timed: TimedTranslation | null;
+  lineTranslations: string[] | null;
   recorder: ReturnType<typeof createRecorder>;
   summaries: ReturnType<typeof createSummaries>;
   marks: ReturnType<typeof createMarkAll>;
@@ -380,7 +380,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     const w: Watch = {
       id,
       controller,
-      timed: null,
+      lineTranslations: null,
       recorder,
       summaries,
       marks: createMarkAll({
@@ -505,8 +505,8 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       store.set({ status: "unavailable" });
       return;
     }
-    const { state, timed } = captionCards(captions);
-    w.timed = timed;
+    const { state, lineTranslations } = captionCards(captions);
+    w.lineTranslations = lineTranslations;
     // The whole track is the document whose capitals tell names (rule D).
     lookup.setCasing(
       documentCasing(state.cues.map((cue) => textCasing(cue.text, lang()))),
@@ -553,7 +553,12 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
     if (watch !== w) return;
     const state = store.get();
     const following = state.enabled && !adapter.adShowing();
-    const now = playingAt(state, video.currentTime * 1000, following, w.timed);
+    const now = playingAt(
+      state,
+      video.currentTime * 1000,
+      following,
+      w.lineTranslations,
+    );
     if (
       now.line !== state.line ||
       now.card !== state.card ||
