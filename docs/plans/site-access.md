@@ -20,7 +20,7 @@
 - Extension APIs through WXT's `browser`; feature-detect `declarativeContent`, `scripting` and `permissions` (the phone app's shim lacks them).
 
 ## Progress
-- [ ] S0 Spike in Chrome (no product code)
+- [x] S0 Spike in Chrome (no product code): answers in [site-access notes](../notes/site-access.md)
 - [ ] S1 Grants: manifest, registration, no-reload injection
 - [ ] S2 The mark (`declarativeContent`)
 - [ ] S3 The popup: the switch, the bubble, seen hosts
