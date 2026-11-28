@@ -38,6 +38,9 @@ export const palettes = {
     blueText: "#1A4FB5",
     greenFill: "#0B7F65",
     greenEdge: "#B8E6D4",
+    orange: "#F76707",
+    orangeTint: "#FFF0E6",
+    orangeText: "#A33F00",
   },
   dark: {
     surface: "#12151F",
@@ -72,6 +75,9 @@ export const palettes = {
     blueText: "#A9C4FF",
     greenFill: "#0B7F65",
     greenEdge: "#245246",
+    orange: "#F76707",
+    orangeTint: "#4A2612",
+    orangeText: "#FFB68A",
   },
 } as const;
 

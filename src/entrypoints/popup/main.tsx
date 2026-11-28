@@ -9,7 +9,9 @@ import { getSetupStage, watchSetupStage } from "../../messaging/setup";
 import { watchPackState, watchSettings } from "../../messaging/storage";
 import type { PageSummary } from "../../messaging/page-protocol";
 import { mountPage } from "../../ui/mount-page";
-import { Popup, type PopupDeps } from "./Popup";
+import { hostOrigin, patternsCoverHost } from "../../core/site-access/origins";
+import { addSiteSeen, getSiteSeen } from "../../messaging/site-seen";
+import { Popup, type PopupDeps, type SiteAccessDeps } from "./Popup";
 import { SetupPending } from "./SetupPending";
 
 // Each step of the setup shows another popup.
@@ -86,6 +88,43 @@ function readyPopup() {
     close: () => window.close(),
     now: Date.now,
     refreshMs: 1000,
+    ...(browser.permissions &&
+      browser.scripting && { siteAccess: siteAccess() }),
   };
   return { theme: deps, app: <Popup deps={deps} /> };
+}
+
+/** Chrome's per-site access, under `activeTab` (opening the popup gives it). */
+function siteAccess(): SiteAccessDeps {
+  const origins = (host: string) => ({ origins: [hostOrigin(host)] });
+  // The video sites' scripts are in the manifest; the article script is registered.
+  const staticMatches = (
+    browser.runtime.getManifest().content_scripts ?? []
+  ).flatMap((script) => script.matches ?? []);
+  return {
+    async activeTab() {
+      const [tab] = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (tab?.id === undefined || !tab.url) return undefined;
+      const url = new URL(tab.url);
+      if (url.protocol !== "http:" && url.protocol !== "https:")
+        return undefined;
+      return { tabId: tab.id, host: url.hostname };
+    },
+    async probeLang(tabId) {
+      const [frame] = await browser.scripting.executeScript({
+        target: { tabId },
+        func: () => document.documentElement.lang,
+      });
+      return typeof frame?.result === "string" ? frame.result : "";
+    },
+    staticHost: (host) => patternsCoverHost(staticMatches, host),
+    granted: (host) => browser.permissions.contains(origins(host)),
+    request: (host) => browser.permissions.request(origins(host)),
+    remove: (host) => browser.permissions.remove(origins(host)),
+    seenHosts: getSiteSeen,
+    addSeen: addSiteSeen,
+  };
 }

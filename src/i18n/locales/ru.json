@@ -62,6 +62,7 @@
   "popup.langleSwitch": "Использовать Langle",
   "popup.site": "На этом сайте",
   "popup.siteSwitch": "Использовать Langle на этом сайте",
+  "popup.siteAsk": "Включите, чтобы использовать Langle здесь.",
   "popup.sync.saved": "Сохранено: {syncName} · {when}",
   "popup.sync.savedDevice": "Сохранено на телефоне · {when}",
   "popup.sync.space": "Место для синхронизации: занято {used} КБ из {quota} КБ",

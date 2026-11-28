@@ -57,6 +57,7 @@
   "popup.langleSwitch": "ใช้ Langle",
   "popup.site": "ในเว็บไซต์นี้",
   "popup.siteSwitch": "ใช้ Langle ในเว็บไซต์นี้",
+  "popup.siteAsk": "เปิดสวิตช์นี้เพื่อใช้ Langle ที่นี่",
   "popup.sync.saved": "บันทึกใน{syncName} แล้ว · {when}",
   "popup.sync.savedDevice": "บันทึกในโทรศัพท์เครื่องนี้แล้ว · {when}",
   "popup.sync.space": "พื้นที่ซิงค์: ใช้ไป {used} KB จาก {quota} KB",

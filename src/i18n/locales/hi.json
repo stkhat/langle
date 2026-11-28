@@ -57,6 +57,7 @@
   "popup.langleSwitch": "Langle इस्तेमाल करें",
   "popup.site": "इस साइट पर",
   "popup.siteSwitch": "इस साइट पर Langle इस्तेमाल करें",
+  "popup.siteAsk": "यहाँ Langle इस्तेमाल करने के लिए इसे चालू करें।",
   "popup.sync.saved": "{syncName} में सेव हो गया · {when}",
   "popup.sync.savedDevice": "इस फ़ोन पर सेव हो गया · {when}",
   "popup.sync.space": "सिंक स्पेस: {quota} KB में से {used} KB इस्तेमाल हुआ",
