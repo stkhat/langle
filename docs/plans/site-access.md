@@ -21,7 +21,7 @@
 
 ## Progress
 - [x] S0 Spike in Chrome (no product code): answers in [site-access notes](../notes/site-access.md)
-- [ ] S1 Grants: manifest, registration, no-reload injection
+- [x] S1 Grants: manifest, registration, no-reload injection
 - [ ] S2 The mark (`declarativeContent`)
 - [ ] S3 The popup: the switch, the bubble, seen hosts
 - [ ] S4 Store texts, privacy policy, real-site check
@@ -47,13 +47,13 @@ Answer these in a throwaway extension (or a check build on a branch that is neve
 ## S1 Grants
 Files: `wxt.config.ts`, `src/entrypoints/content/index.tsx`, a new `src/background/site-access.ts` (+ tests), `src/entrypoints/background.ts`, `tests/manifest.test.ts`, `tests/app-manifest.test.ts`, the E2E build config.
 
-- [ ] Manifest (Chrome): add `activeTab`, `scripting`, `declarativeContent`; `optional_host_permissions: ["*://*/*"]`. `content.js` gets `registration: "runtime"` in the Chrome build and stays a `<all_urls>` manifest script in `langle-app`. Manifest tests say both.
-- [ ] Start-once guard in `content/index.tsx`, so a registered and an injected copy never both run.
-- [ ] `site-access.ts`: from `permissions.getAll()`, keep the registered script `articles` equal to the granted article origins (register, update, unregister); follow `onAdded` / `onRemoved`, start-up and install. Deps passed in, like `toolbar-icon.ts`, so it is unit-tested with fakes.
-- [ ] Pending injection: a `siteAccessPending { tabId, host }` message (in `src/messaging/`), kept in `storage.session`; an `onAdded` covering that host injects `content.js` into the tab once.
-- [ ] Removal: on `onRemoved`, tell the host's open tabs to stop (the content script's existing site-off path).
-- [ ] `siteSeen` in `storage.local` with read/add helpers (used by S2 and S3).
-- [ ] E2E: the E2E build lists the test server's origin in `host_permissions`; the article E2E passes unchanged. Add one E2E that a page on an origin without a grant gets no highlights.
+- [x] Manifest (Chrome): add `activeTab`, `scripting`, `declarativeContent`; `optional_host_permissions: ["*://*/*"]`. `content.js` gets `registration: "runtime"` in the Chrome build and stays a `<all_urls>` manifest script in `langle-app`. Manifest tests say both.
+- [x] Start-once guard in `content/index.tsx`, so a registered and an injected copy never both run. (WXT already does it: a newer copy's context invalidates the older one before `main`, so no flag of our own; the background also skips a tab whose top frame answers `pagePresence`.)
+- [x] `site-access.ts`: from `permissions.getAll()`, keep the registered script `articles` equal to the granted article origins (register, update, unregister); follow `onAdded` / `onRemoved`, start-up and install. Deps passed in, like `toolbar-icon.ts`, so it is unit-tested with fakes.
+- [x] Pending injection: a `siteAccessPending { tabId, host }` message (in `src/messaging/`), kept in `storage.session`; an `onAdded` covering that host injects `content.js` into the tab once.
+- [x] Removal: on `onRemoved`, tell the host's open tabs to stop (the content script's existing site-off path).
+- [x] `siteSeen` in `storage.local` with read/add helpers (used by S2 and S3).
+- [x] E2E: the E2E build lists the test server's origin in `host_permissions`; the article E2E passes unchanged. Add one E2E that a page on an origin without a grant gets no highlights.
 
 Done when: verify passes; in a dev build an origin granted from the service worker console gets highlights on the next load.
 

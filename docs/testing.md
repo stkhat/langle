@@ -30,12 +30,13 @@ E2E covers only what needs the built extension in a real Chromium: the MAIN-worl
 - `extension-errors.spec.ts`: every flow on the check build, the web-page flows on production too, failing on anything the Errors page would show (notes below). Its service-worker restart test also records the time to the first highlights, cold and after a restart (annotations `analyze-*-ms`).
 - `content.spec.ts`: a word saved from the dictionary stays Learning after a reload.
 - `popup.spec.ts`: the header icons open the extension pages; the page's unsaved words with Mark all, Undo and On this site.
+- `site-access.spec.ts`: no article script on a host without a grant (`127.0.0.1`); an injected copy starts without a reload, and a second leaves one.
 - `settings.spec.ts`: a change reaches an open page at once.
 - `isolation.spec.ts`: the hostile page (no style leaks either way); production's closed roots on an article and a video.
 - `pack-downloads.spec.ts`: a broken mirror, Retry, the page highlighted.
 - `youtube.spec.ts`, `netflix.spec.ts`: one smoke test each, hook to subtitle with its highlights and Japanese line.
 
-Helpers: `e2e/page.ts` (`highlighted`, `pointOn`, `ON_TIME`, `openArticle`, `showNewWords`, `saveTerm`), `e2e/fixtures.ts` (`test` with a `build` option, `testWithErrors`, `sendToBackground` through one extension page kept open, `openPopupFor`), `e2e/sites.ts` (the routed YouTube, m.youtube.com and Netflix pages). The `phone` project (`playwright.config.ts`: 390 × 844, `isMobile`, `hasTouch`, an Android user agent, which `e2e/fixtures.ts` passes to the browser it launches) runs `e2e/phone.spec.ts` only; the `chromium` project runs the rest.
+Helpers: `e2e/page.ts` (`highlighted`, `pointOn`, `ON_TIME`, `openArticle`, `showNewWords`, `saveTerm`), `e2e/fixtures.ts` (`test` with a `build` option, `testWithErrors`, `sendToBackground` through one extension page kept open, `openPopupFor`), `e2e/sites.ts` (the routed YouTube, m.youtube.com and Netflix pages), `e2e/builds.ts` (Playwright's global setup: E2E loads copies of the builds in `.output/e2e/` whose manifest grants `*://localhost/*`, since articles run only on hosts with a grant and Playwright cannot answer Chrome's prompt; the fixture waits for the article script's registration). The `phone` project (`playwright.config.ts`: 390 × 844, `isMobile`, `hasTouch`, an Android user agent, which `e2e/fixtures.ts` passes to the browser it launches) runs `e2e/phone.spec.ts` only; the `chromium` project runs the rest.
 
 ## Running them
 - While iterating, run only the files you touch: `npx vitest run src/path/to/file.test.ts`, `npx vitest run --project browser src/path/to/file.browser.test.tsx` (outside the sandbox, like E2E), `npx playwright test e2e/<spec>.ts -g "<test name>"` (after `npm run build && wxt build --mode check` when source changed).

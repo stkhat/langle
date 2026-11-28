@@ -5,6 +5,8 @@ const isCI = !!process.env.CI;
 
 export default defineConfig({
   testDir: "e2e",
+  // Copies of the builds that grant the test server's host (e2e/builds.ts).
+  globalSetup: "./e2e/builds.ts",
   // Every test launches its own browser profile, so tests in one file run side by side.
   fullyParallel: true,
   // GitHub's Linux runners have 4 vCPUs; locally Playwright's default (half the cores).
