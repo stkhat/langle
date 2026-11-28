@@ -1,3 +1,4 @@
+import { render } from "preact";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanUpMounts, mountInShadowRoot } from "../../testing/shadow-root";
 import { canTouch, swipe } from "../../testing/touch";
@@ -48,6 +49,32 @@ describe("Sheet", () => {
     expect(getComputedStyle(body).overflowY).toBe("auto");
     expect(getComputedStyle(body).overscrollBehaviorY).toBe("contain");
     expect(body.scrollHeight).toBeGreaterThan(body.clientHeight);
+  });
+
+  test("tells the phone app while a sheet shows, once for a sheet that remounts", async () => {
+    const pageSheet = vi.fn<(open: boolean) => Promise<void>>(async () => {});
+    const g = globalThis as { appHost?: unknown };
+    g.appHost = { pageSheet };
+    const host = document.body.appendChild(document.createElement("div"));
+    try {
+      const sheet = (key: string) => (
+        <Sheet key={key} label="Dictionary" top={380} onClose={() => {}}>
+          <p>The entry</p>
+        </Sheet>
+      );
+      render(sheet("first"), host);
+      await expect.poll(() => pageSheet.mock.calls).toEqual([[true]]);
+      // Another word looked up: the old sheet goes as the new one comes.
+      render(sheet("second"), host);
+      await new Promise((done) => setTimeout(done, 20));
+      expect(pageSheet.mock.calls).toEqual([[true]]);
+      render(null, host);
+      await expect.poll(() => pageSheet.mock.calls).toEqual([[true], [false]]);
+    } finally {
+      render(null, host);
+      host.remove();
+      delete g.appHost;
+    }
   });
 
   describe.runIf(canTouch)("swipes on the handle", () => {

@@ -107,6 +107,12 @@ export interface PlatformAdapter {
    */
   controlBarTop?(): number | null;
   /**
+   * The elements that hold the player and the controls the site draws over it, where a
+   * phone's touch UI looks for the controls showing now to keep clear of them (the
+   * Paused pill, the L, the subtitle; `site-controls.ts`). Missing: nothing to avoid.
+   */
+  siteControls?(): Element[];
+  /**
    * How the site's control bar may show (Netflix): "free" as the site shows it; "delay"
    * held back until the pointer has kept moving over the player or reaches the bar's
    * area, so short moves to a word do not move the subtitle; "hidden" while Langle is in

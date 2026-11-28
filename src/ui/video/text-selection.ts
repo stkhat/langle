@@ -5,11 +5,16 @@ import { listenTouches } from "../touch/listen";
 import {
   boxOfOffsets,
   rangeOfOffsets,
-  selectedOffsets,
   selectOffsets,
   type SelectedOffsets,
   type TextBox,
 } from "../selection-in-root";
+import {
+  canDrawSelection,
+  drawnOffsets,
+  drawSelection,
+  undrawSelection,
+} from "../drawn-selection";
 
 /** The end of a selection a drag grows from: its start, or its end when dragged back. */
 export type Anchor = "start" | "end";
@@ -101,10 +106,9 @@ function wordNear(
   return best;
 }
 
-/** Drops the page's selection when it is in `el`. */
-function unselectIn(el: Element) {
-  if (selectedOffsets(el)) getSelection()?.removeAllRanges();
-}
+/** Shows words of `el` as selected: drawn by Langle in touch mode, else the page's selection. */
+const showIn = (el: Element, from: number, to: number, touch: boolean) =>
+  touch ? drawSelection(el, from, to) : selectOffsets(el, from, to);
 
 /**
  * Selects in `el` the whole words from `pressed` to the word nearest (`x`, `y`), as
@@ -138,8 +142,8 @@ function snapTo(
     anchor,
     boxOf: (start: number, end: number) => boxOfOffsets(el, start, end),
   };
-  if (next) selectOffsets(el, next.from, next.to);
-  else unselectIn(el);
+  if (next) showIn(el, next.from, next.to, props.touch === true);
+  else undrawSelection(el);
   return next;
 }
 
@@ -172,9 +176,9 @@ function endSelecting(
   const kept = props.onSelect?.(connected ? shown : undefined);
   if (!connected) return;
   // Words without a card are not left selected.
-  if (!kept) unselectIn(el);
+  if (!kept) undrawSelection(el);
   else if (kept.from !== shown?.from || kept.to !== shown.to)
-    selectOffsets(el, kept.from, kept.to);
+    showIn(el, kept.from, kept.to, props.touch === true);
 }
 
 /**
@@ -240,7 +244,8 @@ function selectByTouch(
         last: { x, y },
       };
       handlers.current.onSelectStart?.();
-      selectable(el, true);
+      // Where Langle cannot draw its selection, the page's needs selectable text.
+      if (!canDrawSelection()) selectable(el, true);
       follow(x, y);
     },
     drag({ x, y }) {
@@ -263,7 +268,7 @@ function selectByTouch(
   const noSystem = (event: Event) => event.preventDefault();
   // Langle's selection went (or none came): the text is not selectable again.
   const rest = () => {
-    if (!press && !selectedOffsets(el)) selectable(el, false);
+    if (!press && !drawnOffsets(el)) selectable(el, false);
   };
   document.addEventListener("selectionchange", rest);
   el.addEventListener("pointercancel", onCancel, true);
@@ -286,7 +291,9 @@ function selectByTouch(
  * Touch mode's look of a text words are selected in: no system callout on a long-press,
  * and not selectable at rest. WebKit on iOS fires no `contextmenu` on a long-press: on
  * selectable text its own selection takes the touch over (the page hears no end of the
- * press), so only Langle's selection makes the text selectable (`selectable`).
+ * press). Langle draws its own selection over the text (`drawn-selection.ts`), so the
+ * text never becomes selectable and the phone draws no handles on it; only where it
+ * cannot be drawn does Langle's selection make the text selectable (`selectable`).
  */
 export const TOUCH_TEXT = {
   WebkitTouchCallout: "none",
@@ -295,7 +302,7 @@ export const TOUCH_TEXT = {
   WebkitUserSelect: "none",
 } as const;
 
-/** Touch mode: the text selectable while Langle's own selection is in it (`TOUCH_TEXT`). */
+/** Touch mode without drawn selections: the text selectable while Langle's selection is in it. */
 function selectable(el: HTMLElement, on: boolean) {
   const value = on ? "text" : "none";
   el.style.setProperty("-webkit-user-select", value);
@@ -338,7 +345,7 @@ export function useTextSelection<E extends HTMLElement>(
     stop.current?.();
     // A press inside selected words would drag them (the browser's text drag): the
     // press selects anew.
-    if (selectedOffsets(el)) getSelection()?.removeAllRanges();
+    undrawSelection(el);
     // A finger selects by a long-press (`selectByTouch`); a tap is a click. The press
     // selects anew: the text is not selectable before its long-press.
     if (touch && event.pointerType === "touch") {
@@ -448,6 +455,6 @@ export function useTextSelection<E extends HTMLElement>(
     ref,
     onPointerDown,
     /** Words are selected in the text: a click there ends a drag, not a word's click. */
-    selected: () => !!ref.current && selectedOffsets(ref.current) !== undefined,
+    selected: () => !!ref.current && drawnOffsets(ref.current) !== undefined,
   };
 }

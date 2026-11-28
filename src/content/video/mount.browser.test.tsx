@@ -139,6 +139,28 @@ afterEach(async () => {
   style.remove();
 });
 
+/**
+ * A control of the site's drawn over the player (`siteControls`), placed by `css` in a
+ * layer over it (as m.youtube.com's controls), which the adapter then gives.
+ */
+function siteControl(label: string, css: string, role?: string) {
+  let layer = page.player.querySelector<HTMLElement>("[data-site-controls]");
+  if (!layer) {
+    layer = document.createElement("div");
+    layer.dataset.siteControls = "";
+    layer.style.cssText = "position: absolute; inset: 0; pointer-events: none;";
+    page.player.append(layer);
+    const roots = [layer];
+    Object.assign(adapter, { siteControls: () => roots });
+  }
+  const control = document.createElement("button");
+  control.setAttribute("aria-label", label);
+  if (role) control.setAttribute("role", role);
+  control.style.cssText = `position: absolute; padding: 0; ${css}`;
+  layer.append(control);
+  return control;
+}
+
 function mount(state: VideoState = readyState()) {
   const fake = fakeApp(state);
   unmount = mountVideoUi({ adapter, app: fake.app });
@@ -411,6 +433,67 @@ describe("mountVideoUi", () => {
     await expect
       .poll(() => text("langle-video-player"))
       .not.toContain("Paused");
+  });
+
+  it("in touch mode, Paused moves under the site's controls over it, and back when they go", async () => {
+    // As m.youtube.com's unmute button while the video is muted, and a 12px stand-in
+    // for screen readers (not a control to keep clear of).
+    const unmute = siteControl(
+      "Tap to unmute",
+      "left: 0; top: 0; width: 196px; height: 73px;",
+    );
+    siteControl("Mute", "left: 12px; top: 12px; width: 12px; height: 12px;");
+    const fake = fakeApp(readyState({ heldPaused: true }));
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: fixedTouchMode(true),
+    });
+    await expect.poll(() => pausedPill("langle-video-player")).not.toBeNull();
+    const top = () =>
+      pausedPill("langle-video-player")!.getBoundingClientRect().top -
+      page.player.getBoundingClientRect().top;
+    await expect.poll(top).toBe(73 + 8);
+    unmute.style.visibility = "hidden";
+    await expect.poll(top).toBe(12);
+  });
+
+  it("in touch mode, the sheet opens under the band and follows its height", async () => {
+    const fake = fakeApp(readyState());
+    unmount = mountVideoUi({
+      adapter,
+      app: fake.app,
+      touchMode: fixedTouchMode(true),
+    });
+    await expect
+      .poll(() => text("langle-video-below"))
+      .toContain("The yeast smells tangy.");
+    const band = () =>
+      inside("langle-video-below")!
+        .querySelector("[role=region]")!
+        .getBoundingClientRect().bottom;
+    const sheet = () =>
+      inside("langle-video")
+        ?.querySelector("aside[aria-label='Dictionary']")
+        ?.getBoundingClientRect().top ?? null;
+    fake.store.set({
+      panel: {
+        ref: { cue: 0, span: 1 },
+        card: TANGY,
+        here: [],
+        dictionaries: [],
+        opened: 1,
+      },
+    });
+    await expect.poll(sheet).not.toBeNull();
+    await expect.poll(() => Math.round(sheet()!)).toBe(Math.round(band()));
+    const before = band();
+    // A taller band (the band's room grows with it): the sheet moves down with it.
+    const extra = document.createElement("div");
+    extra.style.height = "40px";
+    inside("langle-video-below")!.querySelector("[role=region]")!.append(extra);
+    await expect.poll(band).toBeGreaterThan(before + 10);
+    await expect.poll(() => Math.round(sheet()!)).toBe(Math.round(band()));
   });
 
   it("off: only the player buttons stay", async () => {
@@ -1183,6 +1266,45 @@ describe("mountVideoUi", () => {
         await expect.poll(at).toEqual([356 + 12, 12, 28]);
         store.set({ heldPaused: false });
         await expect.poll(() => pausedPill("langle-video")).toBeNull();
+      });
+
+      it("moves the L and Paused under the site's controls at the top, and the subtitle above its bar", async () => {
+        await browserPage.viewport(844, 390);
+        const { store } = mountTouch("off");
+        await fullscreen();
+        // As m.youtube.com's controls in fullscreen: the gear at the top right, the
+        // unmute button at the top left, the seek bar along the bottom.
+        const shown = [
+          siteControl(
+            "Settings",
+            "right: 8px; top: 0; width: 48px; height: 48px;",
+          ),
+          siteControl(
+            "Unmute",
+            "left: 40px; top: 0; width: 196px; height: 73px;",
+          ),
+          siteControl(
+            "Seek",
+            "left: 30px; right: 30px; bottom: 0; height: 44px;",
+            "slider",
+          ),
+        ];
+        store.set({ heldPaused: true });
+        await expect.poll(() => pausedPill("langle-video")).not.toBeNull();
+        const l = await button("langle-video", "Langle");
+        const pill = () => pausedPill("langle-video")!.getBoundingClientRect();
+        const region = () =>
+          inside("langle-video")!
+            .querySelector("[role=region]")!
+            .getBoundingClientRect();
+        await expect.poll(() => l.getBoundingClientRect().top).toBe(48 + 8);
+        await expect.poll(() => pill().top).toBe(73 + 8);
+        await expect.poll(() => innerHeight - region().bottom).toBe(44 + 12);
+        // The controls fade out: each goes back to the mock's place.
+        for (const each of shown) each.style.opacity = "0";
+        await expect.poll(() => l.getBoundingClientRect().top).toBe(12);
+        await expect.poll(() => pill().top).toBe(16);
+        await expect.poll(() => innerHeight - region().bottom).toBe(28);
       });
 
       it("with the transcript at a side: a 300px column 44px from that edge, the video beside it, the dictionary inside", async () => {

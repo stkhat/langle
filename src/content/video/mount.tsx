@@ -11,15 +11,18 @@ import {
   InPlayerUi,
   MenuUi,
   PageUi,
-  PHONE_COLUMN,
+  phoneColumn,
   PlayerBarUi,
   SUBTITLE_BOTTOM,
   subtitleOverVideo,
   TranscriptUi,
   VideoThemed,
+  type Column,
   type VideoGeometry,
   type VideoLayout,
 } from "./VideoUi";
+import { NO_INSETS, safeAreaReader, sameInsets } from "../../ui/safe-area";
+import { controlsTopIn, sameBoxes, shownControls } from "./site-controls";
 import type { InsertionPoint, PlatformAdapter } from "./platform";
 import { transcriptPlace } from "./placement";
 import type { VideoApp } from "./state";
@@ -74,15 +77,18 @@ function fullscreenHost(): Element | null {
 }
 
 /** The transcript sidebar beside a player that fills the window (mock FullWindow): 360px wide, 16px in. */
-const SIDEBAR = { width: 360, inset: 16, side: 16, room: 392 };
+const SIDEBAR: Column = {
+  width: 360,
+  top: 16,
+  bottom: 16,
+  side: 16,
+  room: 392,
+};
 
 /** The sidebar host's style for `column` (the desktop's, or a phone's) at `side`. */
-const sidebarStyle = (
-  column: typeof SIDEBAR | typeof PHONE_COLUMN,
-  side: "left" | "right",
-) =>
-  `position: fixed; z-index: ${SIDEBAR_LAYER}; top: ${column.inset}px;` +
-  ` ${side}: ${column.side}px; bottom: ${column.inset}px;` +
+const sidebarStyle = (column: Column, side: "left" | "right") =>
+  `position: fixed; z-index: ${SIDEBAR_LAYER}; top: ${column.top}px;` +
+  ` ${side}: ${column.side}px; bottom: ${column.bottom}px;` +
   ` width: ${column.width}px; overflow: hidden;`;
 /** Above the site's player, below Langle's menu, hover card and dictionary window. */
 const SIDEBAR_LAYER = 2147483600;
@@ -124,7 +130,12 @@ export function mountVideoUi({
     touch: touchMode.on(),
     pinned: null,
     pinnedBottom: null,
+    bandBottom: null,
+    siteControls: [],
+    controlsLift: 0,
+    safeArea: NO_INSETS,
   });
+  const safeArea = safeAreaReader();
   const sidebar = document.createElement("langle-video-sidebar");
   let sidebarStyled = sidebarStyle(SIDEBAR, "right");
   sidebar.style.cssText = sidebarStyled;
@@ -258,8 +269,11 @@ export function mountVideoUi({
    */
   function liftSubtitle(playerElement: HTMLElement | null) {
     if (inUse(app.store.get())) return;
-    const barTop = adapter.controlBarTop?.() ?? null;
     const player = boxOf(playerElement);
+    // Netflix's bar; on a phone, the controls along the player's bottom.
+    const barTop =
+      adapter.controlBarTop?.() ??
+      (player ? controlsTopIn(layout.get().siteControls, player) : null);
     const subtitleBottom =
       barTop === null || !player
         ? SUBTITLE_BOTTOM
@@ -305,7 +319,7 @@ export function mountVideoUi({
       (touch
         ? settings.phoneFullscreenTranscript !== "off"
         : settings.transcriptShown);
-    const column = touch ? PHONE_COLUMN : SIDEBAR;
+    const column = touch ? phoneColumn(layout.get().safeArea, side) : SIDEBAR;
     adapter.narrowPlayer?.(on ? column.room : 0, side);
     if (on) {
       const style = sidebarStyle(column, side);
@@ -334,6 +348,67 @@ export function mountVideoUi({
       pinned === null ? null : pinned.top + (pinnedHeight ?? 0);
     if (pinnedBottom !== layout.get().pinnedBottom)
       layout.set({ pinnedBottom });
+    tellBandBottom();
+  }
+
+  /** Where a phone's dictionary sheet opens under: the band's bottom, else the player's. */
+  function tellBandBottom() {
+    const band = geometry.subtitle() ?? geometry.player();
+    const bandBottom = band ? Math.round(band.bottom) : null;
+    if (bandBottom !== layout.get().bandBottom) layout.set({ bandBottom });
+  }
+
+  /** The window's box, where the site's controls are looked for. */
+  const windowBox = () => ({
+    left: 0,
+    top: 0,
+    right: innerWidth,
+    bottom: innerHeight,
+  });
+
+  /** The roots `siteControls` watches for the controls showing or hiding. */
+  let watched: readonly Element[] = [];
+  let controlsWatch: MutationObserver | undefined;
+
+  /**
+   * Touch mode: the site's controls shown now over the video (`siteControls`), measured
+   * again when they show or hide (a class or style change in their roots, the end of
+   * their fade), and how far they lift the subtitle in fullscreen.
+   */
+  function measureControls(touch: boolean) {
+    const roots = touch ? (adapter.siteControls?.() ?? []) : [];
+    if (
+      roots.length !== watched.length ||
+      roots.some((root, i) => root !== watched[i])
+    ) {
+      controlsWatch ??= new MutationObserver(checkControls);
+      controlsWatch.disconnect();
+      for (const root of roots)
+        controlsWatch.observe(root, {
+          attributes: true,
+          subtree: true,
+          attributeFilter: ["class", "style", "hidden", "aria-hidden"],
+        });
+      watched = roots;
+    }
+    const screen = windowBox();
+    const siteControls = roots.length ? shownControls(roots, screen) : [];
+    if (!sameBoxes(siteControls, layout.get().siteControls))
+      layout.set({ siteControls });
+    // In use, the words stay where the finger is.
+    if (inUse(app.store.get())) return;
+    const top = controlsTopIn(siteControls, screen);
+    const controlsLift =
+      top === null ? 0 : Math.ceil(innerHeight - top + CONTROL_BAR_GAP);
+    if (controlsLift !== layout.get().controlsLift)
+      layout.set({ controlsLift });
+  }
+
+  /** Touch mode: the screen's safe area, read again as the phone turns. */
+  function measureSafeArea(touch: boolean) {
+    const insets = touch ? safeArea.read() : NO_INSETS;
+    if (!sameInsets(insets, layout.get().safeArea))
+      layout.set({ safeArea: insets });
   }
 
   /**
@@ -376,6 +451,7 @@ export function mountVideoUi({
     if (vertical !== layout.get().vertical) layout.set({ vertical });
     const touch = touchMode.on();
     if (touch !== layout.get().touch) layout.set({ touch });
+    measureSafeArea(touch);
     arrangeSidebar();
     // Not before: narrowing the player tells the site, which may render it again.
     const player = adapter.playerElement();
@@ -396,8 +472,10 @@ export function mountVideoUi({
       at.parent.insertBefore(host, at.before);
     }
     holdBackControlBar();
+    measureControls(touch);
     liftSubtitle(player);
     pinBelow(player);
+    tellBandBottom();
     const frame = layout.get().sidebar ? sidebar : player;
     if (frame !== observed) {
       if (observed) resize.unobserve(observed);
@@ -413,6 +491,21 @@ export function mountVideoUi({
       place();
     });
   };
+  // A control's style changes often (the progress bar as it plays): once a frame, only the
+  // controls are measured, and the parts placed again only when the ones shown changed.
+  let controlsFrame: number | undefined;
+  function checkControls() {
+    controlsFrame ??= requestAnimationFrame(() => {
+      controlsFrame = undefined;
+      if (
+        !sameBoxes(
+          shownControls(watched, windowBox()),
+          layout.get().siteControls,
+        )
+      )
+        schedule();
+    });
+  }
   const observer = new MutationObserver(schedule);
   observer.observe(document.documentElement, {
     childList: true,
@@ -425,6 +518,13 @@ export function mountVideoUi({
     schedule();
   };
   document.addEventListener("fullscreenchange", onFullscreen);
+  // The phone turning (the safe area, the column); the site's controls done fading.
+  addEventListener("resize", schedule);
+  const onFade = () => {
+    if (watched.length) checkControls();
+  };
+  document.addEventListener("transitionend", onFade, true);
+  document.addEventListener("animationend", onFade, true);
   // Langle on or off, the video's subtitles, the menu's switch and the column's ×.
   const offStore = app.store.subscribe(schedule);
   const offTouch = touchMode.watch(schedule);
@@ -436,7 +536,13 @@ export function mountVideoUi({
     resize.disconnect();
     belowResize.disconnect();
     if (frame !== undefined) cancelAnimationFrame(frame);
+    if (controlsFrame !== undefined) cancelAnimationFrame(controlsFrame);
     document.removeEventListener("fullscreenchange", onFullscreen);
+    removeEventListener("resize", schedule);
+    document.removeEventListener("transitionend", onFade, true);
+    document.removeEventListener("animationend", onFade, true);
+    controlsWatch?.disconnect();
+    safeArea.remove();
     for (const root of roots) render(null, root);
     for (const { host } of parts) host.remove();
     sidebar.remove();

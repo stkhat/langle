@@ -176,7 +176,7 @@ public final class Shell {
     case .activateTab(let tab): return activated(tab)
     case .closeTab(let tab): return closed(tab)
     case .openPopup: return screen == .page ? .langleSheet : .nothing
-    case .reloadTab, .reloadHost: return .nothing
+    case .reloadTab, .reloadHost, .contentHeight, .pageSheet: return .nothing
     }
   }
 

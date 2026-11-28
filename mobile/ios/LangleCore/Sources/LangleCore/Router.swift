@@ -24,7 +24,16 @@ public enum RouterAction: Equatable, Sendable {
   case openPopup
   /// `runtime.reload`: the extension host again.
   case reloadHost
+  /// `appHost.contentHeight`: how tall an app page's content is (CSS px); the sheet it is in
+  /// fits it.
+  case contentHeight(ContextSpec, Double)
+  /// `appHost.pageSheet`: Langle's sheet in a web page opened or closed; the title bar gives way.
+  case pageSheet(ContextSpec, Bool)
 }
+
+/// The errors a bad `appHost.contentHeight` and `appHost.pageSheet` get, in all three routers.
+public let contentHeightError = "appHost.contentHeight needs a number."
+public let pageSheetError = "appHost.pageSheet needs true or false."
 
 /// Chrome's text when a message has nobody to answer it (`messaging/client.ts` retries on it).
 public let noReceiver = "Could not establish connection. Receiving end does not exist."
@@ -488,6 +497,14 @@ public final class Router {
     case "appHost.nativeStrings":
       guard let set = NativeStringSet(args.first) else { throw BridgeError(NativeStringSet.error) }
       onNativeStrings?(set)
+      done(.success(nil))
+    case "appHost.contentHeight":
+      guard let height = args.first?.number, height.isFinite else { throw BridgeError(contentHeightError) }
+      onAction?(.contentHeight(context.spec, height))
+      done(.success(nil))
+    case "appHost.pageSheet":
+      guard let open = args.first?.bool else { throw BridgeError(pageSheetError) }
+      onAction?(.pageSheet(context.spec, open))
       done(.success(nil))
     case _ where translationApis.contains(api):
       guard let host = onTranslation else { throw BridgeError(notAvailable(api)) }

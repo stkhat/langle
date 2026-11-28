@@ -533,6 +533,7 @@ export function createYouTubeAdapter(
     sideColumn: () => layout.sideColumn(),
     vertical: onShorts,
     besidePlayer: () => layout.besidePlayer(),
+    siteControls: () => layout.siteControls(),
     adShowing,
     async details() {
       const response = (await call({ type: "getPlayerResponse" })) as {

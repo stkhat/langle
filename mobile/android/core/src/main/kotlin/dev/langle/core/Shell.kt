@@ -116,7 +116,7 @@ class Shell(private val origin: String, private val tabs: Tabs) {
       is RouterAction.ReloadTab -> screenOf(action.id)?.let { listOf(ShellEffect.Reload(it)) }.orEmpty()
       RouterAction.OpenPopup ->
         if (screen == Screen.Page) listOf(ShellEffect.PresentSheet("$origin/popup.html", null)) else emptyList()
-      RouterAction.ReloadHost -> emptyList()
+      RouterAction.ReloadHost, is RouterAction.ContentHeight, is RouterAction.PageSheet -> emptyList()
     }
 
   /**

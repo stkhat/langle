@@ -18,7 +18,7 @@ import {
   cleanUpMounts,
   mountInShadowRoot,
 } from "../../testing/shadow-root";
-import { selectedOffsets } from "../selection-in-root";
+import { drawnOffsets } from "../drawn-selection";
 import { VideoPanel, type VideoPanelProps } from "./VideoPanel";
 import type { WordRow } from "../words/WordsList";
 
@@ -394,7 +394,7 @@ describe("the Transcript tab", () => {
       2,
       expect.objectContaining({ ...whole, anchor: "start" }),
     ]);
-    expect(selectedOffsets(line)).toEqual(whole);
+    expect(drawnOffsets(line)).toEqual(whole);
     expect(onSeek).not.toHaveBeenCalled();
   });
 
@@ -468,7 +468,7 @@ describe("the Transcript tab", () => {
       20,
       expect.objectContaining({ from: 0, to: text.indexOf("20") + 2 }),
     ]);
-    expect(selectedOffsets(line)).toEqual({ from: 0, to: text.length - 1 });
+    expect(drawnOffsets(line)).toEqual({ from: 0, to: text.length - 1 });
     expect(list.scrollTop).toBe(top);
     expect(pageClick).not.toHaveBeenCalled();
     expect(onSeek).not.toHaveBeenCalled();

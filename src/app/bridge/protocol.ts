@@ -39,6 +39,8 @@ const CALL_APIS = [
   "appHost.openPage",
   "appHost.shareFile",
   "appHost.nativeStrings",
+  "appHost.contentHeight",
+  "appHost.pageSheet",
   "appHost.translate",
   "appHost.translatorStatus",
   "appHost.prepareTranslator",

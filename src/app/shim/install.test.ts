@@ -126,6 +126,17 @@ describe("installShim", () => {
     expect(native.calls).toEqual([{ api: "appHost.shareFile", args: [file] }]);
   });
 
+  test("appHost.contentHeight and appHost.pageSheet are calls with their value", async () => {
+    const native = fakeBridge();
+    installShim(native.bridge, INFO);
+    await appHostOf()?.contentHeight?.(612.5);
+    await appHostOf()?.pageSheet?.(false);
+    expect(native.calls).toEqual([
+      { api: "appHost.contentHeight", args: [612.5] },
+      { api: "appHost.pageSheet", args: [false] },
+    ]);
+  });
+
   test("appHost.nativeStrings is a call with the locale, the direction and the strings", async () => {
     const native = fakeBridge();
     installShim(native.bridge, INFO);
