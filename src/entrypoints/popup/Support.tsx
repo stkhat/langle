@@ -6,8 +6,11 @@ import { color, FONT } from "../../ui/styles";
 /** Learning words at which the popup asks once for a rating. */
 export const RATE_NUDGE_AT = 100;
 
-/** The nudge alone is set in Nunito (bundled by `main.tsx`), the rest of the popup in Inter. */
-const NUDGE_FONT = `'Nunito', ${FONT}`;
+/**
+ * The nudges alone (this one and the site's) are set in Nunito (bundled by `main.tsx`),
+ * the rest of the popup in Inter.
+ */
+export const NUDGE_FONT = `'Nunito', ${FONT}`;
 
 /**
  * The one-time rating nudge (mock Toolbar): a speech bubble over the footer whose tail

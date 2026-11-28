@@ -57,6 +57,7 @@
   "popup.langleSwitch": "Langle を使う",
   "popup.site": "このサイト",
   "popup.siteSwitch": "このサイトで Langle を使う",
+  "popup.siteAsk": "オンにすると、ここで Langle を使えます。",
   "popup.sync.saved": "{syncName}に保存済み · {when}",
   "popup.sync.savedDevice": "このスマートフォンに保存済み · {when}",
   "popup.sync.space": "同期の容量: {quota} KB 中 {used} KB を使用",

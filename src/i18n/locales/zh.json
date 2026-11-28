@@ -57,6 +57,7 @@
   "popup.langleSwitch": "使用 Langle",
   "popup.site": "在此网站上",
   "popup.siteSwitch": "在此网站上使用 Langle",
+  "popup.siteAsk": "打开此开关，即可在这里使用 Langle。",
   "popup.sync.saved": "已保存到 {syncName} · {when}",
   "popup.sync.savedDevice": "已保存在这部手机上 · {when}",
   "popup.sync.space": "同步空间：已用 {used} KB，共 {quota} KB",

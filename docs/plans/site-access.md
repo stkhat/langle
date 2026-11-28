@@ -23,7 +23,7 @@
 - [x] S0 Spike in Chrome (no product code): answers in [site-access notes](../notes/site-access.md)
 - [x] S1 Grants: manifest, registration, no-reload injection
 - [x] S2 The mark (`declarativeContent`)
-- [ ] S3 The popup: the switch, the bubble, seen hosts
+- [x] S3 The popup: the switch, the bubble, seen hosts
 - [ ] S4 Store texts, privacy policy, real-site check
 
 S2 and S3 both stack on S1 and touch different files, so they may run in parallel; S4 goes last.
@@ -70,11 +70,11 @@ Done when: verify passes; in a dev build an English page on a new host shows the
 ## S3 The popup
 Files: `src/entrypoints/popup/main.tsx`, `Popup.tsx`, a small view function (+ tests), `Popup.browser.test.tsx`, the locale files.
 
-- [ ] Host and probe: where no content script answers on an `http`/`https` tab, read the tab's `url` (`activeTab`) and probe `<html lang>`; a failed probe hides "On this site".
-- [ ] Seen: add the host to `siteSeen` on opening, after deciding whether this is the first opening.
-- [ ] View: the row's states (first opening with the bubble, first opening without it, later, on, off), the ring and the bubble as the mock draws them (Nunito 15 px 800, `#A33F00` on `#FFF0E6`, the tail at the top right); "This page" hidden until the host is on.
-- [ ] Switch: on → `siteAccessPending`, then `permissions.request`, and drop the host from `disabledSites`; off on an article host → `permissions.remove`. YouTube and Netflix keep today's `disabledSites` toggle.
-- [ ] Browser tests for each state; render the popup and compare it with the mock's `SiteAccessAsk` and `SiteAccessLater` before committing.
+- [x] Host and probe: where no content script answers on an `http`/`https` tab, read the tab's `url` (`activeTab`) and probe `<html lang>`; a failed probe hides "On this site".
+- [x] Seen: add the host to `siteSeen` on opening, after deciding whether this is the first opening (only once the row shows: not after a failed probe, not while Langle is off, not on the video sites).
+- [x] View: the row's states (first opening with the bubble, first opening without it, later, on, off), the ring and the bubble as the mock draws them (Nunito 15 px 800, `#A33F00` on `#FFF0E6`, the tail at the top right); "This page" hidden until the host is on.
+- [x] Switch: on → `siteAccessPending`, then `permissions.request`, and drop the host from `disabledSites`; off on an article host → `permissions.remove`. YouTube and Netflix keep today's `disabledSites` toggle.
+- [x] Browser tests for each state; render the popup and compare it with the mock's `SiteAccessAsk` and `SiteAccessLater` before committing.
 
 Done when: verify passes and the rendered popup matches the mock.
 
