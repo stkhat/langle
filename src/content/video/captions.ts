@@ -11,28 +11,25 @@ import {
   timingError,
   trackOffset,
 } from "../../core/subtitles/translation";
-import type { Cue } from "../../core/subtitles/types";
 import { functionWords } from "../../core/tagging/function-words";
 import type { VideoCaptions } from "./platform";
 import type { VideoState } from "./state";
 
-/** The site's translation track, read by time for the subtitle. */
-export interface TimedTranslation {
-  cues: Cue[];
-  /** Joins the lines of a translation cue. */
-  joiner: string;
-}
-
 /**
  * The transcript's cards, the lines the video shows and each card's translation, from
- * the subtitles the adapter read.
+ * the subtitles the adapter read; for a manual track with the site's translation, also
+ * each line's translation (`lineTranslations`).
  */
 export function captionCards(captions: VideoCaptions): {
   state: Pick<
     VideoState,
     "cues" | "lines" | "spans" | "translationSource" | "translations"
   >;
-  timed: TimedTranslation | null;
+  /**
+   * The translation under each subtitle line (in `state.lines` order), when the lines
+   * are not shown with their card's whole translation; else null.
+   */
+  lineTranslations: string[] | null;
 } {
   const asr = captions.track.kind === "asr";
   const joiner = joinerFor(captions.track.lang);
@@ -77,6 +74,12 @@ export function captionCards(captions: VideoCaptions): {
     translation.source === "siteTrack"
       ? joinCoveredCards(sentences, translation.cues, joiner)
       : sentences;
+  const timing = {
+    lang: translation.lang,
+    ...(translation.source === "siteTrack" && {
+      timingErrorMs: timingError(captions.cues, translation.cues),
+    }),
+  };
   return {
     state: {
       cues: cards,
@@ -86,18 +89,24 @@ export function captionCards(captions: VideoCaptions): {
       translations:
         aligned?.translations ??
         (site
-          ? alignByOverlap(cards, translation.cues, {
-              lang: translation.lang,
-              ...(translation.source === "siteTrack" && {
-                timingErrorMs: timingError(captions.cues, translation.cues),
-              }),
-            })
+          ? alignByOverlap(cards, translation.cues, timing)
           : cards.map(() => "")),
     },
-    // Merged sentences no longer match the fragments' timing: show the aligned text.
-    timed:
+    // Merged sentences no longer match a line's time: each line gets the translated
+    // lines it overlaps by the cards' rule, so a translation timed a little apart from
+    // the original changes with the line, never while it shows (2026-11-28: read by
+    // time, it came and went mid-line and moved the line up and down).
+    lineTranslations:
       site && !asr
-        ? { cues: translation.cues, joiner: joinerFor(translation.lang) }
+        ? alignByOverlap(
+            lines.map((line) => ({
+              startMs: line.startMs,
+              endMs: line.endMs,
+              text: cards[line.card]?.text.slice(line.start, line.end) ?? "",
+            })),
+            translation.cues,
+            timing,
+          )
         : null,
   };
 }

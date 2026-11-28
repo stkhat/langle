@@ -96,7 +96,34 @@ describe("captionCards for a manual track", () => {
       [2000, 3500],
       [4000, 6000],
     ]);
-    expect(result.timed?.cues).toHaveLength(2);
+    // The one translated line spans both lines of the first card: it shows under each.
+    expect(result.lineTranslations).toEqual([
+      "恐れや疑いを感じて先延ばしにします",
+      "恐れや疑いを感じて先延ばしにします",
+      "ではどうするか？",
+    ]);
+  });
+
+  it("gives each line the translation it overlaps, not one timed a little apart", () => {
+    // Netflix-like: the Japanese starts late and runs into the next line.
+    const result = manual(
+      [
+        cue(0, 1800, "Where were you?"),
+        cue(1900, 3500, "At the office."),
+        cue(4000, 5000, "Again?"),
+      ],
+      "siteTrack",
+      [
+        cue(300, 2300, "どこにいたの？"),
+        cue(2300, 3900, "会社だよ"),
+        cue(4200, 5200, "また？"),
+      ],
+    );
+    expect(result.lineTranslations).toEqual([
+      "どこにいたの？",
+      "会社だよ",
+      "また？",
+    ]);
   });
 
   it("does not join past 30 words", () => {
@@ -165,12 +192,16 @@ describe("captionCards for a human track timed off the original", () => {
 
   it("moves the translation onto the original's clock for cards and subtitle", () => {
     const result = manual(original, "siteTrack", late);
-    expect(result.timed?.cues[2]?.startMs).toBe(original[2]!.startMs);
+    expect(result.lineTranslations?.[2]).toBe(`行${original[2]!.text}`);
     expect(result.state.translations[2]).toBe(`行${original[2]!.text}`);
   });
 
   it("does not move a machine translation", () => {
-    const result = manual(original, "siteAutoTranslate", late);
-    expect(result.timed?.cues[2]?.startMs).toBe(original[2]!.startMs + 400);
+    // 1.5 s late, it would line up again if moved; left in place, line 3 gets none.
+    const later = original.map((c) =>
+      cue(c.startMs + 1500, c.endMs + 1500, `行${c.text}`),
+    );
+    const result = manual(original, "siteAutoTranslate", later);
+    expect(result.lineTranslations?.[3]).toBe("");
   });
 });

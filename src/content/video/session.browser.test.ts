@@ -281,15 +281,17 @@ describe("a video with subtitles", () => {
     expect(site.log.hidden).toEqual([true]);
   });
 
-  it("follows the playing cue and shows the translation playing at that time", async () => {
+  it("follows the playing cue and shows the line's translation for as long as it shows", async () => {
     const { state, video } = await start();
     await ready(state);
     await expect.poll(() => state().current).toBe(0);
     expect(state().subtitleTranslation).toBe("イーストはぴりっとした匂い。");
 
+    // The first Japanese line runs 400 ms into this one: it is the previous line's, so
+    // it neither shows here nor goes away mid-line.
     await seekTo(video, 1.2);
     await expect.poll(() => state().current).toBe(1);
-    expect(state().subtitleTranslation).toBe("イーストはぴりっとした匂い。");
+    expect(state().subtitleTranslation).toBe("");
 
     await seekTo(video, 2.2);
     await expect.poll(() => state().current).toBe(-1);
@@ -447,8 +449,8 @@ describe("sentence cards", () => {
     { startMs: 2500, endMs: 3500, text: "Knead the dough." },
   ];
   const SPLIT_JA: Cue[] = [
-    { startMs: 0, endMs: 1500, text: "イーストは" },
-    { startMs: 1500, endMs: 2000, text: "ぴりっとした匂い。" },
+    { startMs: 0, endMs: 1400, text: "イーストは" },
+    { startMs: 1400, endMs: 2000, text: "ぴりっとした匂い。" },
     { startMs: 2500, endMs: 3500, text: "生地をこねる。" },
   ];
 
@@ -482,7 +484,7 @@ describe("sentence cards", () => {
     ]);
   });
 
-  it("shows each cue in the video with the translated line playing at its time", async () => {
+  it("shows each cue in the video with the translated line it overlaps most", async () => {
     const { state, video } = await start({
       vid1: captionsOf(SPLIT, {
         source: "siteTrack",
