@@ -421,6 +421,12 @@ async function landscapeFullscreen(page: Page, fullscreen: Fullscreen) {
     .locator(fullscreen === "app" ? "video" : "#player-container-id")
     .evaluate((el) => el.requestFullscreen());
   if (fullscreen === "app") expect(await toldShell(page)).toEqual(["on"]);
+  // The band pinned under the player (in the same host) has gone, and its room with it.
+  await expect
+    .poll(() =>
+      page.locator("langle-video-below").evaluate((el) => el.style.height),
+    )
+    .toBe("");
   const subtitle = page.locator("langle-video").getByRole("region", {
     name: en["video.subtitle"],
   });
