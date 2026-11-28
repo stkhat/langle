@@ -30,6 +30,40 @@ const cardsOf = ({ state }: ReturnType<typeof captionCards>) =>
       .map((line) => card.text.slice(line.start, line.end)),
   }));
 
+describe("captionCards and function words", () => {
+  const track = (kind: "asr" | "manual", cues: Cue[]) =>
+    captionCards({
+      track: { id: "en", lang: "en", kind, label: "English" },
+      cues,
+      translation: { source: "none", lang: "ja", cues: [] },
+    }).state.cues.map((card) => card.text);
+
+  it("ends no card of an auto-generated track at a pause after a function word", () => {
+    const asr: Cue = {
+      startMs: 0,
+      endMs: 4000,
+      text: "we read the report today",
+      words: [
+        { startMs: 0, text: "we" },
+        { startMs: 300, text: " read" },
+        { startMs: 600, text: " the" },
+        { startMs: 2500, text: " report" },
+        { startMs: 2900, text: " today" },
+      ],
+    };
+    expect(track("asr", [asr])).toEqual(["we read the report today"]);
+  });
+
+  it("leaves a manual track's cards as its cues and pauses make them", () => {
+    expect(
+      track("manual", [
+        cue(0, 1000, "we read the"),
+        cue(2500, 3500, "report today"),
+      ]),
+    ).toEqual(["we read the", "report today"]);
+  });
+});
+
 describe("captionCards for a manual track", () => {
   it("joins sentences that one line of a human translation covers", () => {
     const result = manual(
