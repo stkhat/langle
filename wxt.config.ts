@@ -57,7 +57,22 @@ export default defineConfig({
       // alarms: retries of language data downloads (src/background/pack-downloads.ts);
       // it shows no warning at install in Chrome. identity: signing in to the user's
       // own cloud storage (src/background/sync/google-auth.ts); no warning either.
-      permissions: ["storage", "alarms", "identity"],
+      // Chrome also gets per-site access for articles (architecture.md "Site access"):
+      // activeTab, scripting and declarativeContent (no warning), and every host as
+      // an optional grant asked for one host at a time. The phone app has none of it.
+      ...(browser === "langle-app"
+        ? { permissions: ["storage", "alarms", "identity"] }
+        : {
+            permissions: [
+              "storage",
+              "alarms",
+              "identity",
+              "activeTab",
+              "scripting",
+              "declarativeContent",
+            ],
+            optional_host_permissions: ["*://*/*"],
+          }),
       // Development and check builds keep one id, so the sign-in redirect
       // (https://<id>.chromiumapp.org/) Google's Web client lists stays theirs
       // (src/background/sync/google-clients.ts). Builds target Chromium only: Firefox

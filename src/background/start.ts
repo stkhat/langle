@@ -1,4 +1,5 @@
-import { browser } from "wxt/browser";
+import { browser, type Browser } from "wxt/browser";
+import type { ScriptPublicPath } from "wxt/utils/inject-script";
 import { openLangleDb } from "./db";
 import { deviceId } from "./device-id";
 import { createHandlers } from "./handlers";
@@ -27,6 +28,8 @@ import type { CloudProvider, CloudProviderId } from "../core/cloud/provider";
 import { createTermStore } from "./term-store";
 import { followNativeStrings } from "./native-strings";
 import { followToolbarIcon } from "./toolbar-icon";
+import { followSiteAccess } from "./site-access";
+import { isPendingTab } from "../messaging/site-access";
 import { createTranslationCache } from "./translation-cache";
 import { createExplanationCache } from "./explanation-cache";
 import { createPackLoader } from "../core/packs/load";
@@ -114,6 +117,57 @@ export function startBackground(): void {
   });
   setup.openOnInstall();
 
+  // Articles run on the hosts the user turned on (architecture.md "Site access").
+  // Where the browser has no per-site access (the phone app's shim), the manifest
+  // injects the article script everywhere instead.
+  const siteAccess =
+    browser.scripting && browser.permissions
+      ? followSiteAccess({
+          staticMatches:
+            browser.runtime
+              .getManifest()
+              .content_scripts?.flatMap((script) => script.matches ?? []) ?? [],
+          permissions: browser.permissions,
+          scripting: {
+            getRegisteredContentScripts: (filter) =>
+              browser.scripting.getRegisteredContentScripts(filter),
+            // Chrome's types ask for `js` or `css` and WXT's for paths with a leading
+            // slash; the registration names its `js`, an update only `matches`, and
+            // the paths are as S0 measured them (docs/notes/site-access.md).
+            registerContentScripts: (scripts) =>
+              browser.scripting.registerContentScripts(
+                scripts as Browser.scripting.RegisteredContentScript[],
+              ),
+            updateContentScripts: (scripts) =>
+              browser.scripting.updateContentScripts(
+                scripts as Browser.scripting.RegisteredContentScript[],
+              ),
+            unregisterContentScripts: (filter) =>
+              browser.scripting.unregisterContentScripts(filter),
+            executeScript: ({ target, files }) =>
+              browser.scripting.executeScript({
+                target,
+                files: files as ScriptPublicPath[],
+              }),
+          },
+          tabs: browser.tabs,
+          pending: {
+            get: async () => {
+              const value = (
+                await browser.storage.session.get(SITE_ACCESS_PENDING_KEY)
+              )[SITE_ACCESS_PENDING_KEY];
+              return isPendingTab(value) ? value : undefined;
+            },
+            set: (tab) =>
+              browser.storage.session.set({ [SITE_ACCESS_PENDING_KEY]: tab }),
+            clear: () =>
+              browser.storage.session.remove(SITE_ACCESS_PENDING_KEY),
+          },
+          onInstalled: browser.runtime.onInstalled,
+          onStartup: browser.runtime.onStartup,
+        })
+      : undefined;
+
   const explanations = createExplanationCache(db);
   const handle = createHandlers({
     store,
@@ -133,6 +187,7 @@ export function startBackground(): void {
     openPopup: async () => {
       await browser.action.openPopup?.().catch(() => undefined);
     },
+    ...(siteAccess && { siteAccess }),
   });
 
   const answer = setup.guard(handle);
@@ -186,6 +241,8 @@ export function startBackground(): void {
 
 /** `storage.session`: the setup's tab and the one to go back to. */
 const SETUP_TAB_KEY = "setupTab";
+/** `storage.session`: the tab the popup is turning a host on in (site-access.ts). */
+const SITE_ACCESS_PENDING_KEY = "siteAccessPending";
 
 /**
  * The cloud providers this build can connect to. Google Drive needs the build's Google
