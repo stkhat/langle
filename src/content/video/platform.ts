@@ -127,6 +127,11 @@ export interface PlatformAdapter {
    * learning language, or they cannot be read.
    */
   loadCaptions(request: CaptionRequest): Promise<VideoCaptions | undefined>;
+  /**
+   * Where the latest `loadCaptions` waits while it runs, in words for a warning (the
+   * video session's, when the subtitles are long in coming); undefined otherwise.
+   */
+  loadStage?(): string | undefined;
   seek(ms: number): Promise<void>;
   /** Pauses and plays the video through the site's player (spec: "Pausing while Langle is in use"). */
   pause(): Promise<void>;

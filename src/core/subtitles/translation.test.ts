@@ -6,6 +6,8 @@ import {
   alignByOverlap,
   chooseTranslation,
   joinCoveredCards,
+  shiftCues,
+  trackOffset,
 } from "./translation";
 import { parseTtml } from "./ttml";
 import type { Cue, Track } from "./types";
@@ -358,5 +360,55 @@ describe("joinCoveredCards", () => {
     expect(timeAt(joined.cards, joined.lines, 0, text.indexOf("procr"))).toBe(
       timeAt(sentences.cards, sentences.lines, 1, "They ".length),
     );
+  });
+});
+
+describe("trackOffset", () => {
+  // Cue starts at irregular gaps, so only the right shift lines them all up.
+  const starts = Array.from(
+    { length: 40 },
+    (_, i) => i * 4000 + ((i * 7) % 5) * 500,
+  );
+  const track = (shift: number, jitter: (i: number) => number = () => 0) =>
+    starts.map((s, i) => cue(s + shift + jitter(i), s + shift + 1500, "x"));
+
+  it("finds a track timed 400 ms early and repairs it", () => {
+    const human = track(-400);
+    expect(trackOffset(track(0), human)).toBe(400);
+    expect(shiftCues(human, 400)[3]).toMatchObject({
+      startMs: starts[3]!,
+      endMs: starts[3]! + 1500,
+    });
+  });
+
+  it("finds a track timed late", () => {
+    expect(trackOffset(track(0), track(350))).toBe(-350);
+  });
+
+  it("leaves a track in step, or with only jitter, alone", () => {
+    expect(trackOffset(track(0), track(0))).toBe(0);
+    expect(
+      trackOffset(
+        track(0),
+        track(0, (i) => (i % 2 ? 100 : -100)),
+      ),
+    ).toBe(0);
+    expect(trackOffset(track(0), track(100))).toBe(0);
+  });
+
+  it("does nothing with too few cues", () => {
+    expect(trackOffset(track(0).slice(0, 7), track(-400))).toBe(0);
+    expect(trackOffset(track(0), track(-400).slice(0, 7))).toBe(0);
+  });
+
+  it("takes the middle of a run of equally good shifts", () => {
+    // Shifts 100 to 700 ms all line every start up within 300 ms; the middle is 400.
+    expect(trackOffset(track(0), track(-400))).toBe(400);
+    expect(
+      trackOffset(
+        track(0),
+        track(-400, (i) => (i % 2 ? 50 : -50)),
+      ),
+    ).toBe(400);
   });
 });

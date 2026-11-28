@@ -9,6 +9,10 @@ export interface SwitchProps {
    * 44×26; `phone`: the phone layout's 52×32 (mock MobileLangleSheet).
    */
   size?: "small" | "large" | "phone";
+  /** The id of what describes the switch (`aria-describedby`). */
+  describedBy?: string;
+  /** A ring around the track (a `box-shadow`), to draw the eye to it. */
+  ring?: string;
 }
 
 const SIZES = {
@@ -27,6 +31,7 @@ export function Switch(props: SwitchProps) {
       role="switch"
       aria-checked={props.checked}
       aria-label={props.label}
+      aria-describedby={props.describedBy}
       onClick={props.onToggle}
       style={{
         position: "relative",
@@ -39,6 +44,7 @@ export function Switch(props: SwitchProps) {
         margin: 0,
         cursor: "pointer",
         background: props.checked ? color.green : color.track,
+        ...(props.ring && { boxShadow: props.ring }),
       }}
     >
       <span

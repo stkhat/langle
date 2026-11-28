@@ -7,8 +7,11 @@ import {
   alignByOverlap,
   joinCoveredCards,
   joinerFor,
+  shiftCues,
+  trackOffset,
 } from "../../core/subtitles/translation";
 import type { Cue } from "../../core/subtitles/types";
+import { functionWords } from "../../core/tagging/function-words";
 import type { VideoCaptions } from "./platform";
 import type { VideoState } from "./state";
 
@@ -32,7 +35,16 @@ export function captionCards(captions: VideoCaptions): {
 } {
   const asr = captions.track.kind === "asr";
   const joiner = joinerFor(captions.track.lang);
-  const { translation } = captions;
+  const { translation: given } = captions;
+  // A human track timed off the original's clock is moved onto it, for the cards and the
+  // subtitle line alike.
+  const translation =
+    given.source === "siteTrack"
+      ? {
+          ...given,
+          cues: shiftCues(given.cues, trackOffset(captions.cues, given.cues)),
+        }
+      : given;
   const site =
     translation.source === "siteTrack" ||
     translation.source === "siteAutoTranslate";
@@ -42,7 +54,14 @@ export function captionCards(captions: VideoCaptions): {
   const cues = asr
     ? captions.cues
     : captions.cues.map((cue) => ({ ...cue, words: cueWords(cue) }));
-  const options = { joiner, lang: captions.track.lang, linesByCue: !asr };
+  // Auto-generated tracks avoid cards that end on a function word; a manual track's cues
+  // already end where its sentences do.
+  const options = {
+    joiner,
+    lang: captions.track.lang,
+    linesByCue: !asr,
+    functionWord: asr ? functionWords(captions.track.lang) : undefined,
+  };
   // YouTube translates a track sentence by sentence: follow its sentences.
   const aligned =
     translation.source === "siteAutoTranslate"

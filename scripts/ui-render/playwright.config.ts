@@ -6,6 +6,8 @@ const PORT = 4719;
 export default defineConfig({
   testDir: ".",
   testMatch: "sweep.spec.ts",
+  // Copies of the builds that grant the test server's host (e2e/builds.ts).
+  globalSetup: "../../e2e/builds.ts",
   fullyParallel: true,
   workers: Number(process.env.WORKERS ?? 4),
   reporter: "line",

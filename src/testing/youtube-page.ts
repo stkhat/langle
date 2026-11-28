@@ -62,6 +62,8 @@ export function createTestPage(
     tokenAfterMs?: number;
     /** The player's track list cannot be read, yet it takes a track. */
     listsNoTracks?: boolean;
+    /** A pre-roll ad plays this long; the tracks are listed only after it. */
+    adMs?: number;
     shorts?: boolean;
     /** The caption track an earlier load left on (the player starts with it, unrequested). */
     storedTrack?: { languageCode: string; kind: string };
@@ -252,6 +254,8 @@ function install(
     requestDelayMs?: number;
     tokenAfterMs?: number;
     listsNoTracks?: boolean;
+    /** A pre-roll ad plays this long; the tracks are listed only after it. */
+    adMs?: number;
     playerId?: string;
   },
   shorts: Pick<TestPage, "actionBar" | "commentsPanel">,
@@ -267,6 +271,7 @@ function install(
     requestDelayMs: options.requestDelayMs,
     tokenAfterMs: options.tokenAfterMs,
     listsNoTracks: options.listsNoTracks,
+    adMs: options.adMs,
     playerId: options.playerId,
   });
   const fake = player as TestPage["player"] & {

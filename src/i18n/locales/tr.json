@@ -57,6 +57,7 @@
   "popup.langleSwitch": "Langle etkin",
   "popup.site": "Bu sitede",
   "popup.siteSwitch": "Bu sitede Langle etkin",
+  "popup.siteAsk": "Langle'ı burada kullanmak için bunu açın.",
   "popup.sync.saved": "Kaydedildi ({syncName}) · {when}",
   "popup.sync.savedDevice": "Bu telefona kaydedildi · {when}",
   "popup.sync.space": "Senkronizasyon alanı: {used} KB / {quota} KB kullanılıyor",

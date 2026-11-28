@@ -77,6 +77,17 @@ describe("record", () => {
     });
   });
 
+  it("refuses what a cloud file could not hold, and stores none of it", async () => {
+    await expect(
+      history.record({ ...ARTICLE, platform: "article" as "web" }, [knead]),
+    ).rejects.toThrow(/Not a valid page/);
+    await expect(
+      history.record(ARTICLE, [{ ...knead, pos: {} as HistoryItem["pos"] }]),
+    ).rejects.toThrow(/Not a valid sentence/);
+    expect(await db.historyPages.count()).toBe(0);
+    expect(await db.historySentences.count()).toBe(0);
+  });
+
   it("returns how many sentences it added and keeps each one once per page", async () => {
     expect(await history.record(ARTICLE, [knead, rest, knead])).toBe(2);
     clock.tick();

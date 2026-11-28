@@ -6,6 +6,7 @@ import {
   cueWords,
   type TranslatedCards,
 } from "./asr";
+import { functionWords } from "../tagging/function-words";
 import type { SentenceCards } from "./cues";
 import { parseTtml } from "./ttml";
 import type { Cue } from "./types";
@@ -191,6 +192,46 @@ describe("asrSentenceCards", () => {
       "could you introduce yourself",
       ">> sure I'm Chris",
     ]);
+  });
+
+  it("ends no sentence at a pause right after a function word", () => {
+    const track = [
+      words(0, 6000, [
+        [0, "so"],
+        [200, " we"],
+        [400, " read"],
+        [600, " the"],
+        [2000, " report"],
+        [2400, " and"],
+        [2700, " want"],
+        [2900, " to"],
+        [4200, " leave"],
+      ]),
+    ];
+    expect(texts(asrSentenceCards(track))).toEqual([
+      "so we read the",
+      "report and want to",
+      "leave",
+    ]);
+    expect(
+      texts(asrSentenceCards(track, { functionWord: functionWords("en") })),
+    ).toEqual(["so we read the report and want to leave"]);
+  });
+
+  it("splits a long run at its largest gap not right after a function word", () => {
+    const list: [number, string][] = Array.from({ length: 30 }, (_, i) => [
+      i * 200 + (i >= 12 ? 900 : 0) + (i >= 20 ? 500 : 0),
+      `${i === 0 ? "" : " "}${i === 11 ? "of" : `w${i}`}`,
+    ]);
+    const cards = (options = {}) =>
+      asrSentenceCards([words(0, 12000, list)], {
+        maxWords: 20,
+        ...options,
+      }).cards.map((c) => c.text.split(" ")[0]);
+    expect(cards({ pauseMs: Infinity })).toEqual(["w0", "w12"]);
+    expect(
+      cards({ pauseMs: Infinity, functionWord: functionWords("en") }),
+    ).toEqual(["w0", "w20"]);
   });
 
   it("does not leave a single word alone because of a pause", () => {
@@ -380,8 +421,65 @@ describe("alignAsrSentences", () => {
       "城夢ろ笛器に床らた鼓は、港々のつなたへの山火を火床に風こます。",
     ]);
     expect(result).toContainEqual([
-      "we snow dog bridge every Cinnamon so flag bike to gathering",
+      "we snow dog bridge every Cinnamon so flag bike to gathering also",
       "旗鐘壁春米に星しい馬音を糸詩しているので、めつ道金してろだひい。",
+    ]);
+  });
+
+  it("prefers a longer pause to a translated sentence end said closer", () => {
+    // The translation's first end is said at 1960 ms, right at the short pause after "cats"
+    // and 480 ms after the long one after "bark": the long pause wins (it lost at a pause
+    // weight of 0.5).
+    const result = alignAsrSentences(
+      [
+        words(0, 4000, [
+          [0, "dogs"],
+          [400, " bark"],
+          [1480, " cats"],
+          [1960, " nap"],
+          [2200, " later"],
+        ]),
+      ],
+      [cue(0, 1960, "犬が吠える。"), cue(1960, 4000, "猫は後で昼寝する。")],
+      { translationJoiner: "" },
+    );
+    expect(result && pairs(result)).toEqual([
+      ["dogs bark", "犬が吠える。"],
+      ["cats nap later", "猫は後で昼寝する。"],
+    ]);
+  });
+
+  it("does not end a card at a pause right after a function word", () => {
+    // The translation's first end is said 100 ms after "the" ends its pause and 320 ms
+    // before "report" ends: without function words the card ends on "the".
+    const track = [
+      words(0, 4000, [
+        [0, "we"],
+        [300, " read"],
+        [600, " the"],
+        [1600, " report"],
+        [2300, " then"],
+        [2500, " it"],
+        [2700, " rained"],
+      ]),
+    ];
+    const translated = [
+      cue(0, 1700, "報告を読んだ。"),
+      cue(1700, 4000, "それから雨が降った。"),
+    ];
+    const options = { translationJoiner: "", lang: "en" };
+    const plain = alignAsrSentences(track, translated, options);
+    expect(plain?.cards.map((c) => c.text)).toEqual([
+      "we read the",
+      "report then it rained",
+    ]);
+    const result = alignAsrSentences(track, translated, {
+      ...options,
+      functionWord: functionWords("en"),
+    });
+    expect(result && pairs(result)).toEqual([
+      ["we read the report", "報告を読んだ。"],
+      ["then it rained", "それから雨が降った。"],
     ]);
   });
 

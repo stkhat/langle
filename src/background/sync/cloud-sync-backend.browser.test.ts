@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { filePath, parseFilePath } from "../../core/cloud/format";
+import { decodeFile, filePath, parseFilePath } from "../../core/cloud/format";
 import {
   mergeTimedSettings,
   stampSettings,
@@ -257,6 +257,26 @@ function device({
     },
   };
   return self;
+}
+
+/** The worker again over `d`'s storage and database, with `providers` only. */
+function restart(d: Device, providers: CloudSyncBackendOptions["providers"]) {
+  const backend = createCloudSyncBackend({
+    db: d.db,
+    store: d.store,
+    history: d.history,
+    settings: d.settings,
+    deviceId: d.ids,
+    providers,
+    browserSync: d.browserSync,
+    local: d.local,
+    alarms: d.alarms,
+    lifecycle: d.lifecycle,
+    now: () => time,
+    timers: d.timers,
+  });
+  running.push(backend);
+  return backend;
 }
 
 async function startAll(...devices: Device[]) {
@@ -693,6 +713,226 @@ describe("CloudSyncBackend: errors", () => {
   });
 });
 
+describe("CloudSyncBackend: damaged files", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const reads = (cloud: FakeCloud, path: string) =>
+    cloud.log.filter((e) => e.op === "read" && e.path === path).length;
+
+  /** `path` in the cloud again with `change` made to its JSON, as a new version. */
+  async function damage(
+    cloud: FakeCloud,
+    path: string,
+    change: (data: Record<string, unknown[]>) => void,
+  ) {
+    const stored = cloud.stored.get(path)!;
+    const decoded = await decodeFile(stored.bytes);
+    if (decoded.status !== "ok") throw new Error(`${path}: ${decoded.status}`);
+    const data = structuredClone(decoded.file) as unknown as Record<
+      string,
+      unknown[]
+    >;
+    change(data);
+    cloud.stored.set(path, {
+      bytes: await gzip(JSON.stringify(data)),
+      modifiedTime: stored.modifiedTime + 1000,
+    });
+  }
+
+  /** What went to the error log, sorted (files are read in the list's order). */
+  const logged = (errors: { mock: { calls: unknown[][] } }) =>
+    errors.mock.calls.map((call) => String(call[0])).sort();
+
+  it("takes in another device's damaged file row by row, logs it once per version and shows nothing", async () => {
+    const cloud = createFakeCloud();
+    const a = device({ id: "dev-a", cloud });
+    const b = device({ id: "dev-b", cloud });
+    await startAll(a, b);
+    await save(a, "loaf");
+    await save(a, "rise");
+    await a.backend.connect("googleDrive");
+    a.backend.stop();
+    const main = filePath("dev-a", "main");
+    const month = filePath("dev-a", "occurrences", "2026-11");
+    const wrongTerm = (data: Record<string, unknown[]>) =>
+      data.terms!.push({ ...(data.terms![0] as object), id: "en:wrong" });
+    await damage(cloud, main, wrongTerm);
+    await damage(cloud, month, (data) => {
+      (data.occurrences![1] as { pos: unknown }).pos = { line: 3 };
+    });
+    const errors = vi.spyOn(console, "error");
+
+    await b.backend.connect("googleDrive");
+    expect(await keysOf(b)).toEqual(["loaf:learning", "rise:learning"]);
+    expect(await b.store.occurrencesOf("en:loaf")).toHaveLength(1);
+    expect(await b.store.occurrencesOf("en:rise")).toHaveLength(0);
+    expect((await b.backend.status()).error).toBeUndefined();
+    expect(logged(errors)).toEqual([
+      expect.stringMatching(
+        /^Cloud sync: devices\/dev-a\/main\.json\.gz \(modified .+\): one row that fails its check left out: terms\[2\] /,
+      ),
+      expect.stringMatching(
+        /^Cloud sync: devices\/dev-a\/occurrences-2026-11\.json\.gz \(modified .+\): one row that fails its check left out: occurrences\[1\] /,
+      ),
+    ]);
+
+    // Not read again until it changes; then read and logged again.
+    const before = reads(cloud, main);
+    b.backend.requestCheck();
+    await b.after();
+    expect(reads(cloud, main)).toBe(before);
+    expect(errors).toHaveBeenCalledTimes(2);
+    await damage(cloud, main, wrongTerm);
+    b.backend.requestCheck();
+    await b.after();
+    expect(reads(cloud, main)).toBe(before + 1);
+    expect(errors).toHaveBeenCalledTimes(3);
+    expect((await b.backend.status()).error).toBeUndefined();
+  });
+
+  it("skips a file it cannot read at all, logs it once and shows nothing; reads it again once modified", async () => {
+    const cloud = createFakeCloud();
+    const a = device({ id: "dev-a", cloud });
+    const b = device({ id: "dev-b", cloud });
+    await startAll(a, b);
+    await save(a, "loaf");
+    await a.backend.connect("googleDrive");
+    const gone = filePath("dev-gone", "main");
+    cloud.stored.set(gone, {
+      bytes: new Uint8Array([1, 2, 3]),
+      modifiedTime: 1,
+    });
+    const errors = vi.spyOn(console, "error");
+
+    await b.backend.connect("googleDrive");
+    expect(await keysOf(b)).toEqual(["loaf:learning"]);
+    expect(await b.backend.status()).toMatchObject({ devices: 3 });
+    expect((await b.backend.status()).error).toBeUndefined();
+    expect(logged(errors)).toEqual([
+      expect.stringMatching(
+        /^Cloud sync: devices\/dev-gone\/main\.json\.gz \(modified .+\) cannot be read: not gzipped JSON$/,
+      ),
+    ]);
+    expect((await b.state())!.broken).toEqual({ [gone]: 1 });
+
+    b.backend.requestCheck();
+    await b.after();
+    expect(reads(cloud, gone)).toBe(1);
+    expect(errors).toHaveBeenCalledTimes(1);
+
+    // Written again (here: a readable main): read, and no longer broken.
+    cloud.stored.set(gone, {
+      bytes: cloud.stored.get(filePath("dev-a", "main"))!.bytes,
+      modifiedTime: 2,
+    });
+    b.backend.requestCheck();
+    await b.after();
+    expect(reads(cloud, gone)).toBe(2);
+    expect((await b.state())!.broken).toEqual({});
+    expect((await b.state())!.seen[gone]).toBe(2);
+    expect(errors).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads once more the unreadable files an older build kept, so a broken one stops asking for an update", async () => {
+    const cloud = createFakeCloud();
+    const b = device({ id: "dev-b", cloud });
+    await startAll(b);
+    await b.backend.connect("googleDrive");
+    const gone = filePath("dev-gone", "main");
+    const later = filePath("dev-new", "main");
+    cloud.stored.set(gone, { bytes: new Uint8Array([1]), modifiedTime: 1 });
+    cloud.stored.set(later, {
+      bytes: await gzip(JSON.stringify({ format: "langle-cloud", v: 2 })),
+      modifiedTime: 1,
+    });
+    b.backend.stop();
+    // As a build from before `newer` and `broken` left it: both in `unreadable`.
+    const old: Partial<CloudSyncState> = {
+      ...(await b.state())!,
+      unreadable: { [gone]: 1, [later]: 1 },
+    };
+    delete old.newer;
+    delete old.broken;
+    await b.local.set({ [CLOUD_SYNC_KEY]: old });
+    vi.spyOn(console, "error");
+
+    const again = restart(b, { googleDrive: cloud.provider(b.account) });
+    await again.start();
+    await b.after();
+    expect([reads(cloud, gone), reads(cloud, later)]).toEqual([1, 1]);
+    expect(await b.state()).toMatchObject({
+      unreadable: {},
+      broken: { [gone]: 1 },
+      newer: { [later]: 1 },
+    });
+    // Only the newer file asks for an update.
+    expect((await again.status()).error).toBe("update");
+    cloud.stored.delete(later);
+    again.requestCheck();
+    await b.after();
+    expect((await again.status()).error).toBeUndefined();
+  });
+
+  it("leaves out of its files a row other devices would refuse, and logs it once", async () => {
+    const cloud = createFakeCloud();
+    const a = device({ id: "dev-a", cloud });
+    const b = device({ id: "dev-b", cloud });
+    await startAll(a, b);
+    await save(a, "loaf");
+    await a.backend.connect("googleDrive");
+    // Stored before the stores checked what they keep: a platform that is none.
+    await a.db.sources.put({
+      id: "bad",
+      platform: "article" as "web",
+      url: "https://x.example/",
+      title: "X",
+      lang: "en",
+      firstSeen: time,
+      lastSeen: time,
+    });
+    await a.db.occurrences.add({
+      termId: "en:loaf",
+      sourceId: "bad",
+      sentence: "Bad.",
+      pos: { textQuote: "Bad." },
+      seenAt: time,
+      origin: "encountered",
+      deviceId: "dev-a",
+      addedAt: time,
+    });
+    const errors = vi.spyOn(console, "error");
+    await save(a, "rise");
+    await a.after(WRITE_DELAY_MS);
+    await save(a, "knead");
+    await a.after(WRITE_DELAY_MS);
+
+    const month = await decodeFile(
+      cloud.stored.get(filePath("dev-a", "occurrences", "2026-11"))!.bytes,
+    );
+    expect(month).toMatchObject({ status: "ok", skipped: [] });
+    if (month.status !== "ok" || month.file.kind !== "occurrences")
+      throw new Error("month");
+    expect(month.file.sources.map((s) => s.id)).not.toContain("bad");
+    expect(month.file.occurrences.map((o) => o.sentence)).not.toContain("Bad.");
+    expect(logged(errors)).toEqual([
+      expect.stringMatching(
+        /^Cloud sync: devices\/dev-a\/main\.json\.gz as written: one row that fails its check left out: sources\[\d\] .*"article"/,
+      ),
+      expect.stringMatching(
+        /^Cloud sync: devices\/dev-a\/occurrences-2026-11\.json\.gz as written: 2 rows that fail their check left out: sources\[\d\] .*; occurrences\[\d\] /,
+      ),
+    ]);
+
+    await b.backend.connect("googleDrive");
+    expect(await keysOf(b)).toEqual([
+      "knead:learning",
+      "loaf:learning",
+      "rise:learning",
+    ]);
+    expect(errors).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("CloudSyncBackend: sentence history", () => {
   const record = (d: Device, text: string) =>
     d.history.record(ARTICLE, [
@@ -753,26 +993,6 @@ describe("CloudSyncBackend: connect", () => {
 });
 
 describe("CloudSyncBackend: a provider this build does not have", () => {
-  /** The worker again over `d`'s storage and database, with `providers` only. */
-  function restart(d: Device, providers: CloudSyncBackendOptions["providers"]) {
-    const backend = createCloudSyncBackend({
-      db: d.db,
-      store: d.store,
-      history: d.history,
-      settings: d.settings,
-      deviceId: d.ids,
-      providers,
-      browserSync: d.browserSync,
-      local: d.local,
-      alarms: d.alarms,
-      lifecycle: d.lifecycle,
-      now: () => time,
-      timers: d.timers,
-    });
-    running.push(backend);
-    return backend;
-  }
-
   it("uses no cloud, logs nothing and shows it as not connected; a build that has it carries on", async () => {
     const cloud = createFakeCloud();
     const a = device({ id: "dev-a", cloud });

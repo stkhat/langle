@@ -11,6 +11,7 @@ type Manifest = {
   manifest_version: number;
   permissions?: string[];
   host_permissions?: string[];
+  optional_host_permissions?: string[];
   background?: { service_worker?: string };
   content_scripts?: Record<string, unknown>[];
 };
@@ -42,6 +43,17 @@ describe("langle-app manifest", () => {
       for (const file of script.js as string[])
         expect(existsSync(`${DIR}/${file}`)).toBe(true);
     }
+  });
+
+  // The app has no per-site access: it injects the article script on every page.
+  test("injects the article script on every page", () => {
+    expect(
+      (readManifest().content_scripts ?? [])
+        .filter((script) =>
+          (script.js as string[]).includes("content-scripts/content.js"),
+        )
+        .map((script) => script.matches),
+    ).toEqual([["<all_urls>"]]);
   });
 
   test("has no Netflix scripts", () => {
@@ -101,5 +113,6 @@ describe("langle-app manifest", () => {
       (manifest.permissions ?? []).filter((p) => !APP_PERMISSIONS.includes(p)),
     ).toEqual([]);
     expect(manifest.host_permissions).toBeUndefined();
+    expect(manifest.optional_host_permissions).toBeUndefined();
   });
 });
