@@ -69,9 +69,30 @@ export const DOMINANCE = 1.5;
 
 /** The languages whose texts are kept: English, Japanese and the recipe pairs'. */
 export const LANGS = ["en", "ja", ...Object.keys(RECIPES)].flatMap((lang) =>
-  // Chinese in simplified characters, else as written (converted at build time).
-  lang === "zh" ? ["zh-hans", "zh"] : [lang],
+  wikidataCodes(lang),
 );
+
+/**
+ * Wikidata's language codes of a language's texts, in order of preference. Chinese in
+ * simplified characters, else as written (converted at build time).
+ */
+function wikidataCodes(lang: string): readonly string[] {
+  return (
+    (Object.hasOwn(RECIPES, lang)
+      ? RECIPES[lang as keyof typeof RECIPES].wikidata
+      : undefined) ?? [lang]
+  );
+}
+
+/** A language's text among an item's texts by language code, by its codes' order. */
+function pickText(
+  texts: Record<string, string>,
+  lang: string,
+): string | undefined {
+  for (const code of wikidataCodes(lang))
+    if (texts[code] !== undefined) return texts[code];
+  return undefined;
+}
 
 /** What an item is, as the rule reads it (by its classes: P31, then P279*). */
 export type Kind = "person" | "name" | "internal" | "work";
@@ -551,8 +572,7 @@ export function acronymNative(
   items: readonly AcronymItem[],
   lang: string,
 ): [string, string][] {
-  const pick = (texts: Record<string, string>) =>
-    lang === "zh" ? (texts["zh-hans"] ?? texts.zh) : texts[lang];
+  const pick = (texts: Record<string, string>) => pickText(texts, lang);
   return items.flatMap((item) => {
     const hint = item.label.en!;
     const label = pick(item.label);
@@ -580,8 +600,7 @@ export function entityNative(
   entity: Entity,
   lang: string,
 ): [string, string, "label" | "description"][] {
-  const pick = (texts: Record<string, string>) =>
-    lang === "zh" ? (texts["zh-hans"] ?? texts.zh) : texts[lang];
+  const pick = (texts: Record<string, string>) => pickText(texts, lang);
   const label = pick(entity.label);
   const description = pick(entity.description);
   const senses: [string, string, "label" | "description"][] = [];

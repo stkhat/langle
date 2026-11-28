@@ -2,7 +2,11 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { joinCapitals, type LearningWords } from "./learning-pairs.ts";
+import {
+  defaultRecipe,
+  joinCapitals,
+  type LearningWords,
+} from "./learning-pairs.ts";
 import {
   learningKeyOf,
   readReversedTables,
@@ -212,5 +216,32 @@ describe("learningSlimEntry", () => {
     ]);
     const english = { ...pies, lang_code: "en" } as KaikkiEntry;
     expect(learningSlimEntry(english, "pl")).toBeUndefined();
+  });
+});
+
+describe("defaultRecipe", () => {
+  // The recipe before the Chinese branches moved into the native recipes.
+  const before = (pair: string) => {
+    const native = pair.split("-")[1] ?? "";
+    return {
+      order: ["edition", "tables", "reversed"],
+      tables: { langCodes: native === "zh" ? ["zh", "cmn"] : [native] },
+      ...(native === "zh" && { simplified: true }),
+    };
+  };
+  const sorted = (codes: readonly string[]) => [...codes].sort();
+
+  it("takes the native's table codes and simplified flag from its recipe", () => {
+    for (const pair of ["es-zh", "de-zh", "es-pt", "de-it"]) {
+      const now = defaultRecipe(pair);
+      const old = before(pair);
+      // Only the set of codes matters: they are read through a Set.
+      expect(sorted(now.tables!.langCodes)).toEqual(
+        sorted(old.tables.langCodes),
+      );
+      expect(now.order).toEqual(old.order);
+      expect(now.simplified).toEqual(old.simplified);
+      expect(Object.keys(now).sort()).toEqual(Object.keys(old).sort());
+    }
   });
 });

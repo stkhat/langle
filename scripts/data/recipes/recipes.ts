@@ -47,6 +47,12 @@ export interface Recipe {
    */
   simplified?: boolean;
   /**
+   * Wikidata's language codes of the language's texts, in order of preference (absent:
+   * the language's own code). Chinese asks for its simplified characters first
+   * ("zh-hans"), else as written ("zh"; converted at build time).
+   */
+  wikidata?: readonly string[];
+  /**
    * Reversed tables (round 4's S2, `reversed-tables.ts`): the edition's own words whose
    * translation tables list the English term (the Thai edition's "สุนัข" lists dog),
    * after the wordnets. Read from the edition's file; its tag is
@@ -124,6 +130,7 @@ export const RECIPES: Readonly<Record<RecipeNative, Recipe>> = {
     tables: { langCodes: ["cmn", "zh"], langs: ["Chinese Mandarin"] },
     wordnets: ["omw-cmn"],
     simplified: true,
+    wikidata: ["zh-hans", "zh"],
   },
   it: {
     edition: {
