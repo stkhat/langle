@@ -19,6 +19,18 @@ export interface AppHost {
    */
   nativeStrings?(set: NativeStringSet): Promise<void>;
   /**
+   * How tall the page's content is (CSS px): the sheet frame an app page shows in (the
+   * Langle sheet) takes that height, at most up to the status bar (mock
+   * `MobileLangleSheet`). Other frames ignore it. Missing where the shells have none.
+   */
+  contentHeight?(height: number): Promise<void>;
+  /**
+   * Langle's own sheet over a web page opened (true) or closed (false): the title bar
+   * slides away while it shows (mock `MobileArticle`, `MobileYouTube`). Missing where
+   * the shells have none.
+   */
+  pageSheet?(open: boolean): Promise<void>;
+  /**
    * How this app's translator gets its models (mobile-translation.md "The bridge"):
    * `packs`, Langle's model packs downloaded with the pair's packs (Android); `system`,
    * the phone's own (iOS). Missing while the app has no translation host.

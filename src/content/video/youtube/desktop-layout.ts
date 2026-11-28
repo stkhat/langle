@@ -93,6 +93,8 @@ export function desktopLayout(
     narrow: NARROW_BY_MARGIN,
     // The player's controls are inside it.
     fullscreenLayers: () => [],
+    // The desktop page has no touch UI to keep clear of its controls.
+    siteControls: () => [],
     onNavigate(listener) {
       const handler = () => listener();
       document.addEventListener("yt-navigate-finish", handler);

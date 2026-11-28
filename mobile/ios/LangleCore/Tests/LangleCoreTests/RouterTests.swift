@@ -342,6 +342,24 @@ final class TabsTests: XCTestCase {
     XCTAssertEqual(taken.count, 1)
   }
 
+  func test_appHost_contentHeight_and_appHost_pageSheet_tell_the_app_with_the_context_they_came_from() {
+    let h = Harness()
+    let popup = ContextSpec.page(url: "\(origin)/popup.html", tabId: 7)
+    let page = ContextSpec.content(tabId: 1)
+    let sheet = h.connect(popup)
+    let article = h.connect(page)
+    XCTAssertNil(sheet.call("appHost.contentHeight", 612.5).error)
+    XCTAssertNil(article.call("appHost.pageSheet", true).error)
+    XCTAssertEqual(h.actions, [.contentHeight(popup, 612.5), .pageSheet(page, true)])
+    for value: JSONValue in ["612", .null, true] {
+      XCTAssertEqual(sheet.call("appHost.contentHeight", value).error, contentHeightError, "\(value)")
+    }
+    for value: JSONValue in ["true", 1, .null] {
+      XCTAssertEqual(article.call("appHost.pageSheet", value).error, pageSheetError, "\(value)")
+    }
+    XCTAssertEqual(h.actions.count, 2)
+  }
+
   // As the reference: each call fails at once until the app sets a sign-in (M7d).
   func test_google_sign_in_is_not_available_until_the_app_sets_one() {
     let h = Harness()

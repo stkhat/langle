@@ -48,6 +48,11 @@ export function mobileLayout(): YouTubeLayout {
         },
       );
     },
+    // The player holds the unmute button; the controls are a layer beside it.
+    siteControls: () =>
+      [player(), document.getElementById("player-control-container")].filter(
+        (each): each is HTMLElement => each !== null,
+      ),
     onNavigate(listener) {
       // Fired once after the URL changed (yt-navigate-finish is not fired here).
       const handler = () => listener();

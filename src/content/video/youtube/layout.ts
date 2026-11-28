@@ -33,6 +33,8 @@ export interface YouTubeLayout {
   readonly narrow: Narrowing;
   /** The site's layers over `fullscreenBox()` but outside it, narrowed with it. */
   fullscreenLayers(box: HTMLElement): HTMLElement[];
+  /** The elements holding the player and the controls over it (`PlatformAdapter.siteControls`). */
+  siteControls(): Element[];
   /** Calls `listener` after an in-page navigation; returns an unsubscribe. */
   onNavigate(listener: () => void): () => void;
 }

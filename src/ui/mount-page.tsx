@@ -2,6 +2,7 @@ import "@fontsource-variable/inter";
 import { render, type VNode } from "preact";
 import { browser } from "wxt/browser";
 import { startPageErrorLog } from "../check/start";
+import { reportContentHeight } from "./content-height";
 import {
   fetchLocale,
   followUiLocale,
@@ -33,8 +34,9 @@ function startLocale(theme: ThemeDeps): Promise<unknown> {
 
 /**
  * Starts an extension page (popup, settings, word list): the error log on a check build,
- * then `page()` makes its parts, then the theme, the body margin and, once the interface
- * language is there, the page itself rendered into `#app` (again on each change of it).
+ * then `page()` makes its parts, then the theme, the body margin, the content height the
+ * phone app's sheet frame takes and, once the interface language is there, the page
+ * itself rendered into `#app` (again on each change of it).
  */
 export function mountPage(page: Page): void {
   // `npm run build:check` only (src/check/error-log.ts).
@@ -42,6 +44,8 @@ export function mountPage(page: Page): void {
   const { theme, app } = page();
   followTheme(theme);
   document.body.style.margin = "0";
+  // The phone app's sheet frame takes the page's height (the Langle sheet).
+  reportContentHeight();
   void startLocale(theme).then(() => {
     followDocumentLocale();
     render(<PageLocale app={app} />, document.getElementById("app")!);

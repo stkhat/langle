@@ -9,10 +9,12 @@ import SwiftUI
 final class AppModel: ObservableObject {
   /// A page in the sheet frame: the Langle sheet (`popup.html`, no tab of its own), or another
   /// app page a tab opened.
-  final class Sheet: Identifiable {
+  final class Sheet: Identifiable, ObservableObject {
     let id = UUID()
     let tabId: Int?
     let context: ContextPage
+    /// How tall the page's content is (`appHost.contentHeight`, CSS px: points); nil until it says.
+    @Published var contentHeight: CGFloat?
     init(tabId: Int?, context: ContextPage) {
       self.tabId = tabId
       self.context = context
@@ -37,6 +39,9 @@ final class AppModel: ObservableObject {
   @Published private(set) var canGoBack = false
   @Published private(set) var canGoForward = false
   @Published private(set) var barShown = true
+  /// Langle's own sheet in the browsing page shows (`appHost.pageSheet`): the bar stays away
+  /// meanwhile (mock `MobileArticle`, `MobileYouTube`).
+  private var pageSheetOpen = false
   /// The title bar's ⋮ menu is open.
   @Published var menuOpen = false
   private var barScroll = TitleBarScroll()
@@ -292,13 +297,14 @@ final class AppModel: ObservableObject {
         translationHost?.pageOpened()
       }
       barScroll.reset()
+      pageSheetOpen = false
       barShown = true
     }
     browsing.onNavigate = { [weak self] url, title, back, forward in
       self?.navigated(url: url, title: title, back: back, forward: forward)
     }
     browsing.onScroll = { [weak self] y in
-      guard let self, screen == .page, !fullscreen else { return }
+      guard let self, screen == .page, !fullscreen, !pageSheetOpen else { return }
       let shown = barScroll.scrolled(to: y, at: CACurrentMediaTime())
       if shown != barShown { barShown = shown }
     }
@@ -409,6 +415,9 @@ final class AppModel: ObservableObject {
     switch action {
     case .reloadTab(let id): reloadTab(id)
     case .reloadHost: host?.reload()
+    case .contentHeight(let spec, let height):
+      if case .page(_, let tabId) = spec, let sheet, sheet.tabId == tabId { sheet.contentHeight = height }
+    case .pageSheet(let spec, let open): pageSheet(from: spec, open: open)
     default:
       guard shell.asksCanonical(action) else { return follow(shell.handle(action)) }
       // Asked now: the page's canonical address changes as it navigates.
@@ -419,6 +428,16 @@ final class AppModel: ObservableObject {
         follow(shell.handle(action, canonical: canonical))
       }
     }
+  }
+
+  /// Langle's dictionary sheet in the browsing page opened or closed: the title bar slides away
+  /// while it shows. Another page's word (a tab's page, a frame) does not move the bar.
+  private func pageSheet(from spec: ContextSpec, open: Bool) {
+    guard case .content(let tabId, let frameId) = spec, tabId == shell.browsingTab, frameId == 0,
+      open != pageSheetOpen
+    else { return }
+    pageSheetOpen = open
+    barShown = !open
   }
 
   private func follow(_ step: ShellStep) {

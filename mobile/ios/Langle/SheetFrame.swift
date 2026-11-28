@@ -1,10 +1,11 @@
 import SwiftUI
 
 /// The frame app pages open in over a page (mock `MobileLangleSheet`): the page dimmed behind
-/// (a tap closes it), a white panel from the bottom up to the status bar with 16 pt top corners
-/// and a grabber; dragging the grabber down closes it. In landscape at most 520 pt wide.
+/// (a tap closes it), a white panel from the bottom as tall as the page's content, at most up to
+/// the status bar, with 16 pt top corners and a grabber; dragging the grabber down closes it. In
+/// landscape at most 520 pt wide.
 struct SheetFrame: View {
-  let sheet: AppModel.Sheet
+  @ObservedObject var sheet: AppModel.Sheet
   /// The backdrop's label, in the interface language.
   let closeLabel: String
   let close: () -> Void
@@ -19,7 +20,9 @@ struct SheetFrame: View {
         .accessibilityAddTraits(.isButton)
       VStack(spacing: 0) {
         grabber
+        // The whole room until the page says how tall it is; the page scrolls past it.
         PageContainer(page: sheet.context.page.view)
+          .frame(maxHeight: sheet.contentHeight ?? .infinity)
       }
       .background(
         UnevenRoundedRectangle(topLeadingRadius: 16, topTrailingRadius: 16)

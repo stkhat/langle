@@ -68,6 +68,7 @@ import {
 } from "./state";
 import { createSummaries } from "../words/summaries";
 import { NEVER_TOUCH, type TouchMode } from "../touch/touch-mode";
+import { undrawSelection } from "../../ui/drawn-selection";
 
 /** Cues classified per `analyze` request. */
 const BATCH = 50;
@@ -950,7 +951,7 @@ export async function startVideo(deps: VideoDeps): Promise<VideoSession> {
       const selected = store.get().panel?.ref.selected;
       cards.closePanel();
       // A phrase's sheet (touch mode) leaves its words selected while it shows.
-      if (selected && touchMode.on()) getSelection()?.removeAllRanges();
+      if (selected && touchMode.on()) undrawSelection();
     },
     seekTo(ms) {
       adapter.seek(ms).catch(warn);
