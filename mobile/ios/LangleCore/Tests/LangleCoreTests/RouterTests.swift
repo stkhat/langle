@@ -276,7 +276,8 @@ final class TabsTests: XCTestCase {
     XCTAssertEqual(h.actions, [.openTab(h.router.tabs.all.last!)])
   }
 
-  // The share sheet answers: the call settles once it shows, or fails with the app's reason.
+  // The share sheet answers once it is done: whether the file went to a target, or the app's
+  // reason it could not show.
   func test_appHost_shareFile_hands_a_plain_named_file_to_the_share_sheet() {
     let h = Harness()
     let words = h.connect(.page(url: "\(origin)/wordlist.html"))
@@ -284,7 +285,7 @@ final class TabsTests: XCTestCase {
     XCTAssertEqual(words.call("appHost.shareFile", file).error, noSharing)
 
     var shared: [SharedFile] = []
-    var answer: ((String?) -> Void)?
+    var answer: ((Result<Bool, BridgeError>) -> Void)?
     h.router.onShareFile = { file, done in
       shared.append(file)
       answer = done
@@ -292,12 +293,17 @@ final class TabsTests: XCTestCase {
     let pending = words.call("appHost.shareFile", file)
     XCTAssertEqual(shared, [SharedFile(name: "langle-backup.json", mime: "application/json", text: "{}")])
     XCTAssertFalse(pending.settled)
-    answer?(nil)
+    answer?(.success(true))
     h.settle()
-    XCTAssertEqual(pending.value, .some(nil))
+    XCTAssertEqual(pending.value, .some(.bool(true)))
+
+    let closed = words.call("appHost.shareFile", file)
+    answer?(.success(false))
+    h.settle()
+    XCTAssertEqual(closed.value, .some(.bool(false)))
 
     let failed = words.call("appHost.shareFile", file)
-    answer?("No app can take it.")
+    answer?(.failure(BridgeError("No app can take it.")))
     h.settle()
     XCTAssertEqual(failed.error, "No app can take it.")
 
@@ -313,7 +319,7 @@ final class TabsTests: XCTestCase {
     for value in bad {
       XCTAssertEqual(words.call("appHost.shareFile", value).error, SharedFile.error, "\(value)")
     }
-    XCTAssertEqual(shared.count, 2)
+    XCTAssertEqual(shared.count, 3)
   }
 
   func test_appHost_nativeStrings_keeps_a_locale_a_direction_and_text_strings_for_the_bars() {

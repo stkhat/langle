@@ -89,7 +89,10 @@ export function startBackground(): void {
     lock,
     setState: (states) =>
       browser.storage.local.set({ [PACK_STATE_KEY]: states }),
-    ...(checkLog && { onMirror: checkLog.onMirror }),
+    ...(checkLog && {
+      onMirror: checkLog.onMirror,
+      onFailed: checkLog.onFailed,
+    }),
     ...(models && { models }),
   });
   const loadPack = createPackLoader(createPackSource(packStore));

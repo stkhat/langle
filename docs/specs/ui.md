@@ -266,7 +266,7 @@ Langle asks for no site at install beyond YouTube and Netflix. Articles run on a
   - Meanings: in the native language, translated with the page's own translator as in the Words lists ("Meanings in lists", 2026-11-14)
   - Search matches the base form and the short meaning, ignoring case and surrounding spaces. Words without a dictionary entry (phrasal verbs such as "figure out" are not in EJDict) show no meaning
   - Sorting: Recently seen = newest occurrence first (a word without occurrences counts from when it was saved); Most seen = most occurrences first, then recently seen; ties go A–Z
-  - Last seen and the occurrence dates: "Today", "Nov 6" within this year, "Nov 6, 2025" before it. An occurrence's line reads site (or host) · "at m:ss" for video times · the date unless it is today · "Saved here"
+  - Last seen and the occurrence dates: "Today", "Nov 6" within this year, "Nov 6, 2025" before it. An occurrence's line reads site (or host) · "at m:ss" for video times · the date ("Today" for today, as the mock has it) · "Saved here"
   - The first row is selected when the page opens. Remove takes the word out of the list at once; its panel stays with "Not saved" pressed, and Learning / Known save it again from the occurrence it was saved from (its other occurrences are gone with the removal). A word removed without any occurrence cannot be saved again here
   - Export / Import are the settings page's buttons (Export as the menu above); the import result ("Imported N words" or the error) shows beside them and the list is read again. The list is also read again when the tab becomes visible
   - More than 500 words: only the rows in view are rendered

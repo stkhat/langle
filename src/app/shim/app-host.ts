@@ -83,9 +83,8 @@ export function createAppHost(bridge: Bridge, info: AppHostInfo = {}): AppHost {
     openPage: async (url) => {
       await bridge.call("appHost.openPage", url);
     },
-    shareFile: async ({ name, mime, text }) => {
-      await bridge.call("appHost.shareFile", { name, mime, text });
-    },
+    shareFile: async ({ name, mime, text }) =>
+      (await bridge.call("appHost.shareFile", { name, mime, text })) === true,
     nativeStrings: async ({ locale, dir, strings }) => {
       await bridge.call("appHost.nativeStrings", { locale, dir, strings });
     },

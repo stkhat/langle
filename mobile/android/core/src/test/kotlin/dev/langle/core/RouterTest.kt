@@ -1,5 +1,6 @@
 package dev.langle.core
 
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -336,9 +337,10 @@ class RouterTest {
       assertEquals(listOf<RouterAction>(RouterAction.OpenPage(ARTICLE)), h.actions)
     }
 
-    // The share sheet answers: the call settles once it shows, or fails with the app's reason.
+    // The share sheet answers once it is done: whether the file went to a target, or the app's
+    // reason it could not show.
     @Test
-    @DisplayName("appHost.shareFile hands a plain-named file to the share sheet and answers when it shows")
+    @DisplayName("appHost.shareFile hands a plain-named file to the share sheet and answers whether it went to a target")
     fun `appHost_shareFile hands a plain-named file to the share sheet`() {
       val h = Harness()
       val words = h.connect(ContextSpec.Page("$ORIGIN/wordlist.html"))
@@ -346,7 +348,7 @@ class RouterTest {
       assertEquals("Sharing a file is not available here.", words.call("appHost.shareFile", file).error)
 
       val shared = mutableListOf<SharedFile>()
-      var answer: ((String?) -> Unit)? = null
+      var answer: ((Result<Boolean>) -> Unit)? = null
       h.router.onShareFile = { f, done ->
         shared += f
         answer = done
@@ -354,12 +356,17 @@ class RouterTest {
       val pending = words.call("appHost.shareFile", file)
       assertEquals(listOf(SharedFile("langle-backup.json", "application/json", "{}")), shared)
       assertNull(pending.answer)
-      answer!!(null)
+      answer!!(Result.success(true))
       h.settle()
-      assertEquals(Answer.Value(null), pending.answer)
+      assertEquals(Answer.Value(JsonPrimitive(true)), pending.answer)
+
+      val closed = words.call("appHost.shareFile", file)
+      answer!!(Result.success(false))
+      h.settle()
+      assertEquals(Answer.Value(JsonPrimitive(false)), closed.answer)
 
       val failed = words.call("appHost.shareFile", file)
-      answer!!("No app can take it.")
+      answer!!(Result.failure(Exception("No app can take it.")))
       h.settle()
       assertEquals("No app can take it.", failed.error)
 
@@ -374,7 +381,7 @@ class RouterTest {
       )) {
         assertEquals(SharedFile.ERROR, words.call("appHost.shareFile", bad).error, bad.toString())
       }
-      assertEquals(2, shared.size)
+      assertEquals(3, shared.size)
     }
 
     @Test

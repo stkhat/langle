@@ -9,9 +9,11 @@ import {
 } from "./scripts/adblock-resources.ts";
 import { bundledLicenses } from "./scripts/licenses.ts";
 import { localeFiles, localesPlugin } from "./scripts/locales.ts";
+import { MODEL_PACKS_FILE, modelPacksFile } from "./scripts/model-packs.ts";
 import { noticesPlugin } from "./scripts/notices.ts";
 import { DEVELOPMENT_EXTENSION_KEY } from "./src/background/sync/google-clients.ts";
 import { LICENSES_FILE } from "./src/core/notices.ts";
+import type { PackLock } from "./src/core/packs/lock.ts";
 
 /** The store listing's English summary, as public/_locales/en/messages.json has it. */
 const STORE_DESCRIPTION = (
@@ -110,6 +112,18 @@ export default defineConfig({
             absoluteSrc: join(
               wxt.config.root,
               "mobile/protocol/filter-lists.json",
+            ),
+          },
+          // The model packs Android can download, for their status before the first.
+          {
+            relativeDest: MODEL_PACKS_FILE,
+            contents: modelPacksFile(
+              JSON.parse(
+                readFileSync(
+                  join(wxt.config.root, "src/core/packs/packs.lock.json"),
+                  "utf8",
+                ),
+              ) as PackLock,
             ),
           },
         );

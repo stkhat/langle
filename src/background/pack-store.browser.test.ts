@@ -8,6 +8,7 @@ import type { LangleDb } from "./db";
 import {
   createPackStore,
   type MirrorEvent,
+  type PackFailedEvent,
   type PackStore,
 } from "./pack-store";
 import { freshDb } from "../testing/db";
@@ -927,8 +928,26 @@ describe("pack store: model packs", () => {
       progress(250);
       if (offline) throw new Error("No mirror served model.enja.intgemm8.bin");
     });
-    const store = storeWithModels(lock, app.models);
+    const failures: PackFailedEvent[] = [];
+    const store = createPackStore({
+      db,
+      lock,
+      fetch: mirrors.fetch,
+      setState: (states) => {
+        written.push(states);
+      },
+      now: () => clock(),
+      models: app.models,
+      onFailed: (event) => failures.push(event),
+    });
     expect((await store.ensure(["mt-en-ja"])).failed).toEqual(["mt-en-ja"]);
+    // Native code's reason reaches the check build's log, not only logcat.
+    expect(failures).toEqual([
+      {
+        pack: "mt-en-ja",
+        error: "No mirror served model.enja.intgemm8.bin",
+      },
+    ]);
     expect(lastState()?.["mt-en-ja"]).toEqual({
       state: "failed",
       received: 250,

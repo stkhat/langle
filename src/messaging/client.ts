@@ -59,6 +59,7 @@ const REPEATABLE: Record<RequestType, boolean> = {
   // A second disconnect finds nothing to disconnect.
   cloudDisconnect: true,
   exportJson: true,
+  recordExport: true,
   importJson: true,
   lastExport: true,
   listTermsWithStats: true,

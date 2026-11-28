@@ -199,6 +199,20 @@ class ModelStoreTest {
   }
 
   @Test
+  fun `the build's catalogue makes a pair never downloaded packs from the first start`() {
+    val catalogue = modelCatalogue("""["mt-en-ja", "mt-de-en", "mt-en-fr", "../x", 3]""")
+    assertEquals(setOf("mt-en-ja", "mt-de-en", "mt-en-fr"), catalogue)
+    val store = ModelStore(dir, fetcher, { it.run() }, { it() }, catalogue = catalogue)
+    assertEquals("packs", store.status("en", "ja"))
+    assertEquals("packs", store.status("de", "fr"))
+    assertEquals("unavailable", store.status("en", "ko"))
+    assertFalse(store.isReady("mt-en-ja"))
+    assertEquals(emptySet<String>(), modelCatalogue(null))
+    assertEquals(emptySet<String>(), modelCatalogue("{"))
+    assertEquals(emptySet<String>(), modelCatalogue("""{"packs": []}"""))
+  }
+
+  @Test
   fun `pairs through English need both packs`() {
     val store = store()
     assertNull(modelPacksFor("de", "fr") { it == "mt-de-en" })

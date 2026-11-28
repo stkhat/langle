@@ -298,7 +298,7 @@ function fakeAppHost() {
   Object.assign(globalThis, {
     appHost: {
       openPage: async () => {},
-      shareFile: async () => {},
+      shareFile: async () => false,
       translate: async () => null,
       translatorStatus: async () => "unavailable",
       prepareTranslator: async () => "unavailable",

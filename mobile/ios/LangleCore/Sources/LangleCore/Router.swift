@@ -117,9 +117,10 @@ public final class Router {
   public var onAction: ((RouterAction) -> Void)?
   /// Bad envelopes and other things worth a log line; never a crash.
   public var onError: ((String) -> Void)?
-  /// `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` with nil
-  /// once it shows, or with why it could not.
-  public var onShareFile: ((SharedFile, _ done: @escaping (String?) -> Void) -> Void)?
+  /// `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` once the
+  /// sheet is done: true when the file went to a target, false when the sheet closed without one,
+  /// or a failure with why the sheet could not show.
+  public var onShareFile: ((SharedFile, _ done: @escaping (Result<Bool, BridgeError>) -> Void) -> Void)?
   /// `appHost.nativeStrings`: the background's strings for the shell's bars, menu and notices in
   /// the interface language (the app keeps them as its `NativeStrings`). Without it the call is
   /// still answered: a shell that draws no strings of its own has nothing to change.
@@ -493,7 +494,7 @@ public final class Router {
     case "appHost.shareFile":
       guard let file = SharedFile(args.first) else { throw BridgeError(SharedFile.error) }
       guard let share = onShareFile else { throw BridgeError(noSharing) }
-      share(file) { error in done(error.map { .failure(BridgeError($0)) } ?? .success(nil)) }
+      share(file) { result in done(result.map { shared -> JSONValue? in .bool(shared) }) }
     case "appHost.nativeStrings":
       guard let set = NativeStringSet(args.first) else { throw BridgeError(NativeStringSet.error) }
       onNativeStrings?(set)

@@ -472,7 +472,8 @@ export function createReferenceNative(options: ReferenceNativeOptions = {}) {
       case "appHost.shareFile": {
         const file = sharedFile(args[0]);
         log.push(`appHost.shareFile ${file.name} ${file.mime} ${file.text}`);
-        return undefined;
+        // The user picked a target; false would be the sheet closed without one.
+        return true;
       }
       // The shells keep the strings and draw their bars with them.
       case "appHost.nativeStrings":

@@ -363,9 +363,7 @@ describe("tabs", () => {
       mime: "application/json",
       text: "{}",
     };
-    await expect(
-      bridge.call("appHost.shareFile", file),
-    ).resolves.toBeUndefined();
+    await expect(bridge.call("appHost.shareFile", file)).resolves.toBe(true);
     expect(native.log).toEqual([
       "appHost.shareFile langle-backup.json application/json {}",
     ]);

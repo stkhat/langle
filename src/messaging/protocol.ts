@@ -320,6 +320,8 @@ export type Request =
   /** Disconnects this device; the synced `cloudProvider` goes back to `"none"`. */
   | { type: "cloudDisconnect" }
   | { type: "exportJson" }
+  /** The export reached the user (a download, or a share sheet's target): `lastExport` is now. */
+  | { type: "recordExport" }
   | { type: "importJson"; json: string }
   | { type: "lastExport" }
   /** `meanings: false` skips the dictionary, for while it is not on the device. */
@@ -652,6 +654,7 @@ interface ResponseMap {
   cloudConnect: null;
   cloudDisconnect: null;
   exportJson: string;
+  recordExport: null;
   importJson: ImportResult;
   /** Null when the data was never exported. */
   lastExport: number | null;

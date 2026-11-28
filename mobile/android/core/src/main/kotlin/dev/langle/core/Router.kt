@@ -122,10 +122,11 @@ class Router(val options: Options = Options(), private val persistence: Persiste
   var onError: ((String) -> Unit)? = null
 
   /**
-   * `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` with null
-   * once it shows, or with why it could not.
+   * `appHost.shareFile`: the app shows the share sheet with the file, then calls `done` once the
+   * sheet is done ([ShareWatch]): true when the file went to a target, false when the sheet closed
+   * without one, or a failure with why the sheet could not show.
    */
-  var onShareFile: ((file: SharedFile, done: (error: String?) -> Unit) -> Unit)? = null
+  var onShareFile: ((file: SharedFile, done: (Result<Boolean>) -> Unit) -> Unit)? = null
 
   /**
    * `appHost.nativeStrings`: the background's strings for the shell's bars, menu and notices in
@@ -396,7 +397,14 @@ class Router(val options: Options = Options(), private val persistence: Persiste
       "appHost.shareFile" -> {
         val file = SharedFile.from(first) ?: throw BridgeError(SharedFile.ERROR)
         val share = onShareFile ?: throw BridgeError(NO_SHARING)
-        share(file) { error -> done(if (error == null) Answer.Value(null) else Answer.Failure(error)) }
+        share(file) { result ->
+          done(
+            result.fold(
+              { Answer.Value(JsonPrimitive(it)) },
+              { Answer.Failure(it.message ?: it.toString()) },
+            )
+          )
+        }
       }
       "appHost.nativeStrings" -> {
         val set = NativeStringSet.from(first) ?: throw BridgeError(NativeStringSet.ERROR)
