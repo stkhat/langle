@@ -1,6 +1,11 @@
 import { primary } from "../languages";
 import { nativeLanguage } from "../natives";
-import { isSoundLabel, lowerBound, type SentenceCards } from "./cues";
+import {
+  isSoundLabel,
+  lowerBound,
+  SENTENCE_END,
+  type SentenceCards,
+} from "./cues";
 import type { Cue, Track } from "./types";
 
 /**
@@ -50,6 +55,11 @@ export function joinerFor(lang: string): string {
 export interface AlignOptions {
   /** Language of the translated cues; decides how joined lines are separated. */
   lang: string;
+  /**
+   * How far the translated cues' times may be off the original's (ms, `timingError`);
+   * when left out, time alone decides.
+   */
+  timingErrorMs?: number;
 }
 
 /**
@@ -95,13 +105,165 @@ export function alignByOverlap(
   );
   // In time order, so that each card's lines are joined in the order they play.
   const inOrder = [...translated].sort((a, b) => a.startMs - b.startMs);
-  for (const t of inOrder) {
-    const targets = sameSegmentation
-      ? [indexByStart.get(t.startMs) as number]
-      : overlapping(original, t, longestMs);
-    for (const target of targets) parts[target]?.push(flatten(t.text));
+  if (sameSegmentation) {
+    for (const t of inOrder)
+      parts[indexByStart.get(t.startMs) as number]?.push(flatten(t.text));
+    return parts.map((list) => list.join(joiner));
   }
+  const placed = inOrder.map((t) => overlapping(original, t, longestMs));
+  const primaries =
+    options.timingErrorMs === undefined
+      ? []
+      : choosePrimaries(original, inOrder, placed, options.timingErrorMs);
+  inOrder.forEach((t, k) => {
+    const { most, covered } = placed[k] as Placement;
+    const primary = primaries[k] ?? most;
+    if (primary < 0) return;
+    const targets = [...new Set([primary, ...covered])].sort((a, b) => a - b);
+    for (const target of targets) parts[target]?.push(flatten(t.text));
+  });
   return parts.map((list) => list.join(joiner));
+}
+
+/** How a translated cue lies on the original cues (`overlapping`). */
+interface Placement {
+  /** The cue it overlaps most (a spoken line: the spoken cue it overlaps most), or -1. */
+  most: number;
+  /** The other cues of its kind it covers at least `COVERED_SHARE` of. */
+  covered: number[];
+  /** A spoken line's spoken cues it overlaps, in order, with the overlap (ms). */
+  spoken: [index: number, overlapMs: number][];
+  /** The line's length in characters, spaces left out. */
+  length: number;
+}
+
+/** Variance of a card's translated length, per character expected (see `choosePrimaries`). */
+const LENGTH_VARIANCE = 6;
+/** Cost of a card boundary after a translated line that ends no sentence, or a clause. */
+const SENTENCE_CUT = 2;
+const CLAUSE_CUT = 1;
+/** A track ends its lines with marks when at least this share of them end with one. */
+const PUNCTUATED_SHARE = 0.2;
+const CLAUSE_END = /[,;:、，；：][”"'’)\]」』]*$/;
+
+const lengthOf = (text: string) => text.replace(/\s/g, "").length;
+
+/**
+ * The card each spoken translated line goes to, by index in `inOrder` (undefined for lines
+ * not decided here). A human track is often timed a second or so off the original and cut
+ * elsewhere, so a line that straddles two sentences may lie mostly over the wrong one.
+ * Like a length-based sentence aligner (Gale and Church), the lines go to the cards in
+ * order, each card's lines in a row, at the least cost of:
+ * - time: a line's time outside its card, in units of the track's `timingError`, squared
+ *   and halved (so a track timed with the original's cues keeps to time alone);
+ * - length: each card's translation is expected to be the track's ratio of translated to
+ *   original characters times its own length, with a variance of LENGTH_VARIANCE per
+ *   expected character (a card left without a line costs its whole expected length);
+ * - cuts: in a track whose lines end with marks, a card boundary after a line that ends no
+ *   sentence costs SENTENCE_CUT, after a clause mark CLAUSE_CUT.
+ */
+function choosePrimaries(
+  original: readonly Cue[],
+  inOrder: readonly Cue[],
+  placed: readonly Placement[],
+  timingErrorMs: number,
+): (number | undefined)[] {
+  const result: (number | undefined)[] = inOrder.map(() => undefined);
+  const items = placed.flatMap((p, k) => (p.spoken.length ? [k] : []));
+  if (!items.length) return result;
+  const cards = [
+    ...new Set(items.flatMap((k) => placed[k]!.spoken.map(([i]) => i))),
+  ].sort((a, b) => a - b);
+  let originalChars = 0;
+  for (const i of cards) originalChars += lengthOf(original[i]!.text);
+  let translatedChars = 0;
+  for (const k of items) translatedChars += placed[k]!.length;
+  const ratio = originalChars > 0 ? translatedChars / originalChars : 0;
+  const lengthCost = (card: number, length: number) => {
+    const expected = Math.max(1, ratio * lengthOf(original[card]!.text));
+    return (length - expected) ** 2 / (2 * LENGTH_VARIANCE * expected);
+  };
+  // Prefix sums of the cost of leaving each card (in `cards` order) without a line.
+  const emptyBefore = [0];
+  for (const c of cards)
+    emptyBefore.push(emptyBefore[emptyBefore.length - 1]! + lengthCost(c, 0));
+  const rank = new Map(cards.map((c, r) => [c, r]));
+  /** Cost of the cards strictly between `after` and `before` getting no line. */
+  const skipped = (after: number, before: number) => {
+    const from = after < 0 ? 0 : rank.get(after)! + 1;
+    const to =
+      before > cards[cards.length - 1]! ? cards.length : rank.get(before)!;
+    return to > from ? emptyBefore[to]! - emptyBefore[from]! : 0;
+  };
+  const timeCost = (k: number, overlapMs: number) => {
+    const t = inOrder[k]!;
+    const outside = (t.endMs - t.startMs - overlapMs) / timingErrorMs;
+    return (outside * outside) / 2;
+  };
+  const ends = items.map((k) => {
+    const text = inOrder[k]!.text.trim();
+    return SENTENCE_END.test(text) ? 2 : CLAUSE_END.test(text) ? 1 : 0;
+  });
+  const punctuated =
+    ends.filter((e) => e > 0).length >= PUNCTUATED_SHARE * ends.length;
+  /** Cost of a card boundary right after item `n`. */
+  const cutAfter = (n: number) =>
+    !punctuated || n < 0 ? 0 : [SENTENCE_CUT, CLAUSE_CUT, 0][ends[n]!]!;
+
+  type State = {
+    cost: number;
+    from: [n: number, last: number] | null;
+    card: number;
+  };
+  // best[n]: the cheapest ways to place the first n items, by the card of the last run.
+  const best: Map<number, State>[] = [
+    new Map([[-1, { cost: 0, from: null, card: -1 }]]),
+  ];
+  for (let n = 1; n <= items.length; n++) best.push(new Map());
+  for (let n = 0; n < items.length; n++) {
+    const states = [...best[n]!];
+    const firstCards = placed[items[n]!]!.spoken.map(([i]) => i);
+    // A line that cannot follow in order (two speakers at once) may go back to an earlier
+    // card, from the cheapest way so far.
+    const stuck = !states.some(([last]) => firstCards.some((c) => c > last));
+    const from = stuck
+      ? [states.reduce((x, y) => (y[1].cost < x[1].cost ? y : x))]
+      : states;
+    for (const [last, state] of from) {
+      for (const card of firstCards) {
+        if (card <= last && !stuck) continue;
+        const enter =
+          state.cost +
+          (card > last ? skipped(last, card) : 0) +
+          cutAfter(n - 1);
+        let length = 0;
+        let time = 0;
+        for (let m = n; m < items.length; m++) {
+          const hit = placed[items[m]!]!.spoken.find(([i]) => i === card);
+          if (!hit) break;
+          length += placed[items[m]!]!.length;
+          time += timeCost(items[m]!, hit[1]);
+          const cost = enter + lengthCost(card, length) + time;
+          const seen = best[m + 1]!.get(card);
+          if (!seen || cost < seen.cost)
+            best[m + 1]!.set(card, { cost, from: [n, last], card });
+        }
+      }
+    }
+  }
+  let end: State | undefined;
+  for (const state of best[items.length]!.values()) {
+    const cost = state.cost + skipped(state.card, Infinity);
+    if (!end || cost < end.cost + skipped(end.card, Infinity)) end = state;
+  }
+  let n = items.length;
+  for (let state = end; state?.from;) {
+    const [from, last] = state.from;
+    for (let m = from; m < n; m++) result[items[m]!] = state.card;
+    n = from;
+    state = best[from]!.get(last);
+  }
+  return result;
 }
 
 /** The most words in a card made by `joinCoveredCards`. */
@@ -184,21 +346,23 @@ const firstStartingAtOrAfter = (cues: readonly Cue[], ms: number) =>
   lowerBound(cues.length, (i) => cues[i]!.startMs < ms);
 
 /**
- * Indexes of the original cues `t` goes to, in order: the one it overlaps the most (a
- * spoken line skips sound labels when it overlaps a spoken cue too), and every other one of
- * its kind that it covers at least `COVERED_SHARE` of. Empty when it overlaps none.
+ * Where `t` lies on the original cues: the one it overlaps the most (a spoken line skips
+ * sound labels when it overlaps a spoken cue too), every other one of its kind that it
+ * covers at least `COVERED_SHARE` of, and a spoken line's spoken cues. `most` is -1 when it
+ * overlaps none.
  */
 function overlapping(
   original: readonly Cue[],
   t: Cue,
   longestMs: number,
-): number[] {
+): Placement {
   // Only cues starting in (t.start - longest, t.end) can overlap t.
   const from = firstStartingAtOrAfter(original, t.startMs - longestMs);
   const to = firstStartingAtOrAfter(original, t.endMs);
   const spokenLine = !isSoundLabel(t.text);
   const best = { any: -1, anyOverlap: 0, spoken: -1, spokenOverlap: 0 };
   const covered: number[] = [];
+  const spoken: [number, number][] = [];
   for (let i = from; i < to; i++) {
     const o = original[i] as Cue;
     const overlap = Math.min(o.endMs, t.endMs) - Math.max(o.startMs, t.startMs);
@@ -206,8 +370,11 @@ function overlapping(
     const spokenCue = !isSoundLabel(o.text);
     if (overlap > best.anyOverlap)
       Object.assign(best, { any: i, anyOverlap: overlap });
-    if (spokenLine && spokenCue && overlap > best.spokenOverlap)
-      Object.assign(best, { spoken: i, spokenOverlap: overlap });
+    if (spokenLine && spokenCue) {
+      spoken.push([i, overlap]);
+      if (overlap > best.spokenOverlap)
+        Object.assign(best, { spoken: i, spokenOverlap: overlap });
+    }
     if (
       spokenCue === spokenLine &&
       overlap >= COVERED_SHARE * (o.endMs - o.startMs)
@@ -215,8 +382,12 @@ function overlapping(
       covered.push(i);
   }
   const most = best.spoken >= 0 ? best.spoken : best.any;
-  if (most < 0) return [];
-  return [...new Set([most, ...covered])].sort((a, b) => a - b);
+  return {
+    most,
+    covered: most < 0 ? [] : covered,
+    spoken,
+    length: lengthOf(t.text),
+  };
 }
 
 const OFFSET_MIN_CUES = 8;
@@ -295,4 +466,36 @@ export function shiftCues(cues: readonly Cue[], offset: number): Cue[] {
         startMs: c.startMs + offset,
         endMs: c.endMs + offset,
       }));
+}
+
+const TIMING_ERROR_MIN_MS = 100;
+const TIMING_ERROR_SCALE = 2;
+
+/**
+ * How far a human track's times are off the learning track's: twice the median distance
+ * from a translated cue's start or end to the nearest start or end of a learning cue, at
+ * least TIMING_ERROR_MIN_MS. A track cut and timed with the original's cues is off by
+ * nothing (its cues share their edges); one timed on its own (whole seconds, another clock,
+ * its own cuts) by about a second.
+ */
+export function timingError(
+  learning: readonly Cue[],
+  human: readonly Cue[],
+): number {
+  const edges = learning
+    .flatMap((c) => [c.startMs, c.endMs])
+    .sort((a, b) => a - b);
+  if (!edges.length || !human.length) return TIMING_ERROR_MIN_MS;
+  const nearest = (ms: number) => {
+    const i = lowerBound(edges.length, (k) => edges[k]! < ms);
+    return Math.min(
+      i < edges.length ? edges[i]! - ms : Infinity,
+      i > 0 ? ms - edges[i - 1]! : Infinity,
+    );
+  };
+  const distances = human
+    .flatMap((c) => [nearest(c.startMs), nearest(c.endMs)])
+    .sort((a, b) => a - b);
+  const median = distances[distances.length >> 1]!;
+  return Math.max(TIMING_ERROR_MIN_MS, TIMING_ERROR_SCALE * median);
 }

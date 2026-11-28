@@ -7,6 +7,7 @@ import {
   chooseTranslation,
   joinCoveredCards,
   shiftCues,
+  timingError,
   trackOffset,
 } from "./translation";
 import { parseTtml } from "./ttml";
@@ -363,6 +364,66 @@ describe("joinCoveredCards", () => {
   });
 });
 
+describe("alignByOverlap on loosely timed tracks", () => {
+  // A human track timed on its own: its lines run up to a second or two past the
+  // original's sentence edges, so overlap alone puts a line on the wrong side.
+  const cards = [
+    cue(
+      0,
+      5000,
+      "We tried the new recipe last night, and it was better than we expected.",
+    ),
+    cue(5000, 10000, "Next week we will cook it for our friends."),
+  ];
+  const lines = [
+    cue(0, 3000, "昨夜、新しいレシピを試してみたら、"),
+    cue(3200, 7200, "思っていたよりずっとおいしかった。"),
+    cue(7200, 10000, "来週は友達に作ります。"),
+  ];
+
+  it("keeps a line that ends a sentence with the card it ends, though it lies mostly over the next", () => {
+    expect(
+      alignByOverlap(cards, lines, { lang: "ja", timingErrorMs: 1000 }),
+    ).toEqual([
+      "昨夜、新しいレシピを試してみたら、思っていたよりずっとおいしかった。",
+      "来週は友達に作ります。",
+    ]);
+  });
+
+  it("lets time alone decide for a precisely timed track", () => {
+    const byTime = [
+      "昨夜、新しいレシピを試してみたら、",
+      "思っていたよりずっとおいしかった。来週は友達に作ります。",
+    ];
+    expect(alignByOverlap(cards, lines, { lang: "ja" })).toEqual(byTime);
+    expect(
+      alignByOverlap(cards, lines, { lang: "ja", timingErrorMs: 100 }),
+    ).toEqual(byTime);
+  });
+
+  it("gives a line at a time tie to the card whose length it fits", () => {
+    const short = [
+      cue(0, 4000, "Thanks."),
+      cue(
+        4000,
+        10000,
+        "I am really happy to be able to talk to all of you here today.",
+      ),
+    ];
+    const unpunctuated = [
+      cue(0, 2500, "ありがとう"),
+      cue(2500, 5500, "今日は皆さんとここで"),
+      cue(5500, 10000, "お話しできて本当にうれしいです"),
+    ];
+    expect(
+      alignByOverlap(short, unpunctuated, { lang: "ja", timingErrorMs: 1000 }),
+    ).toEqual([
+      "ありがとう",
+      "今日は皆さんとここでお話しできて本当にうれしいです",
+    ]);
+  });
+});
+
 describe("trackOffset", () => {
   // Cue starts at irregular gaps, so only the right shift lines them all up.
   const starts = Array.from(
@@ -410,5 +471,36 @@ describe("trackOffset", () => {
         track(-400, (i) => (i % 2 ? 50 : -50)),
       ),
     ).toBe(400);
+  });
+});
+
+describe("timingError", () => {
+  const learning = [
+    cue(0, 2000, "a"),
+    cue(2000, 4500, "b"),
+    cue(4500, 8000, "c"),
+    cue(8000, 11000, "d"),
+  ];
+
+  it("is the floor for a track cut on the original's cue edges", () => {
+    expect(timingError(learning, learning)).toBe(100);
+    expect(
+      timingError(learning, [cue(0, 4500, "x"), cue(4500, 11000, "y")]),
+    ).toBe(100);
+  });
+
+  it("is twice the median edge distance for a track timed on its own", () => {
+    const own = [
+      cue(600, 3000, "x"),
+      cue(3000, 7400, "y"),
+      cue(7400, 10400, "z"),
+    ];
+    // Distances 600, 500, 500, 600, 600, 600: median 600.
+    expect(timingError(learning, own)).toBe(1200);
+  });
+
+  it("is the floor with nothing to compare", () => {
+    expect(timingError([], learning)).toBe(100);
+    expect(timingError(learning, [])).toBe(100);
   });
 });
