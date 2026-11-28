@@ -3,16 +3,20 @@
 The log of the weekly language cycle ([skill](../../.claude/skills/language-cycle/SKILL.md), [development](../development.md) "Language quality cycle"). Newest cycle first. Data for each cycle is in `data/raw/quality/cycles/<cycle>/` (git-ignored).
 
 ## Current
-- State: idle. c001 finished 2026-11-22: fixes #223, #226, #228 merged and re-measured, real-site check and selection check done. A phrase proposal for selections that match no pattern: not adopted by the user, 2026-11-22 (c001, Selection, "Trade-off"). en-ja adverb `even` fixed afterwards (#236) with a regression on adjective `even`, kept by the user; the tagger cause and `still` left for c003 (c001, "Adverb senses")
-- Last cycle: c001 (2026-11-22); last sweep: `cycles/c001/after-adverb`
-- Next: c002. Next tidy-up: c002 (every third cycle: c002, c005, …), or earlier when the inventory grows ≥ 15% over c000's or a pair is added
-- Level rotation: c001 runs `es` also at level 1000; then `fr` 8000, `de` 1000, `en` 8000, …
+- State: idle. c002 (tidy-up) finished 2026-11-28: #339, #340, #341 merged, 0 changed rows; the WORSE flags since c001 come from merged PRs and are queued for c003 (c002, "Sweep")
+- Last cycle: c002 (2026-11-28); last sweep: `cycles/c002/after-natives-defaults` (main at #339; #340 and #341 change no shipped code)
+- Next: c003 (scheduled). Next tidy-up: c005, or earlier when the inventory grows ≥ 15% over c002's or a pair is added
+- Level rotation: c001 ran `es` also at level 1000; c003 runs `fr` at 8000, then `de` 1000, `en` 8000, …
 - Corpus refresh: due at c004 (corpora as of 2026-11: `en` 2026-11 round 2, `es`, `fr`, `de` from their L1/L2 studies)
 
 ## Queue
 Causes found and not yet fixed, by layer, with evidence. A cycle picks from here and from its own findings.
 
 Ranked; c001 picks from the top unless its own sweep shows a WORSE flag.
+
+**From c002's sweep (merged since c001; c003 looks at these first)**
+- `en-ru` translated at display 3,109 → 11,439 (+268%) and no entry 48 → 62: "Leave the Russian Wiktionary edition out of en-ru" (`ea8fdbc9`, 2026-11-22) left the tables alone (55,645 terms). Measure what the learner now sees on those 8,330 tokens (translated English definitions vs the edition's meanings) and whether en-defs or the tables can give a native line; a trade-off for the user if the edition's meanings were better.
+- Over cap up in most English pairs (en-zh 1 → 12, en-ko 0 → 13, en-hi 0 → 11, en-it 33 → 44, en-tr 81 → 92, en-es 269 → 292; en-ru 257 → 34 with the edition gone): "Lead with a word's main use …" (`b3c692ab`, en-defs). Check which lines now pass the cap and whether the cap or the line choice should move.
 
 **LEARNING/CORE (en; ≥ 3 natives on the same words)**
 1. **Hover senses ignore the token's part of speech.** *(c001: partly fixed by #223 — tagger readings for inflected forms; adverb `even` in en-ja fixed afterwards by a note rule (#236); left: **for c003, the tagger's fixed words, then `still` in en-ja**: `data/packs/en/tagger.json` `words` (481; `KNOWN_MIN_SHARE` 0.97 in `scripts/data/tagger.ts`) tags every `even` and `still` as an adverb without reading context, so since #236 *an even surface* loses 平らな in en-ja, and the other 14 English natives' `even` hover has no adjective sense either (tagger or dictionary: not separated); settle this before reordering `still`, or *still water* is expected to lose 静止した the same way; test on adjective and verb uses, which the corpus lacks for `even`; **`still` in en-ja** (177 tokens, tagged adverb, the card leads with 静止した…; the other English pairs lead with the adverb; cause and the two rules that failed blind: c001, "Adverb senses"), pair-build sense gaps (`readEdition` keeps 4 senses in file order, `mergeSources` takes the whole term from the first source: en-ar 601, en-id 752, en-zh 729 terms), participial adjectives, won/act tagger errors, German `gerecht werden` → rechen.)* `looming` → loom (weaving), `netted` → net (fishing net), `checked` → cheque, `still` (adverb) → a photo still, `centred` (verb) → centre (noun), `slash` → the punctuation, `dip` → dunk, `stirring` → stir a liquid, `won` → the Korean currency: 12–14 natives each. In `en-es` rows, 4,610 of 14,714 New words (31%) have no POS (1,110 of them inflected forms such as `looming`, `netted`, `gathered`), and where a POS is known the senses are still in dictionary order (`use`, `act`, `checked` tagged verb show noun senses first). Cause: sense order does not follow the tagged POS, and the tagger leaves inflected forms untagged. One rule in the hover builder, all 14 English natives.
@@ -33,6 +37,33 @@ Ranked; c001 picks from the top unless its own sweep shows a WORSE flag.
 
 **de-fr / de-en (one learning language, two natives)**
 - Separable verbs shown with the wrong sense or as the noun: `lehnte … ab` → "appuyer", `stufte … zurück` → "accusatif pluriel de Stufe", `auftrat`, `geladen` (invited). `daß` (old spelling) and `Komparserie`, `pauschal` have no entry. Cause 3 for German plus German lemma coverage.
+
+## c002 — 2026-11-28 (scheduled; tidy-up)
+
+Main at `3ea326c8`. Third cycle, and en-ko was added since c000's inventory: a tidy-up ([tidy](../../.claude/skills/language-cycle/references/tidy.md)) in place of steps 1–6.
+
+### Sweep
+`cycles/c002/before` against `cycles/c001/after-adverb`: 19/19 ok, 8 WORSE, 1 MOVED. None from this cycle: all come from PRs merged after c001's last sweep (`ea8fdbc9` en-ru without the Russian edition; `b3c692ab` en-defs main use), so they are queued for c003 ("From c002's sweep") and not fixed in a tidy-up. Timing fell 6–66% on most pairs (not compared with `timing-ab.ts`; no flag).
+
+### Items (one PR each, 0 changed rows)
+| item | PR | change | acceptance |
+|---|---|---|---|
+| Same-value fields → defaults | #339 | `NATIVE_LANGUAGES` `spaces` and `dense` set only by the exceptions (`spaces?: false` ja zh th; `dense?: true` ja zh ko): 26 lines fewer | `after-natives-defaults`: 0 changed rows in 19 pairs |
+| Branches → table fields | #340 | the five `zh` branches of the data scripts read the zh recipe instead (`tables.langCodes`, `simplified`, a new `wikidata` field): `defaultRecipe`, `LANGS`, `acronymNative`, `entityNative` | data scripts only (no pack rebuilt; the sweep reads the published packs); unit tests show the old and new values identical (`langCodes` order is unused: read as a set) |
+| Study scripts → the skill | #341 | 9 parametrised scripts in real-content-quality `scripts/` (`base-packets.py`, `base-tally.py`, `pack-diff.py`, `hover-diff.py`, `by-source.py`, `gate-source.py`, `order-packets.py`, `order-tally.py`, `gate-lines.ts`) for the copies in the round-4 native studies; SKILL.md Phase 3 says which to use | byte-identical output to the old copies on r4-tr's data |
+
+Also in the log PR: `rule-inventory.ts --before` reads an inventory that holds the totals alone (c001's), instead of failing.
+
+### Rule inventory (c002)
+At `3ea326c8` before → after the items: branches 18 → 13, tables 5, table fields 36 → 37 (the zh `wikidata` field), one-off fields 7 → 8 (same), same-value fields 13 → 11, language files 21 (4,313 lines), quality notes 2,077 lines, repeated study scripts 25 (counted by name across study folders: the old folders keep their copies, so the count falls only as new studies use the shared scripts). Against c000: tables +1, notes +11%, under the 15% trigger. `cycles/c002/inventory.json` (after the items; before: `inventory-before.json`).
+
+### Left for the next tidy (c005)
+- Ablation of one-off rules (the language files: `tagging/de.ts` 710 lines, `tagging/fr.ts` 653): not started.
+- Docs: `native-quality.md` (443 lines) and the other `*-quality.md` restate shipped rules that architecture.md should hold once.
+- `englishPair = { format: 4 }` is set by all 15 pair natives; it says how the pair pack is built, so it stays explicit until a format 5 exists.
+
+### Trade-offs
+None from this cycle (every item changes no row). The en-ru question above is for c003 to measure first.
 
 ## c001 — 2026-11-22 (manual)
 

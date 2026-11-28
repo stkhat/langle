@@ -220,9 +220,12 @@ console.log(`inventory ${inventory.sha} ${inventory.date}`);
 console.log(JSON.stringify(inventory.totals));
 const before = setting("before");
 if (before) {
-  const prev = JSON.parse(readFileSync(before, "utf8")) as typeof inventory;
+  const prev = JSON.parse(readFileSync(before, "utf8")) as Partial<typeof inventory> &
+    Record<string, unknown>;
+  // An inventory written before the full report (c000, c001) holds the totals alone.
+  const prevTotals = (prev.totals ?? prev) as Record<string, number>;
   const growth = Object.entries(inventory.totals).map(([k, v]) => {
-    const was = (prev.totals as Record<string, number>)[k] ?? 0;
+    const was = prevTotals[k] ?? 0;
     return `${k}: ${was} → ${v}${was ? ` (${(((v - was) / was) * 100).toFixed(0)}%)` : ""}`;
   });
   console.log(`since ${prev.sha} ${prev.date}:\n  ${growth.join("\n  ")}`);
