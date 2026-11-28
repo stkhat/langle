@@ -669,6 +669,43 @@ Done 2026-11-15/16 in Chrome 157; results and the user's decisions: [notes](../n
 3. Quality on real content (the `real-content-quality` skill, the corpus of [notes](../notes/translation-quality.md)): for words with several dictionary meanings, how often the meaning in context fits, with only the sentence, a few lines and the cap, with and without the site's translation; how often `sense` names a fitting meaning; how often the JSON is valid; whether the Japanese reads well. The baseline is the dictionary rules' 70% and the model's 72% without this context. Build only if the context clearly helps; the numbers go into the notes
 4. The prompt for each native language offered (Japanese, Spanish, Portuguese; French and German since D2, not checked with the real model; Russian, Chinese, Italian and Polish have no examples of their own, as Chrome's Prompt API does not answer in them)
 
+## Site access (articles site by site; designed 2026-11-28, not built)
+Why: the Chrome Web Store flags the `<all_urls>` content script for an in-depth review and asked for narrower host access. What the user sees: [ui](ui.md) "Articles site by site". Plan and progress: [site-access](../plans/site-access.md). Open questions go to its spike (S0) first.
+
+### Manifest (Chrome build)
+- `permissions`: `storage`, `alarms`, `identity` as before, plus `activeTab`, `scripting` and `declarativeContent` (none of the three adds an install warning)
+- `optional_host_permissions: ["*://*/*"]`; no `host_permissions`. The install warning narrows to the video sites' static matches (`www.youtube.com`, `m.youtube.com`, `www.netflix.com`)
+- The video content scripts (YouTube, Netflix, their MAIN-world scripts) stay static `content_scripts`. `content.js` (articles) leaves the manifest (WXT `registration: "runtime"`) and is registered at run time for the hosts the user turned on
+- The `langle-app` build keeps `content.js` in `content_scripts` on `<all_urls>`: the phone app injects what its manifest lists and has no per-site access (`tests/app-manifest.test.ts` keeps it so)
+
+### Which hosts are on
+- Chrome keeps the grants (`permissions.getAll().origins`), per profile, not synced. Each article host is one origin pattern, `*://{host}/*`; `*://*/*` (Chrome's "On all sites") means every host
+- A host is on where it has a grant and is not on the synced off list (`disabledSites`, kept for YouTube and Netflix and for entries from before). Never run on, `articles` and `enabled` apply on top, as today
+- **Seen hosts**: the hosts the popup was opened on, in `storage.local` (`siteSeen`, per computer like the grants). They exist only so the mark and the bubble show once
+
+### Turning a host on and off
+- On (popup, in the click handler, which `permissions.request` needs): first a message `siteAccessPending { tabId, host }` to the background, then `permissions.request({ origins: [`*://${host}/*`] })`. Chrome's prompt may close the popup, so the background, not the popup, finishes the work
+- The background follows `permissions.onAdded` / `onRemoved` (and runs once at start and on install): it makes the registered script `articles` (`content.js`, top frame, `document_idle`, `persistAcrossSessions: true`) match exactly the granted article origins, through `scripting.registerContentScripts` / `updateContentScripts` / `unregisterContentScripts`. Origins of the video sites are left out of it
+- When a grant covers the pending tab's host, the background injects `content.js` into that tab with `scripting.executeScript`, so the page needs no reload. `content.js` starts once per page (a flag on its isolated world) whether registered or injected
+- Off (popup): `permissions.remove({ origins })`, and the background tells the host's open tabs to stop (`tabs.sendMessage`, no permission needed); the content script gives the page back as when a site is switched off today
+- A grant made in Chrome's own menus arrives through the same `onAdded` and is treated the same
+
+### The mark (`declarativeContent`)
+- Chrome shows the marked icon from page rules, without Langle seeing the page: `declarativeContent.onPageChanged` rules whose condition is a `PageStateMatcher` with `css: ['html[lang|="{learning}"]']` and a `pageUrl` that matches only undecided hosts, and whose action is `SetIcon` with the marked icon (`public/icon-new/16.png`, `32.png`, drawn by `scripts/make-icons.ts`; decoded in the worker into `ImageData`)
+- **Undecided hosts as a URL regex**: `UrlFilter` has no negation and its `urlMatches` is RE2 (no lookahead), so the decided hosts (granted, seen, Never run on and its subdomains, the video sites) become a regex that matches `^https?://H(:\d+)?/` only for a host `H` outside them, built from a trie of the hosts. A pure function (`src/core/site-access/`), split into one rule per group of leading characters so each regex stays under Chrome's size limit (measured in S0)
+- The rules are rebuilt (remove, then add) whenever the learning language, `enabled`, the setup stage, `articles`, Never run on, the grants or the seen hosts change. No rules while Langle is off or not set up, while `articles` is off, or while `*://*/*` is granted (every host is on), so the gray icon (`toolbar-icon.ts`) and the plain icon stay as today
+- Where `declarativeContent` is missing (other browsers), there is no mark; the popup's bubble still shows on its first opening on a host
+
+### The popup on a tab
+- The host comes from the content script where one answers (as today). Otherwise, on an `http`/`https` tab, from `tabs.query({ active: true, currentWindow: true })`, whose `url` `activeTab` gives once the popup opens
+- On a host without a content script, the popup runs one probe in the tab under `activeTab` (`scripting.executeScript` returning `document.documentElement.lang`). A failed probe (the store, error pages) hides "On this site" as on browser pages today; its result decides the bubble on a first opening (the mark's test). Opening the popup adds the host to the seen hosts after the probe
+- What the row shows is a pure function of the host, its grant, the off list, whether it was seen before this opening and the probe's result
+
+### Tests
+- Unit: the regex builder against a plain set check over random and adversarial hosts (subdomains, ports, punycode, a host that is a prefix of another), and a check that it uses only RE2 syntax (no lookaround, no backreferences); the rules builder; the registration follower and the pending injection with fake `permissions` / `scripting`; the popup's view function
+- Browser tests: the popup's states (first opening with and without the bubble, later, on, off, the store)
+- E2E: Playwright cannot answer Chrome's prompt. The E2E build lists the test server's origin in `host_permissions`, so start-up registers `content.js` there and the article E2E runs as today; how far E2E can reach the prompt path is part of S0. The prompt, the mark and the no-reload injection are checked in the user's Chrome
+
 ## Interface language
 The extension `i18n` API follows the browser's language and cannot be chosen by the user, so Langle has a small mechanism of its own (`src/i18n/`). The interface language is a setting apart from the learning and native languages.
 - **Strings**: every UI string goes through `t("key", vars)`, one file per native language (`src/i18n/locales/<code>.json`, `zh` is simplified Chinese). `MessageKey` comes from `en.json`; a test holds every locale file to exactly English's keys and `{placeholders}`. A key missing from a locale shows English (per key, never a raw key)
@@ -707,6 +744,7 @@ Only Chrome is built and tested for now: Firefox is paused (2026-11-24; why, wha
 | Built-in AI (phase 3) | Prompt API | "In this sentence" and its Settings rows are not shown; choosing meanings works with the dictionary's |
 | Reading a selection inside Langle's shadow roots (words selected in the video subtitle and transcript) | `Selection.getComposedRanges`; older versions only `ShadowRoot.getSelection` (non-standard) | `ui/selection-in-root.ts` uses the first that exists. With neither, those words cannot be selected (no phrase card); everything else works |
 | Saving to a folder (File System Access API) | available | not offered |
+| Marking a new site's icon | `declarativeContent` (`SetIcon` with a `PageStateMatcher`) | No mark; the popup's bubble still shows on its first opening on a host |
 | OAuth (cloud sync) | `launchWebAuthFlow` (`getAuthToken` is not used: it cannot choose the account) | — |
 
 ### Other browsers
@@ -720,7 +758,7 @@ Only Chrome is built and tested for now: Firefox is paused (2026-11-24; why, wha
 ## Chrome Web Store requirements (checked 2026-11-09)
 No outright blocker. Decisions and requirements:
 - **Subtitles (decided)**: keep YouTube and Netflix. Subtitle tracks are processed in memory; what is stored is the sentence in which a saved word appears (as an occurrence) and, while Sentence history is on, the lines that actually played (on the device only). Policy risk: "do not facilitate unauthorized access to content" / copyrighted content. Language Reactor does the same on the store. Prepare a written justification for review
-- **Host access (decided)**: keep the content script on all sites (`<all_urls>`), accepting an in-depth review (can take weeks). Write a justification (article highlighting on any page the user reads)
+- **Host access**: the first submission (2026-11-28) keeps the content script on all sites (`<all_urls>`), accepting an in-depth review. The store's reply asked for narrower access, so articles move to site-by-site grants ("Site access" above; 2026-11-28): static matches only for YouTube and Netflix, `*://*/*` as an optional host permission, `activeTab`, `scripting` and `declarativeContent`. Whether an optional all-sites pattern still brings the in-depth review is seen at that upload
 - **Sentence history (decided)**: on by default, as in the mock. Browsing activity may be collected only for a user-facing feature described prominently in the store listing and in the UI, so the listing and Settings must describe it clearly, and it stays on the device
 - **Privacy policy (required)**: any extension that handles user data needs a privacy policy URL, even when data stays on the device. Recorded sources (URL, title) and sentences count as user data. Disclose: what is stored locally, that word status goes through the browser's sync, that nothing is sent to the developer. Include the Limited Use compliance statement. Host it somewhere public without a server (e.g. GitHub Pages; this repo is private, so a separate public page is needed)
 - **2026 policy update (in force since 2026-08-01)**: data collected must be necessary for the single purpose and prominently disclosed
