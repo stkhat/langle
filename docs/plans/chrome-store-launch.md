@@ -67,7 +67,7 @@ Affiliate: the policy names "inserting affiliate links when no discount, cashbac
 ## E. Listing (C drafts, U enters)
 
 - [ ] E1 **Blocker** (drafted in English and Japanese: [chrome-store-listing](chrome-store-listing.md); the Ko-fi link left out on purpose): description: features, sentence history (prominently), the download after setup, on-device AI and its device requirements, the supported pairs, Drive sync, the Ko-fi link. No keyword lists
-- [ ] E2 **Blocker**: single purpose, and a justification for each of `storage`, `alarms`, `identity` and `<all_urls>`
+- [ ] E2 **Blocker**: single purpose, and a justification for each of `storage`, `alarms`, `identity` and `<all_urls>` (from the version with articles site by site: `activeTab`, `scripting`, `declarativeContent`, the optional host access and the YouTube and Netflix hosts instead of `<all_urls>`; drafts in the [store data review](../notes/store-data-review.md) "Drafts for the listing's privacy fields")
 - [ ] E3 **Blocker**: data-use checkboxes (at least website content, web history and, with Drive, personally identifiable information (the email); go through the rest), the Limited Use certifications, "no remote code", the policy's URL. All must agree with D2 and with what the build does
 - [ ] E4 **Blocker**: 1–5 screenshots at 1280×800, with demo content we have the rights to: no Netflix titles, real creators' videos, logos or personal data
 - [ ] E5 Small promo tile 440×280 (items without one rank after those with one); marquee 1400×560 optional
