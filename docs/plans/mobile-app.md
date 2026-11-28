@@ -58,21 +58,22 @@ Everything left for the phone app after M0–M8: the milestones still to run, an
   - the store pages, after which the app's Rate link can show (status.md "Before publishing", Support Langle).
 
 ### Bugs and open design points
-- **A gone device's unreadable Drive file keeps Update Langle on every other device for good**, since only the owner rewrites or removes its files ("Device checks (M7e, Android)").
-- **The write side does not validate a source's platform**: a check script saved `"article"`, which every reader then refused as damaged; it is checked only when a file is read ("Device checks (M7e, Android)").
-- **Subtitles**: one cold load in 26 had none after 78 s with no warning, not reproduced ("Device checks (M5g, Android)"); an auto-caption video's subtitles come only after the 60 s wait for its ASR track ("Device checks (M6e, iOS)"); the track list during and right after a pre-roll ad is unchecked ("Subtitles missing on an early load (M5f)").
-- **Pages without a viewport meta** are shown scaled down, Langle's sheet with them; a general fix would scale Langle's fixed UI by `1 / visualViewport.scale` ("Device checks (M3d)").
-- A model pack that fails at every mirror gives its reason only in logcat, not in the check build's error log ("Device checks (M5g, Android)").
-- "Last export" is set when the share sheet opens, also when it is dismissed; iOS could tell through `completionWithItemsHandler`, Android cannot ("Open items for M4").
-- Before the first `models.ensure`, `translatorStatus` is `unavailable` (harmless today: the first run's download sends one; "The Android translation host (M5c)").
+- ~~**A gone device's unreadable Drive file keeps Update Langle on every other device for good**~~ — done (#346): Update Langle shows only for a newer format version; a damaged file is read row by row, its bad rows skipped and logged, nothing shown.
+- ~~**The write side does not validate a source's platform**~~ — done (#346): rows are checked on write with the reader's own rules.
+- ~~**Subtitles**~~ — done (#347): each silent end gives its own `Langle: …` warning, and a per-video watchdog warns after 120 s of loaded media with no ad (300 s in all); the ASR wait was already fixed on 2026-11-27 (`includeAsr`). The track list during a pre-roll ad is covered on the fake player only (`adMs`).
+- ~~**Pages without a viewport meta**~~ — done (#350): Langle's fixed UI is scaled by `1 / visualViewport.scale`.
+- ~~A model pack that fails at every mirror gives its reason only in logcat~~ — done (#364): "Pack <pack>: failed, <why>" in the error log.
+- ~~"Last export" is set when the share sheet opens~~ — done (#364): set only when a target is chosen (iOS `completionWithItemsHandler`, Android the chooser's chosen component). Android cannot tell a target that then fails.
+- ~~Before the first `models.ensure`, `translatorStatus` is `unavailable`~~ — done (#364): `packs` for a pair in the catalogue never downloaded.
+- **Subtitle translations are sometimes one fragment off**: a card's translation can start with the previous sentence's (seen at 0:48 of the TED talk in the band and the transcript on Android, 2026-11-28; not looked into yet).
 
 ### Differences from the mock
-- The Langle sheet is always at full height (the mock sizes it to its content); Android's frame is 90% high and cuts its last line, the mock's about 94%.
-- The in-page dictionary sheet does not hide the title bar (the mock hides it); editing the title is not drawn in the mock.
-- iPhone landscape: the transcript column at the left sits about 6 px under the Dynamic Island ("The app's own fullscreen (M3e)").
-- Android: Langle's L covers YouTube's settings gear while the controls show; in fullscreen with the controls showing, the subtitle sits over the progress bar ("Device checks (M3d)").
-- The Paused pill sits under YouTube's unmute button while muted; iOS draws its selection handles on Langle's subtitle selection; the sheet's top does not follow a later change of the subtitle band's height ("Device checks (M3d)").
-- Small: Home's search keeps its text after a page opens; "On this site" says `www.youtube.com` on a watch page and `m.youtube.com` elsewhere; the site line says "YouTube" (mock "youtube.com"); "2 minutes ago" (mock "2 min ago"); localhost's tile shows "L"; Settings lists Sentence history (not in the mock); a word's details show no date for today; Settings has no privacy policy link yet (status.md "Before publishing", plan C8).
+- ~~The Langle sheet is always at full height~~ — done (#350): sized to its content (`appHost.contentHeight`).
+- ~~The in-page dictionary sheet does not hide the title bar~~ — done (#350, `appHost.pageSheet`). Open: editing the title while the dictionary sheet opens is not drawn in the mock; the bar keeps its edit state.
+- ~~iPhone landscape: the transcript column under the Dynamic Island~~ — done (#350, safe-area insets); checked on the Simulator only.
+- ~~Android: Langle's L covers YouTube's settings gear; the fullscreen subtitle over the progress bar~~ — done (#350): measured from YouTube's controls.
+- ~~The Paused pill under the unmute button; iOS selection handles; the sheet's top not following the band~~ — done (#350): the pill moves under the controls, the selection is drawn with the CSS highlight API, the sheet follows the band. #350 also draws the pinned band from the body-level host, so m.youtube's transforms no longer swallow taps on it.
+- Small: ~~Home's search keeps its text~~, ~~"On this site" host~~, ~~no date for today~~ — done (#364). Decided 2026-11-28 (the user), the mock changed to match the app: the site line says "YouTube", relative times are long ("2 minutes ago"), Settings lists Sentence history. Left: localhost's tile shows "L"; Settings has no privacy policy link yet (status.md "Before publishing", plan C8).
 - Content: a phrase the ja dictionary lacks can show an English meaning ("figure out"); the Journal de Montréal keeps an empty banner box on both shells ("Device checks (M6e, iOS)").
 
 ### Not checked yet
