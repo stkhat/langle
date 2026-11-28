@@ -20,6 +20,7 @@ import type { LocaleMessages } from "../i18n/t";
 import type { SetupStage } from "../core/setup";
 import type { TimeSpan } from "../core/place";
 import type { Platform, Position } from "../core/url";
+import type { PendingTab } from "./site-access";
 
 export interface TermRecord {
   /** `termId(lang, key)` */
@@ -346,6 +347,13 @@ export type Request =
    */
   | { type: "openPopup" }
   /**
+   * The popup turns a host on in a tab (architecture.md "Site access"): sent without
+   * waiting, right before `permissions.request` in the same click, as Chrome's prompt
+   * closes the popup. Once a grant covers the host, the background injects the article
+   * script into the tab. Refused where the browser has no per-site access.
+   */
+  | ({ type: "siteAccessPending" } & PendingTab)
+  /**
    * Nothing is kept while the history is off or the host is blocked. `casing` is the
    * document's, as `analyze` has it: its names are not kept.
    */
@@ -654,6 +662,7 @@ interface ResponseMap {
   exportDetails: Record<string, ExportDetails>;
   openOptions: null;
   openPopup: null;
+  siteAccessPending: null;
   /** How many sentences were added. */
   recordHistory: { kept: number };
   historyStatus: HistoryStatus;

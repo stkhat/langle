@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   test as base,
   chromium,
@@ -25,33 +24,9 @@ import {
   routePackMirrors,
   type MirrorRouting,
 } from "./pack-mirrors";
+import { BUILDS, extensionPathOf, type Build } from "./builds";
 
-/**
- * Which build to load: `npm run build` (production), `wxt build --mode check` (the
- * build loaded in your own Chrome, with WXT's dev logging and the self-reload), or
- * `npm run build:check-download` (the check build without the self-reload, whose
- * language data comes from the local mirror in serve.ts; see .env.check-download). The
- * other builds download from the lock's mirrors, which pack-mirrors.ts answers.
- * Production closes the shadow roots of Langle's UI on web pages, so Playwright cannot
- * reach into it there: tests that drive the UI use a check build.
- */
-export type Build = "production" | "check" | "download";
-
-const BUILDS: Record<Build, { dir: string; command: string }> = {
-  production: { dir: "chrome-mv3", command: "npm run build" },
-  check: { dir: "chrome-mv3-check", command: "wxt build --mode check" },
-  download: {
-    dir: "chrome-mv3-check-download",
-    command: "npm run build:check-download",
-  },
-};
-
-export const extensionPathOf = (build: Build) =>
-  path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "../.output",
-    BUILDS[build].dir,
-  );
+export { extensionPathOf, type Build };
 
 /** The project's screen and input (playwright.config.ts: the `phone` project's). */
 interface Device {
@@ -111,6 +86,33 @@ async function launchWithExtension(
     cdp.close();
   }
   return context;
+}
+
+/**
+ * Waits until the background has registered the article script for the granted test
+ * host (builds.ts), as it does at each start: before that, an article page gets none.
+ */
+async function waitForArticleScript(context: BrowserContext) {
+  const worker =
+    context.serviceWorkers()[0] ??
+    (await context.waitForEvent("serviceworker"));
+  await base
+    .expect(async () => {
+      const ids = await worker.evaluate(async () => {
+        const { chrome: api } = globalThis as unknown as {
+          chrome: {
+            scripting: {
+              getRegisteredContentScripts(): Promise<{ id: string }[]>;
+            };
+          };
+        };
+        return (await api.scripting.getRegisteredContentScripts()).map(
+          (script) => script.id,
+        );
+      });
+      base.expect(ids).toContain("articles");
+    })
+    .toPass();
 }
 
 async function extensionIdOf(context: BrowserContext): Promise<string> {
@@ -225,6 +227,7 @@ export const test = base.extend<{
       beforeInstall,
       { viewport, isMobile, hasTouch, userAgent },
     );
+    await waitForArticleScript(context);
     if (startPair) await useStartPair(context, startPair);
     await use(context);
     await context.close();

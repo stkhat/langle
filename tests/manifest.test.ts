@@ -6,6 +6,7 @@ type Manifest = {
   manifest_version: number;
   permissions?: string[];
   host_permissions?: string[];
+  optional_host_permissions?: string[];
   content_scripts?: {
     matches: string[];
     js?: string[];
@@ -40,9 +41,22 @@ describe.each(BUILDS)("%s manifest", (dir) => {
 
   // alarms (retrying language data downloads) and identity (signing in to the user's
   // own cloud storage) add no install warning in Chrome, unlike host permissions: the
-  // mirrors and Google Drive's API send CORS headers, so neither needs any.
-  test("requests only the storage, alarms and identity permissions", () => {
-    expect(manifest().permissions).toEqual(["storage", "alarms", "identity"]);
+  // mirrors and Google Drive's API send CORS headers, so neither needs any. activeTab,
+  // scripting and declarativeContent (per-site access for articles, architecture.md
+  // "Site access") add none either.
+  test("requests storage, alarms, identity and the per-site access permissions", () => {
+    expect(manifest().permissions).toEqual([
+      "storage",
+      "alarms",
+      "identity",
+      "activeTab",
+      "scripting",
+      "declarativeContent",
+    ]);
+  });
+
+  test("asks for every host only as an optional grant", () => {
+    expect(manifest().optional_host_permissions).toEqual(["*://*/*"]);
   });
 
   test("has the colored toolbar icon in every size", () => {
@@ -99,7 +113,16 @@ describe.each(BUILDS)("%s manifest", (dir) => {
     expect(manifest().host_permissions).toBeUndefined();
   });
 
-  test("injects the article script everywhere and the video scripts on their sites only", () => {
+  // The article script is registered at run time for the hosts the user turned on
+  // (src/background/site-access.ts), so it is built but not in the manifest.
+  test("ships the article script without injecting it anywhere", () => {
+    expect(existsSync(`.output/${dir}/content-scripts/content.js`)).toBe(true);
+    expect(
+      manifest().content_scripts?.flatMap(({ js }) => js ?? []),
+    ).not.toContain("content-scripts/content.js");
+  });
+
+  test("injects the video scripts on their sites only", () => {
     expect(
       manifest().content_scripts?.map(({ matches, js, world, run_at }) => ({
         matches,
@@ -108,12 +131,6 @@ describe.each(BUILDS)("%s manifest", (dir) => {
         run_at,
       })),
     ).toEqual([
-      {
-        matches: ["<all_urls>"],
-        js: ["content-scripts/content.js"],
-        world: undefined,
-        run_at: undefined,
-      },
       // The page-world hooks must run before the sites' own scripts.
       {
         matches: ["*://www.netflix.com/*"],
