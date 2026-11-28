@@ -616,9 +616,13 @@ describe("SubtitleOverlay", () => {
         expect(drawnOffsets(line(screen))).toEqual(whole("today", "bread"));
         expect(onWordClick).not.toHaveBeenCalled();
         expect(pageClick).not.toHaveBeenCalled();
-        // Langle draws it: no page selection (the phone's handles), never selectable.
+        // Langle draws it: no page selection (the phone's handles). The text is
+        // selectable while it shows, as WebKit draws highlights only on such text.
         expect(getSelection()?.isCollapsed ?? true).toBe(true);
         expect(CSS.highlights.has("langle-selection")).toBe(true);
+        expect(getComputedStyle(line(screen)).userSelect).toBe("text");
+        // The next press makes it unselectable again before its long-press.
+        await tap(middleOf(word(screen, "bread")));
         expect(getComputedStyle(line(screen)).userSelect).toBe("none");
         undrawSelection();
         expect(CSS.highlights.has("langle-selection")).toBe(false);

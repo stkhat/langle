@@ -10,7 +10,6 @@ import {
   type TextBox,
 } from "../selection-in-root";
 import {
-  canDrawSelection,
   drawnOffsets,
   drawSelection,
   undrawSelection,
@@ -244,8 +243,10 @@ function selectByTouch(
         last: { x, y },
       };
       handlers.current.onSelectStart?.();
-      // Where Langle cannot draw its selection, the page's needs selectable text.
-      if (!canDrawSelection()) selectable(el, true);
+      // Selectable while the selection is in it: the page's selection needs it, and
+      // WebKit draws no highlight on text that is not selectable (it paints the
+      // highlight on the next selectable text instead, measured on iOS 27).
+      selectable(el, true);
       follow(x, y);
     },
     drag({ x, y }) {
@@ -292,8 +293,8 @@ function selectByTouch(
  * and not selectable at rest. WebKit on iOS fires no `contextmenu` on a long-press: on
  * selectable text its own selection takes the touch over (the page hears no end of the
  * press). Langle draws its own selection over the text (`drawn-selection.ts`), so the
- * text never becomes selectable and the phone draws no handles on it; only where it
- * cannot be drawn does Langle's selection make the text selectable (`selectable`).
+ * phone draws no handles on it. From the long-press until the next press the text is
+ * selectable (`selectable`): WebKit draws highlights only on selectable text.
  */
 export const TOUCH_TEXT = {
   WebkitTouchCallout: "none",
@@ -302,7 +303,7 @@ export const TOUCH_TEXT = {
   WebkitUserSelect: "none",
 } as const;
 
-/** Touch mode without drawn selections: the text selectable while Langle's selection is in it. */
+/** Touch mode: the text selectable while Langle's selection is in it. */
 function selectable(el: HTMLElement, on: boolean) {
   const value = on ? "text" : "none";
   el.style.setProperty("-webkit-user-select", value);

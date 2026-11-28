@@ -44,9 +44,6 @@ function style(el: Element) {
   root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
 }
 
-/** The browser draws highlights: Langle's selection is drawn, not the page's. */
-export const canDrawSelection = (): boolean => registry() !== undefined;
-
 /** Shows a part of `el`'s text (offsets in it) as Langle's selection. */
 export function drawSelection(el: Element, from: number, to: number): void {
   const highlights = registry();
