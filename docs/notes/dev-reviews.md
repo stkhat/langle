@@ -3,14 +3,44 @@
 Log of the `dev-review` skill ([.claude/skills/dev-review/SKILL.md](../../.claude/skills/dev-review/SKILL.md)): every 3 days, where development time, tokens, CI minutes and failures went, and what was changed.
 
 ## Current
-Idle. r002 finished on 2026-11-25. Next review due 2026-11-28.
+Idle. r003 finished on 2026-11-28. Next review due 2026-12-01.
 
 ## Queue
-- **Edit loops on one source file** (r001, repeated in r002): r001 one agent edited `src/background/term-store.ts` 60 times; r002 the M3d video-UI agent edited `src/content/video/VideoUi.tsx` 58, `mount.tsx` 48 and `Transcript.tsx` 40 times (layout tuning against device screenshots). Two reviews in a row: next time read that agent's loop and see whether a scripted screenshot → compare step (one call per round) or a rewrite per round would cut it.
-- **Sonnet share is low** (r001 4.0%, r002 4.8% of weighted cost; the mobile milestones M0–M4 ran 100–528 Opus turns per agent, 10 agents over 150). Which parts are mechanical (device check runs, doc sync, PR fix-ups) and could be a Sonnet step without losing the judgement steps? Trade: measure before proposing.
+- **Edit loops on one source file** (r001, repeated in r002): r001 one agent edited `src/background/term-store.ts` 60 times; r002 the M3d video-UI agent edited `src/content/video/VideoUi.tsx` 58, `mount.tsx` 48 and `Transcript.tsx` 40 times (layout tuning against device screenshots). Two reviews in a row: next time read that agent's loop and see whether a scripted screenshot → compare step (one call per round) or a rewrite per round would cut it. r003: `cloud-sync-backend.ts` 40 and `youtube/adapter.ts` 34 edits in each of two agents (14 loops ≥ 20).
+- **Sonnet share is low** (r001 4.0%, r002 4.8%, r003 3.7% of weighted cost; r003's six biggest subagents were Opus device checks of 300–405 turns). Which parts are mechanical (device check runs, doc sync, PR fix-ups) and could be a Sonnet step without losing the judgement steps? Trade: measure before proposing, e.g. a blind judge of a past device-check report redone on Sonnet.
+- **Screenshots in context** (r003): ~1,250 screenshots read (908 PNG reads, 336 Simulator screenshots), each ~1.5k tokens kept until the next compaction. A half-scale screenshot is a quarter of the tokens but may miss layout detail against the mock: Trade, needs a judged comparison before proposing.
+- **Guard refusals that remain** (r003: 82, ~1.9 per agent after stkhat/langle#281): heredocs (`python3 - <<EOF`, `cat > f <<EOF`) and `git …; echo $?`. Many come from orchestrator briefs pasted with shell snippets. If r004 is still above ~1 per agent, put the habits into the orchestrator memory's brief template, not only CLAUDE.md.
 - **`en-ja` does not rebuild as committed** (found in r001): `node scripts/data/ejdict.ts` on main at 8348933, on inputs identical to the main checkout's, changes `quarter horse`'s short meaning and moves `unionism` across a shard boundary (`dict-3.json`, `dict-4.json`, `index.json`). Find the change that was not followed by a rebuild; consider a check for it.
 - **`--cleanup` deletes git-ignored study data** (r001): `merge-when-green.sh` removes a worktree that is clean to `git status --porcelain`, which hides `data/raw/quality`. The briefs now say copy first; a check in the script itself (outside the repository) would be safer.
 - **A browser crash leaves `core` in the checkout** (r001: one Firefox crash in Docker while another session's Android emulator started). The Firefox lane is gone since stkhat/langle#262, so this waits until a Chromium crash shows it again; the fix would still be `--ulimit core=0` in the container.
+
+## r003 — 2026-11-28 (window 2026-11-25 → 2026-11-28)
+32 sessions, 111 subagents, 93 merged PRs. Mostly the phone app (M4–M8, device checks on Android and iOS), interface languages, site access and a competitor study.
+
+| | r003 | r002 |
+| --- | --- | --- |
+| Weighted tokens | 337M (77% subagents) | 194M (71%) |
+| Sonnet + Haiku share | 3.7% | 5.0% |
+| Top subagents | 194–405 turns, ~161–197k avg / 268k max context, all 29 long agents compacted | 100–528 turns, ~170–194k avg |
+| Tool errors / refusals | 509 / 60 | 370 / 27 |
+| Worktree-guard refusals in subagents | 82 in 36 agents (42 too-complex commands, mostly heredocs; 30 git in complex commands, e.g. `git merge-base …; echo $?`; 5 `.`/`eval`/`source`) | 141 in ~40 agents |
+| Failed inline `python3` scripts | 17 | 23 |
+| Wall time sleeping in poll loops | 5.1 h in 733 calls (2.3 h / 432 driving the Android emulator, 0.4 h iOS, 0.1 h CI) | 1.7 h |
+| CI runs per merged PR | 0.83 (77 real runs, 67 skipped drafts, 93 PRs), median 6.0 min, 2 failures (both on PR branches) | 0.90, 4.9 min, 4 failures |
+| CI runs with a flaky (retried) E2E test | 15 of 76 (7 the same test) | not measured |
+
+Findings:
+- **r002's picks held.** Guard refusals 141 → 82 (54 of them after stkhat/langle#281 merged, ~1.9 per agent); what is left is mostly agents still trying heredocs or `git …; echo`, often written into orchestrator briefs. No Dependabot npm bump went through this window, so the lockfile image (stkhat/langle#282) is still unproven.
+- **One E2E test flakes in 9% of CI runs.** `extension-errors.spec.ts` "a service worker stopped mid-session starts again without errors": 5 times the page shows no highlights after the restart, twice the worker reports `could not write the pack state` / `could not schedule the language data retry` with `Error: No SW`, which looks like a real shutdown race. 15 of 76 runs paid a retry.
+- **Device checks are the new cost centre.** The 6 biggest subagents (300–405 turns each) were Android/iOS device checks. `mobile/android/check.sh` needs `env.sh` around it, has no tap or wait, so every agent wrote its own wrapper and `tap; sleep N; screenshot` rounds (198 raw taps, 23 `sleep` commands blocked).
+- CI median 4.9 → 6.0 min: E2E went from ~130 to ~180 s with new specs (site access, phone). Repo is public, so no billed minutes; not a lead beyond the flake.
+- Code: hot spots are big browser test files and `youtube/adapter.ts` (9 commits, two agents edited it 34 times each); no fix-commit cluster.
+
+Picks:
+1. **The service-worker-restart E2E flake** (Tests): two causes. The 5 "no highlights" failures were the whole test hitting its 30 s limit, all before 5502bc24 raised it to 90 s; Langle itself restores highlights 0.9 s after the reload (40/40 locally). The 2 `No SW` errors were real: once Chrome starts stopping the worker it rejects `storage` / `alarms` calls, and Langle reported those as errors although the next start resumes the work. `reportError` (`src/background/report.ts`) now skips failures that only mean the worker is stopping; all 25 `console.error` calls in `src/background` go through it, and ESLint rejects new ones (stkhat/langle#367). Before: 7 of 76 CI runs retried this test; after: counted in r004 (it did not fail locally before or after, so only CI shows the gain).
+2. **`check.sh` device helpers** (Sessions, Waste): `mobile/android/check.sh adb …`, `tap x y [shot.png]` / `swipe` / `text` (wait until two screencaps match, ≤ 10 s, then screenshot) and `wait <regex> [s]` over the check log; `mobile/ios/check.sh wait` too (stkhat/langle#365). check.sh already loaded `env.sh` itself; the docs told agents to prefix it, so the wrappers were the docs' fault, and the docs now say so. Before: 432 hand-written sleep waits (2.3 h), 198 raw `adb shell input tap`, 23 blocked `sleep` commands; after: counted in r004. Not yet run on a device (none was booted).
+
+Dropped: none. Trades to ask: none (the Sonnet and screenshot-scale ideas stay in the Queue until measured). Recheck in r004: the flaky-retry rate, `check.sh tap`/`wait` use, and the first Dependabot npm bump through the lockfile image.
 
 ## r002 — 2026-11-25 (window 2026-11-22 → 2026-11-25)
 22 sessions, 112 subagents. Mostly the mobile app (M0–M4f, ~17 PRs) and language-cycle c001–c003. main's history was rewritten on 2026-11-25 to drop recorded caption fixtures (PRs on the old history were closed).
