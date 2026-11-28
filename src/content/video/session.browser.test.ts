@@ -190,6 +190,8 @@ async function start(
     touchMode?: VideoDeps["touchMode"];
     /** The page opened from an occurrence link to this time, the player at `at` (s). */
     landing?: { ms: number; at: number };
+    /** The address bar's host (default: www.youtube.com). */
+    hostname?: string;
   } = {},
 ) {
   const video = await createVideo();
@@ -211,6 +213,7 @@ async function start(
     watchPackState: bg.watchPackState,
     createTranslator: () => options.translator ?? noTranslation,
     translatorAvailable: async () => options.translatorAvailable ?? false,
+    hostname: () => options.hostname ?? "www.youtube.com",
     ...options.hooks,
     ...(options.touchMode && { touchMode: options.touchMode }),
     ...(options.explainProvider && {
@@ -2875,6 +2878,20 @@ describe("the popup's requests", () => {
       done: null,
     });
     expect(state().summaries.loaf?.status).toBe("new");
+  });
+
+  it("names the address bar's host, not the video address's (m.youtube.com's videos are www's)", async () => {
+    const { state, session, bg } = await start(undefined, {
+      hostname: "m.youtube.com",
+      settings: { disabledSites: ["m.youtube.com"] },
+    });
+    // The site switch goes by it too: off there, on once it is taken out.
+    expect(state().status).toBe("idle");
+    bg.changeSettings({ disabledSites: [] });
+    await ready(state);
+    expect(await session.handlePageRequest({ type: "pageSummary" })).toEqual(
+      expect.objectContaining({ supported: true, hostname: "m.youtube.com" }),
+    );
   });
 
   it("is not supported without subtitles", async () => {

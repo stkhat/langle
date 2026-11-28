@@ -22,7 +22,8 @@ const MEDIA_TYPE: Record<WordFormat, string> = {
  * Downloads the rows shown as an Anki import file or a CSV (ui.md "Word list page" →
  * "Export"): their meanings as the Meaning column has them, those still in another
  * language translated first, with the pronunciation and the sentence each was saved
- * from. Resolves to how many words the file holds.
+ * from. Resolves to how many words the file holds, or null when it did not reach the
+ * user (the app's share sheet closed without a target).
  */
 export async function exportWords(o: {
   format: WordFormat;
@@ -30,7 +31,7 @@ export async function exportWords(o: {
   langs: { learning: string; native: string };
   deps: WordListDeps;
   data: Pick<ReturnType<typeof useWordListData>, "meanings" | "findTerm">;
-}): Promise<number> {
+}): Promise<number | null> {
   const { format, langs, deps, data } = o;
   await data.meanings.translateAll(
     o.rows.map((term) => ({ key: term.id, head: term.display })),
@@ -91,10 +92,10 @@ export async function exportWords(o: {
             known: t("status.known"),
           },
         });
-  await deps.saveFile(
+  const saved = await deps.saveFile(
     exportFileName(format, langs.learning, langs.native, new Date(deps.now())),
     text,
     MEDIA_TYPE[format],
   );
-  return words.length;
+  return saved === false ? null : words.length;
 }

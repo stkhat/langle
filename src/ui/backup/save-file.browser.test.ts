@@ -46,13 +46,23 @@ describe("saveFile", () => {
       openPage: () => Promise.resolve(),
       shareFile: (file: SharedFile) => {
         shared.push(file);
-        return Promise.resolve();
+        // The first went to a target; the sheet closed without one for the second.
+        return Promise.resolve(shared.length === 1);
       },
     };
-    await saveFile("langle-backup.json", '{"a":1}', undefined, { appHost });
-    await saveFile("anki.txt", "#separator:tab\n", "text/plain;charset=utf-8", {
-      appHost,
-    });
+    expect(
+      await saveFile("langle-backup.json", '{"a":1}', undefined, { appHost }),
+    ).toBe(true);
+    expect(
+      await saveFile(
+        "anki.txt",
+        "#separator:tab\n",
+        "text/plain;charset=utf-8",
+        {
+          appHost,
+        },
+      ),
+    ).toBe(false);
     expect(shared).toEqual([
       { name: "langle-backup.json", mime: "application/json", text: '{"a":1}' },
       {

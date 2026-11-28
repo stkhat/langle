@@ -12,8 +12,15 @@ import { color } from "../styles";
 export interface BackupDeps {
   send: typeof send;
   now(): number;
-  /** Hands a file to the user (`save-file.ts`: a download, or the app's share sheet). */
-  saveFile(fileName: string, text: string, type?: string): void | Promise<void>;
+  /**
+   * Hands a file to the user (`save-file.ts`: a download, or the app's share sheet);
+   * false when it did not reach them (the sheet closed without a target).
+   */
+  saveFile(
+    fileName: string,
+    text: string,
+    type?: string,
+  ): boolean | Promise<boolean>;
 }
 
 /** The result of the last export or import, as a short line; null while there is none. */
@@ -40,8 +47,8 @@ export function BackupStatus(props: { note: BackupNote; lineHeight?: number }) {
 /** A file the word list's Export menu writes besides the backup (Anki, CSV). */
 export interface ExportItem {
   label: string;
-  /** Writes the file; resolves to how many words it holds. */
-  run(): Promise<number>;
+  /** Writes the file; resolves to how many words it holds, null when it did not reach the user. */
+  run(): Promise<number | null>;
 }
 
 /** The word list's other exports: they write the words shown (`count`). */
@@ -87,10 +94,11 @@ export function BackupButtons(props: {
     props.onNote(null);
     try {
       const count = await item.run();
-      props.onNote({
-        ok: true,
-        text: t("backup.exported", { count }),
-      });
+      props.onNote(
+        count === null
+          ? null
+          : { ok: true, text: t("backup.exported", { count }) },
+      );
     } catch (error) {
       props.onNote({
         ok: false,
@@ -103,7 +111,13 @@ export function BackupButtons(props: {
     props.onNote(null);
     try {
       const json = await deps.send({ type: "exportJson" });
-      await deps.saveFile(backupFileName(new Date(deps.now())), json);
+      // "Last export" is when a file reached the user, not when the sheet opened.
+      if (
+        (await deps.saveFile(backupFileName(new Date(deps.now())), json)) ===
+        false
+      )
+        return;
+      await deps.send({ type: "recordExport" });
       props.onExported?.();
     } catch (error) {
       props.onNote({

@@ -251,9 +251,9 @@ The Android emulator (Android 17 image, WebView Dev 160), check build. Screens c
 - **Open**:
   - The in-page dictionary sheet (a tapped word) does not hide the title bar; only the Langle sheet does.
   - Welcome's "Not now" needed `tabs.getCurrent` in the shim (answered in M4d).
-  - Home's search field keeps its text after a page opens.
+  - Home's search field keeps its text after a page opens (cleared since the M4 fixes; to confirm on the device, 2026-11-28).
   - The sheet's frame is 90% of the screen high; the mock's is about 94% (790 / 844).
-  - The sheet's "On this site" says `www.youtube.com` on a watch page (the adapter's canonical address) and `m.youtube.com` on other YouTube pages.
+  - ~~The sheet's "On this site" says `www.youtube.com` on a watch page (the adapter's canonical address) and `m.youtube.com` on other YouTube pages.~~ Fixed 2026-11-28: the address bar's host everywhere.
 
 ## Device checks of M4 (M4e, Android; 2026-11-25)
 
@@ -295,7 +295,7 @@ The iPhone 18 Pro Simulator (iOS 27.2), the check build on a fresh install (`-re
 
 ### Open items for M4 (both platforms)
 - ~~**Export, backup and import do nothing in the app.**~~ Done in M4f: the share sheet (with Save to device on Android) and the system's file picker; see "Device checks (M4f, Android)" and "Device checks (M4f, iOS)".
-- **"Last export: just now" is set when the share sheet opens**, also when the user closes it without sharing or saving. Android's chooser does not say whether the file went anywhere, so both shells keep it this way (iOS could tell through `completionWithItemsHandler`).
+- ~~**"Last export: just now" is set when the share sheet opens**, also when the user closes it without sharing or saving.~~ Fixed 2026-11-28: set only for a file that went to a target ("App screens and native fixes" below).
 - ~~**Subtitles sometimes missing on an early load** (Android, 2 loads in 3 while the emulator was overloaded, one with two pre-roll ads; a reload brought them).~~ Found and fixed in M5f: the player drops a track set before it lists its caption tracks, and Langle asked once; it now waits for the list (see "Subtitles missing on an early load (M5f)"). To check on the emulator in M5g.
 - **Differs from the mock**:
   - The Langle sheet is always at full height (`MobileLangleSheet` sizes it to its content); on Android its last line is cut at 90%.
@@ -304,7 +304,7 @@ The iPhone 18 Pro Simulator (iOS 27.2), the check build on a fresh install (`-re
   - localhost's site tile shows the letter "L" (no icon).
   - Settings lists Sentence history between Sites and Backup; the mock's list has no such row.
   - The first run has no "Privacy policy" link and Settings no Support Langle: the links in `src/core/links.ts` are still empty.
-  - A word's details show no date for today; the Paused pill sits under YouTube's unmute button while muted (Android).
+  - ~~A word's details show no date for today~~ (fixed 2026-11-28); the Paused pill sits under YouTube's unmute button while muted (Android).
   - The title bar stays for the in-page dictionary sheet (the mock hides it); editing the title is not drawn in the mock.
   - A meaning can show in English for a phrase the ja dictionary lacks ("figure out" on iOS).
 
@@ -323,7 +323,7 @@ The Android emulator (Android 17 Play image, signed in to a Google account), the
 - **Found**: no bug in M4f on Android; nothing changed.
 - **Open** (answered in "Save to device and the loose picker types" below for the first and third):
   - No way to save an export to the phone itself on this image (above). Options for the user to decide: keep the share sheet only, or add a "Save to device" path (`ACTION_CREATE_DOCUMENT`, the system's save dialog) beside it.
-  - "Last export: just now" is set when the chooser opens, also when the user backs out of it: Android does not say whether the file was shared.
+  - ~~"Last export: just now" is set when the chooser opens, also when the user backs out of it: Android does not say whether the file was shared.~~ Fixed 2026-11-28 (`EXTRA_CHOSEN_COMPONENT`, `ShareWatch`).
   - The picker asks for `application/json` only (the input's `accept`): a backup a mail or chat app typed otherwise (`application/octet-stream`) would be greyed out. Not seen here (Downloads types files by their extension).
 
 ### Save to device and the loose picker types (2026-11-25)
@@ -368,7 +368,7 @@ The open item of M4e (Android: no subtitles and no warning on two loads in three
 
 The check build on the emulator (Medium_Phone_API_37.0, Android 17), a fresh install (`check.sh reset`), real taps through adb, the muted TED video (`iG9CE55wbtY`) and the E2E article (`node e2e/serve.ts`). Settings were changed through `langle:check-settings` and restored (native Japanese, `refuseTlang` off).
 
-- **The model download**: the first run's Start downloads `mt-en-ja` with the pair's packs (all ready in about 15 s). Settings › Languages › Language data showed Downloading with its percentage, then Downloaded; a dropped connection to the mirrors gave Failed with Retry, and Retry finished it. Switching native to Hindi downloaded `en-hi` and `mt-en-hi` (21.6 MB) on its own. Before the first `models.ensure`, `translatorStatus` answers `unavailable` (M5c's open item): a page opened during the first download showed nothing wrong (no badge, no error), and the row tracked the download.
+- **The model download**: the first run's Start downloads `mt-en-ja` with the pair's packs (all ready in about 15 s). Settings › Languages › Language data showed Downloading with its percentage, then Downloaded; a dropped connection to the mirrors gave Failed with Retry, and Retry finished it. Switching native to Hindi downloaded `en-hi` and `mt-en-hi` (21.6 MB) on its own. Before the first `models.ensure`, `translatorStatus` answers `unavailable` (M5c's open item, fixed 2026-11-28 by `packs/models.json`): a page opened during the first download showed nothing wrong (no badge, no error), and the row tracked the download.
 - **Found and fixed: the model pack's raw name in Settings.** With another pair's data on the phone, "Not used by your languages now" listed `mt-en-ja` as its own row with its package name. The model pack is the pair's data: it is now counted under its pair (`pairsOfPack` with the lock's model packs), and the pair's Remove deletes both. Browser test: "lists a translation model pack with its pair's other data, and Remove deletes both (Android)" (failed before).
 - **A tapped word and the dictionary window** on the E2E article: the hover meaning is the en-ja dictionary's; the phrase "make up" showed its English definitions translated on the device (badge "Machine translation"). The first sentence after a stopped engine took about 11.6 s through `check translate` (M5c measured 1 s on its first start and 8.7–9.7 s after a crash); later sentences about 185 ms.
 - **The article's highlights** (M5c's open item): not a bug. Highlights default to Learning only, and a fresh install has no saved terms, so `langle-learning` is empty; after saving "tend", it was highlighted on the page.
@@ -380,7 +380,7 @@ The check build on the emulator (Medium_Phone_API_37.0, Android 17), a fresh ins
 - **The error log**: the pack mirror's info entries (the first run's and Hindi's packs served by jsDelivr) and the temporary diagnostics of the investigation builds; no warnings or errors from Langle. Cleared. The YouTube page's console lines come from YouTube: `generate_204` preload warnings, "No available adapters." (WebGPU, absent on the emulator) and `The key "" is not recognized and ignored.`.
 - **Open**:
   - One cold load in those 26 had no subtitles after 78 s, and no warning reached the error log (neither "made no caption request" nor "listed no caption tracks"); its logcat was cleared by the check script before it was read. Not reproduced in the 20 loads after it.
-  - A model pack whose download fails at every mirror shows Failed with Retry, but the reason is only in logcat (`Langle`), not in the check build's error log.
+  - A model pack whose download fails at every mirror shows Failed with Retry, but the reason is only in logcat (`Langle`), not in the check build's error log. Fixed 2026-11-28 (`Pack <pack>: failed, …`).
   - Hindi native: the saved word "tend" (from "tend to do") shows "To make a tender of", the first English sense, on its Words page. A sense choice for the language cycle, not a phone issue.
 
 ## Device checks (M5g, iOS Simulator; 2026-11-26)
@@ -654,7 +654,7 @@ Judged 2026-11-23 by four blind judges, the three translations shuffled per item
   - **A killed renderer**: `translate-kill` ended the `translate` renderer; `translate-state` then said `running=false page=false off=false`. The browsing page and the extension host kept working (scripts in the page, Langle's world and the host answered). The next sentence restarted the engine (a cold start of 8.7–9.7 s, after which a sentence takes 185 ms).
   - **The error log** held only the 32 info entries of the packs served by the mirror at the first run; read and cleared. The YouTube console's `generate_204` preload warnings and "ResizeObserver loop completed with undelivered notifications" come from YouTube's own page (`LangleConsole` with the page's URL).
 - **Open**:
-  - Before any `models.ensure` on a fresh install, `translatorStatus` is `unavailable`: native code knows a pair's packs only from an ensure request. The first run's language data download sends one, so in practice the row shows the right state.
+  - Before any `models.ensure` on a fresh install, `translatorStatus` is `unavailable`: native code knows a pair's packs only from an ensure request. The first run's language data download sends one, so in practice the row shows the right state. Fixed 2026-11-28: the build's `packs/models.json` makes them known from the start.
   - The E2E article showed no highlights during the check (`CSS.highlights` had only `langle-learning`, empty). Not a bug (M5g): highlights default to Learning only and a fresh install has no saved terms.
   - A cold restart after a crash takes 8.7–9.7 s on the emulator (the first start took about 1 s), within the 30 s load limit.
 
@@ -916,6 +916,23 @@ The same list on the Simulator (iPhone 17e, iOS 27.2), the check build, Japanese
 - **No space after "。"** (#337) on every page seen: Settings' notes and backup line, Home's lines, the first run's data page and Drive step.
 - **The error log**: the first-run reset clears it, so the entries from before the reset were not read; after it, 32 `info` entries (pack files from jsdelivr) and nothing else. Cleared.
 - Not checked: a real iPhone (where the suspension above should show more often), and the 7-day end of refresh tokens in Testing (M7a).
+
+## App screens and native fixes (2026-11-28)
+
+The app's own screens and the shells, from the plan's "Remaining" (the open items of M4e, M4f and M5g above). Built and tested off the device (unit, browser, JUnit, XCTest; both apps compile); the device checks follow.
+
+- **"Last export" only for a file that left.** `appHost.shareFile` now answers once the sheet is done: true when the file went to a target, false when the sheet closed without one. `saveFile` passes that on (a download is true), and the backup's Export records `lastExportAt` through a new message, `recordExport`, only on true (`exportJson` no longer records it). The word list's exports show no "Exported N words" for a sheet closed without a target.
+  - iOS: `UIActivityViewController.completionWithItemsHandler`'s `completed` (false also when a target's own screen, such as Mail's, was cancelled).
+  - Android: the chooser is started for a result (`startActivityForResult`), which says only that it closed. The target comes from `Intent.createChooser(…, intentSender)`: a mutable broadcast PendingIntent to a receiver of the app's own (`ShareChosenReceiver`, not exported) gets `EXTRA_CHOSEN_COMPONENT`. Save to device is not a target the chooser names on Android 14+ (a custom action), so `SaveFileActivity` reports itself: its dialog opened, then saved or backed out. Core's `ShareWatch` puts these together; the steps can come in either order, so a closed sheet waits 1.5 s for a target picked just before it closed, and a new share answers an open one false.
+- **A failed model pack's reason reaches the error log.** The pack store's new `onFailed` hears every pack that did not come, with the state's `error`; the check build logs it as an error entry, `Pack <pack>: failed, <why>`. For a model pack the why is native code's message, which names every mirror's failure (`Could not download <file> (<url>: <error>; …)`). iOS has no model packs (Apple's models), so nothing changes there.
+- **`translatorStatus` right from the first start (Android).** The langle-app build writes `packs/models.json`, the lock's model packs (`scripts/model-packs.ts`); `ModelStore` counts them as known, so a pair never downloaded is `packs`, not `unavailable`, before the first `models.ensure`. A missing file is logged and leaves the old behaviour. iOS already answers from Apple's `LanguageAvailability`, with no dependence on a download.
+- **Small differences from the mock**:
+  - "On this site" (and the site switch) go by the address bar's host, not the adapter's video address: `m.youtube.com` on watch pages too (`VideoDeps.hostname`, default `location.hostname`).
+  - A word's details date every place, "Today" included (MobileWordsDetail, WordListMeanings).
+  - Home's search: already cleared after a page opens (since the M4 fixes, 2026-11-25); to confirm on the device.
+  - Left for a decision: the site line ("YouTube" from `og:site_name`, the mock says "youtube.com" for the video and the site name for the article); "2 minutes ago" against the mock's "2 min ago" (the shared formatter, `Intl.RelativeTimeFormat` long style; no CLDR style gives "2 min ago" in English, and the desktop mock has both forms); Sentence history in Settings, which the mock's list lacks (kept).
+  - localhost's tile showing "L" follows the mock's rule (a site's initial when it has no icon); unchanged.
+- **To check on the devices**: the share sheet backed out of, a target picked, Save to device saved and backed out of (Android), and "Last export" after each; a model download failing at every mirror, then the error log; `translatorStatus` on a fresh install and after a relaunch; the screens above against the mock.
 
 ## Open issues and risks
 1. **Google sign-in.** Google blocks sign-in from browsers embedded in other apps (OAuth `disallowed_useragent` since 2021-09-30; its help page says sign-in may be blocked in browsers "embedded inside another app"). Browsers built on the same engines (Brave / Firefox / DuckDuckGo on iOS, Firefox on Android) can sign in, so detection seems to rely on signals such as the user agent, not the engine. Android WebView's UA contains `; wv`. Unverified for our app and a policy gray area. Watching and captions work without sign-in; age-restricted and members-only videos need it.

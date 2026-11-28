@@ -14,6 +14,8 @@ import android.service.chooser.ChooserAction
 import android.util.Log
 import androidx.core.content.FileProvider
 import dev.langle.core.ANY_TYPE
+import dev.langle.core.Clock
+import dev.langle.core.ShareWatch
 import dev.langle.core.SharedFile
 import dev.langle.core.UNKNOWN_TYPE
 import dev.langle.core.bareMediaType
@@ -24,17 +26,22 @@ import java.io.File
  * downloads: an export (`appHost.shareFile`) goes to the share sheet, where the user saves it to
  * Files or sends it; a file input (Import) opens the system's document picker.
  */
-class AppFiles(private val activity: Activity) {
+class AppFiles(private val activity: Activity, private val clock: Clock) {
   private var picking: ((Array<Uri>?) -> Unit)? = null
 
   /**
    * Writes the file under its own name in the cache's `shared/` folder (FileProvider's
    * `res/xml/shared_files.xml`) and shows the share sheet with it, readable by the app the user
-   * picks. Answers once the sheet is started. Only the latest file is kept: the folder is emptied
-   * first. The sheet also offers "Save to device" (SaveFileActivity), the system's save dialog: no
-   * share target saves to the phone itself without a file manager app.
+   * picks. Answers once the sheet is done ([ShareWatch]): true when the file went to a target
+   * (the chooser names it to ShareChosenReceiver) or Save to device saved it, false when the sheet
+   * closed without one (its activity result, [onResult]). Only the latest file is kept: the folder
+   * is emptied first, and a sheet still open is answered false. The sheet also offers "Save to
+   * device" (SaveFileActivity), the system's save dialog: no share target saves to the phone
+   * itself without a file manager app.
    */
-  fun share(file: SharedFile, done: (error: String?) -> Unit) {
+  fun share(file: SharedFile, done: (Result<Boolean>) -> Unit) {
+    OpenShare.watch?.replaced()
+    OpenShare.watch = null
     try {
       val folder = File(activity.cacheDir, SHARED_FOLDER)
       folder.deleteRecursively()
@@ -54,7 +61,15 @@ class AppFiles(private val activity: Activity) {
         Intent(activity, SaveFileActivity::class.java)
           .setDataAndType(uri, bare ?: UNKNOWN_TYPE)
           .putExtra(Intent.EXTRA_TITLE, file.name)
-      val chooser = Intent.createChooser(send, file.name)
+      // Mutable, for the chooser to add the target's name; explicit, so no other app gets it.
+      val chosen =
+        PendingIntent.getBroadcast(
+          activity,
+          SHARE,
+          Intent(activity, ShareChosenReceiver::class.java),
+          PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+      val chooser = Intent.createChooser(send, file.name, chosen.intentSender)
       val label = AppStrings.of(activity)["app.saveToDevice"]
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         // Android 14+: an action of the app's own, a chip with its icon and whole label above the
@@ -68,12 +83,20 @@ class AppFiles(private val activity: Activity) {
         val item = LabeledIntent(save, activity.packageName, label, R.drawable.ic_save)
         chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf<Parcelable>(item))
       }
-      activity.startActivity(chooser)
-      Log.i(TAG, "shared ${file.name} as $type (${file.text.length} chars)")
-      done(null)
+      lateinit var watch: ShareWatch
+      watch =
+        ShareWatch(clock) { shared ->
+          if (OpenShare.watch === watch) OpenShare.watch = null
+          Log.i(TAG, if (shared) "shared ${file.name}" else "share of ${file.name} closed without a target")
+          done(Result.success(shared))
+        }
+      @Suppress("DEPRECATION")
+      activity.startActivityForResult(chooser, SHARE)
+      OpenShare.watch = watch
+      Log.i(TAG, "sharing ${file.name} as $type (${file.text.length} chars)")
     } catch (e: Exception) {
       Log.e(TAG, "could not share ${file.name}", e)
-      done(e.message ?: e.toString())
+      done(Result.failure(e))
     }
   }
 
@@ -101,8 +124,13 @@ class AppFiles(private val activity: Activity) {
     }
   }
 
-  /** The activity's result; true when it was the picker's. */
+  /** The activity's result; true when it was the share sheet's or the picker's. */
   fun onResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+    if (requestCode == SHARE) {
+      // The chooser is gone; its result says nothing of a target (see [share]).
+      OpenShare.watch?.sheetClosed()
+      return true
+    }
     if (requestCode != PICK_FILES) return false
     val done = picking ?: return true
     picking = null
@@ -122,5 +150,6 @@ class AppFiles(private val activity: Activity) {
     const val SHARED_FOLDER = "shared"
     private const val PICK_FILES = 41
     private const val SAVE_FILE = 43
+    private const val SHARE = 44
   }
 }

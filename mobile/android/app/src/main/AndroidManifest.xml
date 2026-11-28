@@ -44,6 +44,10 @@
             android:name=".SaveFileActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!-- The share sheet's word on the target the user picked (ShareChosenReceiver.kt). -->
+        <receiver
+            android:name=".ShareChosenReceiver"
+            android:exported="false" />
         <!-- Keeps the process running while the background answers app.hidden (HostKeepAlive.kt). -->
         <service
             android:name=".HostKeepAlive"

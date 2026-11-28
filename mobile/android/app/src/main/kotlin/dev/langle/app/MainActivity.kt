@@ -24,6 +24,7 @@ import dev.langle.core.FilterList
 import dev.langle.core.GoogleAuth
 import dev.langle.core.Manifest
 import dev.langle.core.ModelStore
+import dev.langle.core.modelCatalogue
 import dev.langle.core.ManifestRefusal
 import dev.langle.core.Router
 import dev.langle.core.RouterAction
@@ -62,7 +63,7 @@ class MainActivity : Activity() {
   private val downloads = Executors.newSingleThreadExecutor()
   /** Whether the activity is on the screen (between onStart and onStop). */
   private var shown = false
-  private val files = AppFiles(this)
+  private val files = AppFiles(this, HandlerClock())
   /** Google sign-in (null without Play services) and Google's sheet's results. */
   private var googleAuth: GoogleAuth? = null
   private var authorizer: PlayGoogleAuthorizer? = null
@@ -194,7 +195,10 @@ class MainActivity : Activity() {
    * host that keeps the release rules, answering the router's translation calls.
    */
   private fun startTranslation(origin: AppOrigin) {
-    val models = ModelStore(File(filesDir, "models"), UrlFetcher(), downloads, { run -> main.post(run) })
+    val catalogue = modelCatalogue(origin.file("/packs/models.json")?.toString(Charsets.UTF_8))
+    if (catalogue.isEmpty()) Log.e(TAG, "the bundled build lists no model packs (packs/models.json)")
+    val models =
+      ModelStore(File(filesDir, "models"), UrlFetcher(), downloads, { run -> main.post(run) }, catalogue = catalogue)
     models.onLog = { Log.i(TAG, "models: $it") }
     engine.translateFiles = TranslateOrigin(origin, assets, models)::intercept
     val slot = FrameLayout(this)
@@ -307,7 +311,7 @@ class MainActivity : Activity() {
     updateBack()
   }
 
-  @Deprecated("Activity's result, for the document picker (AppFiles.choose) and Google's sheet")
+  @Deprecated("Activity's result, for the share sheet and the document picker (AppFiles) and Google's sheet")
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     if (files.onResult(requestCode, resultCode, data)) return
     if (authorizer?.onResult(requestCode, resultCode, data) == true) return

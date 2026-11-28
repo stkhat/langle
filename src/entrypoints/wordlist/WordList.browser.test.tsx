@@ -280,6 +280,8 @@ function fake(options: FakeOptions = {}) {
           return null;
         case "exportJson":
           return '{"format":"langle-export"}';
+        case "recordExport":
+          return null;
         case "exportDetails":
           return Object.fromEntries(
             request.ids.flatMap((id) => {
@@ -315,12 +317,14 @@ function fake(options: FakeOptions = {}) {
     now: () => NOW,
     saveFile:
       options.saveFile ??
-      ((name, text, type) =>
-        void downloads.push({
+      ((name, text, type) => {
+        downloads.push({
           name,
           text,
           ...(type !== undefined && { type }),
-        })),
+        });
+        return true;
+      }),
     speak: (text) => spoken.push(text),
     createTranslator: () => options.translator ?? noTranslation,
     sponsorCard: options.sponsorCard ?? null,
@@ -707,7 +711,7 @@ describe("WordList", () => {
     await expect
       .poll(() => textOf(links.nth(0)))
       .toMatch(
-        /Baking bread from scratch at homeYouTube · at 0:56 · Saved hereSo today/,
+        /Baking bread from scratch at homeYouTube · at 0:56 · Today · Saved hereSo today/,
       );
     await expect
       .element(links.nth(0).getByRole("img", { name: "Video" }))
@@ -1287,7 +1291,7 @@ describe("WordList on a phone", () => {
       openPage: () => Promise.resolve(),
       shareFile: (file: SharedFile) => {
         shared.push(file);
-        return Promise.resolve();
+        return Promise.resolve(true);
       },
     });
     try {
@@ -1319,6 +1323,34 @@ describe("WordList on a phone", () => {
       expect(shared[1]!.text).toContain("\r\nfigure out,");
       expect(shared[2]!.text).toBe('{"format":"langle-export"}');
       expect(downloads).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("says nothing and records no export when the share sheet closed without a target", async () => {
+    let shared = 0;
+    vi.stubGlobal("appHost", {
+      openPage: () => Promise.resolve(),
+      shareFile: () => {
+        shared++;
+        return Promise.resolve(false);
+      },
+    });
+    try {
+      const { screen, sent } = await phone({ saveFile });
+      for (const [i, item] of ["CSV", "Backup (JSON)"].entries()) {
+        await screen.getByRole("button", { name: "Export and import" }).click();
+        await screen
+          .getByRole("menu", { name: "Export and import" })
+          .getByRole("menuitem", { name: item })
+          .click();
+        await expect.poll(() => shared).toBe(i + 1);
+        await expect
+          .poll(() => screen.getByText(/^Export(ing|ed)/).query())
+          .toBeNull();
+      }
+      expect(sent.map((r) => r.type)).not.toContain("recordExport");
     } finally {
       vi.unstubAllGlobals();
     }

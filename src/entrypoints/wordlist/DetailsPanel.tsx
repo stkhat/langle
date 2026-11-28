@@ -7,7 +7,7 @@ import type {
   TermSummary,
   YourMeaning,
 } from "../../messaging/protocol";
-import { sameDay, shortDate } from "../../ui/format/format";
+import { shortDate } from "../../ui/format/format";
 import { occurrenceItem } from "../../ui/lookup/elsewhere";
 import { ElsewhereRow } from "../../ui/lookup/ElsewhereRow";
 import { EntryHeader } from "../../ui/lookup/EntryHeader";
@@ -91,8 +91,8 @@ export function DetailsPanel(props: {
   const learnedAt = props.row?.learnedAt;
   const items = occurrences.map((o) => {
     const item = occurrenceItem(o);
-    const parts = [item.meta];
-    if (!sameDay(o.seenAt, now)) parts.push(shortDate(o.seenAt, now));
+    // "Today" too: the mock dates every place (MobileWordsDetail, WordListMeanings).
+    const parts = [item.meta, shortDate(o.seenAt, now)];
     if (o.origin === "saved") parts.push(t("wordlist.savedHere"));
     return { ...item, meta: parts.join(" · ") };
   });

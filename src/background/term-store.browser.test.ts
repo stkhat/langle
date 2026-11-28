@@ -971,8 +971,10 @@ describe("exportJson", () => {
     ]);
   });
 
-  it("records the time of the export", async () => {
+  it("records no export by itself: recordExport does, when the file reached the user", async () => {
     await store.exportJson();
+    expect(await store.getMeta("lastExportAt")).toBeUndefined();
+    await store.recordExport();
     expect(await store.getMeta("lastExportAt")).toBe(clock.time);
   });
 });

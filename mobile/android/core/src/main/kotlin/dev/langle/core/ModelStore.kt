@@ -52,6 +52,17 @@ fun isSafeName(name: String): Boolean = name.matches(SAFE_NAME) && name != "." &
 
 private val SAFE_NAME = Regex("[A-Za-z0-9._-]{1,128}")
 
+/**
+ * The build's `packs/models.json` (scripts/model-packs.ts): the model packs it can download, for
+ * [ModelStore]'s catalogue. Unsafe names, and anything not a JSON array of strings, are left out.
+ */
+fun modelCatalogue(text: String?): Set<String> =
+  runCatching { parseJson(text ?: return emptySet()).array }
+    .getOrNull()
+    .orEmpty()
+    .mapNotNull { it.string?.takeIf(::isSafeName) }
+    .toSet()
+
 /** An HTTP answer: its status and its body, closed by the reader. */
 class Fetched(val status: Int, val body: InputStream) : Closeable {
   override fun close() = body.close()
@@ -95,6 +106,11 @@ class ModelStore(
   private val main: (() -> Unit) -> Unit,
   private val now: () -> Double = { System.currentTimeMillis().toDouble() },
   private val progressMs: Double = 250.0,
+  /**
+   * The model packs the build can download (its `packs/models.json`, `modelPacksOf` of the lock):
+   * known from the first start, so a pair never downloaded is `packs` (to come), not `unavailable`.
+   */
+  private val catalogue: Set<String> = emptySet(),
 ) {
   private class Inflight(val version: String) {
     val progress = mutableListOf<(Long, Long) -> Unit>()
@@ -121,7 +137,7 @@ class ModelStore(
 
   fun isReady(pack: String) = pack in ready
 
-  fun isKnown(pack: String) = pack in known || pack in ready
+  fun isKnown(pack: String) = pack in known || pack in ready || pack in catalogue
 
   /** A ready pack's file (its `manifest.json`, or a joined model file by its type), or null. */
   fun file(pack: String, name: String): File? {
@@ -132,7 +148,10 @@ class ModelStore(
   /** The ready packs that translate [from] into [to], or null (see [modelPacksFor]). */
   fun packsFor(from: String, to: String): List<String>? = modelPacksFor(from, to, ::isReady)
 
-  /** `appHost.translatorStatus` on Android: `ready`, `packs` (asked for, not here yet) or `unavailable`. */
+  /**
+   * `appHost.translatorStatus` on Android: `ready`, `packs` (in the build's catalogue or asked for,
+   * not here yet) or `unavailable`.
+   */
   fun status(from: String, to: String): String =
     when {
       packsFor(from, to) != null -> "ready"

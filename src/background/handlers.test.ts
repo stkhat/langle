@@ -59,6 +59,7 @@ function fakeStore(): FakeStore {
     occurrencesOf: vi.fn(async (): Promise<OccurrenceWithSource[]> => []),
     occurrenceStats: vi.fn(fail("occurrenceStats")),
     exportJson: vi.fn(fail("exportJson")),
+    recordExport: vi.fn(fail("recordExport")),
     importJson: vi.fn(fail("importJson")),
     applySynced: vi.fn(fail("applySynced")),
     languages: vi.fn(fail("languages")),
@@ -404,6 +405,13 @@ describe("handlers: routing", () => {
       method: "exportJson",
       args: [],
       result: '{"format":"langle-export"}',
+    },
+    {
+      request: { type: "recordExport" },
+      method: "recordExport",
+      args: [],
+      result: undefined,
+      expected: null,
     },
     {
       request: { type: "importJson", json: "{}" },

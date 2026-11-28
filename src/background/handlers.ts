@@ -664,6 +664,10 @@ export function createHandlers({
       return null;
     },
     exportJson: () => store.exportJson(),
+    recordExport: async () => {
+      await store.recordExport();
+      return null;
+    },
     importJson: ({ json }) => store.importJson(json),
     lastExport: async () => (await store.getMeta("lastExportAt")) ?? null,
     async listTermsWithStats({ lang, meanings: withMeanings = true }) {

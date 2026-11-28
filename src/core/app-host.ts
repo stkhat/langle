@@ -9,9 +9,11 @@ export interface AppHost {
   openPage(url: string): Promise<void>;
   /**
    * Hands a file to the phone's share sheet, where the user saves it to Files or sends
-   * it; resolves once the sheet shows. Pages in the app have no downloads.
+   * it; resolves once the sheet is done: true when the file went to a target (an app,
+   * Save to Files / Save to device), false when the sheet closed without one. Pages in
+   * the app have no downloads.
    */
-  shareFile(file: SharedFile): Promise<void>;
+  shareFile(file: SharedFile): Promise<boolean>;
   /**
    * Gives the shells the strings they draw themselves (their bars, ⋮, toasts and
    * labels) in the interface language; they keep the last ones for a cold start.

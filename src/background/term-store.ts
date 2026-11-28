@@ -210,8 +210,13 @@ export interface TermStore {
   /** Newest first. */
   occurrencesOf(termId: string): Promise<OccurrenceWithSource[]>;
   occurrenceStats(lang: string): Promise<Map<string, OccurrenceStats>>;
-  /** All data as `LangleExport` JSON; records `lastExportAt`. */
+  /** All data as `LangleExport` JSON. */
   exportJson(): Promise<string>;
+  /**
+   * Records `lastExportAt` (now): an export reached the user, as a download or at a
+   * share sheet's target. A sheet closed without one records nothing.
+   */
+  recordExport(): Promise<void>;
   /**
    * Merges an export (version 1 to 3) by the rules cloud sync merges with
    * (`core/cloud/merge.ts`): per term the newer `updatedAt` wins and `clearedAt` the
@@ -1032,8 +1037,11 @@ export function createTermStore(
         };
         return exported;
       });
-      await db.meta.put({ key: "lastExportAt", value: exportedAt });
       return JSON.stringify(data);
+    },
+
+    async recordExport() {
+      await db.meta.put({ key: "lastExportAt", value: now() });
     },
 
     async importJson(json) {
