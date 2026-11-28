@@ -36,14 +36,49 @@
 - [x] M4e: the device checks of the whole of M4 (branch `claude/mobile-m4e`), notes/mobile.md "Device checks of M4 (M4e, Android)" and "(M4e, iOS)", with "Open items for M4"
 - [x] M4f: export and import in the app (branch `claude/mobile-m4f`): `appHost.shareFile` and the share sheet (with Save to device on Android), the shells' file pickers; notes/mobile.md "Device checks (M4f, Android)" and "(M4f, iOS)"
 - [x] M5: the translation hosts ("M5" below; the real-iPhone checks moved to M9)
-- [ ] M6: ad blocking on articles and YouTube ("M6" below; spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking")
-- [ ] M7: own-cloud sync in the app (Google Drive; "M7" below; spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app")
+- [x] M6: ad blocking on articles and YouTube ("M6" below; spec [mobile-app.md](../specs/mobile-app.md) "M6: ad blocking")
+- [x] M7: own-cloud sync in the app (Google Drive; "M7" below; spec [mobile-app.md](../specs/mobile-app.md) "M7: own-cloud sync in the app")
 - [x] M8 designed (2026-11-26, with the user): spec [mobile-app.md](../specs/mobile-app.md) "M8: Share → Langle" (Share only on both platforms, no Open with; on iOS the extension opens Langle through the responder chain, its sheet only when that fails: the user's choice of 2026-11-27)
 - [x] M8-0: the extension's sheet (`MobileShareSaved`) in the mock and ui.md (2026-11-27)
 - [x] M8a: `SharedLink` and the Android shell (branch `claude/mobile-m8a`): checked on the emulator, notes/mobile.md "Device checks (M8a, Android)"
 - [x] M8b-0 (`claude/mobile-m8b-0`, 2026-11-27): the spike: a share extension opening its app. Works on the iOS 27.2 Simulator (the only runtime installed): the responder-chain open brought the app to the front in all 7 runs (Safari article and YouTube, Reminders text; running or killed); `NSExtensionContext.open` always false; the App Group hand-off works with ad-hoc Simulator signing. Notes: [mobile.md](../notes/mobile.md) "Share extension spike (M8b-0)"
 - [x] M8b: the iOS share extension (branch `claude/mobile-m8b`): checked on the iOS 27.2 Simulator, notes/mobile.md "Device checks (M8b, iOS)"
-- [ ] M9 (release checks), on a real iPhone, last (the user's decision of 2026-11-26: every milestone that needs no real device comes first): Apple's consent sheet (declined once for the Language data row's state, then accepted), a tapped word's English definition translated, the subtitles translated on the device with `refuseTlang` on, translate-ahead and the cards, the lists without starting the engine, the release after 60 s and on leaving the app, speed, and the quality of Apple's traditional models (notes/mobile.md "Open issues and risks" 4). The device tooling for it is on the local branch `claude/mobile-m6` (not pushed): `check.sh`'s `LANGLE_DEVICE` / `LANGLE_TEAM`, `Documents/check.log`, `-translateStrategy lowLatency`, `cmd translate-set`
+- [ ] M9 (release checks), on a real iPhone, last (the user's decision of 2026-11-26: every milestone that needs no real device comes first): Apple's consent sheet (declined once for the Language data row's state, then accepted), a tapped word's English definition translated, the subtitles translated on the device with `refuseTlang` on, translate-ahead and the cards, the lists without starting the engine, the release after 60 s and on leaving the app, speed, and the quality of Apple's traditional models (notes/mobile.md "Open issues and risks" 4). The device tooling for it is on the local branch `claude/mobile-m9-device` (not pushed): `check.sh`'s `LANGLE_DEVICE` / `LANGLE_TEAM`, `Documents/check.log`, `-translateStrategy lowLatency`, `cmd translate-set`
+
+## Remaining (collected 2026-11-28)
+Everything left for the phone app after M0–M8: the milestones still to run, and the open items the device checks and sessions found (each with the notes/mobile.md section that has the details). Strike an item through when it is done or decided.
+
+### Milestones and release work
+- **M9 on a real iPhone** (above), plus what other milestones moved there: the App Group's provisioning and the share extension's open (M8b, spec "M8"); `app.hidden`'s writes under WebKit's suspension, which should show more often on a phone ("Device checks (M7e, iOS)").
+- **A real low-end Android phone**, required before release and in no milestone yet: 95% of sentences translated within 1 second during playback, else a native build is discussed (spec mobile-translation.md "Quality and real devices"); the 60 s release and the 30 s / 10 s limits tuned on real phones.
+- **Store release of the app: not planned yet.** It needs:
+  - the Apple Developer Program ($99/year) and a Google Play account ($25); Play's 12 testers for 14 days in a closed test before production ("Open issues and risks" 7);
+  - App Review: guidelines 2.5.6, 4.2 and 5.2.2, and whether YouTube ad blocking is accepted in either store ("Open issues and risks" 10);
+  - the Google consent screen out of Testing (only test users can connect, refresh tokens end after 7 days), and an Android OAuth client for the release signing key (M7a's client has the debug keystore's SHA-1, "Drive sign-in (M7a)");
+  - the store pages, after which the app's Rate link can show (status.md "Before publishing", Support Langle).
+
+### Bugs and open design points
+- **A gone device's unreadable Drive file keeps Update Langle on every other device for good**, since only the owner rewrites or removes its files ("Device checks (M7e, Android)").
+- **The write side does not validate a source's platform**: a check script saved `"article"`, which every reader then refused as damaged; it is checked only when a file is read ("Device checks (M7e, Android)").
+- **Subtitles**: one cold load in 26 had none after 78 s with no warning, not reproduced ("Device checks (M5g, Android)"); an auto-caption video's subtitles come only after the 60 s wait for its ASR track ("Device checks (M6e, iOS)"); the track list during and right after a pre-roll ad is unchecked ("Subtitles missing on an early load (M5f)").
+- **Pages without a viewport meta** are shown scaled down, Langle's sheet with them; a general fix would scale Langle's fixed UI by `1 / visualViewport.scale` ("Device checks (M3d)").
+- A model pack that fails at every mirror gives its reason only in logcat, not in the check build's error log ("Device checks (M5g, Android)").
+- "Last export" is set when the share sheet opens, also when it is dismissed; iOS could tell through `completionWithItemsHandler`, Android cannot ("Open items for M4").
+- Before the first `models.ensure`, `translatorStatus` is `unavailable` (harmless today: the first run's download sends one; "The Android translation host (M5c)").
+
+### Differences from the mock
+- The Langle sheet is always at full height (the mock sizes it to its content); Android's frame is 90% high and cuts its last line, the mock's about 94%.
+- The in-page dictionary sheet does not hide the title bar (the mock hides it); editing the title is not drawn in the mock.
+- iPhone landscape: the transcript column at the left sits about 6 px under the Dynamic Island ("The app's own fullscreen (M3e)").
+- Android: Langle's L covers YouTube's settings gear while the controls show; in fullscreen with the controls showing, the subtitle sits over the progress bar ("Device checks (M3d)").
+- The Paused pill sits under YouTube's unmute button while muted; iOS draws its selection handles on Langle's subtitle selection; the sheet's top does not follow a later change of the subtitle band's height ("Device checks (M3d)").
+- Small: Home's search keeps its text after a page opens; "On this site" says `www.youtube.com` on a watch page and `m.youtube.com` elsewhere; the site line says "YouTube" (mock "youtube.com"); "2 minutes ago" (mock "2 min ago"); localhost's tile shows "L"; Settings lists Sentence history (not in the mock); a word's details show no date for today; Settings has no privacy policy link yet (status.md "Before publishing", plan C8).
+- Content: a phrase the ja dictionary lacks can show an English meaning ("figure out"); the Journal de Montréal keeps an empty banner box on both shells ("Device checks (M6e, iOS)").
+
+### Not checked yet
+- A playing ad's removal: no pre-roll was served in 24 loads with blocking off ("Device checks (M6e, …)").
+- Share from inside the YouTube app, and Langle's subtitles on a shared video (the emulator's network; "Device checks (M8a, Android)").
+- The iOS 26.x Simulators (the floor is 26.4; only 27.2 has run), an iPad, a low-RAM Android phone, and editing the title on iOS by tap.
 
 ## Running order
 - M0 and S1 start together. S2 starts when S1 has shut its Simulator down: the dev Mac runs only one of the iOS Simulator and the Android emulator at a time.
